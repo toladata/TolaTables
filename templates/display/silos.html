@@ -1,0 +1,177 @@
+{% extends "base.html" %} 
+{% block page_title %}Your Data Silos{% endblock %}
+
+{% block content %}
+	<p>Edit the detail information about silo (data store) or go directly to your silo to edit the data.</p>
+    <div class='panel panel-default'>
+      <!-- Default panel contents -->
+      <div class='panel-heading'>Data Silos</div>
+      {% if get_silos %}
+          <!-- Table -->
+          <table class="table table-condensed table-responsive">
+            <tr>
+            <th>Silo Name</th>
+            <th>Description</th>
+            <th>Silo Source(s)</th>            
+            <th>Silo Operations</th>
+            <th>Share Data</th>
+            <th>Public</th>
+            </tr>
+            {% for silo in get_silos %}
+
+            <tr>
+                <td><a href="/silo_edit/{{ silo.id }}">{{ silo.name }}</a></br>
+                    <span><small>Tags: {{ silo.tags.all|join:", "}}</small></span></td>
+                <td>{{ silo.description }}</td>
+                <td>
+                    {% for r in silo.reads.all %}
+                        {% if r.read_name != "Google" %} <a href="/show_read/{{ r.id }}" > {{ r.read_name }}</a> <br />{% endif %}
+                    {% endfor %}
+                </td>
+                <td>
+                    <div class="btn-group" role="group">
+                        <a href="/silo_detail/{{ silo.id }}" class="btn btn-sm btn-success">Edit</a>
+                        <a href="/merge/{{ silo.id }}" class="btn btn-sm btn-warning">Merge</a>
+                        <a href="/silo_delete/{{ silo.id }}" class="btn btn-del btn-sm btn-danger" title="Are you sure you want to delete this silo? All of the data stored in this Silo will also be deleted.">Delete</a>
+                     </div>
+                </td>
+                <td>
+                    <div style="width: 100%; " class="input-group-btn">
+                        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">Share <span class="caret"></span></button>
+                        <ul class="dropdown-menu" role="menu">
+                            <li><a href="/api/silo/{{ silo.id }}" target="_new">REST API</a></li>
+                            <li><a href="/api/custom/{{ silo.id }}" target="_new">JSON FEED</a></li>
+                            <li><a href="/export/{{ silo.id }}"><span class="glyphicon glyphicon-file"></span> Excel </a></li>
+                            <li class="divider"></li>
+                            <li><a href="/export_new_gsheet/{{ silo.id }}/"><span class="glyphicon glyphicon-cloud-upload"></span> New Google SHEET</a></li>
+                            <li>
+                                <a href="#" onclick="onAuthApiLoad({{ silo.id }});">
+                                <span class="glyphicon glyphicon-cloud"></span> Export Existing GSHEET</a>
+                            </li>
+                        </ul>
+                    </div><!-- /btn-group -->
+                    <!-- <div id="silo_id" style="display: none;"> {{ silo.id }} </div> -->
+                </td>
+                <td>
+                    <a href="#" id="id_public-{{silo.id}}" class="public btn btn-sm {% if silo.public %} btn-warning {% else %} btn-primary {% endif %}" role="button">{% if silo.public %} Public {% else %} Private {% endif %}</a>
+                </td>
+            </tr>
+            {% endfor %}
+          </table>
+      {% endif %}
+        </div>
+    </div>
+{% endblock content %}
+{% block extra_js_in_body %}
+    <script>
+        $(document).ready(function() {
+            $("a.public").click(function(e) {
+                var btn_id = $(this).attr('id');
+                var silo_id = btn_id.split("-")[1];
+                var btn_txt = $(this).text();
+                var btn = $(this);
+                $.get('/toggle_silo_publicity/', { "silo_id": silo_id } )
+                .done(function() {
+                    btn.text(btn_txt == "Public" ? "Private" : "Public");
+                    btn.toggleClass("btn-warning btn-primary");
+                    btn.blur();
+                })
+                .fail(function(a, b, c) {
+                    alert("Something went wrong: " + c);
+                });
+            });
+        });
+    </script>
+    <script type="text/javascript">
+
+        // The Client ID obtained from the Google Developers Console.
+        var clientId = "859950034311-r6gsqnipugbtv6a2j4h4eo2tt2a1js2t.apps.googleusercontent.com"
+
+        // developerKey is the same as the Browser API key, at least, as of writing this code.
+        var developerKey = 'AIzaSyCuDmq8DjGziPnfAl4bW7fEZtf25teO3x4';
+
+        // The list of scopes to request access to is available at: https://developers.google.com/picker/docs/#otherviews
+        var scope = ['https://www.googleapis.com/auth/drive'];
+
+        var silo_id;
+        var pickerApiLoaded = false;
+        var oauthToken;
+
+        
+        // Use the API Loader script to load google.picker and gapi.auth.
+        function onApiLoad() {
+            gapi.load('auth');
+            gapi.load('picker', {'callback': onPickerApiLoad});
+        }
+
+        // After Google's auth library is loaded, this function is called
+        function onAuthApiLoad(siloId) {
+            silo_id = siloId;
+            window.gapi.auth.authorize( {
+                'client_id': clientId,
+                'scope': scope,
+                'immediate': false
+            },
+            handleAuthResult);
+        }
+
+        function onPickerApiLoad() {
+            pickerApiLoaded = true;
+            //createPicker();
+        }
+
+        // After the authentication is complete, this method is called
+        function handleAuthResult(authResult) {
+            if (authResult && !authResult.error) {
+                oauthToken = authResult.access_token;
+                createPicker();
+            }
+        }
+
+        // Create and render a Picker object for picking user Photos.
+        function createPicker() {
+            if (pickerApiLoaded && oauthToken) {
+                var view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS);
+                view.setIncludeFolders(true);
+                view.setOwnedByMe(true);
+                view.setSelectFolderEnabled(false);
+                view.setMode("DocsViewMode.LIST");
+                var picker = new google.picker.PickerBuilder()
+                    .enableFeature(google.picker.Feature.NAV_HIDDEN)
+                    .addView(view)
+                    .setOAuthToken(oauthToken)
+                    .setDeveloperKey(developerKey)
+                    .setCallback(pickerCallback)
+                    .build();
+                picker.setVisible(true);
+            }
+        }
+
+        
+        // A simple callback implementation.
+        function pickerCallback(data) {
+            //console.log(JSON.stringify(data));
+            if (data[google.picker.Response.ACTION] == google.picker.Action.PICKED) {
+                var doc = data[google.picker.Response.DOCUMENTS][0];
+                url = doc[google.picker.Document.URL];
+                id = doc[google.picker.Document.ID];
+            }
+            console.log("URL: " + url);
+            console.log("ID: " + id);
+            console.log("silo_id: " + silo_id);
+            
+            $(location).attr('href', '/export_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + id);
+            //$.get('/export_gsheet/' + silo_id + "/", { "link": url , "resource_id": id} );
+            // console.log("pickerCallbakc");
+            //export_to_gsheet(silo_id, url, id);
+        }
+
+        function export_to_gsheet(silo_id, url, resource_id) {
+            $.get('/export_gsheet/' + silo_id + "/", { "link": url , "resource_id": resource_id} );
+        }
+        
+    </script>
+    <script type="text/javascript" src="https://apis.google.com/js/api.js?onload=onApiLoad"></script>
+    
+
+{% endblock extra_js_in_body %}

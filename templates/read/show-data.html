@@ -1,0 +1,13 @@
+{% extends "base.html" %} 
+{% block page_title %}JSON Data Imported{% endblock %}
+
+<h4>Data Imported, Preview of Imported Data Below<h4<p>To see and edit data go to <a href="/display"/>Share Data / Edit<a/></p>
+
+
+{% load render_table from django_tables2 %}
+
+{% block content %}
+
+{% render_table get_silo %}
+
+{% endblock content %}

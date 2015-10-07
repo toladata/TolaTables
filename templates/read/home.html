@@ -1,0 +1,13 @@
+{% extends "base.html" %} 
+{% block page_title %}Read Data from an existing source or create a new source{% endblock %}
+
+{% block content %}
+	<h3>View a Source</h3>
+	<ul class="list-group">
+			{% for item in getReads %}
+				<li class="list-group-item">Update Data from Source: <a href="/show_read/{{ item.id }}">{{ item.read_name }}</a></li>
+			{% endfor %}
+	</ul>
+	<h4><a href="/new_read" class="btn btn-sm btn-info">Create a New Source</a> <!--<a href="/new_odk" class="btn btn-sm btn-info">Create a New Ona/FormHub Source</a>--></h4>
+
+{% endblock content %}

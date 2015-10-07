@@ -1,0 +1,72 @@
+#App Specific CSS
+/* Sticky footer styles
+-------------------------------------------------- */
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+#footer {
+    position: fixed;
+    bottom: 0px;
+    width: 100%;
+    /* Set the fixed height of the footer here */
+    height: 60px;
+    border-top: 1px solid #e5e5e5;
+    background-color: #f5f5f5;
+}
+
+
+/* Custom page CSS
+-------------------------------------------------- */
+/* Not required for template or sticky footer method. */
+
+body > .container {
+    padding-bottom: 80px;
+}
+
+.alert{
+    margin-top: 40px;
+    margin-bottom: -20px;
+}
+
+
+.btn-frozen {
+    color: #fff;
+    background-color: #808080;
+    border-color: #808080;
+}
+
+.date-badge {
+    display: inline-block;
+    min-width: 10px;
+    padding: 3px 7px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1;
+    vertical-align: baseline;
+    white-space: nowrap;
+    text-align: center;
+    background-color: lightgrey;
+    border-radius: 5px
+}
+
+/* Start by setting display:none to make this hidden.
+   Then we position it in relation to the viewport window
+   with position:fixed. Width, height, top and left speak
+   speak for themselves. Background we set to 80% white with
+   the animation centered, and no-repeating */
+#loading {
+    display:    none;
+    position:   fixed;
+    z-index:    1100;
+    top:        0;
+    left:       0;
+    height:     100%;
+    width:      100%;
+    background: rgba( 255, 255, 255, .8 )
+                url('../img/ajax-loader.gif')
+                50% 50%
+                no-repeat;
+}
