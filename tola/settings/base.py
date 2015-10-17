@@ -205,6 +205,7 @@ DJANGO_APPS = (
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     'django.contrib.admindocs',
+    'social.apps.django_app.default',
 
 )
 

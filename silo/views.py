@@ -6,7 +6,7 @@ import csv
 import operator
 
 from django.http import HttpResponseRedirect
-from .forms import ReadForm, UploadForm, SiloForm, MongoEditForm
+from .forms import ReadForm, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
@@ -169,7 +169,7 @@ def saveAndImportRead(request):
             lvs = LabelValueStore()
             lvs.silo_id = silo.pk
             for new_label, new_value in row.iteritems():
-                if new_value is not "" and new_label is not None and new_label is not "edit_date" and new_label is not "create_date":
+                if new_label is not "" and new_label is not None and new_label is not "edit_date" and new_label is not "create_date":
                     setattr(lvs, new_label, new_value)
             lvs.create_date = timezone.now()
             result = lvs.save()
@@ -216,6 +216,15 @@ def getOnaForms(request):
     return render(request, 'silo/getonaforms.html', {
         'form': form, 'data': data, 'silos': silos
     })
+
+@login_required
+def providerLogout(request,provider):
+
+    ona_token = ThirdPartyTokens.objects.get(user=request.user, name=provider)
+    ona_token.delete()
+
+    messages.error(request, "You have been logged out of your Ona account.  Any Tables you have created with this account ARE still available, but you must log back in here to update them.")
+    return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
 
 #DELETE-SILO
@@ -344,8 +353,9 @@ def uploadFile(request, id):
                 lvs.save()
             
             return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
-    else:
-        form = UploadForm()  # An unbound form
+        else:
+            messages.error(request, "There was a problem with reading the contents of your file" + form.errors)
+            print form.errors
 
     user = User.objects.get(username__exact=request.user)
     # get all of the silo info to pass to the form
@@ -353,7 +363,7 @@ def uploadFile(request, id):
     
     # display login form
     return render(request, 'read/file.html', {
-        'form': form, 'read_id': id, 'get_silo': get_silo,
+        'read_id': id, 'get_silo': get_silo,
     })
 
 
@@ -428,7 +438,17 @@ def getJSON(request):
 #display
 #INDEX
 def index(request):
-    return render(request, 'index.html')
+
+    # get all of the table(silo) info for logged in user and public data
+    if request.user.is_authenticated():
+        user = User.objects.get(username__exact=request.user)
+        get_silos = Silo.objects.filter(owner=user)
+    else:
+        get_silos = None
+    count_all = Silo.objects.count()
+    count_max = count_all + (count_all * .10)
+    get_public = Silo.objects.filter(public=1)
+    return render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_max':count_max})
 
 
 def toggle_silo_publicity(request):
@@ -458,8 +478,9 @@ def siloDetail(request,id):
     Show silo source details
     """
     owner = Silo.objects.get(id = id).owner
-    
-    if str(owner.username) == str(request.user):
+    public = Silo.objects.get(id = id).public
+
+    if str(owner.username) == str(request.user) or public:
         table = LabelValueStore.objects(silo_id=id).to_json()
         decoded_json = json.loads(table)
         column_names = []
@@ -474,13 +495,132 @@ def siloDetail(request,id):
             RequestConfig(request).configure(silo)
     
             #send the keys and vars from the json data to the template along with submitted feed info and silos for new form
-            return render(request, "display/stored_values.html", {"silo": silo})
+            return render(request, "display/stored_values.html", {"silo": silo, 'id':id})
         else:
-            messages.error(request, "There is not data in Silo with id = %s" % id)
+            messages.error(request, "There is not data in Table with id = %s" % id)
             return HttpResponseRedirect(request.META['HTTP_REFERER'])
     else:
-        messages.info(request, "You don't have the permission to see data in this silo")
+        messages.info(request, "You don't have the permission to see data in this table")
         return HttpResponseRedirect(request.META['HTTP_REFERER'])
+
+#Add a new column on to a silo
+@login_required
+def newColumn(request,id):
+    """
+    FORM TO CREATE A NEW COLUMN FOR A SILO
+    """
+    silo = Silo.objects.get(id=id)
+    form = NewColumnForm(initial={'silo_id': silo.id})
+
+    if request.method == 'POST':
+        form = NewColumnForm(request.POST)  # A form bound to the POST data
+        if form.is_valid():  # All validation rules pass
+            client = MongoClient(uri)
+            db = client.tola
+            label = form.cleaned_data['new_column_name']
+            value = form.cleaned_data['default_value']
+            #insert a new column into the existing silo
+            db.label_value_store.update_many(
+                {"silo_id": silo.id},
+                    {
+                    "$set": {label: value},
+                    },
+                False
+            )
+            messages.info(request, 'Your column has been added', fail_silently=False)
+        else:
+            messages.error(request, 'There was a problem adding your column', fail_silently=False)
+            print form.errors
+
+
+    return render(request, "silo/new-column-form.html", {'silo':silo,'form': form})
+
+#Add a new column on to a silo
+@login_required
+def editColumns(request,id):
+    """
+    FORM TO CREATE A NEW COLUMN FOR A SILO
+    """
+    silo = Silo.objects.get(id=id)
+    doc = LabelValueStore.objects(silo_id=id).to_json()
+    data = {}
+    jsondoc = json.loads(doc)
+    for item in jsondoc:
+        for k, v in item.iteritems():
+            #print("The key and value are ({}) = ({})".format(k, v))
+            if k == "_id":
+                #data[k] = item['_id']['$oid']
+                pass
+            elif k == "silo_id":
+                silo_id = v
+            elif k == "edit_date":
+                edit_date = datetime.datetime.fromtimestamp(item['edit_date']['$date']/1000)
+                data[k] = edit_date.strftime('%Y-%m-%d %H:%M:%S')
+            elif k == "create_date":
+                create_date = datetime.datetime.fromtimestamp(item['create_date']['$date']/1000)
+                data[k] = create_date.strftime('%Y-%m-%d')
+            else:
+                data[k] = v
+    form = EditColumnForm(initial={'silo_id': silo.id}, extra=data)
+
+    if request.method == 'POST':
+        form = EditColumnForm(request.POST or None, extra = data)  # A form bound to the POST data
+        if form.is_valid():  # All validation rules pass
+            client = MongoClient(uri)
+            db = client.tola
+            for label,value in form.cleaned_data.iteritems():
+                #update the column name if it doesn't have delete in it
+                if "_delete" not in label and str(label) != str(value) and label != "silo_id" and label != "suds" and label != "id":
+                    #update a column in the existing silo
+                    db.label_value_store.update_many(
+                        {"silo_id": silo.id},
+                            {
+                            "$rename": {label: value},
+                            },
+                        False
+                    )
+                #if we see delete then it's a check box to delete that column
+                elif "_delete" in label and value == 1:
+                    column = label.replace("_delete", "")
+                    db.label_value_store.update_many(
+                        {"silo_id": silo.id},
+                            {
+                            "$unset": {column: value},
+                            },
+                        False
+                    )
+
+
+            messages.info(request, 'Updates Saved', fail_silently=False)
+        else:
+            messages.error(request, 'ERROR: There was a problem with your request', fail_silently=False)
+            print form.errors
+
+
+    return render(request, "silo/edit-column-form.html", {'silo':silo,'form': form})
+
+#Delete a column from a table silo
+@login_required
+def deleteColumn(request,id,column):
+    """
+    DELETE A COLUMN FROM A SILO
+    """
+    silo = Silo.objects.get(id=id)
+    client = MongoClient(uri)
+    db = client.tola
+
+    #delete a column from the existing table silo
+    db.label_value_store.update_many(
+        {"silo_id": silo.id},
+            {
+            "$unset": {column: ""},
+            },
+        False
+    )
+
+    messages.info(request, "Column has been deleted")
+    return HttpResponseRedirect(request.META['HTTP_REFERER'])
+
 
 
 #SHOW-MERGE FORM
@@ -758,9 +898,6 @@ FLOW = flow_from_clientsecrets(
     #redirect_uri='http://localhost:8000/oauth2callback/')
 
 
-def picker_view(request):
-    return render(request, 'picker.html')
-
 def export_to_google_spreadsheet(credential_json, silo_id, spreadsheet_key):
 
 
@@ -849,53 +986,48 @@ def export_to_google_spreadsheet(credential_json, silo_id, spreadsheet_key):
 @login_required
 def export_gsheet(request, id):
     gsheet_endpoint = None
-    read_url = request.GET.get('link', None)
-    file_id = request.GET.get('resource_id', None)
-    if read_url == None or file_id == None:
-        messages.error(request, "A Google Spreadsheet is not selected to import data to it.")
-        return HttpResponseRedirect(reverse('listSilos'))
-
     storage = Storage(GoogleCredentialsModel, 'id', request.user, 'credential')
     credential = storage.get()
     if credential is None or credential.invalid == True:
         FLOW.params['state'] = xsrfutil.generate_token(settings.SECRET_KEY, request.user)
         authorize_url = FLOW.step1_get_authorize_url()
-        #FLOW.params.update({'redirect_uri_after_step2': "/export_gsheet/%s/?link=%s&resource_id=%s" % (id, read_url, file_id)})
-        request.session['redirect_uri_after_step2'] = "/export_gsheet/%s/?link=%s&resource_id=%s" % (id, read_url, file_id)
-        return HttpResponseRedirect(authorize_url)
+        #return HttpResponseRedirect(authorize_url)
+        messages.error(request, "You must first <a href='%s'>authorize</a> before you could export to Gooogle Spreadsheet." % authorize_url)
+        return JsonResponse({"redirect_url": authorize_url})
 
     credential_json = json.loads(credential.to_json())
+
     user = User.objects.get(username__exact=request.user)
     gsheet_endpoint = None
     read_type = ReadType.objects.get(read_type="Google Spreadsheet")
     try:
         gsheet_endpoint = Read.objects.get(silos__id=id, type=read_type, silos__owner=user.id, read_name='Google')
     except Read.MultipleObjectsReturned:
-        gsheet_endpoints = Read.objects.get(silos__id=id, type=read_type, silos__owner=user.id, read_name='Google')
-        for endpoint in gsheet_endpoints:
-            if endpoint.resource_id:
-                gsheet_endpoint = endpoint
+        print("multiple records exist and that should NOT be the case")
     except Read.DoesNotExist:
-        gsheet_endpoint = Read(read_name="Google", type=read_type, owner=user)
+        print("Remote End point does not exist; creating one...")
+        url = request.GET.get('link', None)
+        file_id = request.GET.get('resource_id', None)
+        if url == None:
+            print ("No link provided for the remote end point")
+        if file_id == None:
+            print("No file id is available")
+        
+        gsheet_endpoint = Read(read_name="Google", type=read_type, owner=user, read_url=url, resource_id=file_id)
         gsheet_endpoint.save()
         silo = Silo.objects.get(id=id)
         silo.reads.add(gsheet_endpoint)
         silo.save()
     except Exception as e:
-        messages.error(request, "An error occured: %" % e.message)
-
-    if gsheet_endpoint.resource_id == "None" or gsheet_endpoint.resource_id == None:
-        gsheet_endpoint.resource_id = file_id
-        gsheet_endpoint.read_url = read_url
-        gsheet_endpoint.save()
+        print(e)
 
     #print("about to export to gsheet: %s" % gsheet_endpoint.resource_id)
     if export_to_google_spreadsheet(credential_json, id, gsheet_endpoint.resource_id) == True:
         link = "Your exported data is available at <a href=" + gsheet_endpoint.read_url + " target='_blank'>Google Spreadsheet</a>"
         messages.success(request, link)
     else:
-        messages.error(request, 'Something went wrong.')
-    return HttpResponseRedirect(reverse('listSilos'))
+        messages.error(request, 'Something went wrong; try again; here we go.')
+    return JsonResponse({"success": True})
 
 @login_required
 def export_new_gsheet(request, id):
@@ -904,8 +1036,7 @@ def export_new_gsheet(request, id):
     if credential is None or credential.invalid == True:
         FLOW.params['state'] = xsrfutil.generate_token(settings.SECRET_KEY, request.user)
         authorize_url = FLOW.step1_get_authorize_url()
-        #FLOW.params.update({'redirect_uri_after_step2': "/export_new_gsheet/%s/" % id})
-        request.session['redirect_uri_after_step2'] = "/export_new_gsheet/%s/" % id
+        #print("STEP1 authorize_url: %s", authorize_url)
         return HttpResponseRedirect(authorize_url)
 
     credential_json = json.loads(credential.to_json())
@@ -938,18 +1069,17 @@ def export_new_gsheet(request, id):
         messages.success(request, link)
     else:
         messages.error(request, 'Something went wrong; try again.')
-    return HttpResponseRedirect(reverse('listSilos'))
+    return HttpResponseRedirect("/silos/")
 
 @login_required
 def oauth2callback(request):
-    if not xsrfutil.validate_token(settings.SECRET_KEY, request.GET['state'], request.user):
+    if not xsrfutil.validate_token(settings.SECRET_KEY, request.REQUEST['state'], request.user):
         return  HttpResponseBadRequest()
 
     credential = FLOW.step2_exchange(request.REQUEST)
     storage = Storage(GoogleCredentialsModel, 'id', request.user, 'credential')
     storage.put(credential)
     #print(credential.to_json())
-    redirect_url = request.session['redirect_uri_after_step2']
-    return HttpResponseRedirect(redirect_url)
+    return HttpResponseRedirect("/")
 
 

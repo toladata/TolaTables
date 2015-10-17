@@ -2,10 +2,10 @@
 
 {% load render_table from django_tables2 %}
 
-{% block page_title %}View Siloed Data{% endblock %} 
+{% block page_title %}View Table Data{% endblock %}
 
 {% block content %}
-
+<p>Edit or Delete from each row of data below <a href="/edit_columns/{{ id }}/">edit/delete columns here</a> or <a href="/new_column/{{ id }}/">add a new column here</a>.</p>
 <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
