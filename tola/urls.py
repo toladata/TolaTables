@@ -1,5 +1,5 @@
 from silo import views
-from silo.views import  UserViewSet, ReadViewSet, ReadTypeViewSet, SiloViewSet
+
 from django.conf.urls import patterns, include, url
 from django.views.generic import TemplateView
 from django.contrib.auth.models import User
@@ -21,16 +21,14 @@ router.register(r'silo', SiloViewSet)
 router.register(r'users', UserViewSet)
 router.register(r'read', ReadViewSet)
 router.register(r'readtype', ReadTypeViewSet)
-
-
-
+router.register(r'tag', TagViewSet)
 
 
 urlpatterns = patterns('',
                         #rest framework
                         url(r'^api/', include(router.urls)),
                         url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-                        url(r'^api/silodata/(?P<id>[0-9]+)/$', 'silo.api.silo_data_api', name='silodata'),
+                        url(r'^api/silodata/(?P<id>[0-9]+)/$', 'silo.api.silo_data_api', name='silo-detail'),
 
                         #index
                         url(r'^$', 'silo.views.index', name='index'),
@@ -76,7 +74,7 @@ urlpatterns = patterns('',
                         url(r'^saveAndImportRead/$', 'silo.views.saveAndImportRead', name='saveAndImportRead'),
                         url(r'^tolacon/$', 'silo.views.tolaCon', name='tolacon'),
                         url(r'^toggle_silo_publicity/$', 'silo.views.toggle_silo_publicity', name='toggle_silo_publicity'),
-                        
+
                         ###DISPLAY
                         #list all silos
                         url(r'^silos', 'silo.views.listSilos', name='listSilos'),
@@ -87,7 +85,7 @@ urlpatterns = patterns('',
                         #merge select columns
                         url(r'^merge_columns', 'silo.views.mergeColumns', name='mergeColumns'),
                         url(r'^doMerge', 'silo.views.doMerge', name='doMerge'),
-                        
+
                         #view silo detail
                         url(r'^silo_detail/(?P<id>\w+)/$', 'silo.views.siloDetail', name='siloDetail'),
 
@@ -114,9 +112,9 @@ urlpatterns = patterns('',
 
                         ###FEED
                         url(r'^export/(?P<id>\w+)/$', 'silo.views.export_silo', name='export_silo'),
-                        url(r'^export_new_gsheet/(?P<id>\d+)/$', 'silo.views.export_new_gsheet', name='export_new_gsheet'),
-                        url(r'^export_gsheet/(?P<id>\d+)/$', 'silo.views.export_gsheet', name='export_existing_gsheet'),
-                        url(r'^oauth2callback/$', 'silo.views.oauth2callback', name='oauth2callback'),
+                        url(r'^export_new_gsheet/(?P<id>\d+)/$', 'silo.google_views.export_new_gsheet', name='export_new_gsheet'),
+                        url(r'^export_gsheet/(?P<id>\d+)/$', 'silo.google_views.export_gsheet', name='export_existing_gsheet'),
+                        url(r'^oauth2callback/$', 'silo.google_views.oauth2callback', name='oauth2callback'),
 
                         #create a feed
                         url(r'^create_feed', 'silo.views.createFeed', name='createFeed'),
