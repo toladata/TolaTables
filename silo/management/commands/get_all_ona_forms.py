@@ -10,12 +10,20 @@ from tola.util import siloToDict, combineColumns
 
 class Command(BaseCommand):
     """
-    Usage: python manage.py get_ona_form_data --username mkhan --read_ids 2 9 --silo_id 1
+    Usage: python manage.py get_all_ona_forms --f weekly
     """
     help = 'Fetches all reads that have autopull checked and belong to a silo'
 
+    def add_arguments(self, parser):
+        parser.add_argument("-f", "--frequency", type=str, required=True)
+
     def handle(self, *args, **options):
-        silos = Silo.objects.filter(reads__autopull=True, reads__autopull_frequency__isnull=False)
+        frequency = options['frequency']
+        if frequency != "daily" and frequency != "weekly":
+            return self.stdout.write("Frequency argument can either be 'daily' or 'weekly'")
+
+        silos = Silo.objects.filter(reads__autopull=True, reads__autopull_frequency__isnull=False, reads__autopull_frequency = frequency)
+
         for silo in silos:
             reads = silo.reads
             for read in reads.all():
@@ -42,4 +50,4 @@ class Command(BaseCommand):
                 if num_rows == (counter+1):
                     combineColumns(silo.pk)
 
-                self.stdout.write('Successfully fetched the READ_ID, "%s", from database' % read.pk)
+                self.stdout.write('Successfully fetched the READ_ID, "%s", from ONA' % read.pk)
