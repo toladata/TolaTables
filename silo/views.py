@@ -326,7 +326,7 @@ def uploadFile(request, id):
     Upload CSV file and save its data
     """
     if request.method == 'POST':
-        form = UploadForm(request.POST)  # A form bound to the POST data
+        form = UploadForm(request.POST)
         if form.is_valid():
             read_obj = Read.objects.get(pk=id)
             today = datetime.date.today()
@@ -346,8 +346,12 @@ def uploadFile(request, id):
 
             #create object from JSON String
             data = csv.reader(read_obj.file_data)
-
-            labels = data.next() #First row of CSV should be Column Headers
+            labels = None
+            try:
+                labels = data.next() #First row of CSV should be Column Headers
+            except IOError as e:
+                messages.error(request, "The CSV file could not be found")
+                return HttpResponseRedirect(reverse_lazy('showRead', kwargs={'id': read_obj.id},))
 
             for row in data:
                 lvs = LabelValueStore()
