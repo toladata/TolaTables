@@ -284,9 +284,8 @@ def initRead(request):
             id = str(new_read.id)
             if form.instance.file_data:
                 redirect_var = "file/%s" % id
-            else:
-                redirect_var = "read/login"
-            return HttpResponseRedirect('/' + redirect_var + '/')  # Redirect after POST to getLogin
+                return HttpResponseRedirect('/' + redirect_var)  # Redirect after POST to getLogin
+            return HttpResponseRedirect(reverse_lazy('home'))
         else:
             messages.error(request, 'Invalid Form', fail_silently=False)
     else:
