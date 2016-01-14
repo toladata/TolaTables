@@ -36,7 +36,7 @@ from django.core.urlresolvers import reverse
 
 from django.utils import timezone
 from django.utils.encoding import smart_str
-
+from django.utils.encoding import smart_text
 
 # Edit existing silo meta data
 @csrf_protect
@@ -745,7 +745,7 @@ def doMerge(request):
         for col in unique_cols:
             #print(row.keys())
             if col in row.keys():
-                merge_data_row[col] = str(row[col])
+                merge_data_row[col] = smart_str(row[col])
             else:
                 merge_data_row[col] = ''
 
