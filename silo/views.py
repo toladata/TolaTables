@@ -5,6 +5,7 @@ import base64
 import csv
 import operator
 from collections import OrderedDict
+from django.core.urlresolvers import reverse_lazy
 
 from .forms import ReadForm, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm
 from django.contrib import messages
@@ -83,7 +84,6 @@ def tolaCon(request):
     response = requests.get("https://tola-activity-dev.mercycorps.org/api/")
     #jsondata = json.loads(response.content)['actions']['POST']
     jsondata = json.loads(response.content)
-    print(jsondata)
     """
     data = {}
     for field in jsondata:
@@ -309,9 +309,8 @@ def showRead(request, id):
             form.save()
             if form.instance.file_data:
                 redirect_var = "file/" + id + "/"
-            else:
-                redirect_var = "read/login/?read_id=%s" % request.POST['read_id']
-            return HttpResponseRedirect('/' + redirect_var)  # Redirect after POST to getLogin
+                return HttpResponseRedirect('/' + redirect_var)  # Redirect after POST to getLogin
+            return HttpResponseRedirect(reverse_lazy('home'))
         else:
             messages.error(request, 'Invalid Form', fail_silently=False)
     else:
@@ -374,17 +373,6 @@ def uploadFile(request, id):
         'read_id': id, 'get_silo': get_silo,
     })
 
-
-def getLogin(request):
-    """
-    Some services require a login provide user with a
-    login to service if needed and select a silo
-    """
-    # get all of the silo info to pass to the form
-    get_silo = Silo.objects.all()
-
-    # display login form
-    return render(request, 'read/login.html', {'get_silo': get_silo, 'read_id': request.GET.get('read_id', None)})
 
 @login_required
 def getJSON(request):

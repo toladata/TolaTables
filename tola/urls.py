@@ -68,7 +68,6 @@ urlpatterns = patterns('',
                         url(r'^json', 'silo.views.getJSON', name='getJSON'),
 
                         #login data
-                        url(r'^read/login/$', 'silo.views.getLogin', name='getLogin'),
                         url(r'^onalogin/$', 'silo.views.getOnaForms', name='getOnaForms'),
                         url(r'^provider_logout/(?P<provider>\w+)/$', 'silo.views.providerLogout', name='providerLogout'),
                         url(r'^saveAndImportRead/$', 'silo.views.saveAndImportRead', name='saveAndImportRead'),
