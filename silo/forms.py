@@ -65,21 +65,18 @@ class NewColumnForm(forms.Form):
 #READ FORMS
 class ReadForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
+        exclude_list=kwargs.pop('exclude_list', '')
         super(ReadForm, self).__init__(*args, **kwargs)
-
-        # If you pass FormHelper constructor a form instance
-        # It builds a default layout with all its fields
         self.helper = FormHelper(self)
-
-        # Append the read_id for edits and save button
         self.helper.layout.append(Hidden('read_id', '{{read_id}}'))
         self.helper.layout.append(Submit('save', 'save'))
-
+        for field in exclude_list:
+            del self.fields[field]
 
     class Meta:
         model = Read
         fields = ['read_name', 'read_url', 'description', 'autopull', 'autopull_frequency', 'type','file_data', 'owner']
-        #exclude = ['create_date',]
+        widgets = {'owner': forms.HiddenInput(), 'type': forms.HiddenInput()}
 
 class UploadForm(forms.Form):
     def __init__(self, *args, **kwargs):

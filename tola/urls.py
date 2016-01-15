@@ -56,9 +56,7 @@ urlpatterns = patterns('',
                         url(r'^read/home', 'silo.views.home', name='home'),
 
                         #read init form
-                        url(r'^new_read', 'silo.views.initRead', name='initRead'),
-
-                        #show read or source
+                        url(r'^source/new/', 'silo.views.showRead', kwargs={'id': 0}, name='newRead'),
                         url(r'^show_read/(?P<id>\w+)/$', 'silo.views.showRead', name='showRead'),
 
                         #upload form

@@ -271,49 +271,31 @@ def home(request):
     return render(request, 'read/home.html', {'getReads': get_reads, })
 
 @login_required
-def initRead(request):
-    """
-    Create a form to get feed info then save data to Read
-    and re-direct to getJSON or uploadFile function
-    """
-    if request.method == 'POST':  # If the form has been submitted...
-        form = ReadForm(request.POST, request.FILES)  # A form bound to the POST data
-        if form.is_valid():  # All validation rules pass
-            # save data to read
-            new_read = form.save()
-            id = str(new_read.id)
-            if form.instance.file_data:
-                redirect_var = "file/%s" % id
-                return HttpResponseRedirect('/' + redirect_var)  # Redirect after POST to getLogin
-            return HttpResponseRedirect(reverse_lazy('home'))
-        else:
-            messages.error(request, 'Invalid Form', fail_silently=False)
-    else:
-        form = ReadForm()  # An unbound form
-
-    return render(request, 'read/read.html', {
-        'form': form,
-    })
-
 def showRead(request, id):
     """
     Show a read data source and allow user to edit it
     """
-    get_read = Read.objects.get(pk=id)
+    initial = {'owner': request.user}
+    excluded_fields=('autopull', 'autopull_frequency', 'read_url')
+    try:
+        read_instance = Read.objects.get(pk=id)
+        if read_instance.type.read_type != "CSV":
+            excluded_fields = ('file_data',)
+    except Read.DoesNotExist as e:
+        read_instance = None
+        initial['type'] = ReadType.objects.get(read_type="csv")
 
-    if request.method == 'POST':  # If the form has been submitted...
-        form = ReadForm(request.POST, request.FILES, instance=get_read)  # A form bound to the POST data
-        if form.is_valid():  # All validation rules pass
-            # save data to read
-            form.save()
+    if request.method == 'POST':
+        form = ReadForm(request.POST, request.FILES)
+        if form.is_valid():
+            read = form.save()
             if form.instance.file_data:
-                redirect_var = "file/" + id + "/"
-                return HttpResponseRedirect('/' + redirect_var)  # Redirect after POST to getLogin
+                return HttpResponseRedirect("/file/" + str(read.id) + "/")
             return HttpResponseRedirect(reverse_lazy('home'))
         else:
             messages.error(request, 'Invalid Form', fail_silently=False)
     else:
-        form = ReadForm(instance=get_read)  # An unbound form
+        form = ReadForm(exclude_list=excluded_fields, instance=read_instance, initial=initial)
 
     return render(request, 'read/read.html', {
         'form': form, 'read_id': id,
@@ -334,6 +316,7 @@ def uploadFile(request, id):
 
             silo = None
             user = User.objects.get(username__exact=request.user)
+
             if request.POST.get("new_silo", None):
                 silo = Silo(name=request.POST['new_silo'], owner=user, public=False, create_date=today)
                 silo.save()
@@ -354,10 +337,12 @@ def uploadFile(request, id):
 
             for row in data:
                 lvs = LabelValueStore()
-                lvs.silo_id = silo_id
+                lvs.silo_id = 13
                 for col_counter, val in enumerate(row):
                     key = str(labels[col_counter]).replace(".", "_").replace("$", "USD")
-                    if key is not "" and key is not None:
+                    if key != "" and key is not None and key != "silo_id":
+                        if key == "create_date": key = "created_date"
+                        if key == "edit_date": key = "editted_date"
                         setattr(lvs, key, val)
                 lvs.create_date = timezone.now()
                 lvs.save()
