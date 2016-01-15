@@ -56,7 +56,7 @@ def editSilo(request, id):
             else:
                 tag, created = Tag.objects.get_or_create(name=t, defaults={'owner': request.user})
                 if created:
-                    print("creating tag: %s " % tag)
+                    #print("creating tag: %s " % tag)
                     tags[i] = tag.id
                 #post_data is a QueryDict in which each element is a list
                 post_data.getlist('tags').append(tag.id)
@@ -124,7 +124,7 @@ def saveAndImportRead(request):
     try:
         silo_id = int(request.POST.get("silo_id", None))
     except Exception as e:
-         print(e)
+         #print(e)
          return HttpResponse("Silo ID can only be an integer")
 
     try:
@@ -132,7 +132,7 @@ def saveAndImportRead(request):
             defaults={'read_url': url, 'type': read_type, 'description': description})
         if created: read.save()
     except Exception as e:
-        print(e)
+        #print(e)
         return HttpResponse("Invalid name and/or URL")
 
     existing_silo_cols = []
@@ -350,7 +350,7 @@ def uploadFile(request, id):
             return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
         else:
             messages.error(request, "There was a problem with reading the contents of your file" + form.errors)
-            print form.errors
+            #print form.errors
 
     user = User.objects.get(username__exact=request.user)
     # get all of the silo info to pass to the form
@@ -386,7 +386,7 @@ def getJSON(request):
             #retrieve JSON data from formhub via auth info
             json_file = urllib2.urlopen(request2)
         except Exception as e:
-            print e
+            #print e
             messages.error(request, 'Authentication Failed, Please double check your login credentials and URL!')
 
         silo = None
@@ -514,7 +514,7 @@ def newColumn(request,id):
             messages.info(request, 'Your column has been added', fail_silently=False)
         else:
             messages.error(request, 'There was a problem adding your column', fail_silently=False)
-            print form.errors
+            #print form.errors
 
 
     return render(request, "silo/new-column-form.html", {'silo':silo,'form': form})
@@ -578,7 +578,7 @@ def editColumns(request,id):
             messages.info(request, 'Updates Saved', fail_silently=False)
         else:
             messages.error(request, 'ERROR: There was a problem with your request', fail_silently=False)
-            print form.errors
+            #print form.errors
 
 
     return render(request, "silo/edit-column-form.html", {'silo':silo,'form': form})
