@@ -1,0 +1,68 @@
+{% extends "base.html" %} 
+
+{% load render_table from django_tables2 %}
+
+{% block page_title %}View Table Data{% endblock %}
+
+{% block content %}
+<p>Edit or Delete from each row of data below <a href="/edit_columns/{{ id }}/">edit/delete columns here</a> or <a href="/new_column/{{ id }}/">add a new column here</a>.</p>
+<a href="/set_unique_columns/{{ id }}/" id="unique_cols_selection_btn" class="btn btn-primary">Set up Unique Column(s)</a>
+
+<div id="table_data">
+    {% render_table silo %}
+</div>
+
+<br />
+{% comment %}
+    {% for row in silo %}
+        {% for k,v in row.items %}
+            {{ k }} : {{ v }} <br />
+        {% endfor %}
+    {% endfor %}
+{% endcomment %}
+
+<div class="modal fade" id="unique_cols_selection_modal" tabindex="-1" role="dialog" aria-labelledby="pr_items_modal_div_label" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title">Choose unique column(s) for this table.</h4>
+            </div>
+            <div class="modal-body" id="unique_cols_selection_modal_body_div">
+                <label for="silo_cols">Unique Columns</label>
+                <select multiple id="silo_cols_multi_select" name="silo_cols" class="form-control input-sm" style="width: 100%;">
+                    {% for col in cols %}
+                        {{ col }}
+                        <option value="{{ col }}">{{ col }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock content %}
+
+{% block extra_js_in_body %}
+<script type="text/javascript">
+"use strict";
+    $(document).ready(function() {
+        //$('#table_data').on('click', 'th', function(e) {
+            //e.preventDefault();
+            //var url = `{% url 'siloDetail' id %}` + $(this).children('a').attr('href');
+            //window.location = url ;
+        //});
+        $("#silo_cols_multi_select").select2();
+        $("body").on("click", "#unique_cols_selection_btn", function(e) {
+            e.preventDefault();
+            $("#unique_cols_selection_modal").modal('show');
+            
+        });
+    });
+</script>
+{% endblock %}

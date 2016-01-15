@@ -51,10 +51,6 @@ urlpatterns = patterns('',
                         #home
                         url(r'^home', 'silo.views.listSilos', name='listSilos'),
 
-                        ###READ
-                        #read init form
-                        url(r'^read/home', 'silo.views.home', name='home'),
-
                         #read init form
                         url(r'^source/new/', 'silo.views.showRead', kwargs={'id': 0}, name='newRead'),
                         url(r'^show_read/(?P<id>\w+)/$', 'silo.views.showRead', name='showRead'),

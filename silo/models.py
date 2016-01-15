@@ -7,7 +7,7 @@ from oauth2client.django_orm import CredentialsField
 
 
 class GoogleCredentialsModel(models.Model):
-    id = models.ForeignKey(User, primary_key=True, related_name='google_credentials')
+    id = models.OneToOneField(User, primary_key=True, related_name='google_credentials')
     credential = CredentialsField()
 
 class ThirdPartyTokens(models.Model):
@@ -83,12 +83,24 @@ class Tag(models.Model):
         return self.name
 
 
+class UniqueFields(models.Model):
+    name = models.CharField(max_length=254)
+    created = models.DateTimeField(auto_now=False, auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+    def __unicode__(self):
+        return self.name
+
+
 # Create your models here.
 class Silo(models.Model):
     owner = models.ForeignKey(User)
     name = models.CharField(max_length = 60, blank=False, null=False)
     reads = models.ManyToManyField(Read, related_name='silos')
     tags = models.ManyToManyField(Tag, related_name='silos', blank=True)
+    unique_fields = models.ManyToManyField(UniqueFields, related_name='silos', blank=True)
     shared = models.ManyToManyField(User, related_name='silos', blank=True)
     description = models.CharField(max_length=255, blank=True, null=True)
     public = models.BooleanField()

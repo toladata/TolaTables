@@ -255,20 +255,6 @@ def deleteSilo(request, id):
         messages.error(request, "You do not have permission to delete this silo")
         return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
-#READ VIEWS
-@login_required
-def home(request):
-    """
-    List of Current Read sources that can be updated or edited
-    """
-    try:
-        user = User.objects.get(username__exact=request.user)
-        get_reads = Read.objects.filter(owner=user)
-    except User.DoesNotExist as e:
-        messages.info(request, "There are no available silos")
-        get_reads = None
-
-    return render(request, 'read/home.html', {'getReads': get_reads, })
 
 @login_required
 def showRead(request, id):
@@ -464,6 +450,12 @@ def siloDetail(request,id):
     owner = Silo.objects.get(id = id).owner
     public = Silo.objects.get(id = id).public
 
+    lvs = json.loads(LabelValueStore.objects(silo_id = id).to_json())
+    cols = []
+    for l in lvs:
+        cols.extend([k for k in l.keys() if k not in cols and k != '_id' and k != 'silo_id' and k != 'create_date' and k != 'edit_date' and k != 'source_table_id'])
+    #cols = json.dumps(cols)
+
     if str(owner.username) == str(request.user) or public:
         table = LabelValueStore.objects(silo_id=id).to_json()
         decoded_json = json.loads(table)
@@ -479,7 +471,7 @@ def siloDetail(request,id):
             RequestConfig(request).configure(silo)
 
             #send the keys and vars from the json data to the template along with submitted feed info and silos for new form
-            return render(request, "display/stored_values.html", {"silo": silo, 'id':id})
+            return render(request, "display/silo_detail.html", {"silo": silo, 'id':id, 'cols': cols})
         else:
             messages.error(request, "There is not data in Table with id = %s" % id)
             return HttpResponseRedirect(request.META['HTTP_REFERER'])

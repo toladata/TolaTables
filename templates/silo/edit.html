@@ -15,7 +15,6 @@
 {% endblock content %}
 
 {% block extra_js_in_body %}
-    <script type="text/javascript" src="{{ STATIC_URL }}js/select2.min.js"></script>
     <script type="text/javascript">
         $(document).ready(function() { 
             /* add select2 js library to the tags select box */
@@ -33,7 +32,7 @@
                 },
             }).on("change", function(e) {
                 var isNew = $(this).find('[data-select2-tag="true"]');
-                console.log(isNew);
+                //console.log(isNew);
                 if(isNew.length){
                     isNew.replaceWith('<option selected="selected" value="'+isNew.val()+'">'+isNew.text()+'</option>');
                     //$('#console').append('<code>New tag: {"' + isNew.val() + '":"' + isNew.val() + '"}</code><br>');
