@@ -71,6 +71,7 @@ urlpatterns = patterns('',
                         ###DISPLAY
                         #list all silos
                         url(r'^silos', 'silo.views.listSilos', name='listSilos'),
+                        url(r'^add_unique_fields', 'silo.views.addUniqueFiledsToSilo', name='add_unique_fields_to_silo'),
 
                         #merge form
                         url(r'^merge/(?P<id>\w+)/$', 'silo.views.mergeForm', name='mergeForm'),

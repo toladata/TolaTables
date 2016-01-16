@@ -25,7 +25,7 @@ from django.views.decorators.csrf import csrf_protect
 import django_tables2 as tables
 from django_tables2 import RequestConfig
 
-from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag
+from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields
 
 from .tables import define_table
 
@@ -272,12 +272,12 @@ def showRead(request, id):
         initial['type'] = ReadType.objects.get(read_type="csv")
 
     if request.method == 'POST':
-        form = ReadForm(request.POST, request.FILES)
+        form = ReadForm(request.POST, request.FILES, instance=read_instance)
         if form.is_valid():
             read = form.save()
-            if form.instance.file_data:
+            if form.instance.type.read_type == "CSV":
                 return HttpResponseRedirect("/file/" + str(read.id) + "/")
-            return HttpResponseRedirect(reverse_lazy('home'))
+            return HttpResponseRedirect(reverse_lazy('listSilos'))
         else:
             messages.error(request, 'Invalid Form', fail_silently=False)
     else:
@@ -323,10 +323,10 @@ def uploadFile(request, id):
 
             for row in data:
                 lvs = LabelValueStore()
-                lvs.silo_id = 13
+                lvs.silo_id = silo_id
                 for col_counter, val in enumerate(row):
                     key = str(labels[col_counter]).replace(".", "_").replace("$", "USD")
-                    if key != "" and key is not None and key != "silo_id":
+                    if key != "" and key is not None and key != "silo_id" and key != "id" and key != "_id":
                         if key == "create_date": key = "created_date"
                         if key == "edit_date": key = "editted_date"
                         setattr(lvs, key, val)
@@ -440,6 +440,20 @@ def listSilos(request):
     get_silos = Silo.objects.filter(owner=user).prefetch_related('reads')
 
     return render(request, 'display/silos.html',{'get_silos':get_silos})
+
+
+def addUniqueFiledsToSilo(request):
+    if request.method == 'POST':
+        unique_cols = request.POST.getlist("fields[]", None)
+        silo_id = request.POST.get("silo_id", None)
+        if unique_cols and silo_id:
+            silo = Silo.objects.get(pk=silo_id)
+            silo.unique_fields.all().delete()
+            for col in unique_cols:
+                unique_field = UniqueFields(name=col, silo=silo)
+                unique_field.save()
+            return HttpResponse("OK working")
+    return HttpResponse("NOT working")
 
 #SILO-DETAIL Show data from source
 @login_required
