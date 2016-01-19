@@ -452,8 +452,8 @@ def addUniqueFiledsToSilo(request):
             for col in unique_cols:
                 unique_field = UniqueFields(name=col, silo=silo)
                 unique_field.save()
-            return HttpResponse("OK working")
-    return HttpResponse("NOT working")
+            return HttpResponse("Unique Fields saved")
+    return HttpResponse("Only POST requests are processed.")
 
 #SILO-DETAIL Show data from source
 @login_required
@@ -461,8 +461,9 @@ def siloDetail(request,id):
     """
     Show silo source details
     """
-    owner = Silo.objects.get(id = id).owner
-    public = Silo.objects.get(id = id).public
+    silo = Silo.objects.filter(pk=id).prefetch_related("unique_fields")[0]
+    owner = silo.owner
+    public = silo.public
 
     lvs = json.loads(LabelValueStore.objects(silo_id = id).to_json())
     cols = []
@@ -479,13 +480,13 @@ def siloDetail(request,id):
             column_names.extend([k for k in row.keys() if k not in column_names])
 
         if decoded_json:
-            silo = define_table(column_names)(decoded_json)
+            silo_table = define_table(column_names)(decoded_json)
 
             #This is needed in order for table sorting to work
-            RequestConfig(request).configure(silo)
+            RequestConfig(request).configure(silo_table)
 
             #send the keys and vars from the json data to the template along with submitted feed info and silos for new form
-            return render(request, "display/silo_detail.html", {"silo": silo, 'id':id, 'cols': cols})
+            return render(request, "display/silo_detail.html", {"silo_table": silo_table, 'silo': silo, 'id':id, 'cols': cols})
         else:
             messages.error(request, "There is not data in Table with id = %s" % id)
             return HttpResponseRedirect(request.META['HTTP_REFERER'])
