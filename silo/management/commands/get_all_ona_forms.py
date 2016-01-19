@@ -23,7 +23,7 @@ class Command(BaseCommand):
         if frequency != "daily" and frequency != "weekly":
             return self.stdout.write("Frequency argument can either be 'daily' or 'weekly'")
 
-        silos = Silo.objects.filter(reads__autopull=True, reads__autopull_frequency__isnull=False, reads__autopull_frequency = frequency)
+        silos = Silo.objects.filter(unique_fields__isnull=False, reads__autopull=True, reads__autopull_frequency__isnull=False, reads__autopull_frequency = frequency).distinct()
 
         for silo in silos:
             reads = silo.reads
