@@ -18,6 +18,7 @@ class Command(BaseCommand):
         parser.add_argument("-f", "--frequency", type=str, required=True)
 
     def handle(self, *args, **options):
+        skip_row = False
         frequency = options['frequency']
         if frequency != "daily" and frequency != "weekly":
             return self.stdout.write("Frequency argument can either be 'daily' or 'weekly'")
@@ -39,6 +40,16 @@ class Command(BaseCommand):
                 counter = None
                 #loop over data and insert create and edit dates and append to dict
                 for counter, row in enumerate(data):
+                    skip_row = False
+                    #if the value of unique column is already in existing_silo_data then skip the row
+                    for unique_field in silo.unique_fields.all():
+                        filter_criteria = {'silo_id': silo.pk, unique_field.name: row[unique_field.name]}
+                        if LabelValueStore.objects.filter(**filter_criteria).count() > 0:
+                            skip_row = True
+                            continue
+                    if skip_row == True:
+                        continue
+                    # at this point, the unique column value is not in existing data so append it.
                     lvs = LabelValueStore()
                     lvs.silo_id = silo.pk
                     for new_label, new_value in row.iteritems():
