@@ -22,17 +22,17 @@
             <tr>
                 <td><a href="/silo_edit/{{ silo.id }}">{{ silo.name }}</a></br>
                     <span><small>Tags: {{ silo.tags.all|join:", "}}</small></span></td>
-                <td>{{ silo.description }}</td>
+                <td>{{ silo.description|default:"" }}</td>
                 <td>
                     {% for r in silo.reads.all %}
-                        {% if r.read_name != "Google" %} <a href="/show_read/{{ r.id }}" > {{ r.read_name }}</a> <br />{% endif %}
+                        {% if r.read_name != "Google" %} <a href="/show_read/{{ r.id }}" > {{ r.read_name }} ({{r.type.read_type}})</a> <br />{% endif %}
                     {% endfor %}
                 </td>
                 <td>
                     <div class="btn-group" role="group">
-                        <a href="/silo_detail/{{ silo.id }}" class="btn btn-sm btn-success">Edit</a>
+                        <a href="/silo_detail/{{ silo.id }}" class="btn btn-sm btn-success">View/Edit</span></a>
                         <a href="/merge/{{ silo.id }}" class="btn btn-sm btn-warning">Merge</a>
-                        <a href="/silo_delete/{{ silo.id }}" class="btn btn-del btn-sm btn-danger" title="Are you sure you want to delete this table? All of the data stored in this table will also be deleted.">Delete</a>
+                        <a href="/silo_delete/{{ silo.id }}" class="btn btn-del btn-sm btn-danger" title="Are you sure you want to delete this table? All of the data stored in this table will also be deleted."><span class="glyphicon glyphicon-trash" title="Delete"></span></a>
                      </div>
                 </td>
                 <td>

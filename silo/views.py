@@ -332,7 +332,7 @@ def uploadFile(request, id):
                         setattr(lvs, key, val)
                 lvs.create_date = timezone.now()
                 lvs.save()
-
+            combineColumns(silo_id)
             return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
         else:
             messages.error(request, "There was a problem with reading the contents of your file" + form.errors)
@@ -400,6 +400,7 @@ def getJSON(request):
                     setattr(lvs, new_label, new_value)
             lvs.create_date = timezone.now()
             lvs.save()
+        combineColumns(silo_id)
         messages.success(request, "Data imported successfully.")
         return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
     else:
