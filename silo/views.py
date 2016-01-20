@@ -758,7 +758,7 @@ def doMerge(request):
         merged_data.append(merge_data_row)
 
     # Create a new silo
-    new_silo = Silo(name="mergeing of %s and %s" % (left_table_id, right_table_id) , public=False, owner=request.user)
+    new_silo = Silo(name="Merging of %s and %s" % (left_table_id, right_table_id) , public=False, owner=request.user)
     new_silo.save()
 
     # put the new silo data in mongo db.
