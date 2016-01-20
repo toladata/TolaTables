@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 from django.contrib.auth.models import User
 
-from silo.models import LabelValueStore, Read, Silo, ThirdPartyTokens
+from silo.models import LabelValueStore, Read, ReadType, Silo, ThirdPartyTokens
 from tola.util import siloToDict, combineColumns
 
 class Command(BaseCommand):
@@ -24,10 +24,10 @@ class Command(BaseCommand):
             return self.stdout.write("Frequency argument can either be 'daily' or 'weekly'")
 
         silos = Silo.objects.filter(unique_fields__isnull=False, reads__autopull=True, reads__autopull_frequency__isnull=False, reads__autopull_frequency = frequency).distinct()
-
+        read_type = ReadType.objects.get(read_type="JSON")
         for silo in silos:
-            reads = silo.reads
-            for read in reads.all():
+            reads = silo.reads.filter(type=read_type.pk)
+            for read in reads:
                 ona_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="ONA")
                 response = requests.get(read.read_url, headers={'Authorization': 'Token %s' % ona_token.token})
                 data = json.loads(response.content)
