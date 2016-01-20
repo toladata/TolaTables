@@ -25,7 +25,7 @@ from django.views.decorators.csrf import csrf_protect
 import django_tables2 as tables
 from django_tables2 import RequestConfig
 
-from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields
+from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping
 
 from .tables import define_table
 
@@ -657,6 +657,18 @@ def doMerge(request):
     # get the table_ids.
     left_table_id = request.POST['left_table_id']
     right_table_id = request.POST["right_table_id"]
+    left_table = None
+    right_table = None
+
+    try:
+        left_table = Silo.objects.get(id=left_table_id)
+    except Silo.DoesNotExist as e:
+        return HttpResponse("Could not find left table with id=%s" % left_table_id)
+
+    try:
+        right_table = Silo.objects.get(id=right_table_id)
+    except Silo.DoesNotExist as e:
+        return HttpResponse("Could not find right table with id=%s" % left_table_id)
 
     data = request.POST.get('columns_data', None)
     if not data:
@@ -761,6 +773,8 @@ def doMerge(request):
         lvs.create_date = timezone.now()
         result = lvs.save()
 
+    mapping = MergedSilosFieldMapping(from_silo=left_table, to_silo=right_table, merged_silo=new_silo, mapping=data)
+    mapping.save()
     return JsonResponse({'status': "success",  'message': 'The merged table is accessible at <a href="/silo_detail/%s/" target="_blank">Merged Table</a>' % new_silo.pk})
 
 

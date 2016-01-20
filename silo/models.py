@@ -106,6 +106,21 @@ class Silo(models.Model):
     def tag_list(self):
         return ', '.join([x.name for x in self.tags.all()])
 
+
+class MergedSilosFieldMapping(models.Model):
+    from_silo = models.ForeignKey(Silo, related_name='from_mappings')
+    to_silo = models.ForeignKey(Silo, related_name='to_mappings')
+    merged_silo = models.ForeignKey(Silo, related_name='merged_silo_mappings')
+    mapping = models.TextField()
+    create_date = models.DateTimeField(auto_now=False, auto_now_add=True)
+
+    def __str__(self):
+        return "Table I (%s) and Table II (%s) merged to create Table III (%s)" % (self.from_silo, self.to_silo, self.merged_silo)
+
+    def __unicode__(self):
+        return "Table I (%s) and Table II (%s) merged to create Table III (%s)" % (self.from_silo, self.to_silo, self.merged_silo)
+
+
 class SiloAdmin(admin.ModelAdmin):
     list_display = ('owner', 'name', 'source', 'description', 'create_date')
     display = 'Data Feeds'
