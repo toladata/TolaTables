@@ -29,6 +29,8 @@ venv/
 
 #conf
 conf/awstats.conf
+conf/
+djangocosign/
 
 #Misc.
 .idea/
