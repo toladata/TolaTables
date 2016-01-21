@@ -108,9 +108,9 @@ class Silo(models.Model):
 
 
 class MergedSilosFieldMapping(models.Model):
-    from_silo = models.ForeignKey(Silo, related_name='from_mappings')
-    to_silo = models.ForeignKey(Silo, related_name='to_mappings')
-    merged_silo = models.ForeignKey(Silo, related_name='merged_silo_mappings')
+    from_silo = models.OneToOneField(Silo, related_name='from_mappings')
+    to_silo = models.OneToOneField(Silo, related_name='to_mappings')
+    merged_silo = models.OneToOneField(Silo, related_name='merged_silo_mappings')
     mapping = models.TextField()
     create_date = models.DateTimeField(auto_now=False, auto_now_add=True)
 

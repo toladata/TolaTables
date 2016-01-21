@@ -22,11 +22,15 @@
                     <tr>
                         <td><a href="/silo_edit/{{ silo.id }}">{{ silo.name }}</a></br>
                             <span><small>Tags: {{ silo.tags.all|join:", "}}</small></span></td>
-                        <td>{{ silo.description|default:"" }}</td>
+                        <td><small>{{ silo.description|default:"" }}</small></td>
                         <td>
-                            {% for r in silo.reads.all %}
-                                {% if r.read_name != "Google" %} <a href="/show_read/{{ r.id }}" > {{ r.read_name }} ({{r.type.read_type}})</a> <br />{% endif %}
-                            {% endfor %}
+                            {% if silo.merged_silo_mappings.all %}
+                                <span><small>Merged Table: </small</span>
+                            {% else %}                            
+                                {% for r in silo.reads.all %}
+                                    {% if r.read_name != "Google" %} <a href="/show_read/{{ r.id }}" ><small> {{ r.read_name }} ({{r.type.read_type}})</small></a> <br />{% endif %}
+                                {% endfor %}
+                            {% endif %}
                         </td>
                         <td>
                             <div class="btn-group" role="group" style="width:130px;">
