@@ -26,11 +26,11 @@ html {
     color: white !important;
 }
 .navbar-nav li a{
-    color: rgb(215, 215, 215) !important;
+    color: white !important;
 }
 
-.navbar-nav li dropdown{
-    background-color: rgb(232, 148, 36);
+.navbar-nav dropdown-menu li a{
+    color: rgb(77, 178, 209) !important;
 }
 
 
