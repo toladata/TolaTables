@@ -624,7 +624,7 @@ def updateMergeSilo(request, merged_silo_id):
         lvs.create_date = timezone.now()
         result = lvs.save()
 
-    return JsonResponse({"status": "success", "link": merged_silo.pk, "num_rows_deleted": num_rows_deleted})
+    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': merged_silo.id},))
 
 
 #Add a new column on to a silo
