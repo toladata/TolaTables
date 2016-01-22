@@ -29,7 +29,7 @@ html {
     color: white !important;
 }
 
-.navbar-nav dropdown-menu li a{
+.dropdown-menu li a{
     color: rgb(77, 178, 209) !important;
 }
 
