@@ -38,6 +38,97 @@ from django.utils import timezone
 from django.utils.encoding import smart_str
 from django.utils.encoding import smart_text
 
+
+
+
+def mergeTwoSilos(data, left_table_id, right_table_id):
+    columns_mapping = json.loads(data)
+
+    left_unmapped_cols = columns_mapping.pop('left_unmapped_cols')
+    right_unmapped_cols = columns_mapping.pop('right_unmapped_cols')
+
+    merged_data = []
+
+    left_table_data = LabelValueStore.objects(silo_id=left_table_id).to_json()
+    left_table_data_json = json.loads(left_table_data)
+    unique_cols = set()
+    for row in left_table_data_json:
+        merge_data_row = {}
+
+        # Loop through the mapped_columns for each row in left_table.
+        for k, v in columns_mapping.iteritems():
+            merge_type = v['merge_type']
+            left_cols = v['left_table_cols']
+            right_col = v['right_table_col']
+
+            # only the right_col is added to the unique_cols set because the left_columns are mapped to the right_col
+            unique_cols.add(right_col)
+
+            # if merge_type is specified then there must be multiple columns in the left_cols array
+            if merge_type:
+                mapped_value = ''
+                for col in left_cols:
+                    try:
+                        if merge_type == 'Concatenate':
+                            mapped_value += ' ' + str(row[col])
+                        elif merge_type == 'Sum' or merge_type == 'Avg':
+                            mapped_value = mapped_value + float(row[col])
+                        else:
+                            pass
+                    except Exception as e:
+                        return JsonResponse({'status': "danger",  'message': 'Failed to apply %s to column, %s : %s ' % (merge_type, col, e.message)})
+
+                if merge_type == 'Avg':
+                    mapped_value = mapped_value / len(left_cols)
+
+            # there is only a single column in left_cols array
+            else:
+                col = str(left_cols[0])
+                mapped_value = row[col]
+
+            # finally add the mapped_value to the merge_data_row
+            merge_data_row[right_col] = mapped_value
+
+        # Loop through the left_unmapped_columns for each row in left_table.
+        for col in left_unmapped_cols:
+            unique_cols.add(col)
+            if col in row.keys():
+                merge_data_row[col] = row[col]
+            else:
+                merge_data_row[col] = ''
+
+        # Loop through all of the right_unmapped_cols for each row in left_table; however,
+        # the value is set to nothing b/c the left_table does not have any values for the
+        # columns in the right table. The right table is iterated over below.
+        for col in right_unmapped_cols:
+            unique_cols.add(col)
+            merge_data_row[col] = ''
+
+        merge_data_row['left_table_id'] = left_table_id
+        merge_data_row['right_table_id'] = right_table_id
+
+        # add the complete row/object to the merged_data array
+        merged_data.append(merge_data_row)
+
+    # Get the right silo and append its data to merged_data array
+    right_table_data = LabelValueStore.objects(silo_id=right_table_id).to_json()
+    right_table_data_json = json.loads(right_table_data)
+    for row in right_table_data_json:
+        merge_data_row = {}
+        for col in unique_cols:
+            #print(row.keys())
+            if col in row.keys():
+                merge_data_row[col] = smart_str(row[col])
+            else:
+                merge_data_row[col] = ''
+
+        merge_data_row['left_table_id'] = left_table_id
+        merge_data_row['right_table_id'] = right_table_id
+        # add the complete row/object to the merged_data array
+        merged_data.append(merge_data_row)
+    return merged_data
+
+
 # Edit existing silo meta data
 @csrf_protect
 @login_required
@@ -495,6 +586,47 @@ def siloDetail(request,id):
         messages.info(request, "You don't have the permission to see data in this table")
         return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
+
+@login_required
+def updateMergeSilo(request, merged_silo_id):
+    merged_silo = None
+    try:
+        merged_silo = Silo.objects.get(id=merged_silo_id)
+    except Silo.DoesNotExist as e:
+        return HttpResponse("Merged Table (%s) does not exist" % merged_silo_id)
+
+    mapping = None
+    try:
+        mapping = MergedSilosFieldMapping.objects.get(merged_silo = merged_silo.pk)
+    except MergedSilosFieldMapping.DoesNotExist as e:
+        return HttpResponse("There is no mapping for merged table (%s)" % merged_silo_id)
+
+    left_silo = mapping.from_silo
+    right_silo = mapping.to_silo
+    left_table_id = left_silo.pk
+    right_table_id = right_silo.pk
+    data = mapping.mapping
+
+    merged_data = mergeTwoSilos(data, left_table_id, right_table_id)
+
+    lvs = LabelValueStore.objects(silo_id=merged_silo.id)
+    num_rows_deleted = lvs.delete()
+
+    # put the new silo data in mongo db.
+    for counter, row in enumerate(merged_data):
+        lvs = LabelValueStore()
+        lvs.silo_id = merged_silo.pk
+        for l, v in row.iteritems():
+            if l == 'silo_id' or l == '_id' or l == 'create_date' or l == 'edit_date':
+                continue
+            else:
+                setattr(lvs, l, v)
+        lvs.create_date = timezone.now()
+        result = lvs.save()
+
+    return JsonResponse({"status": "success", "link": merged_silo.pk, "num_rows_deleted": num_rows_deleted})
+
+
 #Add a new column on to a silo
 @login_required
 def newColumn(request,id):
@@ -694,6 +826,7 @@ def doMerge(request):
             left_cols = v['left_table_cols']
             right_col = v['right_table_col']
 
+            # only the right_col is added to the unique_cols set because the left_columns are mapped to the right_col
             unique_cols.add(right_col)
 
             # if merge_type is specified then there must be multiple columns in the left_cols array
@@ -716,7 +849,6 @@ def doMerge(request):
             # there is only a single column in left_cols array
             else:
                 col = str(left_cols[0])
-                #unique_cols.add(col)
                 mapped_value = row[col]
 
             # finally add the mapped_value to the merge_data_row
@@ -730,14 +862,15 @@ def doMerge(request):
             else:
                 merge_data_row[col] = ''
 
-        # Loop through all of hte right_unmapped_cols for each row left_table; however,
+        # Loop through all of the right_unmapped_cols for each row in left_table; however,
         # the value is set to nothing b/c the left_table does not have any values for the
         # columns in the right table. The right table is iterated over below.
         for col in right_unmapped_cols:
             unique_cols.add(col)
             merge_data_row[col] = ''
 
-        merge_data_row['source_table_id'] = left_table_id
+        merge_data_row['left_table_id'] = left_table_id
+        merge_data_row['right_table_id'] = right_table_id
 
         # add the complete row/object to the merged_data array
         merged_data.append(merge_data_row)
@@ -754,7 +887,8 @@ def doMerge(request):
             else:
                 merge_data_row[col] = ''
 
-        merge_data_row['source_table_id'] = right_table_id
+        merge_data_row['left_table_id'] = left_table_id
+        merge_data_row['right_table_id'] = right_table_id
         # add the complete row/object to the merged_data array
         merged_data.append(merge_data_row)
 
