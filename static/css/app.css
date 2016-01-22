@@ -23,10 +23,10 @@ html {
 
 .navbar-default{
     background-color: rgb(77, 178, 209);
-    color: white;
+    color: white !important;
 }
 .navbar-nav li a{
-    color: rgb(215, 215, 215);
+    color: rgb(215, 215, 215) !important;
 }
 
 .navbar-nav li dropdown{
