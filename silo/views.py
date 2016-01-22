@@ -588,43 +588,81 @@ def siloDetail(request,id):
 
 
 @login_required
-def updateMergeSilo(request, merged_silo_id):
-    merged_silo = None
-    try:
-        merged_silo = Silo.objects.get(id=merged_silo_id)
-    except Silo.DoesNotExist as e:
-        return HttpResponse("Merged Table (%s) does not exist" % merged_silo_id)
-
+def updateMergeSilo(request, pk):
+    silo = None
     mapping = None
+
     try:
-        mapping = MergedSilosFieldMapping.objects.get(merged_silo = merged_silo.pk)
+        silo = Silo.objects.get(id=pk)
+    except Silo.DoesNotExist as e:
+        return HttpResponse("Merged Table (%s) does not exist" % pk)
+
+    try:
+        mapping = MergedSilosFieldMapping.objects.get(merged_silo = silo.pk)
+        left_table_id = mapping.from_silo.pk
+        right_table_id = mapping.to_silo.pk
+        data = mapping.mapping
+
+        merged_data = mergeTwoSilos(data, left_table_id, right_table_id)
+
+        lvs = LabelValueStore.objects(silo_id=silo.id)
+        num_rows_deleted = lvs.delete()
+
+        # put the new silo data in mongo db.
+        for counter, row in enumerate(merged_data):
+            lvs = LabelValueStore()
+            lvs.silo_id = silo.pk
+            for l, v in row.iteritems():
+                if l == 'silo_id' or l == '_id' or l == 'create_date' or l == 'edit_date':
+                    continue
+                else:
+                    setattr(lvs, l, v)
+            lvs.create_date = timezone.now()
+            result = lvs.save()
     except MergedSilosFieldMapping.DoesNotExist as e:
-        return HttpResponse("There is no mapping for merged table (%s)" % merged_silo_id)
+        # Check if the silo has a source from ONA: and if so, then update its data
+        read_type = ReadType.objects.get(read_type="JSON")
+        reads = silo.reads.filter(type=read_type.pk)
+        if not reads:
+            messages.info(request, "Tables that only have a CSV source cannot be updated.")
+        elif silo.unique_fields.all():
+            for read in reads:
+                ona_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="ONA")
+                response = requests.get(read.read_url, headers={'Authorization': 'Token %s' % ona_token.token})
+                data = json.loads(response.content)
 
-    left_silo = mapping.from_silo
-    right_silo = mapping.to_silo
-    left_table_id = left_silo.pk
-    right_table_id = right_silo.pk
-    data = mapping.mapping
+                # import data into this silo
+                num_rows = len(data)
+                if num_rows == 0:
+                    continue
 
-    merged_data = mergeTwoSilos(data, left_table_id, right_table_id)
+                counter = None
+                #loop over data and insert create and edit dates and append to dict
+                for counter, row in enumerate(data):
+                    skip_row = False
+                    #if the value of unique column is already in existing_silo_data then skip the row
+                    for unique_field in silo.unique_fields.all():
+                        filter_criteria = {'silo_id': silo.pk, unique_field.name: row[unique_field.name]}
+                        if LabelValueStore.objects.filter(**filter_criteria).count() > 0:
+                            skip_row = True
+                            continue
+                    if skip_row == True:
+                        continue
+                    # at this point, the unique column value is not in existing data so append it.
+                    lvs = LabelValueStore()
+                    lvs.silo_id = silo.pk
+                    for new_label, new_value in row.iteritems():
+                        if new_label is not "" and new_label is not None and new_label is not "edit_date" and new_label is not "create_date":
+                            setattr(lvs, new_label, new_value)
+                    lvs.create_date = timezone.now()
+                    result = lvs.save()
 
-    lvs = LabelValueStore.objects(silo_id=merged_silo.id)
-    num_rows_deleted = lvs.delete()
+                if num_rows == (counter+1):
+                    combineColumns(silo.pk)
+        else:
+            messages.info(request, "In order to update a table, it must have a unique field set.")
 
-    # put the new silo data in mongo db.
-    for counter, row in enumerate(merged_data):
-        lvs = LabelValueStore()
-        lvs.silo_id = merged_silo.pk
-        for l, v in row.iteritems():
-            if l == 'silo_id' or l == '_id' or l == 'create_date' or l == 'edit_date':
-                continue
-            else:
-                setattr(lvs, l, v)
-        lvs.create_date = timezone.now()
-        result = lvs.save()
-
-    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': merged_silo.id},))
+    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': pk},))
 
 
 #Add a new column on to a silo
