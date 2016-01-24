@@ -20,10 +20,10 @@
 
         <!-- Custom Footer CSS -->
         <link href="{{ STATIC_URL }}css/app.css" rel="stylesheet" type="text/css">
-        
+
         <link href="{{ STATIC_URL }}css/select2.min.css" rel="stylesheet" type="text/css">
-        
-        
+
+
         <!--- Django Tables2 css -->
         <link rel="stylesheet" href="{{ STATIC_URL }}django_tables2/themes/paleblue/css/screen.css" />
 
@@ -42,14 +42,14 @@
     </head>
     <body>
         <!--http://getbootstrap.com/examples/sticky-footer-navbar/-->
-        <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+        <div class="navbar navbar-default navbar-tola navbar-fixed-top" role="navigation">
             <div class="container">
             <div class="navbar-header">
                 <a class="navbar-brand" href="{% url 'index' %}">
                     <img style="margin-top: -8px" src="{{ STATIC_URL }}/img/rsz-logo-plain.png" />
                 </a>
             </div>
-            <div class="navbar-collapse collapse" role=navigation">
+            <div class="navbar-collapse collapse" role="navigation">
                 <ul class="nav navbar-nav">
                     <li class="{{ home_tab }}"><a href="{% url 'index' %}"><span class="glyphicon glyphicon-home"></span> Home</a></li>
 
@@ -58,7 +58,7 @@
                         <ul class="dropdown-menu">
                             <li><a href="/onalogin"><span class="glyphicon glyphicon-list-alt"></span> Import from ONA</a></li>
                             <li><a href="{% url 'newRead' %}"><span class="glyphicon glyphicon-list-alt"></span> Import From CSV</a></li>
-                            
+
                         </ul>
                     </li>
 
@@ -69,9 +69,9 @@
                     <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">Help<b class="caret"></b></a>
                         <ul class="dropdown-menu">
-                            <li><a href="/documentation">Documentation</a></li>
-                            <li><a href="/faq">FAQ</a></li>
-                            <li><a href="/contact">Contact</a></li>
+                            <li><a href="http://tola.work/documentation" target="blank">Documentation</a></li>
+                            <li><a href="http://tola.work/faq" target="blank">FAQ</a></li>
+                            <li><a href="http://tola.work/contact" target="blank">Contact</a></li>
                         </ul>
                     </li>
 
@@ -155,7 +155,7 @@
         </div><!-- .container collapse -->
 
         <div id = "loading" class="modal"> </div>
-        
+
         <div id="footer">
             <!-- Sticky Footer -->
             <div class="container">
@@ -178,6 +178,11 @@
         <script type="text/javascript" src="{{ STATIC_URL }}js/bootstrap.min.js"></script>
 
         <script type="text/javascript" src="{{ STATIC_URL }}js/select2.min.js"></script>
+
+        <!-- Typekit (Fonts) -->
+        <script src="https://use.typekit.net/lmu1xjz.js"></script>
+        <script>try{Typekit.load({ async: true });}catch(e){}</script>
+
         {% block extra_js_in_body %}{% endblock %}
     </body>
 </html>

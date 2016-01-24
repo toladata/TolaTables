@@ -1,4 +1,4 @@
-Tola Data
+Tola Tables
 ====
 Share, Load, Edit and Display data from various mobile data collection platforms.
 
@@ -13,22 +13,20 @@ Silo: A data store that can combine one or more Feeds (Data sources)<br>
 Display: Where data is viewed and edited<br>
 
 ## USING virtualenv
-mkdir frds_project
-cd frds_project
+mkdir tolatables
+cd tolatables
 (Install virtualenv)
 pip install virtualenv
 
-cd frds_project
-
 # Create Virtualenv
-virtualenv —no-site-packages frds-venv
+virtualenv venv
 * use no site packages to prevent virtualenv from seeing your global packages
 
-. frds-venv/bin/activate
+source venv/bin/activate
 * allows us to just use pip from command line by adding to the path rather then full path
 
 ##Activate Virtualenv
-source frds-venv/bin/activate
+source venv/bin/activate
 
 ## Fix probable mysql path issue (for mac)
 export PATH=$PATH:/usr/local/mysql/bin
