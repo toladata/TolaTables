@@ -19,19 +19,41 @@ html {
 }
 
 
-/* header changes */
+/* Bootstrap Overrides */
 
-.navbar-default{
-    background-color: rgb(77, 178, 209);
-    color: white !important;
-}
-.navbar-nav li a{
-    color: white !important;
+*,
+*:focus,
+*:target,
+a:focus,
+input:focus,
+button:focus,
+.btn:focus,
+.btn:active:focus,
+.btn.active:focus {
+  outline: none;
 }
 
-.dropdown-menu li a{
-    color: rgb(77, 178, 209) !important;
+.navbar-tola {
+  /* TolaTables Brand Color: */
+  background-color: rgb(77, 178, 209);
+  border: none;
 }
+
+.navbar-tola .navbar-nav > li > a {
+  color: #fff;
+}
+
+.navbar-tola .navbar-nav > li > a:hover,
+.navbar-tola .navbar-nav > li > a:focus,
+.navbar-tola .navbar-nav > li.active > a,
+.navbar-tola .navbar-nav > li.active > a:hover,
+.navbar-tola .navbar-nav > li.active > a:focus,
+.navbar-tola .navbar-nav .dropdown.open a.dropdown-toggle {
+  color: #fff;
+  background-color: rgba(0, 0, 0, .15);
+}
+
+/* - End Bootstrap Overrides */
 
 
 /* Custom page CSS
