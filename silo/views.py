@@ -887,8 +887,9 @@ def valueEdit(request,id):
             elif k == "silo_id":
                 silo_id = v
             elif k == "edit_date":
-                edit_date = datetime.datetime.fromtimestamp(item['edit_date']['$date']/1000)
-                data[k] = edit_date.strftime('%Y-%m-%d %H:%M:%S')
+                if item['edit_date']:
+                    edit_date = datetime.datetime.fromtimestamp(item['edit_date']['$date']/1000)
+                    data[k] = edit_date.strftime('%Y-%m-%d %H:%M:%S')
             elif k == "create_date":
                 create_date = datetime.datetime.fromtimestamp(item['create_date']['$date']/1000)
                 data[k] = create_date.strftime('%Y-%m-%d')
