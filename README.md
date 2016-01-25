@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/toladata/TolaTables.svg?branch=master)](https://travis-ci.org/toladata/TolaTables)
+
 Tola Tables
 ====
 Share, Load, Edit and Display data from various mobile data collection platforms.
