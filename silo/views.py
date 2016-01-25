@@ -28,6 +28,7 @@ from django_tables2 import RequestConfig
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping
 
 from .tables import define_table
+from tola.util import getSiloColumnNames
 
 from django.contrib.auth.decorators import login_required
 from tola.util import siloToDict, combineColumns
@@ -704,25 +705,7 @@ def editColumns(request,id):
     FORM TO CREATE A NEW COLUMN FOR A SILO
     """
     silo = Silo.objects.get(id=id)
-    doc = LabelValueStore.objects(silo_id=id).to_json()
-    data = {}
-    jsondoc = json.loads(doc)
-    for item in jsondoc:
-        for k, v in item.iteritems():
-            #print("The key and value are ({}) = ({})".format(k, v))
-            if k == "_id":
-                #data[k] = item['_id']['$oid']
-                pass
-            elif k == "silo_id":
-                silo_id = v
-            elif k == "edit_date":
-                edit_date = datetime.datetime.fromtimestamp(item['edit_date']['$date']/1000)
-                data[k] = edit_date.strftime('%Y-%m-%d %H:%M:%S')
-            elif k == "create_date":
-                create_date = datetime.datetime.fromtimestamp(item['create_date']['$date']/1000)
-                data[k] = create_date.strftime('%Y-%m-%d')
-            else:
-                data[k] = v
+    data = getSiloColumnNames(id)
     form = EditColumnForm(initial={'silo_id': silo.id}, extra=data)
 
     if request.method == 'POST':
@@ -751,14 +734,13 @@ def editColumns(request,id):
                             },
                         False
                     )
-
-
             messages.info(request, 'Updates Saved', fail_silently=False)
         else:
             messages.error(request, 'ERROR: There was a problem with your request', fail_silently=False)
             #print form.errors
 
-
+    data = getSiloColumnNames(id)
+    form = EditColumnForm(initial={'silo_id': silo.id}, extra=data)
     return render(request, "silo/edit-column-form.html", {'silo':silo,'form': form})
 
 #Delete a column from a table silo

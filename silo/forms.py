@@ -115,7 +115,6 @@ class EditColumnForm(forms.Form):
         super(EditColumnForm, self).__init__(*args, **kwargs)
 
         for item in extra:
-            print item
             if item != "_id" and item != "silo_id" and item != "edit_date" and item != "create_date":
                 self.fields[item] = forms.CharField(label=item, initial=item, required=False,widget="")
                 self.fields[item + "_delete"] = forms.BooleanField(label="delete " + item, initial=False, required=False,widget="")

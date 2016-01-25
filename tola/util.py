@@ -17,7 +17,7 @@ def combineColumns(silo_id):
     cols = []
     for l in lvs:
         cols.extend([k for k in l.keys() if k not in cols])
-    
+
     for l in lvs:
         for c in cols:
             if c not in l.keys():
@@ -27,8 +27,8 @@ def combineColumns(silo_id):
                     False
                 )
     return True
-                    
-#CREATE NEW DATA DICTIONARY OBJECT 
+
+#CREATE NEW DATA DICTIONARY OBJECT
 def siloToDict(silo):
     parsed_data = {}
     key_value = 1
@@ -79,4 +79,15 @@ def getJSON(id):
 
     return get_fields
 
-
+def getSiloColumnNames(id):
+    lvs = LabelValueStore.objects(silo_id=id).to_json()
+    data = {}
+    jsonlvs = json.loads(lvs)
+    for item in jsonlvs:
+        for k, v in item.iteritems():
+            #print("The key and value are ({}) = ({})".format(k, v))
+            if k == "_id" or k == "edit_date" or k == "create_date" or k == "silo_id":
+                continue
+            else:
+                data[k] = v
+    return data
