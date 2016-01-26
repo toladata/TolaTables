@@ -17,22 +17,15 @@ from silo.models import *
 from silo.forms import *
 
 class ReadTest(TestCase):
-    fixtures = ['fixtures/read_types.json']
+    fixtures = ['../fixtures/read_types.json']
     show_read_url = '/show_read/'
-    new_read_url = '/new_read/'
-    
+    new_read_url = 'source/new//'
+
     def setUp(self):
         self.client = Client()
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
-    
-    def test_new_read_get(self):
-        """ Test the GET view of initRead view """
-        request = self.factory.get(self.new_read_url)
-        request.user = self.user
-        response = initRead(request)
-        self.assertEqual(response.status_code, 200)
-    
+
     def test_new_read_post(self):
         read_type = ReadType.objects.get(read_type="JSON")
         upload_file = open('test.csv', 'rb')
@@ -48,21 +41,21 @@ class ReadTest(TestCase):
         }
         request = self.factory.post(self.new_read_url, data = params)
         request.user = self.user
-        
-        response = initRead(request)
+
+        response = showRead(request, 1)
         if response.status_code == 302:
             if "/read/login" in response.url or "/file/" in response.url:
                 self.assertEqual(response.url, response.url)
             else:
-                self.assertEqual(response.url, "/read/login or /file/x")
+                self.assertEqual(response.url, "/silos")
         else:
             self.assertEqual(response.status_code, 200)
-    
+
         # Now test the show_read view to make sure that I can retrieve the objec
         # that just got created using the POST method above.
         source = Read.objects.get(read_name='TEST READ SOURCE')
         response = self.client.get(self.show_read_url + str(source.pk) + "/")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 302)
 
 
 class SiloTest(TestCase):
@@ -70,7 +63,7 @@ class SiloTest(TestCase):
     silo_edit_url = "/silo_edit/"
     upload_csv_url = "/file/"
     silo_detail_url = "/silo_detail/"
-    
+
     def setUp(self):
         self.client = Client()
         self.factory = RequestFactory()
@@ -78,18 +71,18 @@ class SiloTest(TestCase):
         self.today = datetime.date.today()
         self.today.strftime('%Y-%m-%d')
         self.today = str(self.today)
-    
+
     def test_new_silo(self):
         # Create a New Silo
         silo = Silo.objects.create(name="Test Silo", owner=self.user, public=False, create_date=self.today)
         self.assertEqual(silo.pk, 1)
-        
+
         # Fetch the silo that just got created above
         request = self.factory.get(self.silo_edit_url)
         request.user = self.user
         response = editSilo(request, silo.pk)
         self.assertEqual(response.status_code, 200)
-        
+
         # update the silo that just got created above
         params = {
             'owner': self.user.pk,
@@ -101,15 +94,15 @@ class SiloTest(TestCase):
         request._dont_enforce_csrf_checks = True
         response = editSilo(request, silo.pk)
         if response.status_code == 302:
-            self.assertEqual(response.url, "/display")
+            self.assertEqual(response.url, "/silos/")
         else:
             self.assertEqual(response.status_code, 200)
-        
+
     def test_new_silodata(self):
         read_type = ReadType.objects.get(read_type="CSV")
         upload_file = open('test.csv', 'rb')
-        read = Read.objects.create(owner=self.user, type=read_type, 
-            read_name="TEST CSV IMPORT", description="unittest", create_date='2015-06-24 20:33:47', 
+        read = Read.objects.create(owner=self.user, type=read_type,
+            read_name="TEST CSV IMPORT", description="unittest", create_date='2015-06-24 20:33:47',
             file_data=SimpleUploadedFile(upload_file.name, upload_file.read())
         )
         params =  {
@@ -122,19 +115,19 @@ class SiloTest(TestCase):
         response = uploadFile(request, read.pk)
         self.assertEqual(response.status_code, 302)
         self.assertIn("/silo_detail/", response.url)
-        
+
         silo = Silo.objects.get(name="Test CSV Import")
         request = self.factory.get(self.silo_detail_url)
         request.user = self.user
-        
+
         response = siloDetail(request, silo.pk)
         self.assertEqual(response.status_code, 200)
-        
-        
+
+
     def test_root_url_resolves_to_home_page(self):
         found = resolve('/')
         self.assertEqual(found.func, index)
-    
+
     def test_read_form(self):
         read_type = ReadType.objects.get(read_type="CSV")
         upload_file = open('test.csv', 'rb')
@@ -154,15 +147,15 @@ class SiloTest(TestCase):
 
     def test_delete_data_from_silodata(self):
         pass
-    
+
     def test_update_data_in_silodata(self):
         pass
-        
+
     def test_read_data_from_silodata(self):
         pass
-    
+
     def test_delete_silodata(self):
         pass
-    
+
     def test_delete_silo(self):
         pass

@@ -361,7 +361,7 @@ def showRead(request, id):
             excluded_fields = ('file_data',)
     except Read.DoesNotExist as e:
         read_instance = None
-        initial['type'] = ReadType.objects.get(read_type="csv")
+        initial['type'] = ReadType.objects.get(read_type="CSV")
 
     if request.method == 'POST':
         form = ReadForm(request.POST, request.FILES, instance=read_instance)
