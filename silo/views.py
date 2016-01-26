@@ -77,7 +77,7 @@ def mergeTwoSilos(data, left_table_id, right_table_id):
                         else:
                             pass
                     except Exception as e:
-                        return JsonResponse({'status': "danger",  'message': 'Failed to apply %s to column, %s : %s ' % (merge_type, col, e.message)})
+                        return {'status': "danger",  'message': 'Failed to apply %s to column, %s : %s ' % (merge_type, col, e.message)}
 
                 if merge_type == 'Avg':
                     mapped_value = mapped_value / len(left_cols)
@@ -605,6 +605,12 @@ def updateMergeSilo(request, pk):
         data = mapping.mapping
 
         merged_data = mergeTwoSilos(data, left_table_id, right_table_id)
+        try:
+            merged_data['status']
+            messages.error(request, 'Failed to apply %s to column, %s : %s ' % (merge_type, col, e.message))
+            return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': pk},))
+        except Exception as e:
+            pass
 
         lvs = LabelValueStore.objects(silo_id=silo.id)
         num_rows_deleted = lvs.delete()
@@ -620,6 +626,7 @@ def updateMergeSilo(request, pk):
                     setattr(lvs, l, v)
             lvs.create_date = timezone.now()
             result = lvs.save()
+
     except MergedSilosFieldMapping.DoesNotExist as e:
         # Check if the silo has a source from ONA: and if so, then update its data
         read_type = ReadType.objects.get(read_type="JSON")
@@ -828,6 +835,12 @@ def doMerge(request):
         return HttpResponse("no columns data passed")
 
     merged_data = mergeTwoSilos(data, left_table_id, right_table_id)
+
+    try:
+        merged_data['status']
+        return JsonResponse(merged_data)
+    except Exception as e:
+        pass
 
     # Create a new silo
     new_silo = Silo(name="Merging of %s and %s" % (left_table_id, right_table_id) , public=False, owner=request.user)
