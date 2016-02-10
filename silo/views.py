@@ -20,7 +20,7 @@ from django.template import RequestContext, Context
 from django.db import models
 from django.shortcuts import render_to_response
 from django.shortcuts import render
-from django.db.models import Max, F
+from django.db.models import Max, F, Q
 from django.views.decorators.csrf import csrf_protect
 import django_tables2 as tables
 from django_tables2 import RequestConfig
@@ -534,7 +534,8 @@ def listSilos(request):
 
     shared_silos = Silo.objects.filter(shared__id=user.pk).prefetch_related("reads")
 
-    return render(request, 'display/silos.html',{'own_silos':own_silos, "shared_silos": shared_silos})
+    public_silos = Silo.objects.filter(Q(public=True) & ~Q(owner=user)).prefetch_related("reads")
+    return render(request, 'display/silos.html',{'own_silos':own_silos, "shared_silos": shared_silos, "public_silos": public_silos})
 
 
 def addUniqueFiledsToSilo(request):
