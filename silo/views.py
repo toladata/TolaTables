@@ -530,9 +530,11 @@ def listSilos(request):
     user = User.objects.get(username__exact=request.user)
 
     #get all of the silos
-    get_silos = Silo.objects.filter(owner=user).prefetch_related('reads')
+    own_silos = Silo.objects.filter(owner=user).prefetch_related('reads')
 
-    return render(request, 'display/silos.html',{'get_silos':get_silos})
+    shared_silos = Silo.objects.filter(shared__id=user.pk).prefetch_related("reads")
+
+    return render(request, 'display/silos.html',{'own_silos':own_silos, "shared_silos": shared_silos})
 
 
 def addUniqueFiledsToSilo(request):
