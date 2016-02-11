@@ -84,6 +84,8 @@ urlpatterns = patterns('',
                         #view silo detail
                         url(r'^silo_detail/(?P<id>\w+)/$', 'silo.views.siloDetail', name='siloDetail'),
 
+                        url(r'^update_column', 'silo.views.updateEntireColumn', name='updateColumn'),
+
                         #edit single silo value
                         url(r'^value_edit/(?P<id>\w+)/$', 'silo.views.valueEdit', name='valueEdit'),
 

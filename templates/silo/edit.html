@@ -1,8 +1,7 @@
 {% extends "base.html" %} 
-{% block page_title %}Tables{% endblock %}
+{% block page_title %}{{ silo.name }}<p><small>{{ silo.description }}</small></p>{% endblock %}
 
 {% block content %}
-    <p>Edit Table {{ silo_id }}</p>
     {% csrf_token %}
     {% load crispy_forms_tags %}
     {% crispy form %}
@@ -17,6 +16,10 @@
 {% block extra_js_in_body %}
     <script type="text/javascript">
         $(document).ready(function() { 
+            $("#id_shared").select2({
+                allowClear: true,
+                placeholder: "Share with",
+            });
             /* add select2 js library to the tags select box */
             $("#id_tags").select2({
                 tags: true,

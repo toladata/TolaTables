@@ -162,7 +162,7 @@ def editSilo(request, id):
     else:
         form = SiloForm(instance=edited_silo)
     return render(request, 'silo/edit.html', {
-        'form': form, 'silo_id': id,
+        'form': form, 'silo_id': id, "silo": edited_silo,
     })
 
 from silo.forms import *
@@ -550,6 +550,27 @@ def addUniqueFiledsToSilo(request):
                 unique_field.save()
             return HttpResponse("Unique Fields saved")
     return HttpResponse("Only POST requests are processed.")
+
+
+@login_required
+def updateEntireColumn(request):
+    silo_id = request.POST.get("silo_id", None)
+    colname = request.POST.get("update_col", None)
+    new_val = request.POST.get("new_val", None)
+    print(colname)
+    print(new_val)
+    return HttpResponse("%s - %s - %s" %(colname, new_val, silo_id))
+    """
+    if colname:
+        db.label_value_store.update_many(
+                {"silo_id": silo_id},
+                    {
+                    "$set": {colname: new_val},
+                    },
+                False
+            )
+    """
+
 
 #SILO-DETAIL Show data from source
 @login_required
