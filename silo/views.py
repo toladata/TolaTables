@@ -555,13 +555,12 @@ def addUniqueFiledsToSilo(request):
 @login_required
 def updateEntireColumn(request):
     silo_id = request.POST.get("silo_id", None)
+    silo_id = int(silo_id)
     colname = request.POST.get("update_col", None)
     new_val = request.POST.get("new_val", None)
-    print(colname)
-    print(new_val)
-    return HttpResponse("%s - %s - %s" %(colname, new_val, silo_id))
-    """
-    if colname:
+    if silo_id and colname and new_val:
+        client = MongoClient(uri)
+        db = client.tola
         db.label_value_store.update_many(
                 {"silo_id": silo_id},
                     {
@@ -569,8 +568,9 @@ def updateEntireColumn(request):
                     },
                 False
             )
-    """
+        messages.success(request, "Successfully, changed the %s column value to %s" % (colname, new_val))
 
+    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': silo_id}))
 
 #SILO-DETAIL Show data from source
 @login_required
