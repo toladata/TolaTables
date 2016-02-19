@@ -9,6 +9,25 @@
 <a href="/set_unique_columns/{{ id }}/" id="unique_cols_selection_btn" class="btn btn-primary">Set up Unique Column(s)</a>
 <a href="{% url 'updateMergedTable' id %}" id="update_silo_btn" class="btn btn-primary">Update</a>
 
+<form class="form-inline" action="{% url 'updateColumn' %}"  method="POST">
+    {% csrf_token %}
+    <input name="silo_id" value="{{silo.pk}}" type="hidden">
+    <div class="form-group">
+        <label for="all_cols">Set value  for column</label>
+        <select name="update_col" class="form-control">
+            <option value="-1">Select Column</option>
+            {% for col in cols %}
+                <option value="{{ col }}">{{ col }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="new_val">New Value</label>
+        <input type="text" class="form-control" id="new_val" name="new_val">
+    </div>
+    <button type="submit" class="btn btn-default">Submit</button>
+</form>
+
 <div id="table_data">
     {% render_table silo_table %}
 </div>

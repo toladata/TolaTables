@@ -109,3 +109,7 @@ body > .container {
                 50% 50%
                 no-repeat;
 }
+.table-responsive {
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+}

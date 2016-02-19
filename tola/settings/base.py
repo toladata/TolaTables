@@ -337,3 +337,6 @@ MESSAGE_TAGS = {message.DEBUG: 'debug',
                 message.SUCCESS: 'success',
                 message.WARNING: 'warning',
                 message.ERROR: 'danger',}
+
+
+GOOGLE_REDIRECT_URL = 'http://localhost:8000/oauth2callback/'

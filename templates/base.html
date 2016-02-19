@@ -8,7 +8,7 @@
         <meta name="description" content="Mercy Corps Application">
         <meta name="author" content="Mercy Corps">
 
-        <title>{% block title %} TolaData - Collect, Aggregate and Store Data {% endblock %}</title>
+        <title>{% block title %} TolaTables - Collect, Aggregate and Store Data {% endblock %}</title>
 
         <link rel="shortcut icon" href="{{ STATIC_URL }}img/favicon.png" type="image/png">
 
@@ -23,12 +23,10 @@
 
         <link href="{{ STATIC_URL }}css/select2.min.css" rel="stylesheet" type="text/css">
 
-
         <!--- Django Tables2 css -->
         <link rel="stylesheet" href="{{ STATIC_URL }}django_tables2/themes/paleblue/css/screen.css" />
 
-        <!--- Hosted Leaflet CSS --->
-        <!-- <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css"> -->
+        <link href="{{ STATIC_URL }}css/datatables.min.css" rel="stylesheet" type="text/css" />
 
         {% block extra_js_in_header %}
         <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
@@ -171,7 +169,7 @@
         <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-ui-1.10.4.min.js"></script>
 
         <!-- data tables jquery javascript library -->
-        <script type="text/javascript" src="{{ STATIC_URL }}js/jquery.dataTables.min.js"></script>
+        <script type="text/javascript" src="{{ STATIC_URL }}js/datatables.min.js"></script>
 
         <!-- Bootstrap compiled javascript plugins -->
         <script type="text/javascript" src="{{ STATIC_URL }}js/bootstrap.min.js"></script>

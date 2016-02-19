@@ -20,7 +20,7 @@ from django.template import RequestContext, Context
 from django.db import models
 from django.shortcuts import render_to_response
 from django.shortcuts import render
-from django.db.models import Max, F
+from django.db.models import Max, F, Q
 from django.views.decorators.csrf import csrf_protect
 import django_tables2 as tables
 from django_tables2 import RequestConfig
@@ -28,6 +28,7 @@ from django_tables2 import RequestConfig
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping
 
 from .tables import define_table
+from tola.util import getSiloColumnNames
 
 from django.contrib.auth.decorators import login_required
 from tola.util import siloToDict, combineColumns
@@ -76,7 +77,7 @@ def mergeTwoSilos(data, left_table_id, right_table_id):
                         else:
                             pass
                     except Exception as e:
-                        return JsonResponse({'status': "danger",  'message': 'Failed to apply %s to column, %s : %s ' % (merge_type, col, e.message)})
+                        return {'status': "danger",  'message': 'Failed to apply %s to column, %s : %s ' % (merge_type, col, e.message)}
 
                 if merge_type == 'Avg':
                     mapped_value = mapped_value / len(left_cols)
@@ -161,7 +162,7 @@ def editSilo(request, id):
     else:
         form = SiloForm(instance=edited_silo)
     return render(request, 'silo/edit.html', {
-        'form': form, 'silo_id': id,
+        'form': form, 'silo_id': id, "silo": edited_silo,
     })
 
 from silo.forms import *
@@ -360,7 +361,7 @@ def showRead(request, id):
             excluded_fields = ('file_data',)
     except Read.DoesNotExist as e:
         read_instance = None
-        initial['type'] = ReadType.objects.get(read_type="csv")
+        initial['type'] = ReadType.objects.get(read_type="CSV")
 
     if request.method == 'POST':
         form = ReadForm(request.POST, request.FILES, instance=read_instance)
@@ -529,9 +530,12 @@ def listSilos(request):
     user = User.objects.get(username__exact=request.user)
 
     #get all of the silos
-    get_silos = Silo.objects.filter(owner=user).prefetch_related('reads')
+    own_silos = Silo.objects.filter(owner=user).prefetch_related('reads')
 
-    return render(request, 'display/silos.html',{'get_silos':get_silos})
+    shared_silos = Silo.objects.filter(shared__id=user.pk).prefetch_related("reads")
+
+    public_silos = Silo.objects.filter(Q(public=True) & ~Q(owner=user)).prefetch_related("reads")
+    return render(request, 'display/silos.html',{'own_silos':own_silos, "shared_silos": shared_silos, "public_silos": public_silos})
 
 
 def addUniqueFiledsToSilo(request):
@@ -546,6 +550,27 @@ def addUniqueFiledsToSilo(request):
                 unique_field.save()
             return HttpResponse("Unique Fields saved")
     return HttpResponse("Only POST requests are processed.")
+
+
+@login_required
+def updateEntireColumn(request):
+    silo_id = request.POST.get("silo_id", None)
+    silo_id = int(silo_id)
+    colname = request.POST.get("update_col", None)
+    new_val = request.POST.get("new_val", None)
+    if silo_id and colname and new_val:
+        client = MongoClient(uri)
+        db = client.tola
+        db.label_value_store.update_many(
+                {"silo_id": silo_id},
+                    {
+                    "$set": {colname: new_val},
+                    },
+                False
+            )
+        messages.success(request, "Successfully, changed the %s column value to %s" % (colname, new_val))
+
+    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': silo_id}))
 
 #SILO-DETAIL Show data from source
 @login_required
@@ -563,7 +588,8 @@ def siloDetail(request,id):
         cols.extend([k for k in l.keys() if k not in cols and k != '_id' and k != 'silo_id' and k != 'create_date' and k != 'edit_date' and k != 'source_table_id'])
     #cols = json.dumps(cols)
 
-    if str(owner.username) == str(request.user) or public:
+    #if str(owner.username) == str(request.user) or public:
+    if silo.owner == owner or silo.public == True or owner__in == silo.shared:
         table = LabelValueStore.objects(silo_id=id).to_json()
         decoded_json = json.loads(table)
         column_names = []
@@ -604,6 +630,12 @@ def updateMergeSilo(request, pk):
         data = mapping.mapping
 
         merged_data = mergeTwoSilos(data, left_table_id, right_table_id)
+        try:
+            merged_data['status']
+            messages.error(request, 'Failed to apply %s to column, %s : %s ' % (merge_type, col, e.message))
+            return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': pk},))
+        except Exception as e:
+            pass
 
         lvs = LabelValueStore.objects(silo_id=silo.id)
         num_rows_deleted = lvs.delete()
@@ -619,6 +651,7 @@ def updateMergeSilo(request, pk):
                     setattr(lvs, l, v)
             lvs.create_date = timezone.now()
             result = lvs.save()
+
     except MergedSilosFieldMapping.DoesNotExist as e:
         # Check if the silo has a source from ONA: and if so, then update its data
         read_type = ReadType.objects.get(read_type="JSON")
@@ -704,25 +737,7 @@ def editColumns(request,id):
     FORM TO CREATE A NEW COLUMN FOR A SILO
     """
     silo = Silo.objects.get(id=id)
-    doc = LabelValueStore.objects(silo_id=id).to_json()
-    data = {}
-    jsondoc = json.loads(doc)
-    for item in jsondoc:
-        for k, v in item.iteritems():
-            #print("The key and value are ({}) = ({})".format(k, v))
-            if k == "_id":
-                #data[k] = item['_id']['$oid']
-                pass
-            elif k == "silo_id":
-                silo_id = v
-            elif k == "edit_date":
-                edit_date = datetime.datetime.fromtimestamp(item['edit_date']['$date']/1000)
-                data[k] = edit_date.strftime('%Y-%m-%d %H:%M:%S')
-            elif k == "create_date":
-                create_date = datetime.datetime.fromtimestamp(item['create_date']['$date']/1000)
-                data[k] = create_date.strftime('%Y-%m-%d')
-            else:
-                data[k] = v
+    data = getSiloColumnNames(id)
     form = EditColumnForm(initial={'silo_id': silo.id}, extra=data)
 
     if request.method == 'POST':
@@ -751,14 +766,13 @@ def editColumns(request,id):
                             },
                         False
                     )
-
-
             messages.info(request, 'Updates Saved', fail_silently=False)
         else:
             messages.error(request, 'ERROR: There was a problem with your request', fail_silently=False)
             #print form.errors
 
-
+    data = getSiloColumnNames(id)
+    form = EditColumnForm(initial={'silo_id': silo.id}, extra=data)
     return render(request, "silo/edit-column-form.html", {'silo':silo,'form': form})
 
 #Delete a column from a table silo
@@ -847,6 +861,12 @@ def doMerge(request):
 
     merged_data = mergeTwoSilos(data, left_table_id, right_table_id)
 
+    try:
+        merged_data['status']
+        return JsonResponse(merged_data)
+    except Exception as e:
+        pass
+
     # Create a new silo
     new_silo = Silo(name="Merging of %s and %s" % (left_table_id, right_table_id) , public=False, owner=request.user)
     new_silo.save()
@@ -887,8 +907,9 @@ def valueEdit(request,id):
             elif k == "silo_id":
                 silo_id = v
             elif k == "edit_date":
-                edit_date = datetime.datetime.fromtimestamp(item['edit_date']['$date']/1000)
-                data[k] = edit_date.strftime('%Y-%m-%d %H:%M:%S')
+                if item['edit_date']:
+                    edit_date = datetime.datetime.fromtimestamp(item['edit_date']['$date']/1000)
+                    data[k] = edit_date.strftime('%Y-%m-%d %H:%M:%S')
             elif k == "create_date":
                 create_date = datetime.datetime.fromtimestamp(item['create_date']['$date']/1000)
                 data[k] = create_date.strftime('%Y-%m-%d')
