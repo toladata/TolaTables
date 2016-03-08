@@ -112,6 +112,7 @@ urlpatterns = patterns('',
                         url(r'^export_new_gsheet/(?P<id>\d+)/$', 'silo.google_views.export_new_gsheet', name='export_new_gsheet'),
                         url(r'^export_gsheet/(?P<id>\d+)/$', 'silo.google_views.export_gsheet', name='export_existing_gsheet'),
                         url(r'^oauth2callback/$', 'silo.google_views.oauth2callback', name='oauth2callback'),
+                        url(r'^import_gsheet/(?P<id>\d+)/$', 'silo.gsheet_import_views.import_gsheet', name='import_gsheet'),
 
                         #create a feed
                         url(r'^create_feed', 'silo.views.createFeed', name='createFeed'),

@@ -208,18 +208,6 @@
 
         <script type="text/javascript">
         
-            function select_silo_for_importing_gsheet() {
-                $("#select_silo_for_gsheet_export_modal").modal("show");
-            }
-            
-            $("#select_silo_for_gsheet_export_modal").on("click", "#import_gsheet_btn", function(e) {
-                console.log("OK, importing now");
-                e.preventDefault();
-                
-                var silo_id =  $("select#silo_select").val();
-                console.log(silo_id);
-            });
-
             // The Client ID obtained from the Google Developers Console.
             var clientId = "859950034311-r6gsqnipugbtv6a2j4h4eo2tt2a1js2t.apps.googleusercontent.com"
             // developerKey is the same as the Browser API key, at least, as of writing this code.
@@ -229,11 +217,24 @@
             var silo_id;
             var pickerApiLoaded = false;
             var oauthToken;
+
+            function select_silo_for_importing_gsheet() {
+                $("#select_silo_for_gsheet_export_modal").modal("show");
+            }
+            
+            $("#select_silo_for_gsheet_export_modal").on("click", "#import_gsheet_btn", function(e) {
+                e.preventDefault();
+                silo_id =  $("select#silo_select").val();
+                console.log("silo_id: " + silo_id);
+                onAuthApiLoad(silo_id);
+            });
+
             // Use the API Loader script to load google.picker and gapi.auth.
             function onApiLoad() {
                 gapi.load('auth');
                 gapi.load('picker', {'callback': onPickerApiLoad});
             }
+
             // After Google's auth library is loaded, this function is called
             function onAuthApiLoad(siloId) {
                 silo_id = siloId;
@@ -244,6 +245,7 @@
                 },
                 handleAuthResult);
             }
+
             function onPickerApiLoad() {
                 pickerApiLoaded = true;
                 //createPicker();
@@ -278,15 +280,16 @@
 
             // A simple callback implementation.
             function pickerCallback(data) {
-                //console.log(JSON.stringify(data));
+                console.log(JSON.stringify(data));
                 if (data[google.picker.Response.ACTION] == google.picker.Action.PICKED) {
                     var doc = data[google.picker.Response.DOCUMENTS][0];
-                    url = doc[google.picker.Document.URL];
-                    id = doc[google.picker.Document.ID];
+                    var url = doc[google.picker.Document.URL];
+                    var id = doc[google.picker.Document.ID];
+                    console.log("URL: " + url);
+                    console.log("ID: " + id);
+                    console.log("silo_id: " + silo_id);
+                    $(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + id);
                 }
-                console.log("URL: " + url);
-                console.log("ID: " + id);
-                console.log("silo_id: " + silo_id);
             }
 
         </script>
