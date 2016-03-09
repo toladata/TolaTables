@@ -7,6 +7,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 
+from django.utils import timezone
+
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.django_orm import Storage
 from oauth2client import xsrfutil
@@ -27,8 +29,6 @@ FLOW = flow_from_clientsecrets(
     #redirect_uri='http://localhost:8000/oauth2callback/')
 
 def import_from_google_spreadsheet(credential_json, silo_id, spreadsheet_key):
-
-
     # Create OAuth2Token for authorizing the SpreadsheetClient
     token = gdata.gauth.OAuth2Token(
         client_id = credential_json['client_id'],
@@ -43,58 +43,83 @@ def import_from_google_spreadsheet(credential_json, silo_id, spreadsheet_key):
 
     # authorize the SpreadsheetClient object
     sp_client = token.authorize(sp_client)
-    #print(sp_client)
-
 
     # Create a WorksheetQuery object to allow for filtering for worksheets by the title
-    # worksheet_query = gdata.spreadsheets.client.WorksheetQuery(title="Sheet1", title_exact=True)
-
-
-    print("spreadsheet_key: %s" % spreadsheet_key)
+    worksheet_query = gdata.spreadsheets.client.WorksheetQuery(title="Sheet1", title_exact=True)
     # Get a feed of all worksheets in the specified spreadsheet that matches the worksheet_query
     worksheets_feed = sp_client.get_worksheets(spreadsheet_key, query=None)
-    #print("worksheets_feed: %s" % worksheets_feed)
-
 
     # Retrieve the worksheet_key from the first match in the worksheets_feed object
     worksheet_key = worksheets_feed.entry[0].id.text.rsplit("/", 1)[1]
-    print("worksheet_key: %s" % worksheet_key)
 
-    #for j, wsentry in enumerate(worksheets_feed.entry):
-    wsentry = worksheets_feed.entry[0]
-    print '%s - rows %s - cols %s\n' % (wsentry.title.text, wsentry.row_count.text, wsentry.col_count.text)
-    #print(sp_client.get_cell(spreadsheet_key, worksheet_key, 1, 1))
-    rows = int(wsentry.row_count.text)
+    ws = worksheets_feed.entry[0]
+    print '%s - rows %s - cols %s\n' % (ws.title.text, ws.row_count.text, ws.col_count.text)
+
+    num_rows = int(ws.row_count.text)
 
 
     cells = sp_client.get_cells(spreadsheet_key, worksheet_key)
-    #print(cells.entry[0])
-    old_row = 1
-    for rid in range(0, rows):
-        if str(old_row) == cells.entry[rid].cell.row:
-            print("old_row# %s VS row# %s val: %s" % (str(old_row), cells.entry[rid].cell.row, cells.entry[rid].cell.text))
-        else:
-            print("old_row# %s VS NEW row# %s val: %s" % (str(old_row), cells.entry[rid].cell.row, cells.entry[rid].cell.text))
-            old_row = old_row + 1
+    prev_row = 1
+    headings = []
+    lvs = LabelValueStore()
+    lvs.silo_id = silo_id
+    try:
+        for rid in range(0, num_rows):
+            if int(cells.entry[rid].cell.row) == 1:
+                headings.append(cells.entry[rid].cell.text)
+                continue
 
-    print("col: %s" % cells.entry[0].cell.col)
-    print("row: %s" % cells.entry[0].cell.row)
+            val = cells.entry[rid].cell.text
+            if str(prev_row) == cells.entry[rid].cell.row:
+                #print("prev_row# %s VS row# %s val: %s" % (str(prev_row), cells.entry[rid].cell.row, cells.entry[rid].cell.text))
+                col_num = rid % len(headings)
+                #print("col_num: %s col_name: %s"  % (col_num, headings[col_num]))
+                key = headings[col_num]
+                if key != "" and key is not None and key != "silo_id" and key != "id" and key != "_id":
+                    if key == "create_date": key = "created_date"
+                    if key == "edit_date": key = "editted_date"
+                    setattr(lvs, key, val)
+            else:
+                #print("prev_row# %s VS NEW row# %s val: %s" % (str(prev_row), cells.entry[rid].cell.row, cells.entry[rid].cell.text))
+                prev_row = prev_row + 1
+                # save the existing row as a label value store document
+                lvs.create_date = timezone.now()
+                lvs.save()
+                # create a new label value store document for the new row.
+                lvs = LabelValueStore()
+                lvs.silo_id = silo_id
 
+                key = headings[0]
+                if key != "" and key is not None and key != "silo_id" and key != "id" and key != "_id":
+                    if key == "create_date": key = "created_date"
+                    if key == "edit_date": key = "editted_date"
+                    setattr(lvs, key, val)
+    except Exception as e:
+        print(e)
+
+    lvs.create_date = timezone.now()
+    lvs.save()
+    combineColumns(silo_id)
+    print("SILO_ID: %s" % silo_id)
+
+
+    #-------------------------------
+    # ListFeed
     #list_feed = sp_client.get_list_feed(spreadsheet_key, worksheet_key)
-    #print("PRINTING LIST FEEED:" )
-    #print(list_feed.entry)
-
-    silo_data = LabelValueStore.objects(silo_id=silo_id)
-
-    cell_query = gdata.spreadsheets.client.CellQuery(range=None, return_empty='false')
-
+    #for en in list_feed.entry:
+    #    print(en)
+    #-------------------------------
+    # CellsFeed
+    #cell_query = gdata.spreadsheets.client.CellQuery(range=None, return_empty='false')
     # Retrieve all cells thar match the query as a CellFeed
-    cells_feed = sp_client.GetCells(spreadsheet_key, worksheet_key, q=cell_query)
+    #cells_feed = sp_client.GetCells(spreadsheet_key, worksheet_key, q=cell_query)
+    #print(cells_feed.entry[0].cell.text)
+    #-------------------------------
+    # retrieve a single cell
+    #print(sp_client.get_cell(spreadsheet_key, worksheet_key, 1, 1))
+    #-------------------------------
 
-    #print(type(cells.entry))
-    print(cells_feed.entry[0].cell.text)
-
-
+    #silo_data = LabelValueStore.objects(silo_id=silo_id)
     return True
 
 
