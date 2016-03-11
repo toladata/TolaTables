@@ -54,15 +54,34 @@ def import_from_google_spreadsheet(credential_json, silo_id, spreadsheet_key):
 
     ws = worksheets_feed.entry[0]
     print '%s - rows %s - cols %s\n' % (ws.title.text, ws.row_count.text, ws.col_count.text)
+    lvs = LabelValueStore()
 
+
+
+    list_feed = sp_client.get_list_feed(spreadsheet_key, worksheet_key)
+
+    for row in list_feed.entry:
+        row_data = row.to_dict()
+        print(row_data)
+        for key, val in row_data.iteritems():
+            if key == "" or key is None or key == "silo_id": continue
+            elif key == "id" or key == "_id": key = "user_assigned_id"
+            elif key == "create_date": key = "created_date"
+            elif key == "edit_date": key = "editted_date"
+            setattr(lvs, key, val)
+        lvs.silo_id = silo_id
+        lvs.create_date = timezone.now()
+        lvs.save()
+        lvs = LabelValueStore()
+
+    combineColumns(silo_id)
+    """
     num_rows = int(ws.row_count.text)
-
-
+    num_cols = int(ws.col_count.text)
     cells = sp_client.get_cells(spreadsheet_key, worksheet_key)
     prev_row = 2
     headings = []
-    lvs = LabelValueStore()
-    lvs.silo_id = silo_id
+
     try:
         for rid in range(0, num_rows):
             if int(cells.entry[rid].cell.row) == 1:
@@ -70,16 +89,19 @@ def import_from_google_spreadsheet(credential_json, silo_id, spreadsheet_key):
                 continue
 
             curr_row = int(cells.entry[rid].cell.row)
+            curr_col = int(cells.entry[rid].cell.col) -1
+
             val = cells.entry[rid].cell.text
             col_num = rid % len(headings)
-            key = headings[col_num]
+            print("curr_col: %s VS col_num: %s" % (curr_col, col_num))
+            key = headings[curr_col]
 
             if key == "" or key is None or key == "silo_id": continue
             elif key == "id" or key == "_id": key = "user_assigned_id"
             elif key == "create_date": key = "created_date"
             elif key == "edit_date": key = "editted_date"
 
-            #print("prev_row #: %s row#: %s key: %s val: %s" % (prev_row, curr_row, key, val))
+            #print("prev_row #: %s row#: %s col_num: %s col: %s key: %s val: %s" % (prev_row, curr_row, col_num, curr_col, key, val))
 
             # if prev_row is less than current by more than 1, then there must have been empty rows.
             if prev_row + 1 < curr_row:
@@ -97,11 +119,13 @@ def import_from_google_spreadsheet(credential_json, silo_id, spreadsheet_key):
                 lvs.silo_id = silo_id
             setattr(lvs, key, val)
     except Exception as e:
+        print(e)
         lvs.create_date = timezone.now()
         lvs.save()
 
     combineColumns(silo_id)
-    print("SILO_ID: %s" % silo_id)
+
+    """
 
 
     #-------------------------------
