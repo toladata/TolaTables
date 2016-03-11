@@ -17,7 +17,7 @@ from django.views.decorators.csrf import csrf_protect
 from .models import GoogleCredentialsModel
 from apiclient.discovery import build
 import gdata.spreadsheets.client
-
+from tola.util import siloToDict, combineColumns
 
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag
 
@@ -59,7 +59,7 @@ def import_from_google_spreadsheet(credential_json, silo_id, spreadsheet_key):
 
 
     cells = sp_client.get_cells(spreadsheet_key, worksheet_key)
-    prev_row = 1
+    prev_row = 2
     headings = []
     lvs = LabelValueStore()
     lvs.silo_id = silo_id
@@ -69,36 +69,37 @@ def import_from_google_spreadsheet(credential_json, silo_id, spreadsheet_key):
                 headings.append(cells.entry[rid].cell.text)
                 continue
 
+            curr_row = int(cells.entry[rid].cell.row)
             val = cells.entry[rid].cell.text
-            if str(prev_row) == cells.entry[rid].cell.row:
-                #print("prev_row# %s VS row# %s val: %s" % (str(prev_row), cells.entry[rid].cell.row, cells.entry[rid].cell.text))
-                col_num = rid % len(headings)
-                #print("col_num: %s col_name: %s"  % (col_num, headings[col_num]))
-                key = headings[col_num]
-                if key != "" and key is not None and key != "silo_id" and key != "id" and key != "_id":
-                    if key == "create_date": key = "created_date"
-                    if key == "edit_date": key = "editted_date"
-                    setattr(lvs, key, val)
-            else:
-                #print("prev_row# %s VS NEW row# %s val: %s" % (str(prev_row), cells.entry[rid].cell.row, cells.entry[rid].cell.text))
+            col_num = rid % len(headings)
+            key = headings[col_num]
+
+            if key == "" or key is None or key == "silo_id": continue
+            elif key == "id" or key == "_id": key = "user_assigned_id"
+            elif key == "create_date": key = "created_date"
+            elif key == "edit_date": key = "editted_date"
+
+            #print("prev_row #: %s row#: %s key: %s val: %s" % (prev_row, curr_row, key, val))
+
+            # if prev_row is less than current by more than 1, then there must have been empty rows.
+            if prev_row + 1 < curr_row:
+                prev_row = curr_row - 1
+
+            if not prev_row == curr_row:
+                if val == "" or val == None: continue
                 prev_row = prev_row + 1
                 # save the existing row as a label value store document
                 lvs.create_date = timezone.now()
                 lvs.save()
+
                 # create a new label value store document for the new row.
                 lvs = LabelValueStore()
                 lvs.silo_id = silo_id
-
-                key = headings[0]
-                if key != "" and key is not None and key != "silo_id" and key != "id" and key != "_id":
-                    if key == "create_date": key = "created_date"
-                    if key == "edit_date": key = "editted_date"
-                    setattr(lvs, key, val)
+            setattr(lvs, key, val)
     except Exception as e:
-        print(e)
+        lvs.create_date = timezone.now()
+        lvs.save()
 
-    lvs.create_date = timezone.now()
-    lvs.save()
     combineColumns(silo_id)
     print("SILO_ID: %s" % silo_id)
 
