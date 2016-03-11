@@ -143,3 +143,29 @@ body > .container {
     color: #fff;
     background-color:#59b5fa;
 }
+
+
+.tag {
+    font-family: Helvetica, Arial, sans-serif;
+    background: #588fe5;
+    display: inline-block;
+    color: #fff;
+    position: relative;
+    padding: 5px;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    margin: 0 2px 0 0;
+    text-decoration: none;
+}
+
+.tag:hover {
+    background-color: #739fe4;
+}
+
+
+
+.tag:hover:after {
+    border-color: transparent transparent transparent #739fe4;
+}
