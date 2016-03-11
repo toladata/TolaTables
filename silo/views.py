@@ -20,7 +20,7 @@ from django.template import RequestContext, Context
 from django.db import models
 from django.shortcuts import render_to_response
 from django.shortcuts import render
-from django.db.models import Max, F
+from django.db.models import Max, F, Q
 from django.views.decorators.csrf import csrf_protect
 import django_tables2 as tables
 from django_tables2 import RequestConfig
@@ -162,7 +162,7 @@ def editSilo(request, id):
     else:
         form = SiloForm(instance=edited_silo)
     return render(request, 'silo/edit.html', {
-        'form': form, 'silo_id': id,
+        'form': form, 'silo_id': id, "silo": edited_silo,
     })
 
 from silo.forms import *
@@ -530,9 +530,12 @@ def listSilos(request):
     user = User.objects.get(username__exact=request.user)
 
     #get all of the silos
-    get_silos = Silo.objects.filter(owner=user).prefetch_related('reads')
+    own_silos = Silo.objects.filter(owner=user).prefetch_related('reads')
 
-    return render(request, 'display/silos.html',{'get_silos':get_silos})
+    shared_silos = Silo.objects.filter(shared__id=user.pk).prefetch_related("reads")
+
+    public_silos = Silo.objects.filter(Q(public=True) & ~Q(owner=user)).prefetch_related("reads")
+    return render(request, 'display/silos.html',{'own_silos':own_silos, "shared_silos": shared_silos, "public_silos": public_silos})
 
 
 def addUniqueFiledsToSilo(request):
@@ -547,6 +550,27 @@ def addUniqueFiledsToSilo(request):
                 unique_field.save()
             return HttpResponse("Unique Fields saved")
     return HttpResponse("Only POST requests are processed.")
+
+
+@login_required
+def updateEntireColumn(request):
+    silo_id = request.POST.get("silo_id", None)
+    silo_id = int(silo_id)
+    colname = request.POST.get("update_col", None)
+    new_val = request.POST.get("new_val", None)
+    if silo_id and colname and new_val:
+        client = MongoClient(uri)
+        db = client.tola
+        db.label_value_store.update_many(
+                {"silo_id": silo_id},
+                    {
+                    "$set": {colname: new_val},
+                    },
+                False
+            )
+        messages.success(request, "Successfully, changed the %s column value to %s" % (colname, new_val))
+
+    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': silo_id}))
 
 #SILO-DETAIL Show data from source
 @login_required
@@ -564,7 +588,8 @@ def siloDetail(request,id):
         cols.extend([k for k in l.keys() if k not in cols and k != '_id' and k != 'silo_id' and k != 'create_date' and k != 'edit_date' and k != 'source_table_id'])
     #cols = json.dumps(cols)
 
-    if str(owner.username) == str(request.user) or public:
+    #if str(owner.username) == str(request.user) or public:
+    if silo.owner == owner or silo.public == True or owner__in == silo.shared:
         table = LabelValueStore.objects(silo_id=id).to_json()
         decoded_json = json.loads(table)
         column_names = []

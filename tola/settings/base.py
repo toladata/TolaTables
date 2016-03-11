@@ -148,6 +148,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.tz',
     'django.contrib.messages.context_processors.messages',
     'django.core.context_processors.request',
+    'tola.context_processors.get_silos',
 )
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#template-loaders

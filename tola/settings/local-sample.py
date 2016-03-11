@@ -35,7 +35,11 @@ SECRET_KEY = r"!0^+)=t*ly6ycprf9@kfw$6fsjd0xoh#pa*2erx1m*lp5k9ko7"
 
 ########## EMAIL CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+#FOR PRODUCTION USE THIS
+#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+#FOR DEV AND TEST
+EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
+EMAIL_FILE_PATH = '/tmp/tola-messages' # change this to a proper location
 ########## END EMAIL CONFIGURATION
 
 

@@ -8,7 +8,7 @@
         <meta name="description" content="Mercy Corps Application">
         <meta name="author" content="Mercy Corps">
 
-        <title>{% block title %} TolaData - Collect, Aggregate and Store Data {% endblock %}</title>
+        <title>{% block title %} TolaTables - Collect, Aggregate and Store Data {% endblock %}</title>
 
         <link rel="shortcut icon" href="{{ STATIC_URL }}img/favicon.png" type="image/png">
 
@@ -55,6 +55,7 @@
                         <ul class="dropdown-menu">
                             <li><a href="/onalogin"><span class="glyphicon glyphicon-list-alt"></span> Import from ONA</a></li>
                             <li><a href="{% url 'newRead' %}"><span class="glyphicon glyphicon-list-alt"></span> Import From CSV</a></li>
+                            <li><a href="#" onclick="select_silo_for_importing_gsheet();"><span class="glyphicon glyphicon-list-alt"></span> Import from Google Spreadsheet</a></li>
 
                         </ul>
                     </li>
@@ -154,6 +155,31 @@
 
         <div id = "loading" class="modal"> </div>
 
+<div class="modal fade" id="select_silo_for_gsheet_export_modal" tabindex="-1" role="dialog" aria-labelledby="select_silo_for_gsheet_export_modal" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title">Choose Destination for importing data from Google Spreadsheet.</h4>
+            </div>
+            <div class="modal-body" id="unique_cols_selection_modal_body_div">
+                <label for="silo_cols">Existing Tables</label>
+                <select id="silo_select" name="silo_cols" class="form-control input-sm" style="width: 100%;">
+                        <option value="-1">New Table</option>
+                    {% for silo in all_my_silos %}
+                        <option value="{{ silo.id }}">{{ silo.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" id="import_gsheet_btn" class="btn btn-primary" data-dismiss="modal">Import</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
         <div id="footer">
             <!-- Sticky Footer -->
             <div class="container">
@@ -178,10 +204,110 @@
         <script type="text/javascript" src="{{ STATIC_URL }}js/select2.min.js"></script>
 
         <!-- Typekit (Fonts) -->
-        <script src="https://use.typekit.net/lmu1xjz.js"></script>
+        <script src="https://use.typekit.net/shi4wqr.js"></script>
         <script>try{Typekit.load({ async: true });}catch(e){}</script>
 
+        <script type="text/javascript">
+        
+            // The Client ID obtained from the Google Developers Console.
+            var clientId = "859950034311-r6gsqnipugbtv6a2j4h4eo2tt2a1js2t.apps.googleusercontent.com"
+            // developerKey is the same as the Browser API key, at least, as of writing this code.
+            var developerKey = 'AIzaSyCuDmq8DjGziPnfAl4bW7fEZtf25teO3x4';
+            // The list of scopes to request access to is available at: https://developers.google.com/picker/docs/#otherviews
+            var scope = ['https://www.googleapis.com/auth/drive'];
+            var silo_id;
+            var pickerApiLoaded = false;
+            var oauthToken;
+
+            function select_silo_for_importing_gsheet() {
+                $("#select_silo_for_gsheet_export_modal").modal("show");
+            }
+            
+            $("#select_silo_for_gsheet_export_modal").on("click", "#import_gsheet_btn", function(e) {
+                e.preventDefault();
+                silo_id =  $("select#silo_select").val();
+                console.log("silo_id: " + silo_id);
+                onAuthApiLoad(silo_id);
+            });
+
+            // Use the API Loader script to load google.picker and gapi.auth.
+            function onApiLoad() {
+                gapi.load('auth');
+                gapi.load('picker', {'callback': onPickerApiLoad});
+            }
+
+            // After Google's auth library is loaded, this function is called
+            function onAuthApiLoad(siloId) {
+                silo_id = siloId;
+                window.gapi.auth.authorize( {
+                    'client_id': clientId,
+                    'scope': scope,
+                    'immediate': false
+                },
+                handleAuthResult);
+            }
+
+            function onPickerApiLoad() {
+                pickerApiLoaded = true;
+                //createPicker();
+            }
+
+            // After the authentication is complete, this method is called
+            function handleAuthResult(authResult) {
+                if (authResult && !authResult.error) {
+                    oauthToken = authResult.access_token;
+                    createPicker();
+                }createPicker
+            }
+
+            // Create and render a Picker object for picking user Photos.
+            function createPicker() {
+                if (pickerApiLoaded && oauthToken) {
+                    var view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS);
+                    view.setIncludeFolders(true);
+                    view.setOwnedByMe(true);
+                    view.setSelectFolderEnabled(false);
+                    view.setMode("DocsViewMode.LIST");
+                    var picker = new google.picker.PickerBuilder()
+                        .enableFeature(google.picker.Feature.NAV_HIDDEN)
+                        .addView(view)
+                        .setOAuthToken(oauthToken)
+                        .setDeveloperKey(developerKey)
+                        .setCallback(pickerCallback)
+                        .build();
+                    picker.setVisible(true);
+                }
+            }
+
+            // A simple callback implementation.
+            function pickerCallback(data) {
+                console.log(JSON.stringify(data));
+                if (data[google.picker.Response.ACTION] == google.picker.Action.PICKED) {
+                    var doc = data[google.picker.Response.DOCUMENTS][0];
+                    var url = doc[google.picker.Document.URL];
+                    var id = doc[google.picker.Document.ID];
+                    console.log("URL: " + url);
+                    console.log("ID: " + id);
+                    console.log("silo_id: " + silo_id);
+                    $(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + id);
+                }
+            }
+
+        </script>
+        <script type="text/javascript" src="https://apis.google.com/js/api.js?onload=onApiLoad"></script>
+
         {% block extra_js_in_body %}{% endblock %}
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-73736890-2', 'auto');
+          ga('send', 'pageview');
+
+        </script>
+        
     </body>
 </html>
 
