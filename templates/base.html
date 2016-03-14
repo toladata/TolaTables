@@ -154,7 +154,7 @@
 
         <div id = "loading" class="modal"> </div>
 
-<div class="modal fade" id="select_silo_for_gsheet_export_modal" tabindex="-1" role="dialog" aria-labelledby="select_silo_for_gsheet_export_modal" aria-hidden="true">
+<div class="modal fade" id="select_silo_for_gsheet_import_modal" tabindex="-1" role="dialog" aria-labelledby="select_silo_for_gsheet_import_modal" aria-hidden="true">
     <div class="modal-dialog modal-md">
         <div class="modal-content">
             <div class="modal-header">
@@ -217,15 +217,16 @@
             var silo_id;
             var pickerApiLoaded = false;
             var oauthToken;
+            var actionType = null;
 
             function select_silo_for_importing_gsheet() {
-                $("#select_silo_for_gsheet_export_modal").modal("show");
+                $("#select_silo_for_gsheet_import_modal").modal("show");
             }
             
-            $("#select_silo_for_gsheet_export_modal").on("click", "#import_gsheet_btn", function(e) {
+            $("#select_silo_for_gsheet_import_modal").on("click", "#import_gsheet_btn", function(e) {
                 e.preventDefault();
                 silo_id =  $("select#silo_select").val();
-                console.log("silo_id: " + silo_id);
+                actionType = "import";
                 onAuthApiLoad(silo_id);
             });
 
@@ -256,7 +257,7 @@
                 if (authResult && !authResult.error) {
                     oauthToken = authResult.access_token;
                     createPicker();
-                }createPicker
+                }
             }
 
             // Create and render a Picker object for picking user Photos.
@@ -280,15 +281,20 @@
 
             // A simple callback implementation.
             function pickerCallback(data) {
-                console.log(JSON.stringify(data));
+                //console.log(JSON.stringify(data));
                 if (data[google.picker.Response.ACTION] == google.picker.Action.PICKED) {
                     var doc = data[google.picker.Response.DOCUMENTS][0];
                     var url = doc[google.picker.Document.URL];
                     var id = doc[google.picker.Document.ID];
+                    
                     console.log("URL: " + url);
                     console.log("ID: " + id);
                     console.log("silo_id: " + silo_id);
-                    $(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + id);
+                    if (actionType == "import") {
+                        $(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + id);
+                    } else {
+                        $(location).attr('href', '/export_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + id);
+                    }
                 }
             }
 
