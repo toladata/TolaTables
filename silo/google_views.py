@@ -51,23 +51,6 @@ def get_authorized_sp_client(credential_json):
 
 
 def export_to_google_spreadsheet(credential_json, silo_id, spreadsheet_key):
-    """
-    # Create OAuth2Token for authorizing the SpreadsheetClient
-    token = gdata.gauth.OAuth2Token(
-        client_id = credential_json['client_id'],
-        client_secret = credential_json['client_secret'],
-        scope = 'https://spreadsheets.google.com/feeds',
-        user_agent = "TOLA",
-        access_token = credential_json['access_token'],
-        refresh_token = credential_json['refresh_token'])
-
-    # Instantiate the SpreadsheetClient object
-    sp_client = gdata.spreadsheets.client.SpreadsheetsClient(source="TOLA")
-
-    # authorize the SpreadsheetClient object
-    sp_client = token.authorize(sp_client)
-    #print(sp_client)
-    """
     sp_client = get_authorized_sp_client(credential_json)
 
     # Create a WorksheetQuery object to allow for filtering for worksheets by the title
@@ -236,13 +219,13 @@ def import_from_google_spreadsheet(credential_json, silo_id, spreadsheet_key):
     # Create a WorksheetQuery object to allow for filtering for worksheets by the title
     worksheet_query = gdata.spreadsheets.client.WorksheetQuery(title="Sheet1", title_exact=True)
     # Get a feed of all worksheets in the specified spreadsheet that matches the worksheet_query
-    worksheets_feed = sp_client.get_worksheets(spreadsheet_key, query=None)
+    worksheets_feed = sp_client.get_worksheets(spreadsheet_key)
 
     # Retrieve the worksheet_key from the first match in the worksheets_feed object
     worksheet_key = worksheets_feed.entry[0].id.text.rsplit("/", 1)[1]
 
     ws = worksheets_feed.entry[0]
-    print '%s - rows %s - cols %s\n' % (ws.title.text, ws.row_count.text, ws.col_count.text)
+    #print '%s - rows %s - cols %s\n' % (ws.title.text, ws.row_count.text, ws.col_count.text)
     lvs = LabelValueStore()
 
 
@@ -272,6 +255,7 @@ def import_gsheet(request, id):
     gsheet_endpoint = None
     read_url = request.GET.get('link', None)
     file_id = request.GET.get('resource_id', None)
+    file_name = request.GET.get("name", "Google Sheet Import")
     if read_url == None or file_id == None:
         messages.error(request, "A Google Spreadsheet is not selected to import data from.")
         return HttpResponseRedirect(reverse('index'))
@@ -298,7 +282,11 @@ def import_gsheet(request, id):
         gsheet_endpoint = Read(read_name="GSheet Import", type=read_type, resource_id=file_id, owner=user)
         gsheet_endpoint.read_url = read_url
         gsheet_endpoint.save()
-        silo = Silo.objects.get(id=id)
+        try:
+            silo = Silo.objects.get(id=id)
+        except Silo.DoesNotExist:
+            silo = Silo(name=file_name, owner=request.user, public=False, description="Google Sheet Import")
+            silo.save()
         silo.reads.add(gsheet_endpoint)
         silo.save()
     except Exception as e:

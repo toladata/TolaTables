@@ -164,7 +164,7 @@
             <div class="modal-body" id="unique_cols_selection_modal_body_div">
                 <label for="silo_cols">Existing Tables</label>
                 <select id="silo_select" name="silo_cols" class="form-control input-sm" style="width: 100%;">
-                        <option value="-1">New Table</option>
+                        <option value="0">New Table</option>
                     {% for silo in all_my_silos %}
                         <option value="{{ silo.id }}">{{ silo.name }}</option>
                     {% endfor %}
@@ -287,11 +287,12 @@
                     var url = doc[google.picker.Document.URL];
                     var id = doc[google.picker.Document.ID];
                     
-                    console.log("URL: " + url);
-                    console.log("ID: " + id);
-                    console.log("silo_id: " + silo_id);
+                    //console.log("URL: " + url);
+                    //console.log("ID: " + id);
+                    //console.log("name:" + doc['name']);
+                    //console.log("silo_id: " + silo_id);
                     if (actionType == "import") {
-                        $(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + id);
+                        $(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + id + "&name=" + doc['name']);
                     } else {
                         $(location).attr('href', '/export_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + id);
                     }
