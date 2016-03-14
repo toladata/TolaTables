@@ -293,7 +293,7 @@ def import_gsheet(request, id):
         messages.error(request, "An error occured: %" % e.message)
 
     #print("about to export to gsheet: %s" % gsheet_endpoint.resource_id)
-    if import_from_google_spreadsheet(credential_json, id, gsheet_endpoint.resource_id) == True:
+    if import_from_google_spreadsheet(credential_json, silo.id, gsheet_endpoint.resource_id) == True:
         link = "Your imported data is available at here."
         messages.success(request, link)
     else:
