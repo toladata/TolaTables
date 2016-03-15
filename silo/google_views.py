@@ -1,6 +1,6 @@
 import os, logging, httplib2, json, datetime
 
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import reverse, reverse_lazy
 from django.http import HttpResponseRedirect, HttpResponseBadRequest, JsonResponse
 
 from django.contrib import messages
@@ -228,8 +228,6 @@ def import_from_google_spreadsheet(credential_json, silo_id, spreadsheet_key):
     #print '%s - rows %s - cols %s\n' % (ws.title.text, ws.row_count.text, ws.col_count.text)
     lvs = LabelValueStore()
 
-
-
     list_feed = sp_client.get_list_feed(spreadsheet_key, worksheet_key)
 
     for row in list_feed.entry:
@@ -253,6 +251,7 @@ def import_from_google_spreadsheet(credential_json, silo_id, spreadsheet_key):
 @login_required
 def import_gsheet(request, id):
     gsheet_endpoint = None
+    silo = None
     read_url = request.GET.get('link', None)
     file_id = request.GET.get('resource_id', None)
     file_name = request.GET.get("name", "Google Sheet Import")
@@ -274,19 +273,22 @@ def import_gsheet(request, id):
     gsheet_endpoint = None
     read_type = ReadType.objects.get(read_type="GSheet Import")
     try:
+        silo = Silo.objects.get(id=id)
+        if silo.unique_fields.exists() == False:
+            messages.error(request, "A unique column must be specfied when importing to an existing table. <a href='%s'>Specify Unique Column</a>" % reverse_lazy('siloDetail', kwargs={"id": silo.id}))
+            return HttpResponseRedirect(request.META['HTTP_REFERER'])
+    except Silo.DoesNotExist:
+        silo = Silo(name=file_name, owner=request.user, public=False, description="Google Sheet Import")
+        silo.save()
+
+    try:
         gsheet_endpoint = Read.objects.get(silos__id=id, type=read_type, silos__owner=user.id, resource_id=file_id, read_name='GSheet Import')
     except Read.MultipleObjectsReturned:
-        print("this should not happen")
         messages.error(request, "There should not be multiple records for the same gsheet, silo, and owner")
     except Read.DoesNotExist:
         gsheet_endpoint = Read(read_name="GSheet Import", type=read_type, resource_id=file_id, owner=user)
         gsheet_endpoint.read_url = read_url
         gsheet_endpoint.save()
-        try:
-            silo = Silo.objects.get(id=id)
-        except Silo.DoesNotExist:
-            silo = Silo(name=file_name, owner=request.user, public=False, description="Google Sheet Import")
-            silo.save()
         silo.reads.add(gsheet_endpoint)
         silo.save()
     except Exception as e:
