@@ -64,12 +64,13 @@ DATABASES = {
 
 ########## END DATABASE CONFIGURATION
 
-########## GOOGLE CLIENT CONFIG ###########
-GOOGLE_REDIRECT_URL = 'https://tola-data-dev.mercycorps.org/oauth2callback/'
-GOOGLE_STEP2_URI = 'http://tola.mercycorps.org/gwelcome'
-GOOGLE_CLIENT_ID = '617113120802.apps.googleusercontent.com'
-GOOGLE_CLIENT_SECRET = '9reM29qpGFPyI8TBuB54Z4fk'
+########## GOOGLE DOCS REDIRECT CONFIG ###########
+GOOGLE_REDIRECT_URL = 'http://localhost:8000/oauth2callback/'
 
+########## GOOGLE AUTH
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = "445847194486-gl2v6ud6ll65vf06vbjaslqqgejad61k.apps.googleusercontent.com"
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = "qAAdNMQy77Vwqgj4YgOu20f7"
+SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS = "mercycorps.org"
 
 ########## CACHE CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#caches
