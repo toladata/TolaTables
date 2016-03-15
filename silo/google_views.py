@@ -213,7 +213,7 @@ def export_new_gsheet(request, id):
     return HttpResponseRedirect(reverse('listSilos'))
 
 
-def import_from_google_spreadsheet(credential_json, silo_id, spreadsheet_key):
+def import_from_google_spreadsheet(credential_json, silo, spreadsheet_key):
     sp_client = get_authorized_sp_client(credential_json)
 
     # Create a WorksheetQuery object to allow for filtering for worksheets by the title
@@ -232,19 +232,30 @@ def import_from_google_spreadsheet(credential_json, silo_id, spreadsheet_key):
 
     for row in list_feed.entry:
         row_data = row.to_dict()
-        print(row_data)
+        skip_row = False
         for key, val in row_data.iteritems():
+            #if the value of unique column is already in existing_silo_data then skip the row
+            for unique_field in silo.unique_fields.all():
+                filter_criteria = {'silo_id': silo.id, unique_field.name: val}
+                if LabelValueStore.objects.filter(**filter_criteria).count() > 0:
+                    skip_row = True
+                    continue
+            if skip_row == True:
+                break
+
             if key == "" or key is None or key == "silo_id": continue
             elif key == "id" or key == "_id": key = "user_assigned_id"
             elif key == "create_date": key = "created_date"
             elif key == "edit_date": key = "editted_date"
             setattr(lvs, key, val)
-        lvs.silo_id = silo_id
+        if skip_row == True:
+            continue
+        lvs.silo_id = silo.id
         lvs.create_date = timezone.now()
         lvs.save()
         lvs = LabelValueStore()
 
-    combineColumns(silo_id)
+    combineColumns(silo.id)
 
     return True
 
@@ -295,8 +306,8 @@ def import_gsheet(request, id):
         messages.error(request, "An error occured: %" % e.message)
 
     #print("about to export to gsheet: %s" % gsheet_endpoint.resource_id)
-    if import_from_google_spreadsheet(credential_json, silo.id, gsheet_endpoint.resource_id) == True:
-        link = "Your imported data is available at here."
+    if import_from_google_spreadsheet(credential_json, silo, gsheet_endpoint.resource_id) == True:
+        link = "Your imported data is available at here. <a href='%s'>See the table</a>" % reverse_lazy('siloDetail', kwargs={"id": silo.id})
         messages.success(request, link)
     else:
         messages.error(request, 'Something went wrong.')
