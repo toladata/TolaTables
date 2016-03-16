@@ -24,7 +24,7 @@
                         {% for silo in own_silos %}
                             <tr>
                                 <td><a href="/silo_edit/{{ silo.id }}">{{ silo.name }}</a></br>
-                                    <span><small>{% for tag in silo.tags.all %} <a name="tag" class="tag"> {{ tag }}</a>{% endfor %}</small></span></td>
+                                    {% if silo.tags.all %}<span><small>tags: {% for tag in silo.tags.all %} <a name="tag" class="tag"> {{ tag }}</a>{% endfor %}</small></span>{%endif%}</td>
                                 <td><small>{{ silo.description|default:"" }}</small></td>
                                 <td>
                                     {% if silo.merged_silo_mappings %}
@@ -89,7 +89,7 @@
                         {% for silo in shared_silos %}
                             <tr>
                                 <td><a href="/silo_edit/{{ silo.id }}">{{ silo.name }}</a></br>
-                                    <span><small>Tags: {{ silo.tags.all|join:", "}}</small></span></td>
+                                    {% if silo.tags.all %}<span><small>tags: {% for tag in silo.tags.all %} <a name="tag" class="tag"> {{ tag }}</a>{% endfor %}</small></span>{%endif%}</td>
                                 <td><small>{{ silo.description|default:"" }}</small></td>
                                 <td>
                                     {% if silo.merged_silo_mappings %}
@@ -148,7 +148,7 @@
                         {% for silo in public_silos %}
                             <tr>
                                 <td><a href="/silo_edit/{{ silo.id }}">{{ silo.name }}</a></br>
-                                    <span><small>Tags: {{ silo.tags.all|join:", "}}</small></span></td>
+                                    {% if silo.tags.all %}<span><small>tags: {% for tag in silo.tags.all %} <a name="tag" class="tag"> {{ tag }}</a>{% endfor %}</small></span>{%endif%}</td>
                                 <td><small>{{ silo.description|default:"" }}</small></td>
                                 <td>
                                     {% if silo.merged_silo_mappings %}
