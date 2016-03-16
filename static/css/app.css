@@ -152,7 +152,7 @@ body > .container {
     font-size: 10px;
     color: #fff;
     position: relative;
-    padding: 3px;
+    padding: .25em;
     border-top-left-radius: 2px;
     border-bottom-left-radius: 2px;
     border-top-right-radius: 2px;
