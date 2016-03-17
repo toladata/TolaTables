@@ -236,9 +236,10 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
-SOCIAL_AUTH_PIPELINE = (
-    'social.pipeline.social_auth.associate_by_email',  # <--- enable this one
-)
+# The following settings break the social_auth login; it keeps redirecting to the login page.
+#SOCIAL_AUTH_PIPELINE = (
+#    'social.pipeline.social_auth.associate_by_email',  # <--- enable this one
+#)
 
 ############ END OF AUTHENTICATION BACKEND ##############
 
