@@ -5,6 +5,7 @@ from django.contrib import admin
 from django.contrib.auth.models import User
 from oauth2client.django_orm import CredentialsField
 from django.contrib.sites.models import Site
+from datetime import datetime
 
 
 class TolaSites(models.Model):
