@@ -236,8 +236,9 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
-# The following settings break the social_auth login; it keeps redirecting to the login page.
-#SOCIAL_AUTH_PIPELINE = (
+##### NOT WORKING COMMENTED OUT FOR NOW GWL 041816
+##### Match google email with local email if it exists
+##SOCIAL_AUTH_PIPELINE = (
 #    'social.pipeline.social_auth.associate_by_email',  # <--- enable this one
 #)
 

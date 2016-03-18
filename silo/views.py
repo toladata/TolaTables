@@ -25,7 +25,7 @@ from django.views.decorators.csrf import csrf_protect
 import django_tables2 as tables
 from django_tables2 import RequestConfig
 
-from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping
+from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites
 
 from .tables import define_table
 from tola.util import getSiloColumnNames
@@ -511,7 +511,8 @@ def index(request):
     count_all = Silo.objects.count()
     count_max = count_all + (count_all * .10)
     get_public = Silo.objects.filter(public=1)
-    return render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_max':count_max})
+    site = TolaSites.objects.get(site_id=1)
+    return render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_max':count_max, 'site': site})
 
 
 def toggle_silo_publicity(request):

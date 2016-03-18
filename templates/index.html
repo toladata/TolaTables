@@ -127,7 +127,10 @@
                     {% if user.is_authenticated %}
                         <a href="/silos/" class="btn btn-lg btn-success">View My Data</a>
                     {% else %}
-                         <a href="/accounts/register/" class="btn btn-lg btn-success">Register</a>
+                        <div class="social-buttons">
+                            <p>Login with your {{ site.name }} Google Account.</p>
+                            <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-go"><i class="fa fa-google"></i> Google Login </a>
+                        </div>
                     {% endif %}
                 </div>
                 <div class="col-md-4">
@@ -169,7 +172,7 @@
                 <a href="https://tola-activity.mercycorps.org" class="list-group-item active">
                     TolaActivity
                 </a>
-                <li class="list-group-item"><a href="https://tola-activity.mercycorps.org">http://tola-activity.mercycorps.org</a> Country Dashboard, Indicator Tracking and Project Workflow.</li>
+                <li class="list-group-item"><a href="{{site.activity_url}}">{{site.activity_url}}</a> Country Dashboard, Indicator Tracking and Project Workflow.</li>
                 <li class="list-group-item">Status: {% if data_up == 0 %} SERVER IS DOWN {% else %} Server is up!{% endif %}</li>
             </div>
             <div class="list-group">

@@ -5,12 +5,14 @@ from django.contrib import admin
 from django.contrib.auth.models import User
 from oauth2client.django_orm import CredentialsField
 from django.contrib.sites.models import Site
+from datetime import datetime
 
 
 class TolaSites(models.Model):
     name = models.CharField(blank=True, null=True, max_length="255")
     agency_name = models.CharField(blank=True, null=True, max_length="255")
     agency_url = models.CharField(blank=True, null=True, max_length="255")
+    activity_url = models.CharField(blank=True, null=True, max_length="255")
     site = models.ForeignKey(Site)
     privacy_disclaimer = models.TextField(blank=True, null=True)
     created = models.DateTimeField(auto_now=False, blank=True, null=True)
