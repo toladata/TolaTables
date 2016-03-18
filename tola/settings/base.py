@@ -236,9 +236,11 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
-SOCIAL_AUTH_PIPELINE = (
-    'social.pipeline.social_auth.associate_by_email',  # <--- enable this one
-)
+##### NOT WORKING COMMENTED OUT FOR NOW GWL 041816
+##### Match google email with local email if it exists
+##SOCIAL_AUTH_PIPELINE = (
+#    'social.pipeline.social_auth.associate_by_email',  # <--- enable this one
+#)
 
 ############ END OF AUTHENTICATION BACKEND ##############
 
