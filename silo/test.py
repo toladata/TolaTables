@@ -4,6 +4,7 @@ when you run "manage.py test".
 
 Replace this with more appropriate tests for your application.
 """
+import datetime
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import resolve, reverse
 from django.template.loader import render_to_string
@@ -68,7 +69,7 @@ class SiloTest(TestCase):
         self.client = Client()
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="bob", email="bob@email.com", password="tola123")
-        self.today = datetime.date.today()
+        self.today = datetime.today()
         self.today.strftime('%Y-%m-%d')
         self.today = str(self.today)
 
