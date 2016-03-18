@@ -179,11 +179,19 @@ MIDDLEWARE_CLASSES = (
 )
 ########## END MIDDLEWARE CONFIGURATION
 
+
 ########## REST CONFIGURATION
 # Add Pagination to Rest Framework lists
 REST_FRAMEWORK = {
     'PAGINATE_BY': 10,
-    'DEFAULT_FILTER_BACKENDS': ('rest_framework.filters.DjangoFilterBackend',)
+    'DEFAULT_FILTER_BACKENDS': ('rest_framework.filters.DjangoFilterBackend',),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    )
 }
 ########## END REST CONFIGURATION
 
@@ -235,6 +243,13 @@ AUTHENTICATION_BACKENDS = (
     'social.backends.google.GoogleOAuth2',
     'django.contrib.auth.backends.ModelBackend',
 )
+
+##### NOT WORKING COMMENTED OUT FOR NOW GWL 041816
+##### Match google email with local email if it exists
+##SOCIAL_AUTH_PIPELINE = (
+#    'social.pipeline.social_auth.associate_by_email',  # <--- enable this one
+#)
+
 ############ END OF AUTHENTICATION BACKEND ##############
 
 ########## Login redirect ###########

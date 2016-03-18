@@ -112,20 +112,20 @@ urlpatterns = patterns('',
                         url(r'^export_new_gsheet/(?P<id>\d+)/$', 'silo.google_views.export_new_gsheet', name='export_new_gsheet'),
                         url(r'^export_gsheet/(?P<id>\d+)/$', 'silo.google_views.export_gsheet', name='export_existing_gsheet'),
                         url(r'^oauth2callback/$', 'silo.google_views.oauth2callback', name='oauth2callback'),
-                        url(r'^import_gsheet/(?P<id>\d+)/$', 'silo.gsheet_import_views.import_gsheet', name='import_gsheet'),
+                        url(r'^import_gsheet/(?P<id>\d+)/$', 'silo.google_views.import_gsheet', name='import_gsheet'),
 
                         #create a feed
                         url(r'^create_feed', 'silo.views.createFeed', name='createFeed'),
 
-                        #local login
-                        url(r'^login/$', 'django.contrib.auth.views.login', name='login'),
-                        url(r'^accounts/login/$', 'django.contrib.auth.views.login', name='login'),
+                        #local login COmment out local login for now
+                        #url(r'^login/$', 'django.contrib.auth.views.login', name='login'),
+                        #url(r'^accounts/login/$', 'django.contrib.auth.views.login', name='login'),
 
                         url(r'^accounts/logout/$', 'tola.views.logout_view', name='logout'),
 
                         #accounts
                         url(r'^accounts/profile/$', 'tola.views.profile', name='profile'),
-                        url(r'^accounts/register/$', 'tola.views.register', name='register'),
+                        #url(r'^accounts/register/$', 'tola.views.register', name='register'),
 
                         #Auth backend URL's
                         url('', include('django.contrib.auth.urls', namespace='auth')),

@@ -113,3 +113,62 @@ body > .container {
   overflow-x: visible !important;
   overflow-y: visible !important;
 }
+
+/* Login buttons for Social */
+.social-buttons{
+    margin:12px 0
+}
+
+.btn-fb{
+    color: #fff;
+    background-color:#3b5998;
+}
+.btn-fb:hover{
+    color: #fff;
+    background-color:#496ebc
+}
+.btn-tw{
+    color: #fff;
+    background-color:#55acee;
+}
+.btn-tw:hover{
+    color: #fff;
+    background-color:#59b5fa;
+}
+.btn-go{
+    color: #fff;
+    background-color:#55acee;
+}
+.btn-go:hover{
+    color: #fff;
+    background-color:#59b5fa;
+}
+
+
+.tag {
+    font-family: Helvetica, Arial, sans-serif;
+    background: #588fe5;
+    display: inline-block;
+    font-size: 10px;
+    color: #fff;
+    position: relative;
+    padding: .25em;
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+    border-top-right-radius: 2px;
+    border-bottom-right-radius: 2px;
+    margin: 0 1px 0 0;
+    text-decoration: none;
+}
+
+.tag:hover {
+    text-decoration: none;
+    color: #fff;
+}
+
+
+
+.tag:hover:after {
+    text-decoration: none;
+    color: #fff;
+}

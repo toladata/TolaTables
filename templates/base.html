@@ -48,77 +48,55 @@
                 </a>
             </div>
             <div class="navbar-collapse collapse" role="navigation">
-                <ul class="nav navbar-nav">
-
-                    <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Import Data<b class="caret"></b></a>
-                        <ul class="dropdown-menu">
-                            <li><a href="/onalogin"><span class="glyphicon glyphicon-list-alt"></span> Import from ONA</a></li>
-                            <li><a href="{% url 'newRead' %}"><span class="glyphicon glyphicon-list-alt"></span> Import From CSV</a></li>
-                            <li><a href="#" onclick="select_silo_for_importing_gsheet();"><span class="glyphicon glyphicon-list-alt"></span> Import from Google Spreadsheet</a></li>
-
-                        </ul>
-                    </li>
-
-                     <li class="dropdown">
-                        <a href="{% url 'listSilos' %}" > Your Tables</a>
-                    </li>
-
-                    <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Help<b class="caret"></b></a>
-                        <ul class="dropdown-menu">
-                            <li><a href="http://tola.work/documentation" target="blank">Documentation</a></li>
-                            <li><a href="http://tola.work/faq" target="blank">FAQ</a></li>
-                            <li><a href="http://tola.work/contact" target="blank">Contact</a></li>
-                        </ul>
-                    </li>
-
-                </ul>
-                <span>MWA</span>
                 {% if user.is_authenticated  %}
-                <span>{{ request.session.country }}</span>
-                <ul class="nav navbar-nav navbar-right">
-                    <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> {{ user.userprofile.name }}<b class="caret"></b></a>
-                        <ul class="dropdown-menu">
-                            <li><a href="{% url 'logout' %}"><span class="glyphicon glyphicon-lock"></span> Logout</a></li>
-                            <li><a href="{% url 'profile' %}"><span class="glyphicon glyphicon-user"></span> Profile</a></li>
-                        </ul>
-                    </li><!-- .dropdown collapse -->
-                </ul>
+                    <ul class="nav navbar-nav">
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Import Data<b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li><a href="/onalogin"><span class="glyphicon glyphicon-list-alt"></span> Import from ONA</a></li>
+                                <li><a href="{% url 'newRead' %}"><span class="glyphicon glyphicon-list-alt"></span> Import From CSV</a></li>
+                                <li><a href="#" onclick="select_silo_for_importing_gsheet();"><span class="glyphicon glyphicon-list-alt"></span> Import from Google Spreadsheet</a></li>
+
+                            </ul>
+                        </li>
+                         <li class="dropdown">
+                            <a href="{% url 'listSilos' %}" > Your Tables</a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Help<b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li><a href="http://tola.work/documentation" target="blank">Documentation</a></li>
+                                <li><a href="http://tola.work/faq" target="blank">FAQ</a></li>
+                                <li><a href="http://tola.work/contact" target="blank">Contact</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <ul class="nav navbar-nav navbar-right">
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> {{ user.userprofile.name }}<b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li><a href="{% url 'logout' %}"><span class="glyphicon glyphicon-lock"></span> Logout</a></li>
+                                <li><a href="{% url 'profile' %}"><span class="glyphicon glyphicon-user"></span> Profile</a></li>
+                            </ul>
+                        </li><!-- .dropdown collapse -->
+                    </ul>
                 {% else %}
-                <ul class="nav navbar-nav navbar-right">
-                    <li class="dropdown">
+                    <ul class="nav navbar-nav navbar-right">
+                        <li class="dropdown">
 
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> Login <b class="caret"></b></a>
-                        <ul class="dropdown-menu">
-                            <li>
-                                <div class="navbar-text">
-                                    Login via
-                                    <div class="social-buttons">
-                                        <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-go"><i class="fa fa-google"></i> Google</a>
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> Login <b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <div class="navbar-text">
+                                        Login via
+                                        <div class="social-buttons">
+                                            <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-go"><i class="fa fa-google"></i> Google</a>
+                                        </div>
                                     </div>
-                                    or
-                                    <a href="{% url 'login' %}">Login with Tola Account</a><br/>
-
-                                    <form class="form" role="form" method="post" action="{% url 'django.contrib.auth.views.login' %}">
-                                        {% csrf_token %}
-                                        <div class="form-group">
-                                            <input type="hidden" name="next" value="{{ next }}" />
-                                        </div>
-                                        <div class="form-group">
-                                            <input type="text" name="username" placeholder="Username" class="form-control">
-                                        </div>
-                                        <div class="form-group">
-                                            <input type="password" name="password" placeholder="Password" class="form-control">
-                                        </div>
-                                        <button type="submit" class="btn btn-success">Sign in</button>
-                                    </form>
-                                </div>
-                            </li>
-                        </ul>
-                    </li><!-- .dropdown collapse -->
-                </ul>
+                                </li>
+                            </ul>
+                        </li><!-- .dropdown collapse -->
+                    </ul>
                 {% endif %}
             </div><!-- .navbar-header collapse -->
             </div><!-- .container collapse -->
@@ -155,7 +133,7 @@
 
         <div id = "loading" class="modal"> </div>
 
-<div class="modal fade" id="select_silo_for_gsheet_export_modal" tabindex="-1" role="dialog" aria-labelledby="select_silo_for_gsheet_export_modal" aria-hidden="true">
+<div class="modal fade" id="select_silo_for_gsheet_import_modal" tabindex="-1" role="dialog" aria-labelledby="select_silo_for_gsheet_import_modal" aria-hidden="true">
     <div class="modal-dialog modal-md">
         <div class="modal-content">
             <div class="modal-header">
@@ -165,7 +143,7 @@
             <div class="modal-body" id="unique_cols_selection_modal_body_div">
                 <label for="silo_cols">Existing Tables</label>
                 <select id="silo_select" name="silo_cols" class="form-control input-sm" style="width: 100%;">
-                        <option value="-1">New Table</option>
+                        <option value="0">New Table</option>
                     {% for silo in all_my_silos %}
                         <option value="{{ silo.id }}">{{ silo.name }}</option>
                     {% endfor %}
@@ -218,15 +196,16 @@
             var silo_id;
             var pickerApiLoaded = false;
             var oauthToken;
+            var actionType = null;
 
             function select_silo_for_importing_gsheet() {
-                $("#select_silo_for_gsheet_export_modal").modal("show");
+                $("#select_silo_for_gsheet_import_modal").modal("show");
             }
             
-            $("#select_silo_for_gsheet_export_modal").on("click", "#import_gsheet_btn", function(e) {
+            $("#select_silo_for_gsheet_import_modal").on("click", "#import_gsheet_btn", function(e) {
                 e.preventDefault();
                 silo_id =  $("select#silo_select").val();
-                console.log("silo_id: " + silo_id);
+                actionType = "import";
                 onAuthApiLoad(silo_id);
             });
 
@@ -257,7 +236,7 @@
                 if (authResult && !authResult.error) {
                     oauthToken = authResult.access_token;
                     createPicker();
-                }createPicker
+                }
             }
 
             // Create and render a Picker object for picking user Photos.
@@ -281,15 +260,21 @@
 
             // A simple callback implementation.
             function pickerCallback(data) {
-                console.log(JSON.stringify(data));
+                //console.log(JSON.stringify(data));
                 if (data[google.picker.Response.ACTION] == google.picker.Action.PICKED) {
                     var doc = data[google.picker.Response.DOCUMENTS][0];
                     var url = doc[google.picker.Document.URL];
                     var id = doc[google.picker.Document.ID];
-                    console.log("URL: " + url);
-                    console.log("ID: " + id);
-                    console.log("silo_id: " + silo_id);
-                    $(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + id);
+                    
+                    //console.log("URL: " + url);
+                    //console.log("ID: " + id);
+                    //console.log("name:" + doc['name']);
+                    //console.log("silo_id: " + silo_id);
+                    if (actionType == "import") {
+                        $(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + id + "&name=" + doc['name']);
+                    } else {
+                        $(location).attr('href', '/export_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + id);
+                    }
                 }
             }
 
