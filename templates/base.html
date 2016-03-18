@@ -48,60 +48,55 @@
                 </a>
             </div>
             <div class="navbar-collapse collapse" role="navigation">
-                <ul class="nav navbar-nav">
-
-                    <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Import Data<b class="caret"></b></a>
-                        <ul class="dropdown-menu">
-                            <li><a href="/onalogin"><span class="glyphicon glyphicon-list-alt"></span> Import from ONA</a></li>
-                            <li><a href="{% url 'newRead' %}"><span class="glyphicon glyphicon-list-alt"></span> Import From CSV</a></li>
-                            <li><a href="#" onclick="select_silo_for_importing_gsheet();"><span class="glyphicon glyphicon-list-alt"></span> Import from Google Spreadsheet</a></li>
-
-                        </ul>
-                    </li>
-
-                     <li class="dropdown">
-                        <a href="{% url 'listSilos' %}" > Your Tables</a>
-                    </li>
-
-                    <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Help<b class="caret"></b></a>
-                        <ul class="dropdown-menu">
-                            <li><a href="http://tola.work/documentation" target="blank">Documentation</a></li>
-                            <li><a href="http://tola.work/faq" target="blank">FAQ</a></li>
-                            <li><a href="http://tola.work/contact" target="blank">Contact</a></li>
-                        </ul>
-                    </li>
-
-                </ul>
                 {% if user.is_authenticated  %}
-                <span>{{ request.session.country }}</span>
-                <ul class="nav navbar-nav navbar-right">
-                    <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> {{ user.userprofile.name }}<b class="caret"></b></a>
-                        <ul class="dropdown-menu">
-                            <li><a href="{% url 'logout' %}"><span class="glyphicon glyphicon-lock"></span> Logout</a></li>
-                            <li><a href="{% url 'profile' %}"><span class="glyphicon glyphicon-user"></span> Profile</a></li>
-                        </ul>
-                    </li><!-- .dropdown collapse -->
-                </ul>
-                {% else %}
-                <ul class="nav navbar-nav navbar-right">
-                    <li class="dropdown">
+                    <ul class="nav navbar-nav">
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Import Data<b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li><a href="/onalogin"><span class="glyphicon glyphicon-list-alt"></span> Import from ONA</a></li>
+                                <li><a href="{% url 'newRead' %}"><span class="glyphicon glyphicon-list-alt"></span> Import From CSV</a></li>
+                                <li><a href="#" onclick="select_silo_for_importing_gsheet();"><span class="glyphicon glyphicon-list-alt"></span> Import from Google Spreadsheet</a></li>
 
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> Login <b class="caret"></b></a>
-                        <ul class="dropdown-menu">
-                            <li>
-                                <div class="navbar-text">
-                                    Login via
-                                    <div class="social-buttons">
-                                        <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-go"><i class="fa fa-google"></i> Google</a>
+                            </ul>
+                        </li>
+                         <li class="dropdown">
+                            <a href="{% url 'listSilos' %}" > Your Tables</a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Help<b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li><a href="http://tola.work/documentation" target="blank">Documentation</a></li>
+                                <li><a href="http://tola.work/faq" target="blank">FAQ</a></li>
+                                <li><a href="http://tola.work/contact" target="blank">Contact</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <ul class="nav navbar-nav navbar-right">
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> {{ user.userprofile.name }}<b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li><a href="{% url 'logout' %}"><span class="glyphicon glyphicon-lock"></span> Logout</a></li>
+                                <li><a href="{% url 'profile' %}"><span class="glyphicon glyphicon-user"></span> Profile</a></li>
+                            </ul>
+                        </li><!-- .dropdown collapse -->
+                    </ul>
+                {% else %}
+                    <ul class="nav navbar-nav navbar-right">
+                        <li class="dropdown">
+
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> Login <b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <div class="navbar-text">
+                                        Login via
+                                        <div class="social-buttons">
+                                            <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-go"><i class="fa fa-google"></i> Google</a>
+                                        </div>
                                     </div>
-                                </div>
-                            </li>
-                        </ul>
-                    </li><!-- .dropdown collapse -->
-                </ul>
+                                </li>
+                            </ul>
+                        </li><!-- .dropdown collapse -->
+                    </ul>
                 {% endif %}
             </div><!-- .navbar-header collapse -->
             </div><!-- .container collapse -->
