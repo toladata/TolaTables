@@ -34,7 +34,7 @@ class Command(BaseCommand):
                 storage = Storage(GoogleCredentialsModel, 'id', silo.owner, 'credential')
                 credential = storage.get()
                 credential_json = json.loads(credential.to_json())
-                self.stdout.write("%s" % credential_json)
+                #self.stdout.write("%s" % credential_json)
                 if credential is None or credential.invalid == True:
                     self.stdout.write("There was a Google credential problem with user: %s for gsheet %s" % (silo.owner, read.pk))
                     continue
