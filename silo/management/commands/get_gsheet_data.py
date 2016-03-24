@@ -42,5 +42,5 @@ class Command(BaseCommand):
                 suc = import_from_google_spreadsheet(credential_json, silo, read.resource_id)
                 if suc == False:
                     self.stdout.write("The Google sheet import failed for user: %s  with ghseet: %s" % (silo.owner, read.pk))
-            self.stdout.write('Successfully fetched the READ_ID, "%s", from Gsheet for %s' % (read.pk, silo.owner))
+                self.stdout.write('Successfully fetched the READ_ID, "%s", from Gsheet for %s' % (read.pk, silo.owner))
         self.stdout.write("done executing gsheet import command job")
