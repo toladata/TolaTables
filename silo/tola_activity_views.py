@@ -35,9 +35,13 @@ def export_to_tola_activity(request, id):
     silo_data = LabelValueStore.objects(silo_id=id)
 
     data = prep_data(silo_data)
+    try:
+        json_formatted_data = json.dumps(data)
+    except Exception as e:
+        json_formatted_data = {"status": "Unable to json-encode data"}
 
     url = "https://tola-activity-dev.mercycorps.org/api/agreements/"
-    payload = {"some": data}
+    payload = {"some": json_formatted_data}
     headers = {"content-type": "application/json"}
 
     #r = requests.post(url, data=json.dumps(payload), headers=headers)
