@@ -1,4 +1,5 @@
 from silo import views
+from silo.tola_activity_views import *
 
 from django.conf.urls import patterns, include, url
 from django.views.generic import TemplateView
@@ -108,6 +109,7 @@ urlpatterns = patterns('',
                         url(r'^delete_column/(?P<id>\w+)/(?P<column>\w+)/$', 'silo.views.deleteColumn', name='deleteColumn'),
 
                         ###FEED
+                        url(r'^export_to_activity/(?P<id>\d+)/$', 'silo.tola_activity_views.export_to_tola_activity', name="acitivity_push"),
                         url(r'^export/(?P<id>\w+)/$', 'silo.views.export_silo', name='export_silo'),
                         url(r'^export_new_gsheet/(?P<id>\d+)/$', 'silo.google_views.export_new_gsheet', name='export_new_gsheet'),
                         url(r'^export_gsheet/(?P<id>\d+)/$', 'silo.google_views.export_gsheet', name='export_existing_gsheet'),
