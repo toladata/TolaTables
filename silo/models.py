@@ -41,6 +41,72 @@ class TolaSitesAdmin(admin.ModelAdmin):
     search_fields = ('name','agency_name')
 
 
+class Country(models.Model):
+    country = models.CharField("Country Name", max_length=255, blank=True)
+    code = models.CharField("2 Letter Country Code", max_length=4, blank=True)
+    description = models.TextField("Description/Notes", max_length=765,blank=True)
+    latitude = models.CharField("Latitude", max_length=255, null=True, blank=True)
+    longitude = models.CharField("Longitude", max_length=255, null=True, blank=True)
+    create_date = models.DateTimeField(null=True, blank=True)
+    edit_date = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ('country',)
+        verbose_name_plural = "Countries"
+
+    #onsave add create date or update edit date
+    def save(self, *args, **kwargs):
+        if self.create_date == None:
+            self.create_date = datetime.now()
+        self.edit_date = datetime.now()
+        super(Country, self).save()
+
+    #displayed in admin templates
+    def __unicode__(self):
+        return self.country
+
+
+class CountryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'create_date', 'edit_date')
+    display = 'Country'
+
+
+TITLE_CHOICES = (
+    ('mr', 'Mr.'),
+    ('mrs', 'Mrs.'),
+    ('ms', 'Ms.'),
+)
+
+class TolaUser(models.Model):
+    title = models.CharField(blank=True, null=True, max_length=3, choices=TITLE_CHOICES)
+    name = models.CharField("Given Name", blank=True, null=True, max_length=100)
+    employee_number = models.IntegerField("Employee Number", blank=True, null=True)
+    user = models.OneToOneField(User, unique=True, related_name='tola_user')
+    country = models.ForeignKey(Country, blank=True, null=True)
+    activity_api_token = models.CharField(blank=True, null=True, max_length=255)
+    privacy_disclaimer_accepted = models.BooleanField(default=False)
+    created = models.DateTimeField(auto_now=False, blank=True, null=True)
+    updated = models.DateTimeField(auto_now=False, blank=True, null=True)
+
+    def __unicode__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        ''' On save, update timestamps as appropriate'''
+        if kwargs.pop('new_entry', True):
+            self.created = datetime.now()
+        else:
+            self.updated = datetime.now()
+        return super(TolaUser, self).save(*args, **kwargs)
+
+
+class TolaUserAdmin(admin.ModelAdmin):
+    list_display = ('name', 'country')
+    display = 'Tola User'
+    list_filter = ('country',)
+    search_fields = ('name','country__country','title')
+
+
 class GoogleCredentialsModel(models.Model):
     id = models.OneToOneField(User, primary_key=True, related_name='google_credentials')
     credential = CredentialsField()
