@@ -139,6 +139,7 @@ FIXTURE_DIRS = (
 
 ########## TEMPLATE CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#template-context-processors
+"""
 TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.auth.context_processors.auth',
     'django.core.context_processors.debug',
@@ -161,6 +162,30 @@ TEMPLATE_LOADERS = (
 TEMPLATE_DIRS = (
     normpath(join(SITE_ROOT, 'templates')),
 )
+"""
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [normpath(join(SITE_ROOT, 'templates')),],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.template.context_processors.debug',
+                'django.template.context_processors.i18n',
+                'django.template.context_processors.media',
+                'django.template.context_processors.static',
+                'django.template.context_processors.tz',
+                'django.contrib.messages.context_processors.messages',
+            ],
+            'builtins': [
+                'django.contrib.staticfiles.templatetags.staticfiles',
+                'silo.templatetags.underscoretags',
+            ],
+        },
+    },
+]
 ########## END TEMPLATE CONFIGURATION
 
 
