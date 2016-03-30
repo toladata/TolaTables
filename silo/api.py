@@ -37,7 +37,7 @@ class SiloViewSet(viewsets.ModelViewSet):
     lookup_field = 'id'
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,
                           IsOwnerOrReadOnly,)
-    filter_fields = ('owner__username','id','tags','public')
+    filter_fields = ('owner__username','shared__username','id','tags','public')
     filter_backends = (filters.DjangoFilterBackend,)
 
     @detail_route()
