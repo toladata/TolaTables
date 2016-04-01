@@ -320,7 +320,7 @@ def oauth2callback(request):
     if not xsrfutil.validate_token(settings.SECRET_KEY, str(request.GET['state']), request.user):
         return  HttpResponseBadRequest()
 
-    credential = FLOW.step2_exchange(request.REQUEST)
+    credential = FLOW.step2_exchange(request.request)
     storage = Storage(GoogleCredentialsModel, 'id', request.user, 'credential')
     storage.put(credential)
     #print(credential.to_json())
