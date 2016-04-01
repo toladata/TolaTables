@@ -74,7 +74,10 @@ def mergeTwoSilos(data, left_table_id, right_table_id):
                             mapped_value += ' ' + str(row[col])
                         elif merge_type == 'Sum' or merge_type == 'Avg':
                             try:
-                                mapped_value = float(mapped_value) + float(row[col])
+                                if mapped_value == '':
+                                    mapped_value = float(row[col])
+                                else:
+                                    mapped_value = float(mapped_value) + float(row[col])
                             except Exception as e1:
                                 return {"status": "danger", "message": "The value, %s, is not a numeric value." % mapped_value}
                         else:
