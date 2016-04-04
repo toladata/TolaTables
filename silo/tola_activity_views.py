@@ -7,7 +7,7 @@ from django.conf import settings
 from django.http import HttpResponseForbidden,\
     HttpResponseRedirect, HttpResponseNotFound, HttpResponseBadRequest,\
     HttpResponse, HttpResponseRedirect, JsonResponse
-
+from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.encoding import smart_str
 
@@ -49,11 +49,9 @@ def export_to_tola_activity(request, id):
     silo_data = LabelValueStore.objects(silo_id=id)
 
     data_failed_to_post = prep_data(silo_data)
-    try:
-        json_formatted_data = json.dumps(data_failed_to_post)
-    except Exception as e:
-        json_formatted_data = {"status": "Unable to json-encode data"}
 
-    #print(r.text)
-    #return HttpResponse(r.text)
-    return HttpResponse(json_formatted_data)
+    if len(data_failed_to_post) == 0:
+        json_formatted_data = {"status": "Data pushed successfully to TolaActivity"}
+    else:
+        json_formatted_data = {"status": "failed_agreements", "data": data_failed_to_post }
+    return JsonResponse(json_formatted_data)
