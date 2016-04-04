@@ -354,6 +354,12 @@ LOGGING = {
 
 ########## END LOGGING CONFIGURATION
 
+
+####### Tola Activity API #######
+TOLA_ACTIVITY_API_URL = 'https://tola-activity-demo.mercycorps.org/api/'
+TOLA_ACTIVITY_API_TOKEN = 'Token xxxxxxxxxxx'
+
+
 ########## REST CONFIGURATION
 # Add Pagination to Rest Framework lists
 REST_FRAMEWORK = {
