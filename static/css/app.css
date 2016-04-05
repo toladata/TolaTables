@@ -172,3 +172,11 @@ body > .container {
     text-decoration: none;
     color: #fff;
 }
+
+
+#failed_project_agreements_modal_body {
+    max-height:calc(100vh - 150px);
+    overflow-y:auto;
+    overflow-x:auto;
+    font-family:monospace;
+}

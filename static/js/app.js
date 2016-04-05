@@ -167,3 +167,86 @@ $.ajaxSetup({
         }
     }
 });
+
+
+
+
+var tableObject = function (json, id) {
+    var headerCount = new Object();
+
+    var createTHEAD = function () {
+        var thead = document.createElement('thead');
+        return thead;
+    }
+
+    var createTBODY = function () {
+        var tbody = document.createElement('tbody');
+        return tbody;
+    }
+
+    var createTR = function (id) {
+        var tr = document.createElement("tr");
+        tr.ID = id;
+        return tr;
+    };
+
+    var createTH = function (html) {
+        var th = document.createElement("th");
+        th.innerHTML = html;
+        return th;
+    };
+
+    var createTD = function (html) {
+        var td = document.createElement("td");
+        td.innerHTML = html;
+        return td;
+    };
+
+    var getName = function (id) {
+        for (var name in headerCount) {
+            if (eval("headerCount." + name) == id) {
+                return name;
+            }
+        }
+    };
+    var data = json.slice();
+    //data.forEach(function(v){ delete v.drilldown });
+    var pTable;
+    if (data.length > 0) {
+        var index = 0;
+        pTable = document.createElement("table");
+        var thead = createTHEAD();
+        var head = createTR();
+        for (var i = 0; i < data.length; i++) {
+            for (var item in data[i]) {
+                if (item == 'drilldown'  || item == 'y') { continue };
+                if (!headerCount.hasOwnProperty(item)) {
+                    head.appendChild(createTH(item));
+                    eval('headerCount.' + item + "=" + index);
+                    index++;
+                }
+            }
+        }
+        thead.appendChild(head);
+        pTable.appendChild(thead);
+        var tbody = createTBODY();
+        for (var i = 0; i < data.length; i++) {
+            var row = new createTR(i);
+            for (var j = 0; j < index; j++) {
+                var name = getName(j);
+                if (eval("data[" + i + "].hasOwnProperty('" + name + "')")) {
+                    var cell_value = eval('data[' + i + '].' + name);
+                    if (name == 'gait_id') {
+                        cell_value = "<a href='https://gait.mercycorps.org/editgrant.vm?GrantID=" + cell_value + "' target='_blank'>" + cell_value + "</a>";
+                    }
+                    row.appendChild(createTD(cell_value));
+                }
+            }
+            tbody.appendChild(row);
+        }
+        pTable.appendChild(tbody);
+        pTable.setAttribute("id", id);
+        pTable.setAttribute("class", "table table-striped table-bordered table-hover table-condensed");
+    }
+    return pTable;
+};

@@ -75,18 +75,13 @@
 </div>
 
 <div class="modal fade" id="failed_project_agreements_modal" tabindex="-1" role="dialog" aria-labelledby="failed_project_agreements_modal" aria-hidden="true">
-    <div class="modal-dialog modal-md">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
                 <h4 class="modal-title">Project Agreements Failed to Post</h4>
             </div>
-            <div class="modal-body">
-                <p> OK
-                </p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            <div class="modal-body" id="failed_project_agreements_modal_body">
             </div>
         </div>
     </div>
@@ -135,9 +130,23 @@
                     'Authorization': 'Token xxxxx',
                 },
                 dataType: 'json',
-                success: function(data) {
-                    console.log(data);
-                    $("#failed_project_agreements_modal").modal('show');
+                complete: function(data, status) {
+                    if (status == "success") {
+                        var failed_agreements = data.responseJSON["data"];
+                        console.log(failed_agreements);
+                        /*
+                        for (var i=0; i<failed_agreements.length; i++){
+                            $.each(failed_agreements[i], function(k,v) {
+                                console.log(k + ": " + v);
+                            });
+                        }
+                        */
+                        var table = new tableObject(failed_agreements);
+                        $("#failed_project_agreements_modal_body").append(table);
+                        $("#failed_project_agreements_modal").modal('show');
+                    } else {
+                        console.log("something weird happened");
+                    }
                 }
             });
 
