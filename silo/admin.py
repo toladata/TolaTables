@@ -10,4 +10,4 @@ admin.site.register(TolaSites,TolaSitesAdmin)
 admin.site.register(ThirdPartyTokens)
 admin.site.register(Tag)
 
-admin.site.register(Silo)
+admin.site.register(Silo, SiloAdmin)

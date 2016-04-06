@@ -233,7 +233,8 @@ class MergedSilosFieldMapping(models.Model):
 
 
 class SiloAdmin(admin.ModelAdmin):
-    list_display = ('owner', 'name', 'source', 'description', 'create_date')
+    list_display = ('owner', 'name', 'description', 'create_date')
+    search = ('owner__name','name')
     display = 'Data Feeds'
 
 
