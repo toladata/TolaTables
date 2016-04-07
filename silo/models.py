@@ -146,17 +146,26 @@ class ReadTypeAdmin(admin.ModelAdmin):
 
 
 class Read(models.Model):
+    FREQUENCY_DISABLED = 'DISABLED'
     FREQUENCY_DAILY = 'daily'
     FREQUENCY_WEEKLY = 'weekly'
     FREQUENCY_CHOICES = (
         (FREQUENCY_DAILY, 'Daily'),
         (FREQUENCY_WEEKLY, 'Weekly'),
     )
+
+    AUT_OPUSH_FREQUENCY_CHOICES = (
+        (FREQUENCY_DISABLED, 'Disabled'),
+        (FREQUENCY_DAILY, 'Daily'),
+        (FREQUENCY_WEEKLY, 'Weekly'),
+    )
+
     owner = models.ForeignKey(User)
     type = models.ForeignKey(ReadType)
     read_name = models.CharField(max_length=100, blank=True, default='', verbose_name='source name') #RemoteEndPoint = name
     autopull = models.BooleanField(default=False)
     autopull_frequency = models.CharField(max_length=25, choices=FREQUENCY_CHOICES, null=True, blank=True)
+    autopush_frequency = models.CharField(max_length=25, choices=AUT_OPUSH_FREQUENCY_CHOICES, null=True, blank=True)
     description = models.TextField()
     read_url = models.CharField(max_length=100, blank=True, default='', verbose_name='source url') #RemoteEndPoint = link
     resource_id = models.CharField(max_length=200, null=True, blank=True) #RemoteEndPoint
