@@ -179,7 +179,6 @@ TEMPLATES = [
                 'django.core.context_processors.request',
                 'tola.context_processors.get_silos',
             ],
-            'DEBUG': DEBUG,
             'builtins': [
                 'django.contrib.staticfiles.templatetags.staticfiles',
                 'silo.templatetags.underscoretags',
