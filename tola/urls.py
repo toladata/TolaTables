@@ -1,5 +1,7 @@
+from tola import views as tola_views
 from silo import views
-from silo.tola_activity_views import *
+from silo import tola_activity_views
+from silo import google_views
 
 from django.conf.urls import patterns, include, url
 from django.views.generic import TemplateView
@@ -25,23 +27,20 @@ router.register(r'readtype', ReadTypeViewSet)
 router.register(r'tag', TagViewSet)
 
 
-urlpatterns = patterns('',
+urlpatterns =[
                         #rest framework
                         url(r'^api/', include(router.urls)),
                         url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-                        url(r'^api/silodata/(?P<id>[0-9]+)/$', 'silo.api.silo_data_api', name='silo-detail'),
+                        url(r'^api/silodata/(?P<id>[0-9]+)/$', silo_data_api, name='silo-detail'),
 
                         #index
-                        url(r'^$', 'silo.views.index', name='index'),
+                        url(r'^$', views.index, name='index'),
 
                         #base template for layout
                         url(r'^$', TemplateView.as_view(template_name='base.html')),
 
                         #rest Custom Feed
-                        url(r'^api/custom/(?P<id>[0-9]+)/$','silo.views.customFeed',name='customFeed'),
-
-                        #ipt app specific urls
-                        #url(r'^indicators/', include('indicators.urls')),
+                        url(r'^api/custom/(?P<id>[0-9]+)/$', views.customFeed, name='customFeed'),
 
                         #enable admin documentation:
                         url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
@@ -50,83 +49,83 @@ urlpatterns = patterns('',
                         url(r'^admin/', include(admin.site.urls)),
 
                         #home
-                        url(r'^home', 'silo.views.listSilos', name='listSilos'),
+                        url(r'^home', views.listSilos, name='listSilos'),
 
                         #read init form
-                        url(r'^source/new/', 'silo.views.showRead', kwargs={'id': 0}, name='newRead'),
-                        url(r'^show_read/(?P<id>\w+)/$', 'silo.views.showRead', name='showRead'),
+                        url(r'^source/new/', views.showRead, kwargs={'id': 0}, name='newRead'),
+                        url(r'^show_read/(?P<id>\w+)/$', views.showRead, name='showRead'),
 
                         #upload form
-                        url(r'^file/(?P<id>\w+)/$', 'silo.views.uploadFile', name='uploadFile'),
+                        url(r'^file/(?P<id>\w+)/$', views.uploadFile, name='uploadFile'),
 
                         #getJSON data
-                        url(r'^json', 'silo.views.getJSON', name='getJSON'),
+                        url(r'^json', views.getJSON, name='getJSON'),
 
                         #login data
-                        url(r'^onalogin/$', 'silo.views.getOnaForms', name='getOnaForms'),
-                        url(r'^provider_logout/(?P<provider>\w+)/$', 'silo.views.providerLogout', name='providerLogout'),
-                        url(r'^saveAndImportRead/$', 'silo.views.saveAndImportRead', name='saveAndImportRead'),
-                        url(r'^tolacon/$', 'silo.views.tolaCon', name='tolacon'),
-                        url(r'^toggle_silo_publicity/$', 'silo.views.toggle_silo_publicity', name='toggle_silo_publicity'),
+                        url(r'^onalogin/$', views.getOnaForms, name='getOnaForms'),
+                        url(r'^provider_logout/(?P<provider>\w+)/$', views.providerLogout, name='providerLogout'),
+                        url(r'^saveAndImportRead/$', views.saveAndImportRead, name='saveAndImportRead'),
+                        url(r'^tolacon/$', views.tolaCon, name='tolacon'),
+                        url(r'^toggle_silo_publicity/$', views.toggle_silo_publicity, name='toggle_silo_publicity'),
 
                         ###DISPLAY
                         #list all silos
-                        url(r'^silos', 'silo.views.listSilos', name='listSilos'),
-                        url(r'^add_unique_fields', 'silo.views.addUniqueFiledsToSilo', name='add_unique_fields_to_silo'),
+                        url(r'^silos', views.listSilos, name='listSilos'),
+                        url(r'^add_unique_fields', views.addUniqueFiledsToSilo, name='add_unique_fields_to_silo'),
 
                         #merge form
-                        url(r'^merge/(?P<id>\w+)/$', 'silo.views.mergeForm', name='mergeForm'),
+                        url(r'^merge/(?P<id>\w+)/$', views.mergeForm, name='mergeForm'),
 
                         #merge select columns
-                        url(r'^merge_columns', 'silo.views.mergeColumns', name='mergeColumns'),
-                        url(r'^doMerge', 'silo.views.doMerge', name='doMerge'),
-                        url(r'^updateMergedTable/(?P<pk>\w+)/$', 'silo.views.updateMergeSilo', name='updateMergedTable'),
+                        url(r'^merge_columns', views.mergeColumns, name='mergeColumns'),
+                        url(r'^doMerge', views.doMerge, name='doMerge'),
+                        url(r'^updateMergedTable/(?P<pk>\w+)/$', views.updateMergeSilo, name='updateMergedTable'),
 
                         #view silo detail
-                        url(r'^silo_detail/(?P<id>\w+)/$', 'silo.views.siloDetail', name='siloDetail'),
+                        url(r'^silo_detail/(?P<id>\w+)/$', views.siloDetail, name='siloDetail'),
 
-                        url(r'^update_column', 'silo.views.updateEntireColumn', name='updateColumn'),
+                        url(r'^update_column', views.updateEntireColumn, name='updateColumn'),
 
                         #edit single silo value
-                        url(r'^value_edit/(?P<id>\w+)/$', 'silo.views.valueEdit', name='valueEdit'),
+                        url(r'^value_edit/(?P<id>\w+)/$', views.valueEdit, name='valueEdit'),
 
                         #delete single silo value
-                        url(r'^value_delete/(?P<id>\w+)/$', 'silo.views.valueDelete', name='valueDelete'),
+                        url(r'^value_delete/(?P<id>\w+)/$', views.valueDelete, name='valueDelete'),
 
                         #edit silo
-                        url(r'^silo_edit/(?P<id>\w+)/$', 'silo.views.editSilo', name='editSilo'),
+                        url(r'^silo_edit/(?P<id>\w+)/$', views.editSilo, name='editSilo'),
 
                         #delete a silo
-                        url(r'^silo_delete/(?P<id>\w+)/$','silo.views.deleteSilo', name='deleteSilo'),
+                        url(r'^silo_delete/(?P<id>\w+)/$', views.deleteSilo, name='deleteSilo'),
 
                         #new silo column
-                        url(r'^new_column/(?P<id>\w+)/$', 'silo.views.newColumn', name='newColumn'),
+                        url(r'^new_column/(?P<id>\w+)/$', views.newColumn, name='newColumn'),
 
                         #edit silo columns
-                        url(r'^edit_columns/(?P<id>\w+)/$', 'silo.views.editColumns', name='editColumns'),
+                        url(r'^edit_columns/(?P<id>\w+)/$', views.editColumns, name='editColumns'),
 
                         #delete silo column
-                        url(r'^delete_column/(?P<id>\w+)/(?P<column>\w+)/$', 'silo.views.deleteColumn', name='deleteColumn'),
+                        url(r'^delete_column/(?P<id>\w+)/(?P<column>\w+)/$', views.deleteColumn, name='deleteColumn'),
 
                         ###FEED
-                        url(r'^export_to_activity/(?P<id>\d+)/$', 'silo.tola_activity_views.export_to_tola_activity', name="acitivity_push"),
-                        url(r'^export/(?P<id>\w+)/$', 'silo.views.export_silo', name='export_silo'),
-                        url(r'^export_new_gsheet/(?P<id>\d+)/$', 'silo.google_views.export_new_gsheet', name='export_new_gsheet'),
-                        url(r'^export_gsheet/(?P<id>\d+)/$', 'silo.google_views.export_gsheet', name='export_existing_gsheet'),
-                        url(r'^oauth2callback/$', 'silo.google_views.oauth2callback', name='oauth2callback'),
-                        url(r'^import_gsheet/(?P<id>\d+)/$', 'silo.google_views.import_gsheet', name='import_gsheet'),
+                        url(r'^export_to_activity/(?P<id>\d+)/$', tola_activity_views.export_to_tola_activity, name="acitivity_push"),
+                        url(r'^export/(?P<id>\w+)/$', views.export_silo, name='export_silo'),
+                        url(r'^export_new_gsheet/(?P<id>\d+)/$', google_views.export_new_gsheet, name='export_new_gsheet'),
+                        url(r'^export_gsheet/(?P<id>\d+)/$', google_views.export_gsheet, name='export_existing_gsheet'),
+                        url(r'^oauth2callback/$', google_views.oauth2callback, name='oauth2callback'),
+                        url(r'^import_gsheet/(?P<id>\d+)/$', google_views.import_gsheet, name='import_gsheet'),
 
                         #create a feed
-                        url(r'^create_feed', 'silo.views.createFeed', name='createFeed'),
+                        url(r'^create_feed', views.createFeed, name='createFeed'),
 
                         #local login COmment out local login for now
                         #url(r'^login/$', 'django.contrib.auth.views.login', name='login'),
                         #url(r'^accounts/login/$', 'django.contrib.auth.views.login', name='login'),
 
-                        url(r'^accounts/logout/$', 'tola.views.logout_view', name='logout'),
+                        url(r'^accounts/logout/$', tola_views.logout_view, name='logout'),
 
                         #accounts
-                        url(r'^accounts/profile/$', 'tola.views.profile', name='profile'),
+                        url(r'^accounts/profile/$', tola_views.profile, name='profile'),
                         #url(r'^accounts/register/$', 'tola.views.register', name='register'),
 
                         #Auth backend URL's
@@ -134,10 +133,10 @@ urlpatterns = patterns('',
                         url('', include('social.apps.django_app.urls', namespace='social')),
 
                         #FAQ, Contact etc..
-                        url(r'^contact', 'tola.views.contact', name='contact'),
-                        url(r'^faq', 'tola.views.faq', name='faq'),
-                        url(r'^documentation', 'tola.views.documentation', name='documentation'),
+                        url(r'^contact', tola_views.contact, name='contact'),
+                        url(r'^faq', tola_views.faq, name='faq'),
+                        url(r'^documentation', tola_views.documentation, name='documentation'),
 
 
-)  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
