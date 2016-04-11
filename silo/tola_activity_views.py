@@ -30,7 +30,7 @@ def prep_data(silo_data):
             col_parts = col.split("/")
             last_part_of_col = col_parts[(len(col_parts) - 1)]
             if last_part_of_col == "program" or last_part_of_col == "Program":
-                val = settings.TOLA_ACTIVITY_API_URL + "programs/" + smart_str(row[col])
+                val = settings.TOLA_ACTIVITY_API_URL + "programs/" + smart_str(row[col]) + "/"
             else:
                 val = smart_str(row[col])
             row_dict[last_part_of_col] = val
