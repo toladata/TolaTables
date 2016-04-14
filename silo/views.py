@@ -104,12 +104,13 @@ def mergeTwoSilos(data, left_table_id, right_table_id):
             else:
                 merge_data_row[col] = ''
 
-        # Loop through all of the right_unmapped_cols for each row in left_table; however,
-        # the value is set to nothing b/c the left_table does not have any values for the
-        # columns in the right table. The right table is iterated over below.
+        # Loop through all of the right_unmapped_cols for each row in left_table.
         for col in right_unmapped_cols:
             unique_cols.add(col)
-            merge_data_row[col] = ''
+            if col in row.keys():
+                merge_data_row[col] = row[col]
+            else:
+                merge_data_row[col] = ''
 
         merge_data_row['left_table_id'] = left_table_id
         merge_data_row['right_table_id'] = right_table_id
