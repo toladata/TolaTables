@@ -155,7 +155,7 @@
                                         <span><small>Merged Tables: <a href="{% url 'siloDetail' silo.merged_silo_mappings.from_silo.pk %}">{{silo.merged_silo_mappings.from_silo}}</a> and <a href="{% url 'siloDetail' silo.merged_silo_mappings.to_silo.pk %}">{{silo.merged_silo_mappings.to_silo}}</a></small</span>
                                     {% else %}                            
                                         {% for r in silo.reads.all %}
-                                            {% if r.read_name != "Google" %} <a href="/show_read/{{ r.id }}" ><small> {{ r.read_name }} ({{r.type.read_type}})</small></a> <br />{% endif %}
+                                            <a href="/show_read/{{ r.id }}" ><small> {{ r.read_name }} ({{r.type.read_type}})</small></a> <br />
                                         {% endfor %}
                                     {% endif %}
                                 </td>
