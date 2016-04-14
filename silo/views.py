@@ -629,7 +629,7 @@ def updateMergeSilo(request, pk):
     try:
         silo = Silo.objects.get(id=pk)
     except Silo.DoesNotExist as e:
-        return HttpResponse("Merged Table (%s) does not exist" % pk)
+        return HttpResponse("Table (%s) does not exist" % pk)
 
     try:
         mapping = MergedSilosFieldMapping.objects.get(merged_silo = silo.pk)
@@ -662,46 +662,69 @@ def updateMergeSilo(request, pk):
 
     except MergedSilosFieldMapping.DoesNotExist as e:
         # Check if the silo has a source from ONA: and if so, then update its data
+        stop = False
+
+        if not reads:
+            stop = True
+            messages.info(request, "Tables that only have a CSV source cannot be updated.")
+
+        if silo.unique_fields.all().exists() == False:
+            stop = True
+            messages.info(request, "In order to update a table, it must have a unique field set.")
+
+
         read_type = ReadType.objects.get(read_type="JSON")
         reads = silo.reads.filter(type=read_type.pk)
-        if not reads:
-            messages.info(request, "Tables that only have a CSV source cannot be updated.")
-        elif silo.unique_fields.all():
-            for read in reads:
-                ona_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="ONA")
-                response = requests.get(read.read_url, headers={'Authorization': 'Token %s' % ona_token.token})
-                data = json.loads(response.content)
+        for read in reads:
+            ona_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="ONA")
+            response = requests.get(read.read_url, headers={'Authorization': 'Token %s' % ona_token.token})
+            data = json.loads(response.content)
 
-                # import data into this silo
-                num_rows = len(data)
-                if num_rows == 0:
-                    continue
+            # import data into this silo
+            num_rows = len(data)
+            if num_rows == 0:
+                continue
 
-                counter = None
-                #loop over data and insert create and edit dates and append to dict
-                for counter, row in enumerate(data):
-                    skip_row = False
-                    #if the value of unique column is already in existing_silo_data then skip the row
-                    for unique_field in silo.unique_fields.all():
-                        filter_criteria = {'silo_id': silo.pk, unique_field.name: row[unique_field.name]}
-                        if LabelValueStore.objects.filter(**filter_criteria).count() > 0:
-                            skip_row = True
-                            continue
-                    if skip_row == True:
+            counter = None
+            #loop over data and insert create and edit dates and append to dict
+            for counter, row in enumerate(data):
+                skip_row = False
+                #if the value of unique column is already in existing_silo_data then skip the row
+                for unique_field in silo.unique_fields.all():
+                    filter_criteria = {'silo_id': silo.pk, unique_field.name: row[unique_field.name]}
+                    if LabelValueStore.objects.filter(**filter_criteria).count() > 0:
+                        skip_row = True
                         continue
-                    # at this point, the unique column value is not in existing data so append it.
-                    lvs = LabelValueStore()
-                    lvs.silo_id = silo.pk
-                    for new_label, new_value in row.iteritems():
-                        if new_label is not "" and new_label is not None and new_label is not "edit_date" and new_label is not "create_date":
-                            setattr(lvs, new_label, new_value)
-                    lvs.create_date = timezone.now()
-                    result = lvs.save()
+                if skip_row == True:
+                    continue
+                # at this point, the unique column value is not in existing data so append it.
+                lvs = LabelValueStore()
+                lvs.silo_id = silo.pk
+                for new_label, new_value in row.iteritems():
+                    if new_label is not "" and new_label is not None and new_label is not "edit_date" and new_label is not "create_date":
+                        setattr(lvs, new_label, new_value)
+                lvs.create_date = timezone.now()
+                result = lvs.save()
 
-                if num_rows == (counter+1):
-                    combineColumns(silo.pk)
-        else:
-            messages.info(request, "In order to update a table, it must have a unique field set.")
+            if num_rows == (counter+1):
+                combineColumns(silo.pk)
+        # reset num_rows
+        num_rows = 0
+        read_types = ReadType.objects.filter(Q(read_type="GSheet Import") | Q(read_type="Google Spreadsheet"))
+        reads = silo.reads.filter(reduce(or_, [Q(type=read.id) for read in readtypes]))
+        for read in reads:
+            # get gsheet authorized client and the gsheet id to fetch its data into the silo
+            storage = Storage(GoogleCredentialsModel, 'id', silo.owner, 'credential')
+            credential = storage.get()
+            credential_json = json.loads(credential.to_json())
+            #self.stdout.write("%s" % credential_json)
+            if credential is None or credential.invalid == True:
+                messages.error(request, "There was a Google credential problem with user: %s for gsheet %s" % (request.user, read.pk))
+                continue
+
+            suc = import_from_google_spreadsheet(credential_json, silo, read.resource_id)
+            if suc == False:
+                messages.error(request, "Failed to import data from gsheet %s " % read.pk)
 
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': pk},))
 
