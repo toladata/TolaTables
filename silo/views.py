@@ -3,7 +3,7 @@ import urllib2
 import json
 import base64
 import csv
-import operator
+from operator import and_, or_
 from collections import OrderedDict
 from django.core.urlresolvers import reverse_lazy
 
@@ -25,6 +25,9 @@ from django.views.decorators.csrf import csrf_protect
 import django_tables2 as tables
 from django_tables2 import RequestConfig
 
+from oauth2client.django_orm import Storage
+from .models import GoogleCredentialsModel
+from google_views import *
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites
 
 from .tables import define_table
@@ -664,9 +667,7 @@ def updateMergeSilo(request, pk):
         # Check if the silo has a source from ONA: and if so, then update its data
         stop = False
 
-        if not reads:
-            stop = True
-            messages.info(request, "Tables that only have a CSV source cannot be updated.")
+
 
         if silo.unique_fields.all().exists() == False:
             stop = True
@@ -711,7 +712,7 @@ def updateMergeSilo(request, pk):
         # reset num_rows
         num_rows = 0
         read_types = ReadType.objects.filter(Q(read_type="GSheet Import") | Q(read_type="Google Spreadsheet"))
-        reads = silo.reads.filter(reduce(or_, [Q(type=read.id) for read in readtypes]))
+        reads = silo.reads.filter(reduce(or_, [Q(type=read.id) for read in read_types]))
         for read in reads:
             # get gsheet authorized client and the gsheet id to fetch its data into the silo
             storage = Storage(GoogleCredentialsModel, 'id', silo.owner, 'credential')
@@ -726,6 +727,9 @@ def updateMergeSilo(request, pk):
             if suc == False:
                 messages.error(request, "Failed to import data from gsheet %s " % read.pk)
 
+        if not reads:
+            stop = True
+            messages.info(request, "Tables that only have a CSV source cannot be updated.")
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': pk},))
 
 
