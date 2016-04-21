@@ -87,6 +87,7 @@ TITLE_CHOICES = (
     ('ms', 'Ms.'),
 )
 
+
 class TolaUser(models.Model):
     title = models.CharField(blank=True, null=True, max_length=3, choices=TITLE_CHOICES)
     name = models.CharField("Given Name", blank=True, null=True, max_length=100)
@@ -227,6 +228,13 @@ class Silo(models.Model):
         return ', '.join([x.name for x in self.tags.all()])
 
 
+class SiloAdmin(admin.ModelAdmin):
+    list_display = ('owner', 'name', 'description', 'public','create_date')
+    search_fields = ('owner__last_name','owner__first_name','name')
+    list_filter = ('owner__last_name','public')
+    display = 'Data Feeds'
+
+
 class MergedSilosFieldMapping(models.Model):
     from_silo = models.ForeignKey(Silo, related_name='from_mappings')
     to_silo = models.ForeignKey(Silo, related_name='to_mappings')
@@ -239,12 +247,6 @@ class MergedSilosFieldMapping(models.Model):
 
     def __unicode__(self):
         return "Table I (%s) and Table II (%s) merged to create Table III (%s)" % (self.from_silo, self.to_silo, self.merged_silo)
-
-
-class SiloAdmin(admin.ModelAdmin):
-    list_display = ('owner', 'name', 'description', 'create_date')
-    search = ('owner__name','name')
-    display = 'Data Feeds'
 
 
 class UniqueFields(models.Model):
