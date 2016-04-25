@@ -121,7 +121,7 @@ urlpatterns =[
                         #local login COmment out local login for now
                         #url(r'^login/$', 'django.contrib.auth.views.login', name='login'),
                         #url(r'^accounts/login/$', 'django.contrib.auth.views.login', name='login'),
-
+                        url(r'^accounts/login/$', 'django.contrib.auth.views.login', name='login'),
                         url(r'^accounts/logout/$', tola_views.logout_view, name='logout'),
 
                         #accounts
