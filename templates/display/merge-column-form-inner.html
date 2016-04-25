@@ -61,7 +61,7 @@
     <div class="col-sm-6">
         <div class="panel panel-default">
             <div class="panel-heading">
-                <h3 class="panel-title">Table 1 <button id='select_all_left_columns' class='btn-xs btn-link pull-right'>Select All</button></h3>
+                <h3 class="panel-title">Table 1 <button id='select_all_left_columns' class='btn-xs btn-link pull-right'>Select All/Deselect All</button></h3>
             </div>
             <div class="clearfix"></div>
             <ul id = 'table_1_cols_bucket' class="list-group">
@@ -74,7 +74,7 @@
     <div class="col-sm-6">
         <div class="panel panel-default">
             <div class="panel-heading">
-                <h3 class="panel-title">Table 2 <button id='select_all_right_columns' class='btn-xs btn-link pull-right'>Select All</button></h3>
+                <h3 class="panel-title">Table 2 <button id='select_all_right_columns' class='btn-xs btn-link pull-right'>Select All/Deselect All</button></h3>
             </div>
             <div class="clearfix"></div>
             <ul id = 'table_2_cols_bucket' class="list-group">
@@ -214,13 +214,13 @@
         
         $('div.panel-heading').on('click', '#select_all_left_columns', function() {
             $('#table_1_cols_bucket').children().each(function() {
-                $(this).addClass('list-group-item-success');
+                $(this).toggleClass('list-group-item-success');
             });
         });
 
         $('div.panel-heading').on('click', '#select_all_right_columns', function() {
             $('#table_2_cols_bucket').children().each(function() {
-                $(this).addClass('list-group-item-success');
+                $(this).toggleClass('list-group-item-success');
             });
         });
 
