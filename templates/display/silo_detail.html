@@ -8,7 +8,7 @@
 <p>Edit or Delete from each row of data below <a href="/edit_columns/{{ id }}/">edit/delete columns here</a> or <a href="/new_column/{{ id }}/">add a new column here</a>.</p>
 <a href="/set_unique_columns/{{ id }}/" id="unique_cols_selection_btn" class="btn btn-primary">Set up Unique Column(s)</a>
 <a href="{% url 'updateMergedTable' id %}" id="update_silo_btn" class="btn btn-primary">Update</a>
-<a href="{% url 'acitivity_push' id %}" id="push_to_activity_btn" class="btn btn-primary">Push To Tola Activity</a>
+<a href="{% url 'acitivity_push' id %}" id="push_to_activity_btn" class="btn btn-primary">Send To Tola Activity</a>
 <br />
 <br />
 <form class="form-inline" action="{% url 'updateColumn' %}"  method="POST">
