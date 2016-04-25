@@ -30,9 +30,13 @@
     <button type="submit" class="btn btn-default">Submit</button>
 </form>
 <br />
+
+<span class="label label-info" id="unique_col_lbl"></span>
+
 <div id="table_data">
     {% render_table silo_table %}
 </div>
+
 
 <br />
 {% comment %}
@@ -99,6 +103,11 @@
             //var url = `{% url 'siloDetail' id %}` + $(this).children('a').attr('href');
             //window.location = url ;
         //});
+        var unique_col = $("#silo_cols_multi_select").val();
+        if (unique_col == null || unique_col == "null") {
+            unique_col = "not specified";
+        }
+        $("#unique_col_lbl").text("Unique Column: " + unique_col);
         $("#silo_cols_multi_select").select2();
         $("body").on("click", "#unique_cols_selection_btn", function(e) {
             e.preventDefault();
