@@ -377,6 +377,8 @@ def showRead(request, id):
         form = ReadForm(request.POST, request.FILES, instance=read_instance)
         if form.is_valid():
             read = form.save()
+            if read.autopull_frequency:
+                messages.info(request, "A unique column for table must be set in order for autopull to work.")
             if form.instance.type.read_type == "CSV":
                 return HttpResponseRedirect("/file/" + str(read.id) + "/")
             return HttpResponseRedirect(reverse_lazy('listSilos'))

@@ -35,6 +35,7 @@ def define_table(columns):
     attrs = {}
     attrs['Operation'] = tables.TemplateColumn(EDIT_DEL_TEMPLATE)
     attrs.update(dict((c, tables.Column()) for c in columns))
+    #attrs['Meta'] = type('Meta', (), dict(exclude=["_id", "edit_date", "create_date"], attrs={"template": "django_tables2/bootstrap.html", "class":"table table-hover table-bordered table-striped", "orderable":"True", "width":"100%"}) )
     attrs['Meta'] = type('Meta', (), dict(exclude=["_id", "edit_date", "create_date"], attrs={"class":"paleblue", "orderable":"True", "width":"100%"}) )
 
     klass = type('DynamicTable', (tables.Table,), attrs)
