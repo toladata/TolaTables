@@ -263,6 +263,8 @@
 
         $('#mapped_columns_div').on('click', '#submit', function(e) {
             e.preventDefault();
+            var merged_table_name = prompt("Please enter a name for the merged table");
+
             var columns_data = {};
             var cols = [];
             var right_col = undefined;
@@ -305,7 +307,8 @@
             $.post("/doMerge/", {
                 'columns_data': JSON.stringify(columns_data), 
                 'left_table_id': {{ from_silo_id  }}, 
-                'right_table_id': {{ to_silo_id }} 
+                'right_table_id': {{ to_silo_id }} ,
+                'merged_table_name': merged_table_name,
                 })
                 .success(function(data, textStatus, xhr) {
                     //addMessage(data, "success" );

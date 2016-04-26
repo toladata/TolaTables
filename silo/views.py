@@ -882,6 +882,11 @@ def doMerge(request):
     left_table = None
     right_table = None
 
+    merged_silo_name = request.POST['merged_table_name']
+
+    if not merged_silo_name:
+        merged_silo_name = "Merging of %s and %s" % (left_table_id, right_table_id)
+
     try:
         left_table = Silo.objects.get(id=left_table_id)
     except Silo.DoesNotExist as e:
@@ -905,7 +910,7 @@ def doMerge(request):
         pass
 
     # Create a new silo
-    new_silo = Silo(name="Merging of %s and %s" % (left_table_id, right_table_id) , public=False, owner=request.user)
+    new_silo = Silo(name=merged_silo_name , public=False, owner=request.user)
     new_silo.save()
 
     # put the new silo data in mongo db.
