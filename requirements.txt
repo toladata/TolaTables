@@ -4,7 +4,7 @@ django-crispy-forms==1.5.2
 django-extensions==1.5.9
 django-filter==0.11.0
 django-rest-swagger==0.3.4
-django-tables2==1.0.4
+django-tables2==1.1.7
 djangorestframework==3.2.4
 gdata==2.0.18
 google-api-python-client==1.4.2
