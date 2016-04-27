@@ -2,21 +2,32 @@
 
 {% load render_table from django_tables2 %}
 
-{% block page_title %} Data Table: {{ silo.name }} <br /><small><p>{{ silo.description|default:"" }}</p></small>{% endblock %}
+{% block page_title %} <a href="/silo_edit/{{ silo.id }}">{{ silo.name }}</a> <br /><small><p>{{ silo.description|default:"" }}</p></small>{% endblock %}
 
 {% block content %}
+<hr />
+<h4> +/- Update, Pull, or Push Your Data <a href="/set_unique_columns/{{ id }}/" id="unique_cols_selection_btn" class="btn btn-primary">First Assign a Unique Column</a></h4> 
 
 <p>
+<a href="{% url 'updateMergedTable' id %}" id="update_silo_btn" class="btn btn-primary">Update Table</a>
 {% for read in silo.reads.all %}
     {% if read.autopull_frequency %}
         <span class="label label-info" id="auto_pull_lbl">Autopull setup from {{read.read_name }} at {{read.read_url}}</span>
     {% endif %}
 {% endfor %}
+
 </p>
-<p>Edit or Delete from each row of data below <a href="/edit_columns/{{ id }}/">edit/delete columns here</a> or <a href="/new_column/{{ id }}/">add a new column here</a>.</p>
-<a href="/set_unique_columns/{{ id }}/" id="unique_cols_selection_btn" class="btn btn-primary">Set up Unique Column(s)</a>
-<a href="{% url 'updateMergedTable' id %}" id="update_silo_btn" class="btn btn-primary">Update</a>
-<a href="{% url 'acitivity_push' id %}" id="push_to_activity_btn" class="btn btn-primary">Send To Tola Activity</a>
+<p><a href="{% url 'acitivity_push' id %}" id="push_to_activity_btn" class="btn btn-primary">Send To Tola Activity</a></p>
+<hr />
+<h4> +/- Edit Table<br /><small>Edit or Delete each row below using the buttons on the right.</small></h4>
+<p>
+<a href="/edit_columns/{{ id }}/" class="btn btn-primary">Edit or Delete columns</a>
+<a href="/new_column/{{ id }}/" class="btn btn-primary">Add New Column</a>
+</p>
+
+
+
+
 <br />
 <br />
 <form class="form-inline" action="{% url 'updateColumn' %}"  method="POST">
