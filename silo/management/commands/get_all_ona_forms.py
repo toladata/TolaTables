@@ -12,7 +12,7 @@ class Command(BaseCommand):
     """
     Usage: python manage.py get_all_ona_forms --f weekly
     """
-    help = 'Fetches all reads that have autopull checked and belong to a silo'
+    help = 'Fetches all reads that have autopull_frequency checked and belong to a silo'
 
     def add_arguments(self, parser):
         parser.add_argument("-f", "--frequency", type=str, required=True)
@@ -22,7 +22,7 @@ class Command(BaseCommand):
         if frequency != "daily" and frequency != "weekly":
             return self.stdout.write("Frequency argument can either be 'daily' or 'weekly'")
 
-        silos = Silo.objects.filter(unique_fields__isnull=False, reads__autopull=True, reads__autopull_frequency__isnull=False, reads__autopull_frequency = frequency).distinct()
+        silos = Silo.objects.filter(unique_fields__isnull=False, reads__autopull_frequency__isnull=False, reads__autopull_frequency = frequency).distinct()
         read_type = ReadType.objects.get(read_type="JSON")
         for silo in silos:
             reads = silo.reads.filter(type=read_type.pk)

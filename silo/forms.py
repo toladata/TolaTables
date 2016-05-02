@@ -75,7 +75,7 @@ class ReadForm(forms.ModelForm):
 
     class Meta:
         model = Read
-        fields = ['read_name', 'read_url', 'description', 'autopull', 'autopull_frequency', 'autopush_frequency', 'type','file_data', 'owner']
+        fields = ['read_name', 'read_url', 'description', 'autopull_frequency', 'autopush_frequency', 'type','file_data', 'owner']
         widgets = {'owner': forms.HiddenInput(), 'type': forms.HiddenInput()}
 
 class UploadForm(forms.Form):

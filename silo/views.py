@@ -364,7 +364,7 @@ def showRead(request, id):
     Show a read data source and allow user to edit it
     """
     initial = {'owner': request.user}
-    excluded_fields=('autopull', 'autopull_frequency', 'read_url')
+    excluded_fields=('autopush_frequency', 'autopull_frequency', 'read_url')
     try:
         read_instance = Read.objects.get(pk=id)
         if read_instance.type.read_type != "CSV":
