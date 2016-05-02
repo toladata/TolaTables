@@ -8,6 +8,19 @@
 
 
     <hr />
+    <div role="group" class="btn-group btn-group-md pull-right">
+        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <span class= "glyphicon glyphicon-menu-hamburger"> </span>
+            <span class="sr-only">Toggle Dropdown</span>
+        </button>
+        <ul class="dropdown-menu" role="menu">
+            <li><a href="/set_unique_columns/{{ id }}/" id="unique_cols_selection_btn"> Assign a Unique Column</a></li>
+            <li class="divider"></li>
+            <li><a href="{% url 'updateMergedTable' id %}" id="update_silo_btn">Update Table</a></li>
+            <li class="divider"></li>
+            <li><a href="{% url 'acitivity_push' id %}" id="push_to_activity_btn">Send To Tola Activity</a></li>
+        </ul>
+    </div>
     <a href="#"><h4 data-toggle="collapse" data-target="#table_options" aria-expanded="false" aria-controls="table_options"> Update, Pull, or Push Your Data</a><br /><small>Perform table level operations.</small></h4>
     <div id="table_options" class="collapse">
         <div class = "table-responsive">
@@ -50,21 +63,7 @@
         </div>
     </div>
     <hr />
-    <a href="#"><h4 data-toggle="collapse" data-target="#table_edit" aria-expanded="false" aria-controls="table_edit"> Edit Table</a><br /><small>Edit or Delete each row below using the buttons on the left.</small>
-    <div role="group" class="btn-group btn-group-md pull-right">
-            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <span class= "glyphicon glyphicon-menu-hamburger"> </span>
-                <span class="sr-only">Toggle Dropdown</span>
-            </button>
-            <ul class="dropdown-menu" role="menu">
-                <li><a href="/set_unique_columns/{{ id }}/" id="unique_cols_selection_btn"> Assign a Unique Column</a></li>
-                <li class="divider"></li>
-                <li><a href="{% url 'updateMergedTable' id %}" id="update_silo_btn">Update Table</a></li>
-                <li class="divider"></li>
-                <li><a href="{% url 'acitivity_push' id %}" id="push_to_activity_btn">Send To Tola Activity</a></li>
-            </ul>
-        </div>
-    </h4>
+    <a href="#"><h4 data-toggle="collapse" data-target="#table_edit" aria-expanded="false" aria-controls="table_edit"> Edit Table</a><br /><small>Edit or Delete each row below using the buttons on the left.</small></h4>
     <div id = "table_edit" class="collapse">
         <p>
         <a href="/edit_columns/{{ id }}/" class="btn btn-primary">Edit or Delete columns</a>
