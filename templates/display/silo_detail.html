@@ -10,56 +10,49 @@
     <hr />
     <a href="#"><h4 data-toggle="collapse" data-target="#table_options" aria-expanded="false" aria-controls="table_options"> Update, Pull, or Push Your Data</a><br /><small>Perform table level operations.</small></h4>
     <div id="table_options" class="collapse">
-        <p>
-        <a href="/set_unique_columns/{{ id }}/" id="unique_cols_selection_btn" class="btn btn-primary">First Assign a Unique Column</a>
-        </p>
-        <p>
-        <a href="{% url 'updateMergedTable' id %}" id="update_silo_btn" class="btn btn-primary">Update Table</a>
-        </p>
-        <p>
-        <a href="#" id="auto_pull_btn" class="btn btn-primary">Setup AutoPull</a>
-        {% for read in silo.reads.all %}
-            {% if read.autopull_frequency %}
-                <span class="label label-info" id="auto_pull_lbl">Autopull setup from {{read.read_name }} at {{read.read_url}}</span>
-            {% endif %}
-        {% endfor %}
-        </p>
-        <p>
-        <a href="{% url 'acitivity_push' id %}" id="push_to_activity_btn" class="btn btn-primary">Send To Tola Activity</a>
-        </p>
+        <div class = "table-responsive">
+            <table class="table table-bordered table-striped table-hover table-condensed">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Type</th>
+                    <th>Source</th>
+                    <th>Auto-pull</th>
+                    <th>Auto-push</th>
+                </tr>
+                </thead>
+                <tbody>
+                    {% for read in silo.reads.all %}
+                        <tr>
+                            <td><a href="/show_read/{{read.id}}" target="_blank">{{read.read_name }}</a></td>
+                            <td>{{read.description}}</td>
+                            <td>{{ read.type.read_type}}</td>
+                            <td><a href="{{ read.read_url }}" target="_blank">link to source</a></td>
+                            <td>{{ read.autopull_frequency|default:""}}</td>
+                            <td>{{ read.autopush_frequency|default:""}}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-
     <hr />
-    <a href="#"><h4 data-toggle="collapse" data-target="#table_sources" aria-expanded="false" aria-controls="table_sources"> Table I/O</a><br /><small>How data in this table goes in and out</small></h4>
-    <div id="table_sources" class = "table-responsive collapse">
-        <table class="table table-bordered table-striped table-hover table-condensed">
-            <thead>
-            <tr>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Type</th>
-                <th>Source</th>
-                <th>Auto-pull</th>
-                <th>Auto-push</th>
-            </tr>
-            </thead>
-            <tbody>
-                {% for read in silo.reads.all %}
-                    <tr>
-                        <td><a href="/show_read/{{read.id}}" target="_blank">{{read.read_name }}</a></td>
-                        <td><{{read.description}}</td>
-                        <td>{{ read.type.read_type}}</td>
-                        <td>{{ read.read_url }}</td>
-                        <td>{{ read.autopull_frequency|default:""}}</td>
-                        <td>{{ read.autopush_frequency|default:""}}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <hr />
-    <a href="#"><h4 data-toggle="collapse" data-target="#table_edit" aria-expanded="false" aria-controls="table_edit"> Edit Table</a><br /><small>Edit or Delete each row below using the buttons on the left.</small></h4>
+    <a href="#"><h4 data-toggle="collapse" data-target="#table_edit" aria-expanded="false" aria-controls="table_edit"> Edit Table</a><br /><small>Edit or Delete each row below using the buttons on the left.</small>
+    <div role="group" class="btn-group btn-group-md pull-right">
+            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <span class= "glyphicon glyphicon-menu-hamburger"> </span>
+                <span class="sr-only">Toggle Dropdown</span>
+            </button>
+            <ul class="dropdown-menu" role="menu">
+                <li><a href="/set_unique_columns/{{ id }}/" id="unique_cols_selection_btn"> Assign a Unique Column</a></li>
+                <li class="divider"></li>
+                <li><a href="{% url 'updateMergedTable' id %}" id="update_silo_btn">Update Table</a></li>
+                <li class="divider"></li>
+                <li><a href="{% url 'acitivity_push' id %}" id="push_to_activity_btn">Send To Tola Activity</a></li>
+            </ul>
+        </div>
+    </h4>
     <div id = "table_edit" class="collapse">
         <p>
         <a href="/edit_columns/{{ id }}/" class="btn btn-primary">Edit or Delete columns</a>
