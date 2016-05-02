@@ -29,8 +29,20 @@
                             <td>{{read.description}}</td>
                             <td>{{ read.type.read_type}}</td>
                             <td><a href="{{ read.read_url }}" target="_blank">link to source</a></td>
-                            <td>{{ read.autopull_frequency|default:""}}</td>
-                            <td>{{ read.autopush_frequency|default:""}}</td>
+                            <td>
+                                {% if read.type.read_type == "CSV" %}
+                                    N/A
+                                {% else %}
+                                    {% if read.autopull_frequency %} {{ read.autopull_frequency }} {% else %} <a href="/show_read/{{read.id}}">Setup</a> {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if read.type.read_type == "CSV" %}
+                                    N/A
+                                {% else %}
+                                    {% if read.autopush_frequency %} {{ read.autopush_frequency }} {% else %} <a href="/show_read/{{read.id}}">Setup</a> {% endif %}
+                                {% endif %}
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
