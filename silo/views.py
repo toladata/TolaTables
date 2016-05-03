@@ -381,7 +381,6 @@ def showRead(request, id):
             elif form.instance.type.read_type == "CSV":
                 messages.warning(request, "A CSV source cannot be setup for auto-pull or auto-push")
             else:
-                messages.success(request, "Changes saved successfully")
                 read = form.save()
                 #return HttpResponseRedirect("/file/" + str(read.id) + "/")
                 #return HttpResponseRedirect(reverse_lazy('listSilos'))
