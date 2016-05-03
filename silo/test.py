@@ -9,6 +9,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import resolve, reverse
 from django.template.loader import render_to_string
 
+from django.contrib import messages
+
 from django.test import TestCase
 from django.test import Client
 from django.test import RequestFactory
