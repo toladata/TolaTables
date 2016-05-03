@@ -35,8 +35,9 @@ class SiloViewSet(viewsets.ModelViewSet):
     queryset = Silo.objects.all()
     serializer_class = SiloSerializer
     lookup_field = 'id'
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,
-                          IsOwnerOrReadOnly,)
+    # this permission sets seems to break the default permissions set by the restframework
+    #permission_classes = (permissions.IsAuthenticatedOrReadOnly,
+    #                      IsOwnerOrReadOnly,)
     filter_fields = ('owner__username','shared__username','id','tags','public')
     filter_backends = (filters.DjangoFilterBackend,)
 
