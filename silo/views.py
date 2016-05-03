@@ -376,17 +376,19 @@ def showRead(request, id):
     if request.method == 'POST':
         form = ReadForm(request.POST, request.FILES, instance=read_instance)
         if form.is_valid():
-            read = form.save()
-            if read.autopull_frequency:
-                messages.info(request, "A unique column for table must be set in order for autopull to work.")
-            if form.instance.type.read_type == "CSV":
-                return HttpResponseRedirect("/file/" + str(read.id) + "/")
-            return HttpResponseRedirect(reverse_lazy('listSilos'))
+            if form.instance.autopull_frequency:
+                messages.error(request, "You must first set a column in your table as a unique column in the table view page.")
+            elif form.instance.type.read_type == "CSV":
+                messages.warning(request, "A CSV source cannot be setup for auto-pull or auto-push")
+            else:
+                messages.success(request, "Changes saved successfully")
+                read = form.save()
+                #return HttpResponseRedirect("/file/" + str(read.id) + "/")
+                #return HttpResponseRedirect(reverse_lazy('listSilos'))
         else:
             messages.error(request, 'Invalid Form', fail_silently=False)
     else:
         form = ReadForm(exclude_list=excluded_fields, instance=read_instance, initial=initial)
-
     return render(request, 'read/read.html', {
         'form': form, 'read_id': id,
     })
