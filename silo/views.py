@@ -376,9 +376,12 @@ def showRead(request, id):
     if request.method == 'POST':
         form = ReadForm(request.POST, request.FILES, instance=read_instance)
         if form.is_valid():
-            read = form.save()
             if form.instance.type.read_type == "CSV":
+                read = form.save()
                 return HttpResponseRedirect("/file/" + str(read.id) + "/")
+
+            if form.instance.autopull_frequency or form.instance.autopush_frequency:
+                messages.info(request, "Your table must have a unique column set for Autopull/Autopush to work.")
             return HttpResponseRedirect(reverse_lazy('listSilos'))
         else:
             messages.error(request, 'Invalid Form', fail_silently=False)
