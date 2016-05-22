@@ -5,7 +5,11 @@ html {
     position: relative;
     min-height: 100%;
 }
-
+body {
+    /* Margin bottom by footer height */
+    height: 100%;
+    margin-bottom: 60px;
+}
 #footer {
     position: fixed;
     bottom: 0px;
@@ -61,7 +65,8 @@ button:focus,
 /* Not required for template or sticky footer method. */
 
 body > .container {
-    padding-bottom: 80px;
+    height: 100%;
+    margin-top: 40px;
 }
 
 .alert{
@@ -69,6 +74,9 @@ body > .container {
     margin-bottom: -20px;
 }
 
+#footer > .container {
+    padding: 10px;
+}
 
 .btn-frozen {
     color: #fff;

@@ -133,36 +133,36 @@
 
         <div id = "loading" class="modal"> </div>
 
-<div class="modal fade" id="select_silo_for_gsheet_import_modal" tabindex="-1" role="dialog" aria-labelledby="select_silo_for_gsheet_import_modal" aria-hidden="true">
-    <div class="modal-dialog modal-md">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                <h4 class="modal-title">Choose Destination for importing data from Google Spreadsheet.</h4>
-            </div>
-            <div class="modal-body" id="unique_cols_selection_modal_body_div">
-                <label for="silo_cols">Existing Tables</label>
-                <select id="silo_select" name="silo_cols" class="form-control input-sm" style="width: 100%;">
-                        <option value="0">New Table</option>
-                    {% for silo in all_my_silos %}
-                        <option value="{{ silo.id }}">{{ silo.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                <button type="button" id="import_gsheet_btn" class="btn btn-primary" data-dismiss="modal">Import</button>
+        <div class="modal fade" id="select_silo_for_gsheet_import_modal" tabindex="-1" role="dialog" aria-labelledby="select_silo_for_gsheet_import_modal" aria-hidden="true">
+            <div class="modal-dialog modal-md">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                        <h4 class="modal-title">Choose Destination for importing data from Google Spreadsheet.</h4>
+                    </div>
+                    <div class="modal-body" id="unique_cols_selection_modal_body_div">
+                        <label for="silo_cols">Existing Tables</label>
+                        <select id="silo_select" name="silo_cols" class="form-control input-sm" style="width: 100%;">
+                                <option value="0">New Table</option>
+                            {% for silo in all_my_silos %}
+                                <option value="{{ silo.id }}">{{ silo.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="button" id="import_gsheet_btn" class="btn btn-primary" data-dismiss="modal">Import</button>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
 
-
+        <div id = "loading" class="modal"> </div>
         <div id="footer">
             <!-- Sticky Footer -->
             <div class="container">
                 <div class="col-md-6 text-left">
-                    <a href="http://www.toladata.com" class="text-muted">Inspired in Kabul. Built in Portland.</a>
+                    <a href="http://www.toladata.com" class="text-muted"><b>Tola</b>Data: Built by</a> <a href="http://www.mercycorps.org" class="text-muted">MercyCorps</a>
                 </div>
                 <div class="col-md-6 text-right">
                     <a href="http://tola.work/documentation" class="text-muted">Documentation</a> | <a href="http://tola.work/faq" class="text-muted">FAQ</a> | <a href="http://tola.work/helpdesk/tickets/submit/" class="text-muted">Feedback</a> | <a href="https://github.com/toladata/TolaActivity/blob/master/LICENSE" class="text-muted">License</a>
