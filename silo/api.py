@@ -32,7 +32,6 @@ class SiloViewSet(viewsets.ModelViewSet):
     This viewset automatically provides `list`, `create`, `retrieve`,
     `update` and `destroy` actions.
     """
-    queryset = Silo.objects.all()
     serializer_class = SiloSerializer
     lookup_field = 'id'
     # this permission sets seems to break the default permissions set by the restframework
@@ -40,6 +39,9 @@ class SiloViewSet(viewsets.ModelViewSet):
     #                      IsOwnerOrReadOnly,)
     filter_fields = ('owner__username','shared__username','id','tags','public')
     filter_backends = (filters.DjangoFilterBackend,)
+
+    def get_queryset(self):
+        return Silo.objects.filter(owner=self.request.user)
 
     @detail_route()
     def data(self, request, id):
