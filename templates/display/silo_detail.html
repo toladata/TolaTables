@@ -194,17 +194,7 @@
                 complete: function(data, status) {
                     if (status == "success") {
                         var failed_agreements = data.responseJSON["data"];
-                        console.log(failed_agreements);
-                        /*
-                        for (var i=0; i<failed_agreements.length; i++){
-                            $.each(failed_agreements[i], function(k,v) {
-                                console.log(k + ": " + v);
-                            });
-                        }
-                        */
-                        var table = new tableObject(failed_agreements);
-                        $("#failed_project_agreements_modal_body").empty();
-                        $("#failed_project_agreements_modal_body").append(table);
+                        buildHtmlTable(failed_agreements, "#failed_project_agreements_modal_body");
                         $("#failed_project_agreements_modal").modal('show');
                     } else {
                         console.log("something weird happened");

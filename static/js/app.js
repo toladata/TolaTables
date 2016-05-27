@@ -169,7 +169,26 @@ $.ajaxSetup({
 });
 
 
+function buildHtmlTable(myList, selector) {
+    var tableHeaders = "";
+    var json = {"data": []};
 
+    // Get column header
+    $.each(myList[0], function(k,v) {
+        tableHeaders += "<th>" + k + "</th>";
+    });
+
+    $(selector).empty();
+    $(selector).append('<table id="failed_pas_tbl" class="display table datatable table-bordered" cellspacing="0" width="100%"><thead><tr>' + tableHeaders + '</tr></thead></table>');
+
+    for (var i=0; i<myList.length; i++){
+        json["data"].push([]);
+        $.each(myList[i], function(k,v) {
+            json["data"][i].push(v);
+        });
+    }
+    $("#failed_pas_tbl").dataTable(json);
+}
 
 var tableObject = function (json, id) {
     var headerCount = new Object();

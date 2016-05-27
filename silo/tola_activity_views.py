@@ -24,7 +24,6 @@ def prep_data(silo_data):
     headers = []
     data_failed_to_post = []
     for r, row in enumerate(silo_data):
-        print(r)
         row_dict = {}
         for i, col in enumerate(row):
             col_parts = col.split("/")
@@ -36,9 +35,12 @@ def prep_data(silo_data):
             row_dict[last_part_of_col] = val
         if not row_dict: continue
         payload = json.dumps(row_dict)
+        #print(payload)
         res = requests.post(url, headers=auth_headers, data=payload)
+        #print(res.content)
         if res.status_code != 201:
             logger.error("Project Agreement (%s) for program (%s) failed to get created in TolaActivity" % (row_dict.get("program", None), row_dict.get("project_name", None)))
+            row_dict['errors'] = res.content
             data_failed_to_post.append(row_dict)
     return data_failed_to_post
 
