@@ -169,6 +169,28 @@ $.ajaxSetup({
 });
 
 
+/*
+ * Create and show a Bootstrap alert.
+ */
+function createAlert (type, message, fade, whereToAppend) {
+    if (whereToAppend == undefined ){
+        whereToAppend = "#alerts";
+    }
+    $(whereToAppend).append(
+        $(
+            "<div class='alert alert-" + type + " dynamic-alert alert-dismissable'>" +
+            "<button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>" +
+            "<p>" + message + "</p>" +
+            "</div>"
+        )
+    );
+    if (fade == true) {
+        // Remove the alert after 5 seconds if the user does not close it.
+        $(".dynamic-alert").delay(5000).fadeOut("slow", function () { $(this).remove(); });
+    }
+}
+
+
 function buildHtmlTable(myList, selector) {
     var tableHeaders = "";
     var json = {"data": []};

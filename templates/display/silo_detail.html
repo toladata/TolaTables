@@ -179,7 +179,6 @@
         $("body").on("click", "#push_to_activity_btn", function(e) {
             e.preventDefault();
             var url = $(this).attr("href");
-            console.log(url);
 
             $.ajax({
                 url: url,
@@ -193,9 +192,15 @@
                 dataType: 'json',
                 complete: function(data, status) {
                     if (status == "success") {
+                        
                         var failed_agreements = data.responseJSON["data"];
-                        buildHtmlTable(failed_agreements, "#failed_project_agreements_modal_body");
-                        $("#failed_project_agreements_modal").modal('show');
+                        if (failed_agreements != undefined) {
+                            createAlert("danger", data.responseJSON["status"], false);
+                            buildHtmlTable(failed_agreements, "#failed_project_agreements_modal_body");
+                            $("#failed_project_agreements_modal").modal('show');
+                        } else {
+                            createAlert("success", data.responseJSON["status"], false);
+                        }
                     } else {
                         console.log("something weird happened");
                     }
