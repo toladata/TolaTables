@@ -3,6 +3,7 @@ from silo import views
 from silo import tola_activity_views
 from silo import google_views
 
+from django.contrib import auth
 from django.conf.urls import patterns, include, url
 from django.views.generic import TemplateView
 from django.contrib.auth.models import User
@@ -42,9 +43,6 @@ urlpatterns =[
                         #rest Custom Feed
                         url(r'^api/custom/(?P<id>[0-9]+)/$', views.customFeed, name='customFeed'),
 
-                        #enable admin documentation:
-                        url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
-
                         #enable the admin:
                         url(r'^admin/', include(admin.site.urls)),
 
@@ -53,6 +51,7 @@ urlpatterns =[
 
                         #read init form
                         url(r'^source/new/', views.showRead, kwargs={'id': 0}, name='newRead'),
+                        #url(r'^source/json/', views.showRead, kwargs={'id': 0}, name='newJsonRead'),
                         url(r'^show_read/(?P<id>\w+)/$', views.showRead, name='showRead'),
 
                         #upload form
@@ -121,7 +120,7 @@ urlpatterns =[
                         #local login COmment out local login for now
                         #url(r'^login/$', 'django.contrib.auth.views.login', name='login'),
                         #url(r'^accounts/login/$', 'django.contrib.auth.views.login', name='login'),
-                        url(r'^accounts/login/$', 'django.contrib.auth.views.login', name='login'),
+                        url(r'^accounts/login/$', auth.views.login, name='login'),
                         url(r'^accounts/logout/$', tola_views.logout_view, name='logout'),
 
                         #accounts

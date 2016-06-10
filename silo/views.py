@@ -365,13 +365,19 @@ def showRead(request, id):
     """
     initial = {'owner': request.user}
     excluded_fields=('autopush_frequency', 'autopull_frequency', 'read_url')
+
     try:
         read_instance = Read.objects.get(pk=id)
         if read_instance.type.read_type != "CSV":
             excluded_fields = ('file_data',)
     except Read.DoesNotExist as e:
         read_instance = None
-        initial['type'] = ReadType.objects.get(read_type="CSV")
+        read_type = request.GET.get("type", None)
+        if read_type == None or read_type == "CSV":
+            read_type = "CSV"
+        else:
+            excluded_fields = ('file_data',)
+        initial['type'] = ReadType.objects.get(read_type=read_type)
 
     if request.method == 'POST':
         form = ReadForm(request.POST, request.FILES, instance=read_instance)
