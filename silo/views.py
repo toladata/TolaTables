@@ -385,6 +385,8 @@ def showRead(request, id):
             read = form.save()
             if form.instance.type.read_type == "CSV":
                 return HttpResponseRedirect("/file/" + str(read.id) + "/")
+            elif form.instance.type.read_type == "JSON Public":
+                return HttpResponseRedirect(reverse_lazy("getJSON")+ "?read_id=%s" % id)
 
             if form.instance.autopull_frequency or form.instance.autopush_frequency:
                 messages.info(request, "Your table must have a unique column set for Autopull/Autopush to work.")
@@ -452,9 +454,9 @@ def uploadFile(request, id):
     # get all of the silo info to pass to the form
     get_silo = Silo.objects.filter(owner=user)
 
-    # display login form
+    # display the form for user to choose a table or ener a new table name to import data into
     return render(request, 'read/file.html', {
-        'read_id': id, 'get_silo': get_silo,
+        'read_id': id, 'form_action': reverse_lazy("uploadFile", kwargs={"id": id}), 'get_silo': get_silo,
     })
 
 
@@ -474,7 +476,8 @@ def getJSON(request):
         try:
             request2 = urllib2.Request(read_obj.read_url)
             #if they passed in a usernmae get auth info from form post then encode and add to the request header
-            if request.POST['user_name']:
+            username = request.POST.get("user_name", None)
+            if username:
                 username = request.POST['user_name']
                 password = request.POST['password']
                 base64string = base64.encodestring('%s:%s' % (username, password))[:-1]
@@ -483,7 +486,7 @@ def getJSON(request):
             json_file = urllib2.urlopen(request2)
         except Exception as e:
             #print e
-            messages.error(request, 'Authentication Failed, Please double check your login credentials and URL!')
+            messages.error(request, 'Unable to connect to remote host: %s' % e)
 
         silo = None
 
@@ -514,8 +517,16 @@ def getJSON(request):
         messages.success(request, "Data imported successfully.")
         return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
     else:
-        messages.error(request, "Invalid Request for importing JSON data")
-        return HttpResponseRedirect("/")
+        # messages.error(request, "Invalid Request for importing JSON data")
+        # return HttpResponseRedirect("/")
+        user = User.objects.get(username__exact=request.user)
+        # get all of the silo info to pass to the form
+        silos = Silo.objects.filter(owner=user)
+
+        # display the form for user to choose a table or ener a new table name to import data into
+        return render(request, 'read/file.html', {
+            'form_action': reverse_lazy("getJSON"), 'get_silo': silos,
+        })
 #display
 #INDEX
 def index(request):

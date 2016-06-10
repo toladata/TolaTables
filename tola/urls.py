@@ -51,11 +51,11 @@ urlpatterns =[
 
                         #read init form
                         url(r'^source/new/', views.showRead, kwargs={'id': 0}, name='newRead'),
-                        #url(r'^source/json/', views.showRead, kwargs={'id': 0}, name='newJsonRead'),
                         url(r'^show_read/(?P<id>\w+)/$', views.showRead, name='showRead'),
 
                         #upload form
                         url(r'^file/(?P<id>\w+)/$', views.uploadFile, name='uploadFile'),
+                        #url(r'^json_import/(?P<id>\w+)/$', views.jsonImport, name='json_import'),
 
                         #getJSON data
                         url(r'^json', views.getJSON, name='getJSON'),
