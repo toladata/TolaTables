@@ -23,7 +23,7 @@ class Command(BaseCommand):
             return self.stdout.write("Frequency argument can either be 'daily' or 'weekly'")
 
         silos = Silo.objects.filter(unique_fields__isnull=False, reads__autopull_frequency__isnull=False, reads__autopull_frequency = frequency).distinct()
-        read_type = ReadType.objects.get(read_type="JSON")
+        read_type = ReadType.objects.get(read_type="ONA")
         for silo in silos:
             reads = silo.reads.filter(type=read_type.pk)
             for read in reads:

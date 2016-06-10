@@ -205,7 +205,7 @@ def saveAndImportRead(request):
     if request.method != 'POST':
         return HttpResponseBadRequest("HTTP method, %s, is not supported" % request.method)
 
-    read_type = ReadType.objects.get(read_type="JSON")
+    read_type = ReadType.objects.get(read_type="ONA")
     name = request.POST.get('read_name', None)
     url = request.POST.get('read_url', None)
     owner = request.user
@@ -692,7 +692,7 @@ def updateMergeSilo(request, pk):
             messages.info(request, "In order to update a table, it must have a unique field set.")
 
 
-        read_type = ReadType.objects.get(read_type="JSON")
+        read_type = ReadType.objects.get(read_type="ONA")
         reads = silo.reads.filter(type=read_type.pk)
         for read in reads:
             ona_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="ONA")
