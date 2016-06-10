@@ -484,38 +484,37 @@ def getJSON(request):
                 request2.add_header("Authorization", "Basic %s" % base64string)
             #retrieve JSON data from formhub via auth info
             json_file = urllib2.urlopen(request2)
+            silo = None
+
+            user = User.objects.get(username__exact=request.user)
+            if request.POST.get("new_silo", None):
+                silo = Silo(name=request.POST['new_silo'], owner=user, public=False, create_date=today)
+                silo.save()
+            else:
+                silo = Silo.objects.get(id = request.POST["silo_id"])
+
+            silo.reads.add(read_obj)
+            silo_id = silo.id
+
+            #create object from JSON String
+            data = json.load(json_file)
+            json_file.close()
+
+            #loop over data and insert create and edit dates and append to dict
+            for row in data:
+                lvs = LabelValueStore()
+                lvs.silo_id = silo_id
+                for new_label, new_value in row.iteritems():
+                    if new_label is not "" and new_label is not None and new_label is not "edit_date" and new_label is not "create_date":
+                        setattr(lvs, new_label, new_value)
+                lvs.create_date = timezone.now()
+                lvs.save()
+            combineColumns(silo_id)
+            messages.success(request, "Data imported successfully.")
+            return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
         except Exception as e:
             #print e
             messages.error(request, 'Unable to connect to remote host: %s' % e)
-
-        silo = None
-
-        user = User.objects.get(username__exact=request.user)
-        if request.POST.get("new_silo", None):
-            silo = Silo(name=request.POST['new_silo'], owner=user, public=False, create_date=today)
-            silo.save()
-        else:
-            silo = Silo.objects.get(id = request.POST["silo_id"])
-
-        silo.reads.add(read_obj)
-        silo_id = silo.id
-
-        #create object from JSON String
-        data = json.load(json_file)
-        json_file.close()
-
-        #loop over data and insert create and edit dates and append to dict
-        for row in data:
-            lvs = LabelValueStore()
-            lvs.silo_id = silo_id
-            for new_label, new_value in row.iteritems():
-                if new_label is not "" and new_label is not None and new_label is not "edit_date" and new_label is not "create_date":
-                    setattr(lvs, new_label, new_value)
-            lvs.create_date = timezone.now()
-            lvs.save()
-        combineColumns(silo_id)
-        messages.success(request, "Data imported successfully.")
-        return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
     else:
         # messages.error(request, "Invalid Request for importing JSON data")
         # return HttpResponseRedirect("/")
