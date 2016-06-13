@@ -41,9 +41,10 @@ class SiloViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.DjangoFilterBackend,)
 
     def get_queryset(self):
+        user = self.request.user
         if user.is_superuser:
             return Silo.objects.all()
-        return Silo.objects.filter(owner=self.request.user)
+        return Silo.objects.filter(owner=user)
 
     @detail_route()
     def data(self, request, id):
