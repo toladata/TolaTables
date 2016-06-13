@@ -10,6 +10,8 @@ from .serializers import *
 from silo.permissions import IsOwnerOrReadOnly
 from django.contrib.auth.models import User
 from rest_framework.decorators import detail_route, list_route
+from rest_framework import pagination
+
 
 import django_filters
 
@@ -43,6 +45,7 @@ class SiloViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
+            pagination.PageNumberPagination.page_size = 200
             return Silo.objects.all()
         return Silo.objects.filter(owner=user)
 
