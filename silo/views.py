@@ -646,15 +646,6 @@ def updateMergeSilo(request, pk):
 
     except MergedSilosFieldMapping.DoesNotExist as e:
         # Check if the silo has a source from ONA: and if so, then update its data
-        stop = False
-
-
-
-        if silo.unique_fields.all().exists() == False:
-            stop = True
-            messages.info(request, "In order to update a table, it must have a unique field set.")
-
-
         read_type = ReadType.objects.get(read_type="ONA")
         reads = silo.reads.filter(type=read_type.pk)
         for read in reads:
@@ -690,6 +681,7 @@ def updateMergeSilo(request, pk):
 
             if num_rows == (counter+1):
                 combineColumns(silo.pk)
+        # Now if the same table has sources from Google Sheet import those datasets as well.
         # reset num_rows
         num_rows = 0
         read_types = ReadType.objects.filter(Q(read_type="GSheet Import") | Q(read_type="Google Spreadsheet"))
@@ -708,9 +700,6 @@ def updateMergeSilo(request, pk):
             if suc == False:
                 messages.error(request, "Failed to import data from gsheet %s " % read.pk)
 
-        if not reads:
-            stop = True
-            messages.info(request, "Tables that only have a CSV source cannot be updated.")
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': pk},))
 
 
