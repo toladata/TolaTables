@@ -82,6 +82,7 @@ def importJSON(read_obj, user, remote_user = None, password = None, silo_id = No
             lvs.silo_id = silo_id
             for new_label, new_value in row.iteritems():
                 if new_label is not "" and new_label is not None and new_label is not "edit_date" and new_label is not "create_date":
+                    if new_label == "id" or new_label == "_id": new_label="user_assigned_id"
                     setattr(lvs, new_label, new_value)
             lvs.create_date = timezone.now()
             lvs.save()

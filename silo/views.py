@@ -386,7 +386,7 @@ def showRead(request, id):
             if form.instance.type.read_type == "CSV":
                 return HttpResponseRedirect("/file/" + str(read.id) + "/")
             elif form.instance.type.read_type == "JSON":
-                return HttpResponseRedirect(reverse_lazy("getJSON")+ "?read_id=%s" % id)
+                return HttpResponseRedirect(reverse_lazy("getJSON")+ "?read_id=%s" % read.id)
 
             if form.instance.autopull_frequency or form.instance.autopush_frequency:
                 messages.info(request, "Your table must have a unique column set for Autopull/Autopush to work.")
