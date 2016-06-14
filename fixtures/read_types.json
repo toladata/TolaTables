@@ -43,7 +43,7 @@
     "model": "silo.readtype",
     "pk": 5,
     "fields": {
-        "read_type": "JSON Public",
+        "read_type": "JSON",
         "description": "",
         "create_date": "2016-06-08T12:11:16Z",
         "edit_date": null

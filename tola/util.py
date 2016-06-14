@@ -63,14 +63,12 @@ def importJSON(read_obj, user, remote_user = None, password = None, silo_id = No
         json_file = urllib2.urlopen(request2)
         silo = None
 
-        print(silo_name)
         if silo_name:
             silo = Silo(name=silo_name, owner=user, public=False, create_date=today)
             silo.save()
         else:
             silo = Silo.objects.get(id = silo_id)
 
-        print(silo.name)
         silo.reads.add(read_obj)
         silo_id = silo.id
 

@@ -385,7 +385,7 @@ def showRead(request, id):
             read = form.save()
             if form.instance.type.read_type == "CSV":
                 return HttpResponseRedirect("/file/" + str(read.id) + "/")
-            elif form.instance.type.read_type == "JSON Public":
+            elif form.instance.type.read_type == "JSON":
                 return HttpResponseRedirect(reverse_lazy("getJSON")+ "?read_id=%s" % id)
 
             if form.instance.autopull_frequency or form.instance.autopush_frequency:
@@ -463,7 +463,7 @@ def uploadFile(request, id):
 @login_required
 def getJSON(request):
     """
-    Get JSON feed info from a public JSON feed that may or may not have basic authentication
+    Get JSON feed info from a JSON feed that may or may not have basic authentication
     """
     if request.method == 'POST':
         # retrieve submitted Feed info from database
@@ -480,9 +480,7 @@ def getJSON(request):
             messages.success(request, result[1])
         return HttpResponseRedirect('/silo_detail/%s/' % silo_id)
     else:
-        #user = User.objects.get(username__exact=request.user)
         silos = Silo.objects.filter(owner=request.user)
-
         # display the form for user to choose a table or ener a new table name to import data into
         return render(request, 'read/file.html', {
             'form_action': reverse_lazy("getJSON"), 'get_silo': silos
