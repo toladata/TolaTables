@@ -1,8 +1,10 @@
+import logging
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User
 
 from silo.models import  Read, ReadType, Silo
 from tola.util import importJSON
+logger = logging.getLogger("silo")
 
 class Command(BaseCommand):
     """
@@ -25,4 +27,5 @@ class Command(BaseCommand):
             reads = silo.reads.filter(type=read_type.pk)
             for read in reads:
                 result = importJSON(read, silo.owner, None, None, silo.pk, None)
-                self.stdout.write("silo_id: %s %s" % (result[2], result[1]))
+                if result[0] == "error":
+                    logger.error("Silo_ID: %s %s" % (result[2], result[1]))
