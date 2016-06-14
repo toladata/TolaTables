@@ -611,6 +611,10 @@ def updateMergeSilo(request, pk):
     except Silo.DoesNotExist as e:
         return HttpResponse("Table (%s) does not exist" % pk)
 
+    if silo.unique_fields.all().count() == 0:
+        messages.error(request, "To update a table it must have a unique column set.")
+        return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': pk},))
+
     try:
         mapping = MergedSilosFieldMapping.objects.get(merged_silo = silo.pk)
         left_table_id = mapping.from_silo.pk
