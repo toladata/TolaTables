@@ -114,9 +114,6 @@ urlpatterns =[
                         url(r'^oauth2callback/$', google_views.oauth2callback, name='oauth2callback'),
                         url(r'^import_gsheet/(?P<id>\d+)/$', google_views.import_gsheet, name='import_gsheet'),
 
-                        #create a feed
-                        url(r'^create_feed', views.createFeed, name='createFeed'),
-
                         #local login COmment out local login for now
                         #url(r'^login/$', 'django.contrib.auth.views.login', name='login'),
                         #url(r'^accounts/login/$', 'django.contrib.auth.views.login', name='login'),

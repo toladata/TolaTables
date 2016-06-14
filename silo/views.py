@@ -34,7 +34,7 @@ from .tables import define_table
 from tola.util import getSiloColumnNames
 
 from django.contrib.auth.decorators import login_required
-from tola.util import siloToDict, combineColumns
+from tola.util import siloToDict, combineColumns, importJSON
 
 from django.core.urlresolvers import reverse
 
@@ -463,68 +463,29 @@ def uploadFile(request, id):
 @login_required
 def getJSON(request):
     """
-    Get JSON feed info from form then grab data
+    Get JSON feed info from a public JSON feed that may or may not have basic authentication
     """
     if request.method == 'POST':
         # retrieve submitted Feed info from database
         read_obj = Read.objects.get(id = request.POST.get("read_id", None))
-
-        # set date time stamp
-        today = datetime.date.today()
-        today.strftime('%Y-%m-%d')
-        today = str(today)
-        try:
-            request2 = urllib2.Request(read_obj.read_url)
-            #if they passed in a usernmae get auth info from form post then encode and add to the request header
-            username = request.POST.get("user_name", None)
-            if username:
-                username = request.POST['user_name']
-                password = request.POST['password']
-                base64string = base64.encodestring('%s:%s' % (username, password))[:-1]
-                request2.add_header("Authorization", "Basic %s" % base64string)
-            #retrieve JSON data from formhub via auth info
-            json_file = urllib2.urlopen(request2)
-            silo = None
-
-            user = User.objects.get(username__exact=request.user)
-            if request.POST.get("new_silo", None):
-                silo = Silo(name=request.POST['new_silo'], owner=user, public=False, create_date=today)
-                silo.save()
-            else:
-                silo = Silo.objects.get(id = request.POST["silo_id"])
-
-            silo.reads.add(read_obj)
-            silo_id = silo.id
-
-            #create object from JSON String
-            data = json.load(json_file)
-            json_file.close()
-
-            #loop over data and insert create and edit dates and append to dict
-            for row in data:
-                lvs = LabelValueStore()
-                lvs.silo_id = silo_id
-                for new_label, new_value in row.iteritems():
-                    if new_label is not "" and new_label is not None and new_label is not "edit_date" and new_label is not "create_date":
-                        setattr(lvs, new_label, new_value)
-                lvs.create_date = timezone.now()
-                lvs.save()
-            combineColumns(silo_id)
-            messages.success(request, "Data imported successfully.")
-            return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
-        except Exception as e:
-            #print e
-            messages.error(request, 'Unable to connect to remote host: %s' % e)
+        remote_user = request.POST.get("user_name", None)
+        password = request.POST.get("password", None)
+        silo_id = request.POST.get("silo_id", None)
+        silo_name = request.POST.get("new_silo", None)
+        result = importJSON(read_obj, request.user, remote_user, password, silo_id, silo_name)
+        silo_id = str(result[2])
+        if result[0] == "error":
+            messages.error(request, result[1])
+        else:
+            messages.success(request, result[1])
+        return HttpResponseRedirect('/silo_detail/%s/' % silo_id)
     else:
-        # messages.error(request, "Invalid Request for importing JSON data")
-        # return HttpResponseRedirect("/")
-        user = User.objects.get(username__exact=request.user)
-        # get all of the silo info to pass to the form
-        silos = Silo.objects.filter(owner=user)
+        #user = User.objects.get(username__exact=request.user)
+        silos = Silo.objects.filter(owner=request.user)
 
         # display the form for user to choose a table or ener a new table name to import data into
         return render(request, 'read/file.html', {
-            'form_action': reverse_lazy("getJSON"), 'get_silo': silos,
+            'form_action': reverse_lazy("getJSON"), 'get_silo': silos
         })
 #display
 #INDEX
@@ -1019,24 +980,6 @@ def customFeed(request,id):
     queryset = LabelValueStore.objects.exclude("silo_id").filter(silo_id=id).to_json()
 
     return render(request, 'feed/json.html', {"jsonData": queryset}, content_type="application/json")
-
-def createFeed(request):
-    """
-    Create an XML or JSON Feed from a given Silo
-    """
-    getSilo = ValueStore.objects.filter(field__silo__id=request.POST['silo_id']).order_by('row_number')
-
-    #return a dict with label value pair data
-    formatted_data = siloToDict(getSilo)
-
-    getFeedType = FeedType.objects.get(pk = request.POST['feed_type'])
-
-    if getFeedType.description == "XML":
-        xmlData = serialize(formatted_data)
-        return render(request, 'feed/xml.html', {"xml": xmlData}, content_type="application/xhtml+xml")
-    elif getFeedType.description == "JSON":
-        jsonData = simplejson.dumps(formatted_data)
-        return render(request, 'feed/json.html', {"jsonData": jsonData}, content_type="application/json")
 
 
 def export_silo(request, id):
