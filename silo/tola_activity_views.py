@@ -16,7 +16,7 @@ from .models import *
 #curl -X GET http://localhost:8000/api/read/ -H 'Authorization: Token 77b2224a904cec44f9964664e07c5de9a818ff67'
 
 logger = logging.getLogger("silo")
-url = settings.TOLA_ACTIVITY_API_URL + "agreements/"
+url = settings.TOLA_ACTIVITY_API_URL + "initiations/"
 auth_headers = {"content-type": "application/json", 'Authorization': settings.TOLA_ACTIVITY_API_TOKEN}
 
 
