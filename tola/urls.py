@@ -3,6 +3,7 @@ from silo import views
 from silo import tola_activity_views
 from silo import google_views
 
+from django.contrib import auth
 from django.conf.urls import patterns, include, url
 from django.views.generic import TemplateView
 from django.contrib.auth.models import User
@@ -20,7 +21,7 @@ admin.autodiscover()
 
 #REST FRAMEWORK
 router = routers.DefaultRouter()
-router.register(r'silo', SiloViewSet)
+router.register(r'silo', SiloViewSet, base_name="silo")
 router.register(r'users', UserViewSet)
 router.register(r'read', ReadViewSet)
 router.register(r'readtype', ReadTypeViewSet)
@@ -42,9 +43,6 @@ urlpatterns =[
                         #rest Custom Feed
                         url(r'^api/custom/(?P<id>[0-9]+)/$', views.customFeed, name='customFeed'),
 
-                        #enable admin documentation:
-                        url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
-
                         #enable the admin:
                         url(r'^admin/', include(admin.site.urls)),
 
@@ -57,6 +55,7 @@ urlpatterns =[
 
                         #upload form
                         url(r'^file/(?P<id>\w+)/$', views.uploadFile, name='uploadFile'),
+                        #url(r'^json_import/(?P<id>\w+)/$', views.jsonImport, name='json_import'),
 
                         #getJSON data
                         url(r'^json', views.getJSON, name='getJSON'),
@@ -115,13 +114,10 @@ urlpatterns =[
                         url(r'^oauth2callback/$', google_views.oauth2callback, name='oauth2callback'),
                         url(r'^import_gsheet/(?P<id>\d+)/$', google_views.import_gsheet, name='import_gsheet'),
 
-                        #create a feed
-                        url(r'^create_feed', views.createFeed, name='createFeed'),
-
                         #local login COmment out local login for now
                         #url(r'^login/$', 'django.contrib.auth.views.login', name='login'),
                         #url(r'^accounts/login/$', 'django.contrib.auth.views.login', name='login'),
-                        url(r'^accounts/login/$', 'django.contrib.auth.views.login', name='login'),
+                        url(r'^accounts/login/$', auth.views.login, name='login'),
                         url(r'^accounts/logout/$', tola_views.logout_view, name='logout'),
 
                         #accounts

@@ -1,5 +1,7 @@
 {% extends "base.html" %} 
-{% block page_title %}{{ silo.name }}<p><small>{{ silo.description }}</small></p>{% endblock %}
+{% block page_title %}
+    <a href="/silo_detail/{{ silo.id }}">{{ silo.name }}</a><p><small>{{ silo.description }}</small></p>
+{% endblock %}
 
 {% block content %}
     {% csrf_token %}

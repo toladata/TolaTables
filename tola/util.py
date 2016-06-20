@@ -3,7 +3,10 @@ import datetime
 import urllib2
 import json
 import base64
+from django.utils import timezone
 from django.conf import settings
+from django.contrib.auth.models import User
+
 from silo.models import Read, Silo, LabelValueStore
 
 import pymongo
@@ -44,40 +47,49 @@ def siloToDict(silo):
 
 
 #IMPORT JSON DATA
-def getJSON(id):
-    """
-    Get JSON feed info from form then grab data
-    """
-    # retrieve submitted Feed info from database
-    read_obj = Read.objects.get(id)
+def importJSON(read_obj, user, remote_user = None, password = None, silo_id = None, silo_name = None):
     # set date time stamp
     today = datetime.date.today()
     today.strftime('%Y-%m-%d')
     today = str(today)
+    try:
+        request2 = urllib2.Request(read_obj.read_url)
+        #if they passed in a usernmae get auth info from form post then encode and add to the request header
 
-    #get auth info from form post then encode and add to the request header
-    username = request.POST['user_name']
-    password = request.POST['password']
-    base64string = base64.encodestring('%s:%s' % (username, password))[:-1]
-    request2 = urllib2.Request(read_obj.read_url)
-    request2.add_header("Authorization", "Basic %s" % base64string)
-    #retrieve JSON data from formhub via auth info
-    json_file = urllib2.urlopen(request2)
+        if remote_user and password:
+            base64string = base64.encodestring('%s:%s' % (remote_user, password))[:-1]
+            request2.add_header("Authorization", "Basic %s" % base64string)
+        #retrieve JSON data from formhub via auth info
+        json_file = urllib2.urlopen(request2)
+        silo = None
 
-    #create object from JSON String
-    data = json.load(json_file)
-    json_file.close()
-    #loop over data and insert create and edit dates and append to dict
-    row_num = 1
-    for row in data:
-        for new_label, new_value in row.iteritems():
-            if new_value is not "" and new_label is not None:
-                #save to DB
-                saveData(new_value, new_label, silo_id, row_num)
-        row_num = row_num + 1
+        if silo_name:
+            silo = Silo(name=silo_name, owner=user, public=False, create_date=today)
+            silo.save()
+        else:
+            silo = Silo.objects.get(id = silo_id)
 
+        silo.reads.add(read_obj)
+        silo_id = silo.id
 
-    return get_fields
+        #create object from JSON String
+        data = json.load(json_file)
+        json_file.close()
+
+        #loop over data and insert create and edit dates and append to dict
+        for row in data:
+            lvs = LabelValueStore()
+            lvs.silo_id = silo_id
+            for new_label, new_value in row.iteritems():
+                if new_label is not "" and new_label is not None and new_label is not "edit_date" and new_label is not "create_date":
+                    if new_label == "id" or new_label == "_id": new_label="user_assigned_id"
+                    setattr(lvs, new_label, new_value)
+            lvs.create_date = timezone.now()
+            lvs.save()
+        combineColumns(silo_id)
+        return ("success", "Data imported successfully.", str(silo_id))
+    except Exception as e:
+        return ("error", "An error has occured: %s" % e, str(silo_id))
 
 def getSiloColumnNames(id):
     lvs = LabelValueStore.objects(silo_id=id).to_json()

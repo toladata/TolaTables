@@ -1,4 +1,4 @@
-{% extends "base.html" %} 
+{% extends "base.html" %}
 
 {% load render_table from django_tables2 %}
 
@@ -165,7 +165,7 @@
             e.preventDefault();
             $("#unique_cols_selection_modal").modal('show');
         });
-        
+
         $("#unique_cols_selection_modal").on("click", "#add_unique_cols_save_btn", function(e) {
             e.preventDefault();
             var url = "{% url 'add_unique_fields_to_silo' %}" + "/";
@@ -174,12 +174,12 @@
             $.post(url, params)
             .done(function(data, textStatus, jqXHR) {
                 console.log(JSON.stringify(data));
+                $("#unique_col_lbl").text("Unique Column: " + $("#silo_cols_multi_select").val());
             });
         });
         $("body").on("click", "#push_to_activity_btn", function(e) {
             e.preventDefault();
             var url = $(this).attr("href");
-            console.log(url);
 
             $.ajax({
                 url: url,
@@ -193,19 +193,15 @@
                 dataType: 'json',
                 complete: function(data, status) {
                     if (status == "success") {
+
                         var failed_agreements = data.responseJSON["data"];
-                        console.log(failed_agreements);
-                        /*
-                        for (var i=0; i<failed_agreements.length; i++){
-                            $.each(failed_agreements[i], function(k,v) {
-                                console.log(k + ": " + v);
-                            });
+                        if (failed_agreements != undefined) {
+                            createAlert("danger", data.responseJSON["status"], false);
+                            buildHtmlTable(failed_agreements, "#failed_project_agreements_modal_body");
+                            $("#failed_project_agreements_modal").modal('show');
+                        } else {
+                            createAlert("success", data.responseJSON["status"], false);
                         }
-                        */
-                        var table = new tableObject(failed_agreements);
-                        $("#failed_project_agreements_modal_body").empty();
-                        $("#failed_project_agreements_modal_body").append(table);
-                        $("#failed_project_agreements_modal").modal('show');
                     } else {
                         console.log("something weird happened");
                     }

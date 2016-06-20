@@ -10,6 +10,8 @@ from .serializers import *
 from silo.permissions import IsOwnerOrReadOnly
 from django.contrib.auth.models import User
 from rest_framework.decorators import detail_route, list_route
+from rest_framework import pagination
+
 
 import django_filters
 
@@ -32,7 +34,6 @@ class SiloViewSet(viewsets.ModelViewSet):
     This viewset automatically provides `list`, `create`, `retrieve`,
     `update` and `destroy` actions.
     """
-    queryset = Silo.objects.all()
     serializer_class = SiloSerializer
     lookup_field = 'id'
     # this permission sets seems to break the default permissions set by the restframework
@@ -40,6 +41,13 @@ class SiloViewSet(viewsets.ModelViewSet):
     #                      IsOwnerOrReadOnly,)
     filter_fields = ('owner__username','shared__username','id','tags','public')
     filter_backends = (filters.DjangoFilterBackend,)
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            #pagination.PageNumberPagination.page_size = 200
+            return Silo.objects.all()
+        return Silo.objects.filter(owner=user)
 
     @detail_route()
     def data(self, request, id):

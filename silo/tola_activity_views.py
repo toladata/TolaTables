@@ -16,7 +16,7 @@ from .models import *
 #curl -X GET http://localhost:8000/api/read/ -H 'Authorization: Token 77b2224a904cec44f9964664e07c5de9a818ff67'
 
 logger = logging.getLogger("silo")
-url = settings.TOLA_ACTIVITY_API_URL + "agreements/"
+url = settings.TOLA_ACTIVITY_API_URL + "initiations/"
 auth_headers = {"content-type": "application/json", 'Authorization': settings.TOLA_ACTIVITY_API_TOKEN}
 
 
@@ -24,7 +24,6 @@ def prep_data(silo_data):
     headers = []
     data_failed_to_post = []
     for r, row in enumerate(silo_data):
-        print(r)
         row_dict = {}
         for i, col in enumerate(row):
             col_parts = col.split("/")
@@ -36,9 +35,12 @@ def prep_data(silo_data):
             row_dict[last_part_of_col] = val
         if not row_dict: continue
         payload = json.dumps(row_dict)
+        #print(payload)
         res = requests.post(url, headers=auth_headers, data=payload)
+        #print(res.content)
         if res.status_code != 201:
             logger.error("Project Agreement (%s) for program (%s) failed to get created in TolaActivity" % (row_dict.get("program", None), row_dict.get("project_name", None)))
+            row_dict['errors'] = res.content
             data_failed_to_post.append(row_dict)
     return data_failed_to_post
 
@@ -52,5 +54,5 @@ def export_to_tola_activity(request, id):
     if len(data_failed_to_post) == 0:
         json_formatted_data = {"status": "Data pushed successfully to TolaActivity"}
     else:
-        json_formatted_data = {"status": "failed_agreements", "data": data_failed_to_post }
+        json_formatted_data = {"status": "Some Project Agreements Failed to Post.", "data": data_failed_to_post }
     return JsonResponse(json_formatted_data)
