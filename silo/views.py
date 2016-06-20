@@ -43,9 +43,16 @@ from django.utils.encoding import smart_str
 from django.utils.encoding import smart_text
 
 
-
-
 def mergeTwoSilos(data, left_table_id, right_table_id):
+    """
+    :param data: Mapping of the columns
+    :param left_table_id: Data to merge from
+    :param right_table_id: Data to merge into
+    :return: Merged data set from left and right with user defined mappind
+    TO-DO: Get the unique record defining column for each table, if they match then merge and column values math
+    then merge the data from the two tables into 1 row rather then unique rows.  Check in each for loop
+    (left then right) row for the uniquecolumn, then merge into 1 row.
+    """
     columns_mapping = json.loads(data)
 
     left_unmapped_cols = columns_mapping.pop('left_unmapped_cols')
@@ -144,6 +151,12 @@ def mergeTwoSilos(data, left_table_id, right_table_id):
 @csrf_protect
 @login_required
 def editSilo(request, id):
+    """
+    Edit the meta data and descirptor for each Table (silo)
+    :param request:
+    :param id: Unique table ID
+    :return: silo edit form
+    """
     edited_silo = Silo.objects.get(pk=id)
     if request.method == 'POST':  # If the form has been submitted...
         tags = request.POST.getlist('tags')
@@ -288,6 +301,11 @@ def saveAndImportRead(request):
 
 @login_required
 def getOnaForms(request):
+    """
+    Get the forms owned or shared with the logged in user
+    :param request:
+    :return: list of Ona forms paired with action buttons
+    """
     data = {}
     auth_success = False
     ona_token = None
