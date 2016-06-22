@@ -78,6 +78,17 @@ def importJSON(read_obj, user, remote_user = None, password = None, silo_id = No
 
         #loop over data and insert create and edit dates and append to dict
         for row in data:
+            filter_criteria = {'silo_id': silo.id}
+            #if the value of unique column is already in existing_silo_data then skip the row
+            if silo.unique_fields.all().exists():
+                for unique_field in silo.unique_fields.all():
+                    try:
+                        filter_criteria.update({unique_field.name: row[unique_field.name]})
+                    except Exception as e:
+                        pass
+                if len(filter_criteria) > 1 and LabelValueStore.objects.filter(**filter_criteria).count() > 0:
+                    continue
+
             lvs = LabelValueStore()
             lvs.silo_id = silo_id
             for new_label, new_value in row.iteritems():
