@@ -25,7 +25,7 @@ from django.views.decorators.csrf import csrf_protect
 import django_tables2 as tables
 from django_tables2 import RequestConfig
 
-from oauth2client.django_orm import Storage
+from oauth2client.contrib.django_orm import Storage
 from .models import GoogleCredentialsModel
 from google_views import *
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites
