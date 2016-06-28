@@ -1,5 +1,6 @@
 from tola import views as tola_views
 from silo import views
+from silo import gviews_v4
 from silo import tola_activity_views
 from silo import google_views
 
@@ -109,7 +110,7 @@ urlpatterns =[
                         ###FEED
                         url(r'^export_to_activity/(?P<id>\d+)/$', tola_activity_views.export_to_tola_activity, name="acitivity_push"),
                         url(r'^export/(?P<id>\w+)/$', views.export_silo, name='export_silo'),
-                        url(r'^export_new_gsheet/(?P<id>\d+)/$', google_views.export_new_gsheet, name='export_new_gsheet'),
+                        url(r'^export_new_gsheet/(?P<id>\d+)/$', gviews_v4.export_new_gsheet, name='export_new_gsheet'),
                         url(r'^export_gsheet/(?P<id>\d+)/$', google_views.export_gsheet, name='export_existing_gsheet'),
                         url(r'^oauth2callback/$', google_views.oauth2callback, name='oauth2callback'),
                         url(r'^import_gsheet/(?P<id>\d+)/$', google_views.import_gsheet, name='import_gsheet'),
