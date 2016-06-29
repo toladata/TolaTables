@@ -31,6 +31,7 @@ from tola.util import siloToDict, combineColumns
 
 CLIENT_SECRETS = os.path.join(os.path.dirname(__file__), 'client_secrets.json')
 SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
+BASE_URL = "https://sheets.googleapis.com/v4/spreadsheets/"
 FLOW = flow_from_clientsecrets(
     CLIENT_SECRETS,
     scope=SCOPE,
@@ -50,23 +51,60 @@ def export_new_gsheet(request, id):
     credential = json.loads(credential_obj.to_json())
 
     http = credential_obj.authorize(httplib2.Http())
-    discoveryUrl = ('https://sheets.googleapis.com/$discovery/rest?'
-                    'version=v4')
+    discoveryUrl = ('https://sheets.googleapis.com/$discovery/rest?version=v4')
     service = discovery.build('sheets', 'v4', http=http,
                               discoveryServiceUrl=discoveryUrl)
 
-    post_body =  { "properties": {"title": "NewTitle"} }
+    post_body =  { "properties": {"title": "xyztitle"} }
     body = json.dumps(post_body)
-    print(body)
-    #headers = {'Content-type': 'application/x-www-form-urlencoded'}
-    res, content = http.request(
-                                uri="https://sheets.googleapis.com/v4/spreadsheets",
+
+    """
+    res, content = http.request(uri=BASE_URL,
                                 method="POST",
                                 body=body,
-                                #headers = headers
                                 headers={'Content-Type': 'application/json; charset=UTF-8'},
                                 )
-    return JsonResponse({"res": res, "content": content})
+    content_json = json.loads(content)
+    sid = content_json.get("spreadsheetId", "none")
+    url = BASE_URL + sid + "/values:batchUpdate"
+    requests = []
+    # Change the name of sheet ID '0' (the default first sheet on every
+    # spreadsheet)
+    requests.append({
+        'updateSheetProperties': {
+            'properties': {'sheetId': 0, 'title': 'New Sheet Name'},
+            'fields': 'title'
+        }
+    })
+    requests.append({
+        'updateCells': {
+            'start': {'sheetId': 0, 'rowIndex': 0, 'columnIndex': 0},
+            'rows': [
+                {
+                    'values': [
+                        {
+                            'userEnteredValue': {'numberValue': 1},
+                            'userEnteredFormat': {'backgroundColor': {'red': 1}}
+                        }, {
+                            'userEnteredValue': {'numberValue': 2},
+                            'userEnteredFormat': {'backgroundColor': {'blue': 1}}
+                        }, {
+                            'userEnteredValue': {'numberValue': 3},
+                            'userEnteredFormat': {'backgroundColor': {'green': 1}}
+                        }
+                    ]
+                }
+            ],
+            'fields': 'userEnteredValue,userEnteredFormat.backgroundColor'
+        }
+    })
+    batchUpdateRequest = {'requests': requests}
+    """
+    #service.spreadsheets().batchUpdate(spreadsheetId=sid, body=batchUpdateRequest).execute()
+
+    sid = "1IX66-N5vNZsymKo2WsX1jsmMQOCKup445BoDrcXERNg"
+    content_json = service.spreadsheets().get(spreadsheetId=sid).execute()
+    return JsonResponse({"spreadsheetId": sid, "content": content_json})
 
 @login_required
 def oauth2callback(request):
