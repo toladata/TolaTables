@@ -60,53 +60,20 @@ def export_new_gsheet(request, id):
     post_body =  { "properties": {"title": "xyztitle"} }
     body = json.dumps(post_body)
 
-    """
     res, content = http.request(uri=BASE_URL,
                                 method="POST",
                                 body=body,
                                 headers={'Content-Type': 'application/json; charset=UTF-8'},
                                 )
     content_json = json.loads(content)
-    sid = content_json.get("spreadsheetId", "none")
-    url = BASE_URL + sid + "/values:batchUpdate"
-    requests = []
-    # Change the name of sheet ID '0' (the default first sheet on every
-    # spreadsheet)
-    requests.append({
-        'updateSheetProperties': {
-            'properties': {'sheetId': 0, 'title': 'New Sheet Name'},
-            'fields': 'title'
-        }
-    })
-    requests.append({
-        'updateCells': {
-            'start': {'sheetId': 0, 'rowIndex': 0, 'columnIndex': 0},
-            'rows': [
-                {
-                    'values': [
-                        {
-                            'userEnteredValue': {'numberValue': 1},
-                            'userEnteredFormat': {'backgroundColor': {'red': 1}}
-                        }, {
-                            'userEnteredValue': {'numberValue': 2},
-                            'userEnteredFormat': {'backgroundColor': {'blue': 1}}
-                        }, {
-                            'userEnteredValue': {'numberValue': 3},
-                            'userEnteredFormat': {'backgroundColor': {'green': 1}}
-                        }
-                    ]
-                }
-            ],
-            'fields': 'userEnteredValue,userEnteredFormat.backgroundColor'
-        }
-    })
-    batchUpdateRequest = {'requests': requests}
-    """
-    #service.spreadsheets().batchUpdate(spreadsheetId=sid, body=batchUpdateRequest).execute()
+    spreadsheetId = content_json.get("spreadsheetId", None)
 
-    sid = "1IX66-N5vNZsymKo2WsX1jsmMQOCKup445BoDrcXERNg"
+    #spreadsheetId = "1IX66-N5vNZsymKo2WsX1jsmMQOCKup445BoDrcXERNg"
     #get spreadsheet metadata
-    #content_json = service.spreadsheets().get(spreadsheetId=sid).execute()
+    sheet_metadata = service.spreadsheets().get(spreadsheetId=spreadsheetId).execute()
+    sheet = sheet_metadata.get('sheets', '')[0]
+    title = sheet.get("properties", {}).get("title", "Sheet1")
+    sheet_id = sheet.get("properties", {}).get("sheetId", 0)
 
     # the first element in the array is a placeholder for column names
     rows = [{"values": []}]
@@ -143,8 +110,8 @@ def export_new_gsheet(request, id):
     requests.append({
         'updateSheetProperties': {
             'properties': {
-                'sheetId': 506759459,
-                "title": "Sheet1",
+                'sheetId': sheet_id,
+                "title": title,
                 "gridProperties": {
                     'rowCount': len(rows),
                     'columnCount': len(headers),
@@ -157,7 +124,7 @@ def export_new_gsheet(request, id):
     # Now prepare the request to push data to gsheet
     requests.append({
         'updateCells': {
-            'start': {'sheetId': 506759459, 'rowIndex': 0, 'columnIndex': 0},
+            'start': {'sheetId': sheet_id, 'rowIndex': 0, 'columnIndex': 0},
             'rows': rows,
             'fields': 'userEnteredValue,userEnteredFormat.backgroundColor'
         }
@@ -167,9 +134,9 @@ def export_new_gsheet(request, id):
     batchUpdateRequest = {'requests': requests}
 
     # execute the batched requests
-    content_json = service.spreadsheets().batchUpdate(spreadsheetId=sid, body=batchUpdateRequest).execute()
+    content_json = service.spreadsheets().batchUpdate(spreadsheetId=spreadsheetId, body=batchUpdateRequest).execute()
 
-    return JsonResponse(content_json)
+    return JsonResponse(sheet_metadata)
 
 @login_required
 def oauth2callback(request):
