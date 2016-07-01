@@ -105,34 +105,70 @@ def export_new_gsheet(request, id):
     #service.spreadsheets().batchUpdate(spreadsheetId=sid, body=batchUpdateRequest).execute()
 
     sid = "1IX66-N5vNZsymKo2WsX1jsmMQOCKup445BoDrcXERNg"
-    # get spreadsheet metadata
+    #get spreadsheet metadata
     #content_json = service.spreadsheets().get(spreadsheetId=sid).execute()
+
+    # the first element in the array is a placeholder for column names
+    rows = [{"values": []}]
     headers = []
-    data = []
     silo_data = LabelValueStore.objects(silo_id=id)
-    for silo_row in silo_data:
-        row = []
-        for i, col in enumerate(silo_row):
+
+    for row in silo_data:
+        # Get all of the values of a single mongodb document into this array
+        values = []
+        for i, col in enumerate(row):
+            if col == "id" or col == "_id" or col == "silo_id" or col == "created_date" or col == "create_date" or col == "edit_date" or col == "editted_date":
+                continue
             if col not in headers:
-                if col == "id" or col == "_id" or col == "silo_id" or col == "created_date" or col == "create_date" or col == "edit_date" or col == "editted_date":
-                    continue
                 headers.append(col)
-            row.append(silo_row[col])
-        if len(data) == 0: data.append(headers)
-        data.append(row)
 
-    requests = {
-        "valueInputOption": "USER_ENTERED",
-        "data": [
-            {
-                "range": "A1:AB%s" % len(data),
-                "majorDimension": "ROWS",
-                "values": data
-            }
-        ]
-    }
+            values.append({"userEnteredValue": {"stringValue": row[col]}})
+        rows.append({"values": values})
 
-    content_json = service.spreadsheets().values().batchUpdate(spreadsheetId=sid, body=requests).execute()
+    # prepare column names as a header row in spreadsheet
+    values = []
+    for header in headers:
+        values.append({
+                      "userEnteredValue": {"stringValue": header},
+                      'userEnteredFormat': {'backgroundColor': {'red':0.5,'green':0.5, 'blue': 0.5}}
+                      })
+    # Now update the rows array place holder with real column names
+    rows[0]["values"] = values
+
+    #batch all of remote api calls into the requests array
+    requests = []
+
+    # prepare the request to resize the sheet to make sure it fits the data;
+    # otherwise, errors out for datasets with more than 26 column or 1000 rows.
+    requests.append({
+        'updateSheetProperties': {
+            'properties': {
+                'sheetId': 506759459,
+                "title": "Sheet1",
+                "gridProperties": {
+                    'rowCount': len(rows),
+                    'columnCount': len(headers),
+                }
+            },
+            "fields": "title,gridProperties(rowCount,columnCount)"
+        }
+    })
+
+    # Now prepare the request to push data to gsheet
+    requests.append({
+        'updateCells': {
+            'start': {'sheetId': 506759459, 'rowIndex': 0, 'columnIndex': 0},
+            'rows': rows,
+            'fields': 'userEnteredValue,userEnteredFormat.backgroundColor'
+        }
+    })
+
+    # encapsulate the requests list into a requests object
+    batchUpdateRequest = {'requests': requests}
+
+    # execute the batched requests
+    content_json = service.spreadsheets().batchUpdate(spreadsheetId=sid, body=batchUpdateRequest).execute()
+
     return JsonResponse(content_json)
 
 @login_required
