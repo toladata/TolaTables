@@ -28,6 +28,8 @@ from oauth2client.contrib import xsrfutil
 from .models import GoogleCredentialsModel
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag
 from tola.util import siloToDict, combineColumns
+logger = logging.getLogger("silo")
+
 
 CLIENT_SECRETS = os.path.join(os.path.dirname(__file__), 'client_secrets.json')
 SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
@@ -103,8 +105,35 @@ def export_new_gsheet(request, id):
     #service.spreadsheets().batchUpdate(spreadsheetId=sid, body=batchUpdateRequest).execute()
 
     sid = "1IX66-N5vNZsymKo2WsX1jsmMQOCKup445BoDrcXERNg"
-    content_json = service.spreadsheets().get(spreadsheetId=sid).execute()
-    return JsonResponse({"spreadsheetId": sid, "content": content_json})
+    # get spreadsheet metadata
+    #content_json = service.spreadsheets().get(spreadsheetId=sid).execute()
+    headers = []
+    data = []
+    silo_data = LabelValueStore.objects(silo_id=id)
+    for silo_row in silo_data:
+        row = []
+        for i, col in enumerate(silo_row):
+            if col not in headers:
+                if col == "id" or col == "_id" or col == "silo_id" or col == "created_date" or col == "create_date" or col == "edit_date" or col == "editted_date":
+                    continue
+                headers.append(col)
+            row.append(silo_row[col])
+        if len(data) == 0: data.append(headers)
+        data.append(row)
+
+    requests = {
+        "valueInputOption": "USER_ENTERED",
+        "data": [
+            {
+                "range": "A1:AB%s" % len(data),
+                "majorDimension": "ROWS",
+                "values": data
+            }
+        ]
+    }
+
+    content_json = service.spreadsheets().values().batchUpdate(spreadsheetId=sid, body=requests).execute()
+    return JsonResponse(content_json)
 
 @login_required
 def oauth2callback(request):
