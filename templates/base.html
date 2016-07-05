@@ -274,7 +274,7 @@
                     if (actionType == "import") {
                         $(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + id + "&name=" + doc['name']);
                     } else {
-                        $(location).attr('href', '/export_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + id);
+                        $(location).attr('href', '/export_to_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + id);
                     }
                 }
             }

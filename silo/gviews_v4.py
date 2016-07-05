@@ -41,7 +41,7 @@ FLOW = flow_from_clientsecrets(
     #redirect_uri='http://localhost:8000/oauth2callback/')
 
 
-def export_new_gsheet(request, id):
+def export_to_gsheet(request, id):
     storage = Storage(GoogleCredentialsModel, 'id', request.user, 'credential')
     credential_obj = storage.get()
     if credential_obj is None or credential_obj.invalid == True:
@@ -57,20 +57,44 @@ def export_new_gsheet(request, id):
     service = discovery.build('sheets', 'v4', http=http,
                               discoveryServiceUrl=discoveryUrl)
 
-    post_body =  { "properties": {"title": "xyztitle"} }
-    body = json.dumps(post_body)
+    try:
+        silo = Silo.objects.get(pk=id)
+    except Exception as e:
+        logger.erro("Silo with id=%s does not exist" % id)
+        return HttpResponseRedirect(reverse('listSilos'))
 
-    res, content = http.request(uri=BASE_URL,
-                                method="POST",
-                                body=body,
-                                headers={'Content-Type': 'application/json; charset=UTF-8'},
-                                )
-    content_json = json.loads(content)
-    spreadsheetId = content_json.get("spreadsheetId", None)
+    # Get the spreadsheet_id from the request object
+    spreadsheet_id = request.GET.get("resource_id", None)
 
-    #spreadsheetId = "1IX66-N5vNZsymKo2WsX1jsmMQOCKup445BoDrcXERNg"
+    # if no spreadhsset_id is provided, then create a new spreadsheet
+    if spreadsheet_id is None:
+        post_body =  { "properties": {"title": silo.name} }
+        body = json.dumps(post_body)
+        res, content = http.request(uri=BASE_URL,
+                                    method="POST",
+                                    body=body,
+                                    headers={'Content-Type': 'application/json; charset=UTF-8'},
+                                    )
+        content_json = json.loads(content)
+
+        # Now store the id of the newly created spreadsheet
+        spreadsheet_id = content_json.get("spreadsheetId", None)
+
+    # If a 'read' object does not exist for this export action, then create it
+    read_type = ReadType.objects.get(read_type="Google Spreadsheet")
+    defaults = {"type": read_type,
+                "read_name":"Google Spreadsheet Export",
+                "description": "Google Spreadsheet Export",
+                "read_url": "https://docs.google.com/a/mercycorps.org/spreadsheets/d/%s" % spreadsheet_id,
+                "owner": request.user}
+    gsheet_read, created = Read.objects.get_or_create(silos__id=id,
+                                                      silos__owner=request.user,
+                                                      resource_id=spreadsheet_id,
+                                                      defaults=defaults)
+    silo.reads.add(gsheet_read)
+
     #get spreadsheet metadata
-    sheet_metadata = service.spreadsheets().get(spreadsheetId=spreadsheetId).execute()
+    sheet_metadata = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
     sheet = sheet_metadata.get('sheets', '')[0]
     title = sheet.get("properties", {}).get("title", "Sheet1")
     sheet_id = sheet.get("properties", {}).get("sheetId", 0)
@@ -134,7 +158,7 @@ def export_new_gsheet(request, id):
     batchUpdateRequest = {'requests': requests}
 
     # execute the batched requests
-    content_json = service.spreadsheets().batchUpdate(spreadsheetId=spreadsheetId, body=batchUpdateRequest).execute()
+    content_json = service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=batchUpdateRequest).execute()
 
     return JsonResponse(sheet_metadata)
 
