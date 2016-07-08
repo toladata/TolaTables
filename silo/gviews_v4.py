@@ -35,6 +35,7 @@ logger = logging.getLogger("silo")
 CLIENT_SECRETS = os.path.join(os.path.dirname(__file__), 'client_secrets.json')
 SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
 BASE_URL = "https://sheets.googleapis.com/v4/spreadsheets/"
+discoveryUrl = ('https://sheets.googleapis.com/$discovery/rest?version=v4')
 FLOW = flow_from_clientsecrets(
     CLIENT_SECRETS,
     scope=SCOPE,
@@ -82,7 +83,6 @@ def import_from_gsheet(request, id):
         silo.reads.add(gsheet_read)
 
     http = credential_obj.authorize(httplib2.Http())
-    discoveryUrl = ('https://sheets.googleapis.com/$discovery/rest?version=v4')
     service = discovery.build('sheets', 'v4', http=http,
                               discoveryServiceUrl=discoveryUrl)
 
@@ -140,7 +140,6 @@ def export_to_gsheet(request, id):
     credential = json.loads(credential_obj.to_json())
 
     http = credential_obj.authorize(httplib2.Http())
-    discoveryUrl = ('https://sheets.googleapis.com/$discovery/rest?version=v4')
     service = discovery.build('sheets', 'v4', http=http,
                               discoveryServiceUrl=discoveryUrl)
 
