@@ -40,6 +40,81 @@ FLOW = flow_from_clientsecrets(
     redirect_uri=settings.GOOGLE_REDIRECT_URL)
     #redirect_uri='http://localhost:8000/oauth2callback/')
 
+def import_from_gsheet(request, id):
+    gsheet_endpoint = None
+    silo = None
+    read_url = request.GET.get('link', None)
+    spreadsheet_id = request.GET.get('resource_id', None)
+    silo_name = request.GET.get("name", "Google Sheet Import")
+    if read_url is None or spreadsheet_id is None:
+        messages.error(request, "A Google Spreadsheet is not selected to import data from.")
+        return HttpResponseRedirect(reverse('index'))
+
+    storage = Storage(GoogleCredentialsModel, 'id', request.user, 'credential')
+    credential_obj = storage.get()
+    if credential_obj is None or credential_obj.invalid == True:
+        FLOW.params['state'] = xsrfutil.generate_token(settings.SECRET_KEY, request.user)
+        authorize_url = FLOW.step1_get_authorize_url()
+        #FLOW.params.update({'redirect_uri_after_step2': "/export_new_gsheet/%s/" % id})
+        request.session['redirect_uri_after_step2'] = "/import_from_gsheet/%s/?link=%s&resource_id=%s" % (id, read_url, spreadsheet_id)
+        return HttpResponseRedirect(authorize_url)
+    credential = json.loads(credential_obj.to_json())
+
+    defaults = {"name": silo_name, "description": "Google Sheet Import", "public": False, "owner": request.user}
+    silo, created = Silo.objects.get_or_create(pk=None if id=='0' else id, defaults=defaults)
+    if not created and silo.unique_fields.exists() == False:
+        messages.error(request, "A unique column must be specfied when importing to an existing table. <a href='%s'>Specify Unique Column</a>" % reverse_lazy('siloDetail', kwargs={"id": silo.id}))
+        return HttpResponseRedirect(request.META['HTTP_REFERER'])
+
+    # If a 'read' object does not exist for this export action, then create it
+    read_type = ReadType.objects.get(read_type="GSheet Import")
+    defaults = {"type": read_type,
+                "read_name":"Google Spreadsheet Import",
+                "description": "Google Spreadsheet Import",
+                "read_url": "https://docs.google.com/a/mercycorps.org/spreadsheets/d/%s" % spreadsheet_id,
+                "owner": request.user}
+    gsheet_read, created = Read.objects.get_or_create(silos__id=id,
+                                                      silos__owner=request.user,
+                                                      resource_id=spreadsheet_id,
+                                                      defaults=defaults)
+    if created:
+        silo.reads.add(gsheet_read)
+
+    http = credential_obj.authorize(httplib2.Http())
+    discoveryUrl = ('https://sheets.googleapis.com/$discovery/rest?version=v4')
+    service = discovery.build('sheets', 'v4', http=http,
+                              discoveryServiceUrl=discoveryUrl)
+
+    headers = []
+    data = None
+    filter_criteria = {'silo_id': silo.id}
+    try:
+        result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range="Sheet1").execute()
+        data = result.get("values", [])
+        for r, row in enumerate(data):
+            if r == 0: headers = row; continue;
+
+            # build filter_criteria if unique field(s) have been setup for this silo
+            for unique_field in silo.unique_fields.all():
+                filter_criteria.update({unique_field.name: row[headers.index(unique_field.name)]})
+
+            # if filter_criteria dict is built based on silo's unique cols then retrieve that doc
+            if filter_criteria:
+                lvs = LabelValueStore.objects.get(**filter_criteria)
+            else:
+                lvs = LabelValueStore()
+            for c, col in enumerate(row):
+                key = headers[c]
+                if key == "" or key is None or key == "silo_id" or key == "create_date" or key == "edit_date": continue
+                if key == "id" or key == "_id": key = "user_assigned_id"
+                setattr(lvs, key, row[c])
+            lvs.silo_id = silo.id
+            lvs.create_date = timezone.now()
+            lvs.save()
+    except Exception as e:
+        messages.error(request, "Something went wrong: %s" % e.message)
+
+    return HttpResponse(data)
 
 def export_to_gsheet(request, id):
     storage = Storage(GoogleCredentialsModel, 'id', request.user, 'credential')
@@ -91,7 +166,8 @@ def export_to_gsheet(request, id):
                                                       silos__owner=request.user,
                                                       resource_id=spreadsheet_id,
                                                       defaults=defaults)
-    silo.reads.add(gsheet_read)
+    if created:
+        silo.reads.add(gsheet_read)
 
     #get spreadsheet metadata
     sheet_metadata = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()

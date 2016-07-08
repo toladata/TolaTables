@@ -113,7 +113,7 @@ urlpatterns =[
                         url(r'^export_to_gsheet/(?P<id>\d+)/$', gviews_v4.export_to_gsheet, name='export_new_gsheet'),
                         url(r'^export_to_gsheet/(?P<id>\d+)/$', gviews_v4.export_to_gsheet, name='export_existing_gsheet'),
                         url(r'^oauth2callback/$', gviews_v4.oauth2callback, name='oauth2callback'),
-                        url(r'^import_gsheet/(?P<id>\d+)/$', google_views.import_gsheet, name='import_gsheet'),
+                        url(r'^import_gsheet/(?P<id>\d+)/$', gviews_v4.import_from_gsheet, name='import_gsheet'),
 
                         #local login COmment out local login for now
                         #url(r'^login/$', 'django.contrib.auth.views.login', name='login'),
