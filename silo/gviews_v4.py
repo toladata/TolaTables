@@ -128,7 +128,8 @@ def import_from_gsheet(request, id):
         lvs.create_date = timezone.now()
         lvs.save()
 
-    return HttpResponseRedirect(request.META['HTTP_REFERER'])
+    #return HttpResponseRedirect(request.META['HTTP_REFERER'])
+    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': str(silo.id)},))
 
 def export_to_gsheet(request, id):
     storage = Storage(GoogleCredentialsModel, 'id', request.user, 'credential')
