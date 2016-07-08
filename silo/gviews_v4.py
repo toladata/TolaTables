@@ -48,7 +48,7 @@ def export_to_gsheet(request, id):
         FLOW.params['state'] = xsrfutil.generate_token(settings.SECRET_KEY, request.user)
         authorize_url = FLOW.step1_get_authorize_url()
         #FLOW.params.update({'redirect_uri_after_step2': "/export_new_gsheet/%s/" % id})
-        request.session['redirect_uri_after_step2'] = "/export_new_gsheet/%s/" % id
+        request.session['redirect_uri_after_step2'] = "/export_to_gsheet/%s/" % id
         return HttpResponseRedirect(authorize_url)
     credential = json.loads(credential_obj.to_json())
 
@@ -158,9 +158,14 @@ def export_to_gsheet(request, id):
     batchUpdateRequest = {'requests': requests}
 
     # execute the batched requests
-    content_json = service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=batchUpdateRequest).execute()
+    try:
+        service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=batchUpdateRequest).execute()
+        link = "Your exported data is available at <a href=" + gsheet_read.read_url + " target='_blank'>Google Spreadsheet</a>"
+        messages.success(request, link)
+    except Exception as e:
+        messages.error(request, "Something went wrong. %s" % e.message)
 
-    return JsonResponse(sheet_metadata)
+    return HttpResponseRedirect(reverse('listSilos'))
 
 @login_required
 def oauth2callback(request):
