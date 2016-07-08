@@ -104,18 +104,20 @@ def import_from_gsheet(request, id):
 
         if filter_criteria:
             filter_criteria.update({'silo_id': silo.id})
-        # if filter_criteria dict is built based on silo's unique cols then retrieve that doc
-        try:
-            lvs = LabelValueStore.objects.get(**filter_criteria)
-            lvs.edit_date = timezone.now()
-        except LabelValueStore.DoesNotExist as e:
+            # if filter_criteria dict is built based on silo's unique cols then retrieve that doc
+            try:
+                lvs = LabelValueStore.objects.get(**filter_criteria)
+                lvs.edit_date = timezone.now()
+            except LabelValueStore.DoesNotExist as e:
+                lvs = LabelValueStore()
+            except LabelValueStore.MultipleObjectsReturned as e:
+                msg = ""
+                for k,v in filter_criteria.iteritems():
+                    msg += "%s=%s, " % (k,v)
+                messages.warning(request, "Skipped updating/adding records where %s because there are already multiple records." % msg)
+                continue
+        else:
             lvs = LabelValueStore()
-        except LabelValueStore.MultipleObjectsReturned as e:
-            msg = ""
-            for k,v in filter_criteria.iteritems():
-                msg += "%s=%s, " % (k,v)
-            messages.warning(request, "Skipped updating/adding records where %s because there are already multiple records." % msg)
-            continue
 
         for c, col in enumerate(row):
             key = headers[c]
