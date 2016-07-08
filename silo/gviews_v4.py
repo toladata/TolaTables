@@ -5,6 +5,7 @@ import logging
 import json
 import datetime
 
+#from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.urlresolvers import reverse, reverse_lazy
 from django.http import HttpResponseRedirect, HttpResponseBadRequest, JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_protect
@@ -87,34 +88,45 @@ def import_from_gsheet(request, id):
 
     headers = []
     data = None
-    filter_criteria = {'silo_id': silo.id}
+    filter_criteria = {}
     try:
         result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range="Sheet1").execute()
         data = result.get("values", [])
-        for r, row in enumerate(data):
-            if r == 0: headers = row; continue;
-
-            # build filter_criteria if unique field(s) have been setup for this silo
-            for unique_field in silo.unique_fields.all():
-                filter_criteria.update({unique_field.name: row[headers.index(unique_field.name)]})
-
-            # if filter_criteria dict is built based on silo's unique cols then retrieve that doc
-            if filter_criteria:
-                lvs = LabelValueStore.objects.get(**filter_criteria)
-            else:
-                lvs = LabelValueStore()
-            for c, col in enumerate(row):
-                key = headers[c]
-                if key == "" or key is None or key == "silo_id" or key == "create_date" or key == "edit_date": continue
-                if key == "id" or key == "_id": key = "user_assigned_id"
-                setattr(lvs, key, row[c])
-            lvs.silo_id = silo.id
-            lvs.create_date = timezone.now()
-            lvs.save()
     except Exception as e:
         messages.error(request, "Something went wrong: %s" % e.message)
 
-    return HttpResponse(data)
+    for r, row in enumerate(data):
+        if r == 0: headers = row; continue;
+
+        # build filter_criteria if unique field(s) have been setup for this silo
+        for unique_field in silo.unique_fields.all():
+            filter_criteria.update({unique_field.name: row[headers.index(unique_field.name)]})
+
+        if filter_criteria:
+            filter_criteria.update({'silo_id': silo.id})
+        # if filter_criteria dict is built based on silo's unique cols then retrieve that doc
+        try:
+            lvs = LabelValueStore.objects.get(**filter_criteria)
+            lvs.edit_date = timezone.now()
+        except LabelValueStore.DoesNotExist as e:
+            lvs = LabelValueStore()
+        except LabelValueStore.MultipleObjectsReturned as e:
+            msg = ""
+            for k,v in filter_criteria.iteritems():
+                msg += "%s=%s, " % (k,v)
+            messages.warning(request, "Skipped updating/adding records where %s because there are already multiple records." % msg)
+            continue
+
+        for c, col in enumerate(row):
+            key = headers[c]
+            if key == "" or key is None or key == "silo_id" or key == "create_date" or key == "edit_date": continue
+            if key == "id" or key == "_id": key = "user_assigned_id"
+            setattr(lvs, key, row[c])
+        lvs.silo_id = silo.id
+        lvs.create_date = timezone.now()
+        lvs.save()
+
+    return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
 def export_to_gsheet(request, id):
     storage = Storage(GoogleCredentialsModel, 'id', request.user, 'credential')
