@@ -29,6 +29,7 @@ urlpatterns = patterns('',
                         url(r'^api/', include(router.urls)),
                         url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
                         url(r'^api/silodata/(?P<id>[0-9]+)/$', 'silo.api.silo_data_api', name='silo-detail'),
+                        url(r'^api/tolatablesdata/$', 'silo.api.tables_api_view', name='tolatablesdata'),
 
                         #index
                         url(r'^$', 'silo.views.index', name='index'),

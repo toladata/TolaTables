@@ -74,3 +74,27 @@ class ReadTypeViewSet(viewsets.ModelViewSet):
     """
     queryset = ReadType.objects.all()
     serializer_class = ReadTypeSerializer
+
+#####-------API Views to Feed Data to Tolawork API requests-----####
+'''
+    This view responds to the 'GET' request from TolaWork
+'''
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.response import Response
+
+@api_view(['GET'])
+@authentication_classes(())
+@permission_classes(())
+
+def tables_api_view(request):
+    """
+   Get TolaTables Tables owned by a user logged in Tolawork,
+    """
+    if request.method == 'GET':
+        user = request.GET.get('email')
+        user_id = User.objects.get(email=user).id
+
+        tables = Silo.objects.filter(owner=user_id).order_by('-create_date')
+        serializer = SiloSerializer(tables, many=True)
+        return Response(serializer.data)
+
