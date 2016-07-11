@@ -157,7 +157,7 @@ def import_from_gsheet(request, id):
     spreadsheet_id = request.GET.get('resource_id', None)
     silo_name = request.GET.get("name", "Google Sheet Import")
 
-    msgs = import_from_google_spreadsheet(request.user, id, silo_name, read_url, spreadsheet_id)
+    msgs = import_from_google_spreadsheet(request.user, id, silo_name, spreadsheet_id)
     #return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
     for msg in msgs:
