@@ -27,7 +27,8 @@ from django_tables2 import RequestConfig
 
 from oauth2client.contrib.django_orm import Storage
 from .models import GoogleCredentialsModel
-from google_views import *
+#from google_views import *
+from gviews_v4 import import_from_google_spreadsheet
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites
 
 from .tables import define_table
@@ -714,9 +715,9 @@ def updateMergeSilo(request, pk):
                 messages.error(request, "There was a Google credential problem with user: %s for gsheet %s" % (request.user, read.pk))
                 continue
 
-            suc = import_from_google_spreadsheet(credential_json, silo, read.resource_id)
-            if suc == False:
-                messages.error(request, "Failed to import data from gsheet %s " % read.pk)
+            msgs = import_from_google_spreadsheet(request.user, silo.id, None, read.resource_id)
+            for msg in msgs:
+                messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
 
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': pk},))
 

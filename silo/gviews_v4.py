@@ -42,41 +42,54 @@ FLOW = flow_from_clientsecrets(
     redirect_uri=settings.GOOGLE_REDIRECT_URL)
     #redirect_uri='http://localhost:8000/oauth2callback/')
 
-def import_from_gsheet(request, id):
-    gsheet_endpoint = None
-    silo = None
-    read_url = request.GET.get('link', None)
-    spreadsheet_id = request.GET.get('resource_id', None)
-    silo_name = request.GET.get("name", "Google Sheet Import")
-    if read_url is None or spreadsheet_id is None:
-        messages.error(request, "A Google Spreadsheet is not selected to import data from.")
-        return HttpResponseRedirect(reverse('index'))
+def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
+    msgs = []
+    read_url = "https://docs.google.com/a/mercycorps.org/spreadsheets/d/%s" % spreadsheet_id,
+    if spreadsheet_id is None:
+        #messages.error(request, "A Google Spreadsheet is not selected to import data from.")
+        #return HttpResponseRedirect(reverse('index'))
+        msgs.append({"level": messages.ERROR,
+                    "msg": "A Google Spreadsheet is not selected to import data from.",
+                    "redirect" : reverse('index') })
 
-    storage = Storage(GoogleCredentialsModel, 'id', request.user, 'credential')
+    storage = Storage(GoogleCredentialsModel, 'id', user, 'credential')
     credential_obj = storage.get()
     if credential_obj is None or credential_obj.invalid == True:
-        FLOW.params['state'] = xsrfutil.generate_token(settings.SECRET_KEY, request.user)
+        FLOW.params['state'] = xsrfutil.generate_token(settings.SECRET_KEY, user)
         authorize_url = FLOW.step1_get_authorize_url()
         #FLOW.params.update({'redirect_uri_after_step2': "/export_new_gsheet/%s/" % id})
-        request.session['redirect_uri_after_step2'] = "/import_from_gsheet/%s/?link=%s&resource_id=%s" % (id, read_url, spreadsheet_id)
-        return HttpResponseRedirect(authorize_url)
+        #request.session['redirect_uri_after_step2'] = "/import_from_gsheet/%s/?link=%s&resource_id=%s" % (id, read_url, spreadsheet_id)
+        #return HttpResponseRedirect(authorize_url)
+        msgs.append({"level": messages.ERROR,
+                    "msg": "Requires Google Authorization Setup",
+                    "redirect": authorize_url,
+                    "redirect_uri_after_step2": "/import_from_gsheet/%s/?link=%s&resource_id=%s" % (silo_id, read_url, spreadsheet_id)})
+        return msgs
+
     credential = json.loads(credential_obj.to_json())
 
-    defaults = {"name": silo_name, "description": "Google Sheet Import", "public": False, "owner": request.user}
-    silo, created = Silo.objects.get_or_create(pk=None if id=='0' else id, defaults=defaults)
+    defaults = {"name": silo_name, "description": "Google Sheet Import", "public": False, "owner": user}
+    silo, created = Silo.objects.get_or_create(pk=None if silo_id=='0' else silo_id, defaults=defaults)
     if not created and silo.unique_fields.exists() == False:
-        messages.error(request, "A unique column must be specfied when importing to an existing table. <a href='%s'>Specify Unique Column</a>" % reverse_lazy('siloDetail', kwargs={"id": silo.id}))
-        return HttpResponseRedirect(request.META['HTTP_REFERER'])
+        #messages.error(request, "A unique column must be specfied when importing to an existing table. <a href='%s'>Specify Unique Column</a>" % reverse_lazy('siloDetail', kwargs={"id": silo.id}))
+        #return HttpResponseRedirect(request.META['HTTP_REFERER'])
+        msgs.append({"level": messages.ERROR,
+                    "msg": "A unique column must be specfied when importing to an existing table. <a href='%s'>Specify Unique Column</a>" % reverse_lazy('siloDetail', kwargs={"id": silo.id}),
+                    "redirect": None})
+        return msgs
+
+    if created:
+        msgs.append({"silo_id": silo.id})
 
     # If a 'read' object does not exist for this export action, then create it
     read_type = ReadType.objects.get(read_type="GSheet Import")
     defaults = {"type": read_type,
                 "read_name":"Google Spreadsheet Import",
                 "description": "Google Spreadsheet Import",
-                "read_url": "https://docs.google.com/a/mercycorps.org/spreadsheets/d/%s" % spreadsheet_id,
-                "owner": request.user}
-    gsheet_read, created = Read.objects.get_or_create(silos__id=id,
-                                                      silos__owner=request.user,
+                "read_url": read_url,
+                "owner": user}
+    gsheet_read, created = Read.objects.get_or_create(silos__id=silo_id,
+                                                      silos__owner=user,
                                                       resource_id=spreadsheet_id,
                                                       defaults=defaults)
     if created:
@@ -93,7 +106,11 @@ def import_from_gsheet(request, id):
         result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range="Sheet1").execute()
         data = result.get("values", [])
     except Exception as e:
-        messages.error(request, "Something went wrong: %s" % e.message)
+        #messages.error(request, "Something went wrong: %s" % e.message)
+        msgs.append({"level": messages.ERROR,
+                    "msg": "Something went wrong: %s" % e.message,
+                    "redirect": None})
+        return msgs
 
     for r, row in enumerate(data):
         if r == 0: headers = row; continue;
@@ -114,7 +131,9 @@ def import_from_gsheet(request, id):
                 msg = ""
                 for k,v in filter_criteria.iteritems():
                     msg += "%s=%s, " % (k,v)
-                messages.warning(request, "Skipped updating/adding records where %s because there are already multiple records." % msg)
+                #messages.warning(request, "Skipped updating/adding records where %s because there are already multiple records." % msg)
+                msgs.append({"level": messages.WARNING,
+                            "msg": "Skipped updating/adding records where %s because there are already multiple records." % msg})
                 continue
         else:
             lvs = LabelValueStore()
@@ -128,8 +147,26 @@ def import_from_gsheet(request, id):
         lvs.create_date = timezone.now()
         lvs.save()
 
+    msgs.append({"level": messages.SUCCESS, "msg": "Operation successful"})
+    return msgs
+
+def import_from_gsheet(request, id):
+    gsheet_endpoint = None
+    silo = None
+    read_url = request.GET.get('link', None)
+    spreadsheet_id = request.GET.get('resource_id', None)
+    silo_name = request.GET.get("name", "Google Sheet Import")
+
+    msgs = import_from_google_spreadsheet(request.user, id, silo_name, read_url, spreadsheet_id)
     #return HttpResponseRedirect(request.META['HTTP_REFERER'])
-    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': str(silo.id)},))
+
+    for msg in msgs:
+        if "silo_id" in msg.keys(): id = msg.get("silo_id")
+        if "redirect_uri_after_step2" in msg.keys():
+            request.session['redirect_uri_after_step2'] = msg.ge("redirect_uri_after_step2")
+        messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
+
+    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': str(id)},))
 
 def export_to_gsheet(request, id):
     storage = Storage(GoogleCredentialsModel, 'id', request.user, 'credential')
