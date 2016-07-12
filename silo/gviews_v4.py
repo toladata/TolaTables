@@ -46,8 +46,6 @@ def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
     msgs = []
     read_url = "https://docs.google.com/a/mercycorps.org/spreadsheets/d/%s" % spreadsheet_id,
     if spreadsheet_id is None:
-        #messages.error(request, "A Google Spreadsheet is not selected to import data from.")
-        #return HttpResponseRedirect(reverse('index'))
         msgs.append({"level": messages.ERROR,
                     "msg": "A Google Spreadsheet is not selected to import data from.",
                     "redirect" : reverse('index') })
@@ -57,9 +55,6 @@ def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
     if credential_obj is None or credential_obj.invalid == True:
         FLOW.params['state'] = xsrfutil.generate_token(settings.SECRET_KEY, user)
         authorize_url = FLOW.step1_get_authorize_url()
-        #FLOW.params.update({'redirect_uri_after_step2': "/export_new_gsheet/%s/" % id})
-        #request.session['redirect_uri_after_step2'] = "/import_from_gsheet/%s/?link=%s&resource_id=%s" % (id, read_url, spreadsheet_id)
-        #return HttpResponseRedirect(authorize_url)
         msgs.append({"level": messages.ERROR,
                     "msg": "Requires Google Authorization Setup",
                     "redirect": authorize_url,
@@ -71,8 +66,6 @@ def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
     defaults = {"name": silo_name, "description": "Google Sheet Import", "public": False, "owner": user}
     silo, created = Silo.objects.get_or_create(pk=None if silo_id=='0' else silo_id, defaults=defaults)
     if not created and silo.unique_fields.exists() == False:
-        #messages.error(request, "A unique column must be specfied when importing to an existing table. <a href='%s'>Specify Unique Column</a>" % reverse_lazy('siloDetail', kwargs={"id": silo.id}))
-        #return HttpResponseRedirect(request.META['HTTP_REFERER'])
         msgs.append({"level": messages.ERROR,
                     "msg": "A unique column must be specfied when importing to an existing table. <a href='%s'>Specify Unique Column</a>" % reverse_lazy('siloDetail', kwargs={"id": silo.id}),
                     "redirect": None})
@@ -81,10 +74,13 @@ def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
     if created:
         msgs.append({"silo_id": silo.id})
 
+    # fetch the google spreadsheet metadata
+    spreadsheeet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+
     # If a 'read' object does not exist for this export action, then create it
     read_type = ReadType.objects.get(read_type="GSheet Import")
     defaults = {"type": read_type,
-                "read_name":"Google Spreadsheet Import",
+                "read_name": spreadsheet.get("properties", {}).get("title", "Google Spreadsheet Import"),
                 "description": "Google Spreadsheet Import",
                 "read_url": read_url,
                 "owner": user}
@@ -106,7 +102,6 @@ def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
         result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range="Sheet1").execute()
         data = result.get("values", [])
     except Exception as e:
-        #messages.error(request, "Something went wrong: %s" % e.message)
         msgs.append({"level": messages.ERROR,
                     "msg": "Something went wrong: %s" % e.message,
                     "redirect": None})
