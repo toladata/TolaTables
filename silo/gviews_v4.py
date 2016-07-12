@@ -44,7 +44,7 @@ FLOW = flow_from_clientsecrets(
 
 def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
     msgs = []
-    read_url = "https://docs.google.com/a/mercycorps.org/spreadsheets/d/%s" % spreadsheet_id,
+    read_url = "https://docs.google.com/a/mercycorps.org/spreadsheets/d/%s/" % str(spreadsheet_id)
     if spreadsheet_id is None:
         msgs.append({"level": messages.ERROR,
                     "msg": "A Google Spreadsheet is not selected to import data from.",
@@ -86,7 +86,7 @@ def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
     defaults = {"type": read_type,
                 "read_name": spreadsheet.get("properties", {}).get("title", "Google Spreadsheet Import"),
                 "description": "Google Spreadsheet Import",
-                "read_url": read_url,
+                "read_url": str(read_url),
                 "owner": user}
     gsheet_read, created = Read.objects.get_or_create(silos__id=silo_id,
                                                       silos__owner=user,

@@ -162,7 +162,7 @@ class Read(models.Model):
     autopull_frequency = models.CharField(max_length=25, choices=FREQUENCY_CHOICES, null=True, blank=True)
     autopush_frequency = models.CharField(max_length=25, choices=FREQUENCY_CHOICES, null=True, blank=True)
     description = models.TextField()
-    read_url = models.CharField(max_length=100, blank=True, default='', verbose_name='source url') #RemoteEndPoint = link
+    read_url = models.CharField(max_length=250, blank=True, default='', verbose_name='source url') #RemoteEndPoint = link
     resource_id = models.CharField(max_length=200, null=True, blank=True) #RemoteEndPoint
     username = models.CharField(max_length=20, null=True, blank=True) #RemoteEndPoint
     token = models.CharField(max_length=254, null=True, blank=True) #RemoteEndPoint
