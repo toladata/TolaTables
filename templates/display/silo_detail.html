@@ -30,14 +30,14 @@
                             <td>{{ read.type.read_type}}</td>
                             <td><a href="{{ read.read_url }}" target="_blank">link to source</a></td>
                             <td>
-                                {% if read.type.read_type == "CSV" %}
+                                {% if read.type.read_type == "CSV" or read.type.read_type == "Google Spreadsheet" %}
                                     N/A
                                 {% else %}
                                     {% if read.autopull_frequency %} {{ read.autopull_frequency }} {% else %} <a href="/show_read/{{read.id}}">Setup</a> {% endif %}
                                 {% endif %}
                             </td>
                             <td>
-                                {% if read.type.read_type == "CSV" %}
+                                {% if read.type.read_type == "CSV" or read.type.read_type == "GSheet Import" %}
                                     N/A
                                 {% else %}
                                     {% if read.autopush_frequency %} {{ read.autopush_frequency }} {% else %} <a href="/show_read/{{read.id}}">Setup</a> * {% endif %}
