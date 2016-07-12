@@ -703,7 +703,8 @@ def updateMergeSilo(request, pk):
         # Now if the same table has sources from Google Sheet import those datasets as well.
         # reset num_rows
         num_rows = 0
-        read_types = ReadType.objects.filter(Q(read_type="GSheet Import") | Q(read_type="Google Spreadsheet"))
+        #read_types = ReadType.objects.filter(Q(read_type="GSheet Import") | Q(read_type="Google Spreadsheet"))
+        read_types = ReadType.objects.filter(read_type="GSheet Import")
         reads = silo.reads.filter(reduce(or_, [Q(type=read.id) for read in read_types]))
         for read in reads:
             # get gsheet authorized client and the gsheet id to fetch its data into the silo

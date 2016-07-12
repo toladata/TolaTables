@@ -112,6 +112,7 @@ def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
                     "redirect": None})
         return msgs
 
+    skipped_rows = ""
     for r, row in enumerate(data):
         if r == 0: headers = row; continue;
 
@@ -121,19 +122,17 @@ def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
 
         if filter_criteria:
             filter_criteria.update({'silo_id': silo.id})
-            # if filter_criteria dict is built based on silo's unique cols then retrieve that doc
+            # if a row is found, then fetch and update it
+            # if no row is found then create a new one
+            # if multiple rows are found then skip b/c not sure which one to update
             try:
                 lvs = LabelValueStore.objects.get(**filter_criteria)
                 lvs.edit_date = timezone.now()
             except LabelValueStore.DoesNotExist as e:
                 lvs = LabelValueStore()
             except LabelValueStore.MultipleObjectsReturned as e:
-                msg = ""
                 for k,v in filter_criteria.iteritems():
-                    msg += "%s=%s, " % (k,v)
-                #messages.warning(request, "Skipped updating/adding records where %s because there are already multiple records." % msg)
-                msgs.append({"level": messages.WARNING,
-                            "msg": "Skipped updating/adding records where %s because there are already multiple records." % msg})
+                    skipped_rows += "%s=%s, " % (k,v)
                 continue
         else:
             lvs = LabelValueStore()
@@ -146,6 +145,9 @@ def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
         lvs.silo_id = silo.id
         lvs.create_date = timezone.now()
         lvs.save()
+    if skipped_rows:
+        msgs.append({"level": messages.WARNING,
+                    "msg": "Skipped updating/adding records where %s because there are already multiple records." % skipped_rows})
 
     msgs.append({"level": messages.SUCCESS, "msg": "Operation successful"})
     return msgs
