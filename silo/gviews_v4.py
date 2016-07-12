@@ -74,8 +74,12 @@ def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
     if created:
         msgs.append({"silo_id": silo.id})
 
+    http = credential_obj.authorize(httplib2.Http())
+    service = discovery.build('sheets', 'v4', http=http,
+                              discoveryServiceUrl=discoveryUrl)
+
     # fetch the google spreadsheet metadata
-    spreadsheeet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
 
     # If a 'read' object does not exist for this export action, then create it
     read_type = ReadType.objects.get(read_type="GSheet Import")
@@ -91,13 +95,11 @@ def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
     if created:
         silo.reads.add(gsheet_read)
 
-    http = credential_obj.authorize(httplib2.Http())
-    service = discovery.build('sheets', 'v4', http=http,
-                              discoveryServiceUrl=discoveryUrl)
 
     headers = []
     data = None
     filter_criteria = {}
+    combine_cols = False
     try:
         result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range="Sheet1").execute()
         data = result.get("values", [])
@@ -113,8 +115,11 @@ def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
 
         # build filter_criteria if unique field(s) have been setup for this silo
         for unique_field in silo.unique_fields.all():
-            filter_criteria.update({unique_field.name: row[headers.index(unique_field.name)]})
-
+            try:
+                filter_criteria.update({unique_field.name: row[headers.index(unique_field.name)]})
+            except ValueError:
+                combine_cols = True
+                pass
         if filter_criteria:
             filter_criteria.update({'silo_id': silo.id})
             # if a row is found, then fetch and update it
@@ -140,6 +145,11 @@ def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
         lvs.silo_id = silo.id
         lvs.create_date = timezone.now()
         lvs.save()
+
+    # Combine all of the columns
+    if combine_cols:
+        combineColumns(silo.pk)
+
     if skipped_rows:
         msgs.append({"level": messages.WARNING,
                     "msg": "Skipped updating/adding records where %s because there are already multiple records." % skipped_rows})
