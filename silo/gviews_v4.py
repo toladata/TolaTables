@@ -19,6 +19,7 @@ from django.contrib.auth.models import User
 from apiclient import discovery
 
 import oauth2client
+from oauth2client.client import OAuth2Credentials
 from oauth2client import client
 from oauth2client import tools
 
@@ -42,9 +43,50 @@ FLOW = flow_from_clientsecrets(
     redirect_uri=settings.GOOGLE_REDIRECT_URL)
     #redirect_uri='http://localhost:8000/oauth2callback/')
 
+def get_spreadsheet_url(spreadsheet_id):
+    return "https://docs.google.com/a/mercycorps.org/spreadsheets/d/%s/" % str(spreadsheet_id)
+
+def get_credential_object(user):
+    storage = Storage(GoogleCredentialsModel, 'id', user, 'credential')
+    credential_obj = storage.get()
+    if credential_obj is None or credential_obj.invalid == True:
+        FLOW.params['state'] = xsrfutil.generate_token(settings.SECRET_KEY, user)
+        authorize_url = FLOW.step1_get_authorize_url()
+        return {"level": messages.ERROR,
+                    "msg": "Requires Google Authorization Setup",
+                    "redirect": authorize_url,
+                    "redirect_uri_after_step2": "/import_from_gsheet/%s/?link=%s&resource_id=%s" % (silo_id, read_url, spreadsheet_id)}
+    # print(json.loads(credential_obj.to_json()))
+    return credential_obj
+
+
+def get_authorized_service(credential_obj):
+    http = credential_obj.authorize(httplib2.Http())
+    service = discovery.build('sheets', 'v4', http=http, discoveryServiceUrl=discoveryUrl)
+    return service
+
+
+def get_or_create_read(rtype, name, description, spreadsheet_id, user, silo):
+    # If a 'read' object does not exist for this export action, then create it
+    read_type = ReadType.objects.get(read_type=rtype)
+    defaults = {"type": read_type,
+                "read_name": name,
+                "description": description,
+                "read_url": get_spreadsheet_url(spreadsheet_id),
+                "owner": user}
+    gsheet_read, created = Read.objects.get_or_create(silos__id=silo.pk,
+                                                      silos__owner=user,
+                                                      resource_id=spreadsheet_id,
+                                                      defaults=defaults)
+    if created:
+        silo.reads.add(gsheet_read)
+    return gsheet_read
+
+
 def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
     msgs = []
-    read_url = "https://docs.google.com/a/mercycorps.org/spreadsheets/d/%s/" % str(spreadsheet_id)
+    read_url = get_spreadsheet_url(spreadsheet_id)
+
     if spreadsheet_id is None:
         msgs.append({"level": messages.ERROR,
                     "msg": "A Google Spreadsheet is not selected to import data from.",
@@ -170,77 +212,64 @@ def import_from_gsheet(request, id):
     for msg in msgs:
         if "silo_id" in msg.keys(): id = msg.get("silo_id")
         if "redirect_uri_after_step2" in msg.keys():
-            request.session['redirect_uri_after_step2'] = msg.ge("redirect_uri_after_step2")
+            request.session['redirect_uri_after_step2'] = msg.get("redirect_uri_after_step2")
+            return HttpResponseRedirect(msg.get("redirect"))
         messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
 
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': str(id)},))
 
-def export_to_gsheet(request, id):
-    storage = Storage(GoogleCredentialsModel, 'id', request.user, 'credential')
-    credential_obj = storage.get()
-    if credential_obj is None or credential_obj.invalid == True:
-        FLOW.params['state'] = xsrfutil.generate_token(settings.SECRET_KEY, request.user)
-        authorize_url = FLOW.step1_get_authorize_url()
-        #FLOW.params.update({'redirect_uri_after_step2': "/export_new_gsheet/%s/" % id})
-        request.session['redirect_uri_after_step2'] = "/export_to_gsheet/%s/" % id
-        return HttpResponseRedirect(authorize_url)
-    credential = json.loads(credential_obj.to_json())
 
-    http = credential_obj.authorize(httplib2.Http())
-    service = discovery.build('sheets', 'v4', http=http,
-                              discoveryServiceUrl=discoveryUrl)
+
+
+
+def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
+    msgs = []
+    credential_obj = get_credential_object(user)
+    if not isinstance(credential_obj, OAuth2Credentials):
+        msgs.append(credential_obj)
+        return msgs
+
+    service = get_authorized_service(credential_obj)
 
     try:
-        silo = Silo.objects.get(pk=id)
+        silo = Silo.objects.get(pk=silo_id)
     except Exception as e:
-        logger.erro("Silo with id=%s does not exist" % id)
-        return HttpResponseRedirect(reverse('listSilos'))
-
-    # Get the spreadsheet_id from the request object
-    spreadsheet_id = request.GET.get("resource_id", None)
+        logger.erro("Silo with id=%s does not exist" % silo_id)
+        msgs.append({"level": messages.ERROR,
+                    "msg": "Requires Google Authorization Setup",
+                    "redirect": reverse('listSilos')})
+        return msgs
 
     # if no spreadhsset_id is provided, then create a new spreadsheet
     if spreadsheet_id is None:
-        post_body =  { "properties": {"title": silo.name} }
-        body = json.dumps(post_body)
-        res, content = http.request(uri=BASE_URL,
-                                    method="POST",
-                                    body=body,
-                                    headers={'Content-Type': 'application/json; charset=UTF-8'},
-                                    )
-        content_json = json.loads(content)
-
-        # Now store the id of the newly created spreadsheet
-        spreadsheet_id = content_json.get("spreadsheetId", None)
-
-    # If a 'read' object does not exist for this export action, then create it
-    read_type = ReadType.objects.get(read_type="Google Spreadsheet")
-    defaults = {"type": read_type,
-                "read_name":"Google Spreadsheet Export",
-                "description": "Google Spreadsheet Export",
-                "read_url": "https://docs.google.com/a/mercycorps.org/spreadsheets/d/%s" % spreadsheet_id,
-                "owner": request.user}
-    gsheet_read, created = Read.objects.get_or_create(silos__id=id,
-                                                      silos__owner=request.user,
-                                                      resource_id=spreadsheet_id,
-                                                      defaults=defaults)
-    if created:
-        silo.reads.add(gsheet_read)
+        # create a new google spreadsheet
+        body = {"properties":{"title": silo.name}}
+        spreadsheet = service.spreadsheets().create(body=body).execute()
+        spreadsheet_id = spreadsheet.get("spreadsheetId", None)
+    else:
+        # fetch the google spreadsheet metadata
+        spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
 
     #get spreadsheet metadata
-    sheet_metadata = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
-    sheet = sheet_metadata.get('sheets', '')[0]
+    spreadsheet_name = spreadsheet.get("properties", {}).get("title", "")
+    sheet = spreadsheet.get('sheets', '')[0]
     title = sheet.get("properties", {}).get("title", "Sheet1")
     sheet_id = sheet.get("properties", {}).get("sheetId", 0)
+
+    gsheet_read = get_or_create_read("Google Spreadsheet",
+                                     spreadsheet_name,
+                                     "Google Spreadsheet Export",
+                                     spreadsheet_id,
+                                     user,
+                                     silo)
 
     # the first element in the array is a placeholder for column names
     rows = [{"values": []}]
     headers = []
-    silo_data = LabelValueStore.objects(silo_id=id)
+    silo_data = LabelValueStore.objects(silo_id=silo_id)
 
     for row in silo_data:
-        # Get all of the values of a single mongodb document into this array
-        values = []
+        values = [] # Get all of the values of a single mongodb document into this array
         for i, col in enumerate(row):
             if col == "id" or col == "_id" or col == "silo_id" or col == "created_date" or col == "create_date" or col == "edit_date" or col == "editted_date":
                 continue
@@ -259,7 +288,6 @@ def export_to_gsheet(request, id):
                       })
     # Now update the rows array place holder with real column names
     rows[0]["values"] = values
-
     #batch all of remote api calls into the requests array
     requests = []
 
@@ -291,13 +319,25 @@ def export_to_gsheet(request, id):
     # encapsulate the requests list into a requests object
     batchUpdateRequest = {'requests': requests}
 
-    # execute the batched requests
     try:
         service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=batchUpdateRequest).execute()
-        link = "Your exported data is available at <a href=" + gsheet_read.read_url + " target='_blank'>Google Spreadsheet</a>"
-        messages.success(request, link)
+        msgs.append({"level": messages.SUCCESS,
+                    "msg": "Your exported data is available at <a href=" + gsheet_read.read_url + " target='_blank'>Google Spreadsheet</a>"})
     except Exception as e:
-        messages.error(request, "Something went wrong. %s" % e.message)
+        msgs.append({"level": messages.ERROR,
+                    "msg": "Failed to submit data to GSheet. %s" %e.message})
+
+    return msgs
+
+def export_to_gsheet(request, id):
+    spreadsheet_id = request.GET.get("resource_id", None)
+    msgs = export_to_gsheet_helper(request.user, spreadsheet_id, id)
+    for msg in msgs:
+        if "silo_id" in msg.keys(): id = msg.get("silo_id")
+        if "redirect_uri_after_step2" in msg.keys():
+            request.session['redirect_uri_after_step2'] = msg.get("redirect_uri_after_step2")
+            return HttpResponseRedirect(msg.get("redirect"))
+        messages.add_message(request, msg.get("level"), msg.get("msg"))
 
     return HttpResponseRedirect(reverse('listSilos'))
 
