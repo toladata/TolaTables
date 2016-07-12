@@ -39,3 +39,11 @@ class ReadTypeSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = ReadType
         fields = ( 'read_type', 'description')
+
+
+class SiloModelSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Silo
+        fields = ('name', 'description', 'create_date', 'public')
+        depth =1

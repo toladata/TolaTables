@@ -82,6 +82,7 @@ class ReadTypeViewSet(viewsets.ModelViewSet):
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 
+
 @api_view(['GET'])
 @authentication_classes(())
 @permission_classes(())
@@ -95,6 +96,6 @@ def tables_api_view(request):
         user_id = User.objects.get(email=user).id
 
         tables = Silo.objects.filter(owner=user_id).order_by('-create_date')
-        serializer = SiloSerializer(tables, many=True)
+        serializer = SiloModelSerializer(tables, many=True)
         return Response(serializer.data)
 
