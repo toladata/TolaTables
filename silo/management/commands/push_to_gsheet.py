@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from silo.models import Silo, Read, ReadType
 from tola.util import siloToDict, combineColumns
-from silo.google_views import *
+from silo.gviews_v4 import export_to_gsheet_helper
 
 
 class Command(BaseCommand):
@@ -33,20 +33,11 @@ class Command(BaseCommand):
         for silo in silos:
             reads = silo.reads.filter(reduce(or_, [Q(type=read.id) for read in readtypes])).filter(autopush_frequency__isnull=False, autopush_frequency = frequency)
             for read in reads:
-                storage = Storage(GoogleCredentialsModel, 'id', silo.owner, 'credential')
-                credential = storage.get()
-                credential_json = json.loads(credential.to_json())
-
-                #self.stdout.write("%s" % credential_json)
-                if credential is None or credential.invalid == True:
-                    self.stdout.write("There was a Google credential problem with user: %s for gsheet %s" % (silo.owner, read.pk))
-                    continue
-                #self.stdout.write(read.resource_id)
-                #self.stdout.write(json.dumps(credential_json))
-                suc = export_to_google_spreadsheet(credential_json, silo.pk, read.resource_id)
-                #suc = True
-                if suc == False:
+                msgs = export_to_gsheet_helper(silo.owner, read.resource_id, silo.pk)
+                #suc = export_to_google_spreadsheet(credential_json, silo.pk, read.resource_id)
+                for msg in msgs:
                     self.stdout.write("The Google sheet export failed for user: %s  with ghseet: %s" % (silo.owner, read.pk))
+
                 self.stdout.write('Successfully pushed the READ_ID, "%s", to Gsheet for %s' % (read.pk, silo.owner))
 
         self.stdout.write("done executing gsheet export command job")

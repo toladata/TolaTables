@@ -83,7 +83,7 @@ def get_or_create_read(rtype, name, description, spreadsheet_id, user, silo):
     return gsheet_read
 
 
-def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
+def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id):
     msgs = []
     read_url = get_spreadsheet_url(spreadsheet_id)
 
@@ -92,18 +92,10 @@ def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
                     "msg": "A Google Spreadsheet is not selected to import data from.",
                     "redirect" : reverse('index') })
 
-    storage = Storage(GoogleCredentialsModel, 'id', user, 'credential')
-    credential_obj = storage.get()
-    if credential_obj is None or credential_obj.invalid == True:
-        FLOW.params['state'] = xsrfutil.generate_token(settings.SECRET_KEY, user)
-        authorize_url = FLOW.step1_get_authorize_url()
-        msgs.append({"level": messages.ERROR,
-                    "msg": "Requires Google Authorization Setup",
-                    "redirect": authorize_url,
-                    "redirect_uri_after_step2": "/import_from_gsheet/%s/?link=%s&resource_id=%s" % (silo_id, read_url, spreadsheet_id)})
+    credential_obj = get_credential_object(user)
+    if not isinstance(credential_obj, OAuth2Credentials):
+        msgs.append(credential_obj)
         return msgs
-
-    credential = json.loads(credential_obj.to_json())
 
     defaults = {"name": silo_name, "description": "Google Sheet Import", "public": False, "owner": user}
     silo, created = Silo.objects.get_or_create(pk=None if silo_id=='0' else silo_id, defaults=defaults)
@@ -116,32 +108,24 @@ def import_from_google_spreadsheet(user, silo_id, silo_name, spreadsheet_id):
     if created:
         msgs.append({"silo_id": silo.id})
 
-    http = credential_obj.authorize(httplib2.Http())
-    service = discovery.build('sheets', 'v4', http=http,
-                              discoveryServiceUrl=discoveryUrl)
+    service = get_authorized_service(credential_obj)
 
     # fetch the google spreadsheet metadata
     spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    spreadsheet_name = spreadsheet.get("properties", {}).get("title", "")
 
-    # If a 'read' object does not exist for this export action, then create it
-    read_type = ReadType.objects.get(read_type="GSheet Import")
-    defaults = {"type": read_type,
-                "read_name": spreadsheet.get("properties", {}).get("title", "Google Spreadsheet Import"),
-                "description": "Google Spreadsheet Import",
-                "read_url": str(read_url),
-                "owner": user}
-    gsheet_read, created = Read.objects.get_or_create(silos__id=silo_id,
-                                                      silos__owner=user,
-                                                      resource_id=spreadsheet_id,
-                                                      defaults=defaults)
-    if created:
-        silo.reads.add(gsheet_read)
-
+    gsheet_read = get_or_create_read("GSheet Import",
+                                     spreadsheet_name,
+                                     "Google Spreadsheet Import",
+                                     spreadsheet_id,
+                                     user,
+                                     silo)
 
     headers = []
     data = None
     filter_criteria = {}
     combine_cols = False
+    # Fetch data from gsheet
     try:
         result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range="Sheet1").execute()
         data = result.get("values", [])
@@ -206,7 +190,7 @@ def import_from_gsheet(request, id):
     spreadsheet_id = request.GET.get('resource_id', None)
     silo_name = request.GET.get("name", "Google Sheet Import")
 
-    msgs = import_from_google_spreadsheet(request.user, id, silo_name, spreadsheet_id)
+    msgs = import_from_gsheet_helper(request.user, id, silo_name, spreadsheet_id)
     #return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
     for msg in msgs:
