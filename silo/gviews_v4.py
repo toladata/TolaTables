@@ -309,7 +309,7 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
                     "msg": "Your exported data is available at <a href=" + gsheet_read.read_url + " target='_blank'>Google Spreadsheet</a>"})
     except Exception as e:
         msgs.append({"level": messages.ERROR,
-                    "msg": "Failed to submit data to GSheet. %s" %e.message})
+                    "msg": "Failed to submit data to GSheet. %s" % e})
 
     return msgs
 
