@@ -17,7 +17,7 @@ Display: Where data is viewed and edited<br>
 ## Configuration
 Ensure that the configuration files (`.secret`, `.secret.yml`) are in the `config` folder.
 
-## To deploy changes in activity servers
+## To deploy changes in tables servers
 Once all your changes have been commited to the repo, and before pushing them, run: 
 `. travis.sh`
 
