@@ -9,13 +9,13 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 from oauth2client.client import flow_from_clientsecrets
-from oauth2client.django_orm import Storage
-from oauth2client import xsrfutil
+from oauth2client.contrib.django_orm import Storage
+from oauth2client.contrib import xsrfutil
 from django.conf import settings
 from django.views.decorators.csrf import csrf_protect
 from .models import GoogleCredentialsModel
 from apiclient.discovery import build
-import gdata.spreadsheets.client
+#import gdata.spreadsheets.client
 
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag
 from tola.util import siloToDict, combineColumns
@@ -23,7 +23,7 @@ from tola.util import siloToDict, combineColumns
 CLIENT_SECRETS = os.path.join(os.path.dirname(__file__), 'client_secrets.json')
 FLOW = flow_from_clientsecrets(
     CLIENT_SECRETS,
-    scope='https://www.googleapis.com/auth/drive https://spreadsheets.google.com/feeds',
+    scope='https://www.googleapis.com/auth/drive https://spreadsheets.google.com/feeds https://www.googleapis.com/auth/spreadsheets',
     redirect_uri=settings.GOOGLE_REDIRECT_URL)
     #redirect_uri='http://localhost:8000/oauth2callback/')
 

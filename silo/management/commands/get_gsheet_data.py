@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 
 from silo.models import *
 from tola.util import siloToDict, combineColumns
-from silo.google_views import *
+from silo.gviews_v4 import *
 
 
 class Command(BaseCommand):
@@ -39,8 +39,8 @@ class Command(BaseCommand):
                     self.stdout.write("There was a Google credential problem with user: %s for gsheet %s" % (silo.owner, read.pk))
                     continue
 
-                suc = import_from_google_spreadsheet(credential_json, silo, read.resource_id)
-                if suc == False:
+                msgs = import_from_google_spreadsheet(silo.owner, silo.pk, None, read.resource_id)
+                for msg in msgs:
                     self.stdout.write("The Google sheet import failed for user: %s  with ghseet: %s" % (silo.owner, read.pk))
                 self.stdout.write('Successfully fetched the READ_ID, "%s", from Gsheet for %s' % (read.pk, silo.owner))
         self.stdout.write("done executing gsheet import command job")

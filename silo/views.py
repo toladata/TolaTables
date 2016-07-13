@@ -25,9 +25,10 @@ from django.views.decorators.csrf import csrf_protect
 import django_tables2 as tables
 from django_tables2 import RequestConfig
 
-from oauth2client.django_orm import Storage
+from oauth2client.contrib.django_orm import Storage
 from .models import GoogleCredentialsModel
-from google_views import *
+#from google_views import *
+from gviews_v4 import import_from_google_spreadsheet
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites
 
 from .tables import define_table
@@ -702,7 +703,8 @@ def updateMergeSilo(request, pk):
         # Now if the same table has sources from Google Sheet import those datasets as well.
         # reset num_rows
         num_rows = 0
-        read_types = ReadType.objects.filter(Q(read_type="GSheet Import") | Q(read_type="Google Spreadsheet"))
+        #read_types = ReadType.objects.filter(Q(read_type="GSheet Import") | Q(read_type="Google Spreadsheet"))
+        read_types = ReadType.objects.filter(read_type="GSheet Import")
         reads = silo.reads.filter(reduce(or_, [Q(type=read.id) for read in read_types]))
         for read in reads:
             # get gsheet authorized client and the gsheet id to fetch its data into the silo
@@ -714,9 +716,9 @@ def updateMergeSilo(request, pk):
                 messages.error(request, "There was a Google credential problem with user: %s for gsheet %s" % (request.user, read.pk))
                 continue
 
-            suc = import_from_google_spreadsheet(credential_json, silo, read.resource_id)
-            if suc == False:
-                messages.error(request, "Failed to import data from gsheet %s " % read.pk)
+            msgs = import_from_google_spreadsheet(request.user, silo.id, None, read.resource_id)
+            for msg in msgs:
+                messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
 
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': pk},))
 
