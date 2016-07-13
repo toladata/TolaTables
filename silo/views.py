@@ -28,7 +28,7 @@ from django_tables2 import RequestConfig
 from oauth2client.contrib.django_orm import Storage
 from .models import GoogleCredentialsModel
 #from google_views import *
-from gviews_v4 import import_from_google_spreadsheet
+from gviews_v4 import import_from_gsheet_helper
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites
 
 from .tables import define_table
