@@ -27,6 +27,8 @@ Run the following commands from the root of this repository:
   - `docker-compose up -d mysqldb`
   - `docker-compose up`
 
+
+
 ## USING virtualenv
 mkdir tolatables
 cd tolatables
