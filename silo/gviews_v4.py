@@ -135,7 +135,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id):
                     "redirect": None})
         return msgs
 
-    skipped_rows = ""
+    skipped_rows = set()
     for r, row in enumerate(data):
         if r == 0: headers = row; continue;
 
@@ -158,7 +158,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id):
                 lvs = LabelValueStore()
             except LabelValueStore.MultipleObjectsReturned as e:
                 for k,v in filter_criteria.iteritems():
-                    skipped_rows += "%s=%s, " % (k,v)
+                    skipped_rows.add("%s=%s" % (k,v))
                 continue
         else:
             lvs = LabelValueStore()
@@ -178,7 +178,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id):
 
     if skipped_rows:
         msgs.append({"level": messages.WARNING,
-                    "msg": "Skipped updating/adding records where %s because there are already multiple records." % skipped_rows})
+                    "msg": "Skipped updating/adding records where %s because there are already multiple records." % ",".join(str(s) for s in skipped_rows)})
 
     msgs.append({"level": messages.SUCCESS, "msg": "Operation successful"})
     return msgs
