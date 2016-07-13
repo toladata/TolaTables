@@ -27,6 +27,22 @@ Run the following commands from the root of this repository:
   - `docker-compose up -d mysqldb`
   - `docker-compose up`
 
+## Files added for the Docker version
+
+/
+ - Dockerfile
+ - docker-compose.yml
+ - travis.sh
+ - docker.sh
+
+/config
+ - nginx.conf 
+ - mysql.env.secret
+ - settings.secret.yml
+
+/local/settings
+ - local.py
+ 
 
 
 ## USING virtualenv
