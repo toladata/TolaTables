@@ -12,11 +12,11 @@ nginx:
    links:
       - tola
 mongodb:
-  image: mongodb
+  image: mongo
   restart: always
 tola:
    build: .
-   command: bash -c 'python manage.py migrate && python manage.py runserver 0.0.0.0:8000'
+   command: bash -c 'python manage.py migrate && python manage.py loaddata fixtures/tolasites.json && python manage.py loaddata fixtures/sites.json && python manage.py migrate && python manage.py runserver 0.0.0.0:8000'
    volumes:
        - .:/code
    expose:
