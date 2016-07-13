@@ -61,9 +61,9 @@ TOLA_TABLES_USER = app_settings['TOLA_TABLES_USER']
 
 # LOCAL APPS DEPENDING ON SERVER DEBUG FOR DEV BOXES,
 # REPORT BUILDER FOR REPORT SERVER
-DEV_APPS = app_settings['DEV_APPS']
+#DEV_APPS = app_settings['DEV_APPS']
 
-INSTALLED_APPS = INSTALLED_APPS + tuple(DEV_APPS)
+#INSTALLED_APPS = INSTALLED_APPS + tuple(DEV_APPS)
 
 LDAP_LOGIN = app_settings['LDAP_LOGIN']
 LDAP_SERVER = app_settings['LDAP_SERVER']
@@ -72,6 +72,8 @@ LDAP_USER_GROUP = app_settings['LDAP_USER_GROUP']
 LDAP_ADMIN_GROUP = app_settings['LDAP_ADMIN_GROUP']
 
 AUTHENTICATION_BACKENDS = app_settings['AUTHENTICATION_BACKENDS']
+
+SECRET_KEY = app_settings['SECRET_KEY']
 
 # If report server then limit navigation and allow access to public dashboards
 REPORT_SERVER = app_settings['REPORT_SERVER']
