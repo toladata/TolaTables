@@ -37,8 +37,8 @@ Run the following commands from the root of this repository:
 
 /config
  - nginx.conf 
- - mysql.env.secret
- - settings.secret.yml
+ - mysql.env.secret (not public)
+ - settings.secret.yml (not public)
 
 /local/settings
  - local.py
