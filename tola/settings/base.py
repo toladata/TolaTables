@@ -57,7 +57,7 @@ import mongoengine
 from mongoengine import register_connection
 register_connection(alias='default',name='tola')
 
-MONGODB_HOST = 'mongodb://localhost/tola'
+MONGODB_HOST = 'mongodb://mongodb/tola'
 MONGODB_NAME = 'tola'
 
 mongoengine.connect(MONGODB_NAME, host = MONGODB_HOST, alias='default')
