@@ -716,7 +716,7 @@ def updateMergeSilo(request, pk):
                 messages.error(request, "There was a Google credential problem with user: %s for gsheet %s" % (request.user, read.pk))
                 continue
 
-            msgs = import_from_google_spreadsheet(request.user, silo.id, None, read.resource_id)
+            msgs = import_from_gsheet_helper(request.user, silo.id, None, read.resource_id)
             for msg in msgs:
                 messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
 
