@@ -17,7 +17,7 @@ Display: Where data is viewed and edited<br>
 ## Configuration
 Ensure that the configuration files (`.secret`, `.secret.yml`) are in the `config` folder.
 
-## To deploy changes in activity servers
+## To deploy changes in tables servers
 Once all your changes have been commited to the repo, and before pushing them, run: 
 `. travis.sh`
 
@@ -27,6 +27,22 @@ Run the following commands from the root of this repository:
   - `docker-compose up -d mysqldb`
   - `docker-compose up`
 
+## Files added for the Docker version
+
+/
+ - Dockerfile
+ - docker-compose.yml
+ - travis.sh
+ - docker.sh
+
+/config
+ - nginx.conf 
+ - mysql.env.secret (not public)
+ - settings.secret.yml (not public)
+
+/local/settings
+ - local.py
+ 
 
 
 ## USING virtualenv
