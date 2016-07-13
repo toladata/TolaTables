@@ -55,7 +55,7 @@ def get_credential_object(user):
         return {"level": messages.ERROR,
                     "msg": "Requires Google Authorization Setup",
                     "redirect": authorize_url,
-                    "redirect_uri_after_step2": "/import_from_gsheet/%s/?link=%s&resource_id=%s" % (silo_id, read_url, spreadsheet_id)}
+                    "redirect_uri_after_step2": True}
     # print(json.loads(credential_obj.to_json()))
     return credential_obj
 
@@ -192,11 +192,11 @@ def import_from_gsheet(request, id):
 
     msgs = import_from_gsheet_helper(request.user, id, silo_name, spreadsheet_id)
     #return HttpResponseRedirect(request.META['HTTP_REFERER'])
-
+    google_auth_redirect = "/import_gsheet/%s/?link=%s&resource_id=%s" % (id, read_url, spreadsheet_id)
     for msg in msgs:
         if "silo_id" in msg.keys(): id = msg.get("silo_id")
         if "redirect_uri_after_step2" in msg.keys():
-            request.session['redirect_uri_after_step2'] = msg.get("redirect_uri_after_step2")
+            request.session['redirect_uri_after_step2'] = google_auth_redirect
             return HttpResponseRedirect(msg.get("redirect"))
         messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
 
@@ -316,10 +316,13 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
 def export_to_gsheet(request, id):
     spreadsheet_id = request.GET.get("resource_id", None)
     msgs = export_to_gsheet_helper(request.user, spreadsheet_id, id)
+
+    google_auth_redirect = "export_to_gsheet/%s/" % id
+
     for msg in msgs:
         if "silo_id" in msg.keys(): id = msg.get("silo_id")
         if "redirect_uri_after_step2" in msg.keys():
-            request.session['redirect_uri_after_step2'] = msg.get("redirect_uri_after_step2")
+            request.session['redirect_uri_after_step2'] = google_auth_redirect
             return HttpResponseRedirect(msg.get("redirect"))
         messages.add_message(request, msg.get("level"), msg.get("msg"))
 

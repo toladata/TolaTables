@@ -614,7 +614,7 @@ def siloDetail(request,id):
             return render(request, "display/silo_detail.html", {"silo_table": silo_table, 'silo': silo, 'id':id, 'cols': cols})
         else:
             messages.error(request, "There is not data in Table with id = %s" % id)
-            return HttpResponseRedirect(request.META['HTTP_REFERER'])
+            return HttpResponseRedirect(reverse_lazy("listSilos"))
     else:
         messages.info(request, "You don't have the permission to see data in this table")
         return HttpResponseRedirect(request.META['HTTP_REFERER'])
