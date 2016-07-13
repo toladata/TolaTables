@@ -14,6 +14,21 @@ Read: A data source to load data into the system from<br>
 Silo: A data store that can combine one or more Feeds (Data sources)<br>
 Display: Where data is viewed and edited<br>
 
+## Configuration
+Ensure that the configuration files (`.secret`, `.secret.yml`) are in the `config` folder.
+
+## To deploy changes in activity servers
+Once all your changes have been commited to the repo, and before pushing them, run: 
+`. travis.sh`
+
+## To deploy locally
+Run the following commands from the root of this repository:
+  - `docker-compose build`
+  - `docker-compose up -d mysqldb`
+  - `docker-compose up`
+
+
+
 ## USING virtualenv
 mkdir tolatables
 cd tolatables
