@@ -39,3 +39,5 @@ client_secrets.json
 *.crt
 *.key
 error.log
+*.secret
+*.secret.yml
