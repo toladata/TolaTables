@@ -1,4 +1,4 @@
-import requests, json
+import requests, json, logging
 from requests.auth import HTTPDigestAuth
 
 from django.core.management.base import BaseCommand, CommandError
@@ -9,7 +9,7 @@ from django.utils import timezone
 from silo.models import Silo, Read, ReadType
 from tola.util import siloToDict, combineColumns
 from silo.gviews_v4 import export_to_gsheet_helper
-
+logger = logging.getLogger("silo")
 
 class Command(BaseCommand):
     """
@@ -38,6 +38,6 @@ class Command(BaseCommand):
                     # if it is not a success message then I want to know
                     if msg.get("level") != 25:
                         # replace with logger
-                        self.stdout.write("silo_id=%s, read_id=%s, level: %s, msg: %s" % (silo.pk, read.pk, msg.get("level"), msg.get("msg")))
+                        logger.error("silo_id=%s, read_id=%s, level: %s, msg: %s" % (silo.pk, read.pk, msg.get("level"), msg.get("msg")))
 
         self.stdout.write("done executing gsheet export command job")
