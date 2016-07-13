@@ -44,7 +44,7 @@ Run the following commands from the root of this repository:
  - local.py
  
 /silo
- - client_secrets.json
+ - client_secrets.json (not public)
  
 
 
