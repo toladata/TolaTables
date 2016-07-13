@@ -32,6 +32,8 @@ class Command(BaseCommand):
             for read in reads:
                 msgs = import_from_gsheet_helper(silo.owner, silo.pk, None, read.resource_id)
                 for msg in msgs:
-                    self.stdout.write("The Google sheet import failed for user: %s  with ghseet: %s" % (silo.owner, read.pk))
-                self.stdout.write('Successfully fetched the READ_ID, "%s", from Gsheet for %s' % (read.pk, silo.owner))
+                    # if it is not a success message then I want to know
+                    if msg.get("level") != 25:
+                        # replace with logger
+                        self.stdout.write("silo_id=%s, read_id=%s, level: %s, msg: %s" % (silo.pk, read.pk, msg.get("level"), msg.get("msg")))
         self.stdout.write("done executing gsheet import command job")
