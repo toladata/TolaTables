@@ -260,7 +260,7 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
             if col not in headers:
                 headers.append(col)
 
-            values.append({"userEnteredValue": {"stringValue": row[col]}})
+            values.append({"userEnteredValue": {"stringValue": str(row[col])}})
         rows.append({"values": values})
 
     # prepare column names as a header row in spreadsheet
