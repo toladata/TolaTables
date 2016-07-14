@@ -11,6 +11,7 @@ from django.http import HttpResponseRedirect, HttpResponseBadRequest, JsonRespon
 from django.views.decorators.csrf import csrf_protect
 from django.conf import settings
 from django.utils import timezone
+from django.utils.encoding import smart_text
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -261,7 +262,7 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
             if col not in headers:
                 headers.append(col)
 
-            values.append({"userEnteredValue": {"stringValue": str(row[col])}})
+            values.append({"userEnteredValue": {"stringValue": smart_text(row[col])}})
         rows.append({"values": values})
 
     # prepare column names as a header row in spreadsheet
