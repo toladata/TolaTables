@@ -25,6 +25,7 @@ from oauth2client import client
 from oauth2client import tools
 
 from oauth2client.client import flow_from_clientsecrets
+from oauth2client.client import HttpAccessTokenRefreshError
 from oauth2client.contrib.django_orm import Storage
 from oauth2client.contrib import xsrfutil
 
@@ -47,17 +48,20 @@ FLOW = flow_from_clientsecrets(
 def get_spreadsheet_url(spreadsheet_id):
     return "https://docs.google.com/a/mercycorps.org/spreadsheets/d/%s/" % str(spreadsheet_id)
 
-def get_credential_object(user):
+def get_credential_object(user, prompt=None):
     storage = Storage(GoogleCredentialsModel, 'id', user, 'credential')
     credential_obj = storage.get()
-    if credential_obj is None or credential_obj.invalid == True:
+    if credential_obj is None or credential_obj.invalid == True or prompt:
         FLOW.params['state'] = xsrfutil.generate_token(settings.SECRET_KEY, user)
+        FLOW.params['access_type'] = 'offline'
+        if prompt:
+            FLOW.params['approval_prompt'] = 'force'
         authorize_url = FLOW.step1_get_authorize_url()
         return {"level": messages.ERROR,
                     "msg": "Requires Google Authorization Setup",
                     "redirect": authorize_url,
                     "redirect_uri_after_step2": True}
-    # print(json.loads(credential_obj.to_json()))
+    #print(json.loads(credential_obj.to_json()))
     return credential_obj
 
 
@@ -112,7 +116,17 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id):
     service = get_authorized_service(credential_obj)
 
     # fetch the google spreadsheet metadata
-    spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    try:
+        spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    except HttpAccessTokenRefreshError as e:
+        return [get_credential_object(user, True)]
+    except Exception as e:
+        error = json.loads(e.content).get("error")
+        msg = "%s: %s" % (error.get("status"), error.get("message"))
+        msgs.append({"level": messages.ERROR,
+                    "msg": msg})
+        return msgs
+
     spreadsheet_name = spreadsheet.get("properties", {}).get("title", "")
 
     gsheet_read = get_or_create_read("GSheet Import",
