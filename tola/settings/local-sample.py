@@ -79,7 +79,7 @@ CACHES = {
 }
 ########## END CACHE CONFIGURATION
 #Update the logging file handler fo my local mac to be inside project folder
-LOGGING['handlers']['file']['filename'] = os.path.join(PROJECT_PATH, 'error.log')
+LOGGING['handlers']['file']['filename'] = "/var/log/httpd/tolatables_app_error.log"
 
 
 ########## END CACHE CONFIGURATION
