@@ -54,14 +54,13 @@ def get_credential_object(user, prompt=None):
     if credential_obj is None or credential_obj.invalid == True or prompt:
         FLOW.params['state'] = xsrfutil.generate_token(settings.SECRET_KEY, user)
         FLOW.params['access_type'] = 'offline'
-        if prompt:
-            FLOW.params['approval_prompt'] = 'force'
+        FLOW.params['approval_prompt'] = 'force'
         authorize_url = FLOW.step1_get_authorize_url()
         return {"level": messages.ERROR,
                     "msg": "Requires Google Authorization Setup",
                     "redirect": authorize_url,
                     "redirect_uri_after_step2": True}
-    print(json.loads(credential_obj.to_json()))
+    #print(json.loads(credential_obj.to_json()))
     return credential_obj
 
 
@@ -356,16 +355,21 @@ def export_to_gsheet(request, id):
 
 @login_required
 def get_sheets_from_google_spredsheet(request):
-    msgs = []
     spreadsheet_id = request.GET.get("spreadsheet_id", "NONE")
-    print(spreadsheet_id)
     credential_obj = get_credential_object(request.user)
     if not isinstance(credential_obj, OAuth2Credentials):
-        msgs.append(credential_obj)
-        return JsonResponse(msgs)
+        return JsonResponse(credential_obj)
 
     service = get_authorized_service(credential_obj)
-    spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+
+    try:
+        spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    except HttpAccessTokenRefreshError as e:
+        return [get_credential_object(request.user, True)]
+    except Exception as e:
+        error = json.loads(e.content).get("error")
+        msg = "%s: %s" % (error.get("status"), error.get("message"))
+        return JsonResponse ({"level": messages.ERROR, "msg": msg})
     return JsonResponse(spreadsheet)
 
 @login_required
@@ -376,7 +380,6 @@ def oauth2callback(request):
     credential = FLOW.step2_exchange(request.GET)
     storage = Storage(GoogleCredentialsModel, 'id', request.user, 'credential')
     storage.put(credential)
-    #print(credential.to_json())
     redirect_url = request.session['redirect_uri_after_step2']
     return HttpResponseRedirect(redirect_url)
 
