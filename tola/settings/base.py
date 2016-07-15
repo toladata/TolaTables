@@ -292,7 +292,7 @@ LOGGING = {
         'file': {
             'level': 'WARNING',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(PROJECT_PATH, 'error.log'),
+            'filename': "/var/log/httpd/tolatables_error.log",
             'formatter': 'verbose'
         },
         'console':{
