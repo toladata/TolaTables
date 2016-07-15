@@ -61,7 +61,7 @@ def get_credential_object(user, prompt=None):
                     "msg": "Requires Google Authorization Setup",
                     "redirect": authorize_url,
                     "redirect_uri_after_step2": True}
-    #print(json.loads(credential_obj.to_json()))
+    print(json.loads(credential_obj.to_json()))
     return credential_obj
 
 
@@ -240,15 +240,24 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
                     "redirect": reverse('listSilos')})
         return msgs
 
-    # if no spreadhsset_id is provided, then create a new spreadsheet
-    if spreadsheet_id is None:
-        # create a new google spreadsheet
-        body = {"properties":{"title": silo.name}}
-        spreadsheet = service.spreadsheets().create(body=body).execute()
-        spreadsheet_id = spreadsheet.get("spreadsheetId", None)
-    else:
-        # fetch the google spreadsheet metadata
-        spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    try:
+        # if no spreadhsset_id is provided, then create a new spreadsheet
+        if spreadsheet_id is None:
+            # create a new google spreadsheet
+            body = {"properties":{"title": silo.name}}
+            spreadsheet = service.spreadsheets().create(body=body).execute()
+            spreadsheet_id = spreadsheet.get("spreadsheetId", None)
+        else:
+            # fetch the google spreadsheet metadata
+            spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    except HttpAccessTokenRefreshError as e:
+        return [get_credential_object(user, True)]
+    except Exception as e:
+        error = json.loads(e.content).get("error")
+        msg = "%s: %s" % (error.get("status"), error.get("message"))
+        msgs.append({"level": messages.ERROR,
+                    "msg": msg})
+        return msgs
 
     #get spreadsheet metadata
     spreadsheet_name = spreadsheet.get("properties", {}).get("title", "")
@@ -345,6 +354,19 @@ def export_to_gsheet(request, id):
 
     return HttpResponseRedirect(reverse('listSilos'))
 
+@login_required
+def get_sheets_from_google_spredsheet(request):
+    msgs = []
+    spreadsheet_id = request.GET.get("spreadsheet_id", "NONE")
+    print(spreadsheet_id)
+    credential_obj = get_credential_object(request.user)
+    if not isinstance(credential_obj, OAuth2Credentials):
+        msgs.append(credential_obj)
+        return JsonResponse(msgs)
+
+    service = get_authorized_service(credential_obj)
+    spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    return JsonResponse(spreadsheet)
 
 @login_required
 def oauth2callback(request):
