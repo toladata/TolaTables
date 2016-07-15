@@ -292,7 +292,7 @@ LOGGING = {
         'file': {
             'level': 'WARNING',
             'class': 'logging.FileHandler',
-            'filename': "/var/log/httpd/tolatables_error.log",
+            'filename': "/var/log/httpd/tolatables_app_error.log",
             'formatter': 'verbose'
         },
         'console':{
