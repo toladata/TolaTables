@@ -87,7 +87,7 @@ def get_or_create_read(rtype, name, description, spreadsheet_id, user, silo):
     return gsheet_read
 
 
-def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id):
+def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id=None):
     msgs = []
     read_url = get_spreadsheet_url(spreadsheet_id)
 
@@ -134,6 +134,16 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id):
                                      spreadsheet_id,
                                      user,
                                      silo)
+    sheet_name = "Sheet1"
+    if sheet_id:
+        gsheet_read.gsheet_id = sheet_id
+        gsheet_read.save()
+        sheets = spreadsheet.get("sheets", None)
+        for sheet in sheets:
+            properties = sheet.get("properties", None)
+            if properties:
+                if str(properties.get("sheetId")) == str(sheet_id):
+                    sheet_name = properties.get("title")
 
     headers = []
     data = None
@@ -141,7 +151,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id):
     combine_cols = False
     # Fetch data from gsheet
     try:
-        result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range="Sheet1").execute()
+        result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=sheet_name).execute()
         data = result.get("values", [])
     except Exception as e:
         msgs.append({"level": messages.ERROR,
@@ -203,9 +213,10 @@ def import_from_gsheet(request, id):
     silo = None
     read_url = request.GET.get('link', None)
     spreadsheet_id = request.GET.get('resource_id', None)
+    sheet_id = request.GET.get("sheet_id", None)
     silo_name = request.GET.get("name", "Google Sheet Import")
 
-    msgs = import_from_gsheet_helper(request.user, id, silo_name, spreadsheet_id)
+    msgs = import_from_gsheet_helper(request.user, id, silo_name, spreadsheet_id, sheet_id)
     #return HttpResponseRedirect(request.META['HTTP_REFERER'])
     google_auth_redirect = "/import_gsheet/%s/?link=%s&resource_id=%s" % (id, read_url, spreadsheet_id)
     for msg in msgs:
@@ -355,7 +366,7 @@ def export_to_gsheet(request, id):
 
 @login_required
 def get_sheets_from_google_spredsheet(request):
-    spreadsheet_id = request.GET.get("spreadsheet_id", "NONE")
+    spreadsheet_id = request.GET.get("spreadsheet_id", None)
     credential_obj = get_credential_object(request.user)
     if not isinstance(credential_obj, OAuth2Credentials):
         return JsonResponse(credential_obj)
