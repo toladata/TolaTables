@@ -93,9 +93,32 @@ def tables_api_view(request):
     """
     if request.method == 'GET':
         user = request.GET.get('email')
+        country = request.GET.get('country')
+
         user_id = User.objects.get(email=user).id
 
         tables = Silo.objects.filter(owner=user_id).order_by('-create_date')
-        serializer = SiloModelSerializer(tables, many=True)
-        return Response(serializer.data)
+        table_logged_users = logged_in_users(country)
 
+        table_serializer = SiloModelSerializer(tables, many=True)
+        user_serializer = LoggedUserSerializer(table_logged_users, many=True)
+
+        users = user_serializer.data
+        tables = table_serializer.data
+
+
+        tables_data = {'tables':tables, 'table_logged_users': users}
+
+
+        return Response(tables_data)
+
+#return users logged into TolaActivity
+def logged_in_users(country):
+
+    logged_users = {}
+
+    logged_users = LoggedUser.objects.filter(country=country).order_by('username')
+    for logged_user in logged_users:
+        logged_user.queue = 'TolaTables'
+
+    return logged_users

@@ -1,6 +1,7 @@
 from django.forms import widgets
 from rest_framework import serializers
 from silo.models import Silo, Read, ReadType, LabelValueStore, Tag
+from tola.models import LoggedUser
 from django.contrib.auth.models import User
 import json
 
@@ -47,3 +48,9 @@ class SiloModelSerializer(serializers.ModelSerializer):
         model = Silo
         fields = ('name', 'description', 'create_date', 'public')
         depth =1
+
+class LoggedUserSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = LoggedUser
+        fields = ('username', 'country')
