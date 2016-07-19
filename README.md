@@ -43,6 +43,9 @@ Run the following commands from the root of this repository:
 /local/settings
  - local.py
  
+/silo
+ - client_secrets.json (not public)
+ 
 
 
 ## USING virtualenv
