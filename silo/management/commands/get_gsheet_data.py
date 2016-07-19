@@ -1,4 +1,4 @@
-import requests, json
+import requests, json, logging
 from requests.auth import HTTPDigestAuth
 
 from django.core.management.base import BaseCommand, CommandError
@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from silo.models import *
 from tola.util import siloToDict, combineColumns
 from silo.gviews_v4 import *
-
+logger = logging.getLogger("silo")
 
 class Command(BaseCommand):
     """
@@ -32,6 +32,8 @@ class Command(BaseCommand):
             for read in reads:
                 msgs = import_from_gsheet_helper(silo.owner, silo.pk, None, read.resource_id)
                 for msg in msgs:
-                    self.stdout.write("The Google sheet import failed for user: %s  with ghseet: %s" % (silo.owner, read.pk))
-                self.stdout.write('Successfully fetched the READ_ID, "%s", from Gsheet for %s' % (read.pk, silo.owner))
+                    # if it is not a success message then I want to know
+                    if msg.get("level") != 25:
+                        # replace with logger
+                        logger.error("silo_id=%s, read_id=%s, level: %s, msg: %s" % (silo.pk, read.pk, msg.get("level"), msg.get("msg")))
         self.stdout.write("done executing gsheet import command job")

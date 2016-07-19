@@ -614,7 +614,7 @@ def siloDetail(request,id):
             return render(request, "display/silo_detail.html", {"silo_table": silo_table, 'silo': silo, 'id':id, 'cols': cols})
         else:
             messages.error(request, "There is not data in Table with id = %s" % id)
-            return HttpResponseRedirect(request.META['HTTP_REFERER'])
+            return HttpResponseRedirect(reverse_lazy("listSilos"))
     else:
         messages.info(request, "You don't have the permission to see data in this table")
         return HttpResponseRedirect(request.META['HTTP_REFERER'])
@@ -716,7 +716,7 @@ def updateMergeSilo(request, pk):
                 messages.error(request, "There was a Google credential problem with user: %s for gsheet %s" % (request.user, read.pk))
                 continue
 
-            msgs = import_from_google_spreadsheet(request.user, silo.id, None, read.resource_id)
+            msgs = import_from_gsheet_helper(request.user, silo.id, None, read.resource_id)
             for msg in msgs:
                 messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
 

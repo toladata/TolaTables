@@ -11,6 +11,7 @@ from django.http import HttpResponseRedirect, HttpResponseBadRequest, JsonRespon
 from django.views.decorators.csrf import csrf_protect
 from django.conf import settings
 from django.utils import timezone
+from django.utils.encoding import smart_text
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -24,6 +25,7 @@ from oauth2client import client
 from oauth2client import tools
 
 from oauth2client.client import flow_from_clientsecrets
+from oauth2client.client import HttpAccessTokenRefreshError
 from oauth2client.contrib.django_orm import Storage
 from oauth2client.contrib import xsrfutil
 
@@ -46,17 +48,19 @@ FLOW = flow_from_clientsecrets(
 def get_spreadsheet_url(spreadsheet_id):
     return "https://docs.google.com/a/mercycorps.org/spreadsheets/d/%s/" % str(spreadsheet_id)
 
-def get_credential_object(user):
+def get_credential_object(user, prompt=None):
     storage = Storage(GoogleCredentialsModel, 'id', user, 'credential')
     credential_obj = storage.get()
-    if credential_obj is None or credential_obj.invalid == True:
+    if credential_obj is None or credential_obj.invalid == True or prompt:
         FLOW.params['state'] = xsrfutil.generate_token(settings.SECRET_KEY, user)
+        FLOW.params['access_type'] = 'offline'
+        FLOW.params['approval_prompt'] = 'force'
         authorize_url = FLOW.step1_get_authorize_url()
         return {"level": messages.ERROR,
                     "msg": "Requires Google Authorization Setup",
                     "redirect": authorize_url,
-                    "redirect_uri_after_step2": "/import_from_gsheet/%s/?link=%s&resource_id=%s" % (silo_id, read_url, spreadsheet_id)}
-    # print(json.loads(credential_obj.to_json()))
+                    "redirect_uri_after_step2": True}
+    #print(json.loads(credential_obj.to_json()))
     return credential_obj
 
 
@@ -83,7 +87,7 @@ def get_or_create_read(rtype, name, description, spreadsheet_id, user, silo):
     return gsheet_read
 
 
-def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id):
+def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id=None):
     msgs = []
     read_url = get_spreadsheet_url(spreadsheet_id)
 
@@ -111,7 +115,17 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id):
     service = get_authorized_service(credential_obj)
 
     # fetch the google spreadsheet metadata
-    spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    try:
+        spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    except HttpAccessTokenRefreshError as e:
+        return [get_credential_object(user, True)]
+    except Exception as e:
+        error = json.loads(e.content).get("error")
+        msg = "%s: %s" % (error.get("status"), error.get("message"))
+        msgs.append({"level": messages.ERROR,
+                    "msg": msg})
+        return msgs
+
     spreadsheet_name = spreadsheet.get("properties", {}).get("title", "")
 
     gsheet_read = get_or_create_read("GSheet Import",
@@ -120,6 +134,16 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id):
                                      spreadsheet_id,
                                      user,
                                      silo)
+    sheet_name = "Sheet1"
+    if sheet_id:
+        gsheet_read.gsheet_id = sheet_id
+        gsheet_read.save()
+        sheets = spreadsheet.get("sheets", None)
+        for sheet in sheets:
+            properties = sheet.get("properties", None)
+            if properties:
+                if str(properties.get("sheetId")) == str(sheet_id):
+                    sheet_name = properties.get("title")
 
     headers = []
     data = None
@@ -127,7 +151,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id):
     combine_cols = False
     # Fetch data from gsheet
     try:
-        result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range="Sheet1").execute()
+        result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=sheet_name).execute()
         data = result.get("values", [])
     except Exception as e:
         msgs.append({"level": messages.ERROR,
@@ -135,7 +159,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id):
                     "redirect": None})
         return msgs
 
-    skipped_rows = ""
+    skipped_rows = set()
     for r, row in enumerate(data):
         if r == 0: headers = row; continue;
 
@@ -158,7 +182,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id):
                 lvs = LabelValueStore()
             except LabelValueStore.MultipleObjectsReturned as e:
                 for k,v in filter_criteria.iteritems():
-                    skipped_rows += "%s=%s, " % (k,v)
+                    skipped_rows.add("%s=%s" % (k,v))
                 continue
         else:
             lvs = LabelValueStore()
@@ -167,7 +191,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id):
             key = headers[c]
             if key == "" or key is None or key == "silo_id" or key == "create_date" or key == "edit_date": continue
             if key == "id" or key == "_id": key = "user_assigned_id"
-            setattr(lvs, key, row[c])
+            setattr(lvs, key.replace(".", "_"), row[c])
         lvs.silo_id = silo.id
         lvs.create_date = timezone.now()
         lvs.save()
@@ -178,25 +202,27 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id):
 
     if skipped_rows:
         msgs.append({"level": messages.WARNING,
-                    "msg": "Skipped updating/adding records where %s because there are already multiple records." % skipped_rows})
+                    "msg": "Skipped updating/adding records where %s because there are already multiple records." % ",".join(str(s) for s in skipped_rows)})
 
     msgs.append({"level": messages.SUCCESS, "msg": "Operation successful"})
     return msgs
 
+@login_required
 def import_from_gsheet(request, id):
     gsheet_endpoint = None
     silo = None
     read_url = request.GET.get('link', None)
     spreadsheet_id = request.GET.get('resource_id', None)
+    sheet_id = request.GET.get("sheet_id", None)
     silo_name = request.GET.get("name", "Google Sheet Import")
 
-    msgs = import_from_gsheet_helper(request.user, id, silo_name, spreadsheet_id)
+    msgs = import_from_gsheet_helper(request.user, id, silo_name, spreadsheet_id, sheet_id)
     #return HttpResponseRedirect(request.META['HTTP_REFERER'])
-
+    google_auth_redirect = "/import_gsheet/%s/?link=%s&resource_id=%s" % (id, read_url, spreadsheet_id)
     for msg in msgs:
         if "silo_id" in msg.keys(): id = msg.get("silo_id")
         if "redirect_uri_after_step2" in msg.keys():
-            request.session['redirect_uri_after_step2'] = msg.get("redirect_uri_after_step2")
+            request.session['redirect_uri_after_step2'] = google_auth_redirect
             return HttpResponseRedirect(msg.get("redirect"))
         messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
 
@@ -224,15 +250,24 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
                     "redirect": reverse('listSilos')})
         return msgs
 
-    # if no spreadhsset_id is provided, then create a new spreadsheet
-    if spreadsheet_id is None:
-        # create a new google spreadsheet
-        body = {"properties":{"title": silo.name}}
-        spreadsheet = service.spreadsheets().create(body=body).execute()
-        spreadsheet_id = spreadsheet.get("spreadsheetId", None)
-    else:
-        # fetch the google spreadsheet metadata
-        spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    try:
+        # if no spreadhsset_id is provided, then create a new spreadsheet
+        if spreadsheet_id is None:
+            # create a new google spreadsheet
+            body = {"properties":{"title": silo.name}}
+            spreadsheet = service.spreadsheets().create(body=body).execute()
+            spreadsheet_id = spreadsheet.get("spreadsheetId", None)
+        else:
+            # fetch the google spreadsheet metadata
+            spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    except HttpAccessTokenRefreshError as e:
+        return [get_credential_object(user, True)]
+    except Exception as e:
+        error = json.loads(e.content).get("error")
+        msg = "%s: %s" % (error.get("status"), error.get("message"))
+        msgs.append({"level": messages.ERROR,
+                    "msg": msg})
+        return msgs
 
     #get spreadsheet metadata
     spreadsheet_name = spreadsheet.get("properties", {}).get("title", "")
@@ -260,7 +295,7 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
             if col not in headers:
                 headers.append(col)
 
-            values.append({"userEnteredValue": {"stringValue": row[col]}})
+            values.append({"userEnteredValue": {"stringValue": smart_text(row[col])}})
         rows.append({"values": values})
 
     # prepare column names as a header row in spreadsheet
@@ -309,21 +344,44 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
                     "msg": "Your exported data is available at <a href=" + gsheet_read.read_url + " target='_blank'>Google Spreadsheet</a>"})
     except Exception as e:
         msgs.append({"level": messages.ERROR,
-                    "msg": "Failed to submit data to GSheet. %s" %e.message})
+                    "msg": "Failed to submit data to GSheet. %s" % e})
 
     return msgs
 
+@login_required
 def export_to_gsheet(request, id):
     spreadsheet_id = request.GET.get("resource_id", None)
     msgs = export_to_gsheet_helper(request.user, spreadsheet_id, id)
+
+    google_auth_redirect = "export_to_gsheet/%s/" % id
+
     for msg in msgs:
         if "silo_id" in msg.keys(): id = msg.get("silo_id")
         if "redirect_uri_after_step2" in msg.keys():
-            request.session['redirect_uri_after_step2'] = msg.get("redirect_uri_after_step2")
+            request.session['redirect_uri_after_step2'] = google_auth_redirect
             return HttpResponseRedirect(msg.get("redirect"))
         messages.add_message(request, msg.get("level"), msg.get("msg"))
 
     return HttpResponseRedirect(reverse('listSilos'))
+
+@login_required
+def get_sheets_from_google_spredsheet(request):
+    spreadsheet_id = request.GET.get("spreadsheet_id", None)
+    credential_obj = get_credential_object(request.user)
+    if not isinstance(credential_obj, OAuth2Credentials):
+        return JsonResponse(credential_obj)
+
+    service = get_authorized_service(credential_obj)
+
+    try:
+        spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    except HttpAccessTokenRefreshError as e:
+        return [get_credential_object(request.user, True)]
+    except Exception as e:
+        error = json.loads(e.content).get("error")
+        msg = "%s: %s" % (error.get("status"), error.get("message"))
+        return JsonResponse ({"level": messages.ERROR, "msg": msg})
+    return JsonResponse(spreadsheet)
 
 @login_required
 def oauth2callback(request):
@@ -333,7 +391,6 @@ def oauth2callback(request):
     credential = FLOW.step2_exchange(request.GET)
     storage = Storage(GoogleCredentialsModel, 'id', request.user, 'credential')
     storage.put(credential)
-    #print(credential.to_json())
     redirect_url = request.session['redirect_uri_after_step2']
     return HttpResponseRedirect(redirect_url)
 

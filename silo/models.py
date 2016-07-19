@@ -164,6 +164,7 @@ class Read(models.Model):
     description = models.TextField()
     read_url = models.CharField(max_length=250, blank=True, default='', verbose_name='source url') #RemoteEndPoint = link
     resource_id = models.CharField(max_length=200, null=True, blank=True) #RemoteEndPoint
+    gsheet_id = models.CharField(max_length=200, null=True, blank=True) # sheetid within google spreadsheet
     username = models.CharField(max_length=20, null=True, blank=True) #RemoteEndPoint
     token = models.CharField(max_length=254, null=True, blank=True) #RemoteEndPoint
     file_data = models.FileField("Upload CSV File", upload_to='uploads', blank=True, null=True)

@@ -1,4 +1,4 @@
-import requests, json
+import requests, json, logging
 from requests.auth import HTTPDigestAuth
 
 from django.core.management.base import BaseCommand, CommandError
@@ -9,7 +9,7 @@ from django.utils import timezone
 from silo.models import Silo, Read, ReadType
 from tola.util import siloToDict, combineColumns
 from silo.gviews_v4 import export_to_gsheet_helper
-
+logger = logging.getLogger("silo")
 
 class Command(BaseCommand):
     """
@@ -34,10 +34,10 @@ class Command(BaseCommand):
             reads = silo.reads.filter(reduce(or_, [Q(type=read.id) for read in readtypes])).filter(autopush_frequency__isnull=False, autopush_frequency = frequency)
             for read in reads:
                 msgs = export_to_gsheet_helper(silo.owner, read.resource_id, silo.pk)
-                #suc = export_to_google_spreadsheet(credential_json, silo.pk, read.resource_id)
                 for msg in msgs:
-                    self.stdout.write("The Google sheet export failed for user: %s  with ghseet: %s" % (silo.owner, read.pk))
-
-                self.stdout.write('Successfully pushed the READ_ID, "%s", to Gsheet for %s' % (read.pk, silo.owner))
+                    # if it is not a success message then I want to know
+                    if msg.get("level") != 25:
+                        # replace with logger
+                        logger.error("silo_id=%s, read_id=%s, level: %s, msg: %s" % (silo.pk, read.pk, msg.get("level"), msg.get("msg")))
 
         self.stdout.write("done executing gsheet export command job")

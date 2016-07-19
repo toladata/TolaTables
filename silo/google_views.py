@@ -20,6 +20,14 @@ from apiclient.discovery import build
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag
 from tola.util import siloToDict, combineColumns
 
+
+########################################################################################
+###################### OBSOLETE - NOT IN USE ###########################################
+# THE CODE IN THIS FILE IS KEPT ONLY FOR REFERENCE PURPOSES. ALL OF THE FUNCTIONALITY
+# HAS BEEN MIGRATED TO VER. 4 OF GOOGLE SHEETS API. THE CODE IN THIS FILE IS USING VER. 3
+# GOOGLE GSHEET API
+########################################################################################
+
 CLIENT_SECRETS = os.path.join(os.path.dirname(__file__), 'client_secrets.json')
 FLOW = flow_from_clientsecrets(
     CLIENT_SECRETS,
