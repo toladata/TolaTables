@@ -246,7 +246,7 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
     except Exception as e:
         logger.error("Silo with id=%s does not exist" % silo_id)
         msgs.append({"level": messages.ERROR,
-                    "msg": "Requires Google Authorization Setup",
+                    "msg": "Silo with id=%s does not exist" % silo_id,
                     "redirect": reverse('listSilos')})
         return msgs
 
