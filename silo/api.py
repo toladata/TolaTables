@@ -89,16 +89,15 @@ from rest_framework.response import Response
 
 def tables_api_view(request):
     """
-   Get TolaTables Tables owned by a user logged in Tolawork,
+   Get TolaTables Tables owned by a user logged in Tolawork & a list of logged in Users,
     """
     if request.method == 'GET':
         user = request.GET.get('email')
-        country = request.GET.get('country')
 
         user_id = User.objects.get(email=user).id
 
         tables = Silo.objects.filter(owner=user_id).order_by('-create_date')
-        table_logged_users = logged_in_users(country)
+        table_logged_users = logged_in_users()
 
         table_serializer = SiloModelSerializer(tables, many=True)
         user_serializer = LoggedUserSerializer(table_logged_users, many=True)
@@ -113,11 +112,11 @@ def tables_api_view(request):
         return Response(tables_data)
 
 #return users logged into TolaActivity
-def logged_in_users(country):
+def logged_in_users():
 
     logged_users = {}
 
-    logged_users = LoggedUser.objects.filter(country=country).order_by('username')
+    logged_users = LoggedUser.objects.order_by('username')
     for logged_user in logged_users:
         logged_user.queue = 'TolaTables'
 
