@@ -53,11 +53,10 @@ def saveDataToSilo(silo, data):
 
     Keyword arguments:
     silo -- the silo object, which is meta data for its labe_value_store
-    data -- a python dictionary of dictionaries. stored in MONGODB
+    data -- a python list of dictionaries. stored in MONGODB
     """
     unique_fields = silo.unique_fields.all()
     skipped_rows = set()
-    #print(data)
     for counter, row in enumerate(data):
         # reseting filter_criteria for each row
         filter_criteria = {}
@@ -80,17 +79,17 @@ def saveDataToSilo(silo, data):
 
         try:
             lvs = LabelValueStore.objects.get(**filter_criteria)
-            print("updating")
+            #print("updating")
             setattr(lvs, "edit_date", timezone.now())
         except LabelValueStore.DoesNotExist as e:
             lvs = LabelValueStore()
             lvs.silo_id = silo.pk
             lvs.create_date = timezone.now()
-            print("creating")
+            #print("creating")
         except LabelValueStore.MultipleObjectsReturned as e:
             for k,v in filter_criteria.iteritems():
                 skipped_rows.add("%s=%s" % (k,v))
-            print("skipping")
+            #print("skipping")
             continue
 
         counter = 0
@@ -100,7 +99,7 @@ def saveDataToSilo(silo, data):
             elif key == "id" or key == "_id": key = "user_assigned_id"
             elif key == "edit_date": key = "editted_date"
             elif key == "create_date": key = "created_date"
-            setattr(lvs, key.replace(".", "_"), val)
+            setattr(lvs, key.replace(".", "_").replace("$", "USD"), val)
             counter += 1
         lvs.save()
 

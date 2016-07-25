@@ -435,26 +435,9 @@ def uploadFile(request, id):
             silo_id = silo.id
 
             #create object from JSON String
-            data = csv.reader(read_obj.file_data)
-            labels = None
-            try:
-                labels = data.next() #First row of CSV should be Column Headers
-            except IOError as e:
-                messages.error(request, "The CSV file could not be found")
-                return HttpResponseRedirect(reverse_lazy('showRead', kwargs={'id': read_obj.id},))
-
-            for row in data:
-                lvs = LabelValueStore()
-                lvs.silo_id = silo_id
-                for col_counter, val in enumerate(row):
-                    key = str(labels[col_counter]).replace(".", "_").replace("$", "USD")
-                    if key != "" and key is not None and key != "silo_id" and key != "id" and key != "_id":
-                        if key == "create_date": key = "created_date"
-                        if key == "edit_date": key = "editted_date"
-                        setattr(lvs, key, val)
-                lvs.create_date = timezone.now()
-                lvs.save()
-            combineColumns(silo_id)
+            #data = csv.reader(read_obj.file_data)
+            reader = csv.DictReader(read_obj.file_data)
+            res = saveDataToSilo(silo, reader)
             return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
         else:
             messages.error(request, "There was a problem with reading the contents of your file" + form.errors)
