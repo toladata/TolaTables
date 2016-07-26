@@ -79,7 +79,7 @@ urlpatterns =[
                         #merge select columns
                         url(r'^merge_columns', views.mergeColumns, name='mergeColumns'),
                         url(r'^doMerge', views.doMerge, name='doMerge'),
-                        url(r'^updateMergedTable/(?P<pk>\w+)/$', views.updateMergeSilo, name='updateMergedTable'),
+                        url(r'^updateMergedTable/(?P<pk>\w+)/$', views.updateSiloData, name='updateMergedTable'),
 
                         #view silo detail
                         url(r'^silo_detail/(?P<id>\w+)/$', views.siloDetail, name='siloDetail'),

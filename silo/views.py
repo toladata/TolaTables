@@ -593,106 +593,58 @@ def siloDetail(request,id):
         messages.info(request, "You don't have the permission to see data in this table")
         return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
-
 @login_required
-def updateMergeSilo(request, pk):
+def updateSiloData(request, pk):
     silo = None
-    mapping = None
-
+    merged_silo_mapping = None
+    unique_field_exist = False
     try:
-        silo = Silo.objects.get(id=pk)
+        silo = Silo.objects.get(pk=pk)
     except Silo.DoesNotExist as e:
-        return HttpResponse("Table (%s) does not exist" % pk)
+        messages.error(request,"Table with id=%s does not exist." % pk)
 
-    if silo.unique_fields.all().count() == 0:
-        messages.error(request, "To update a table it must have a unique column set.")
-        return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': pk},))
+    unique_field_exist = silo.unique_fields.exists()
+    if  unique_field_exist == False:
+        messages.error(request, "To update data in a table, a unique column must be set")
 
-    try:
-        mapping = MergedSilosFieldMapping.objects.get(merged_silo = silo.pk)
-        left_table_id = mapping.from_silo.pk
-        right_table_id = mapping.to_silo.pk
-        data = mapping.mapping
-
-        merged_data = mergeTwoSilos(data, left_table_id, right_table_id)
+    if silo and unique_field_exist:
         try:
-            merged_data['status']
-            messages.error(request, 'Failed to apply %s to column, %s : %s ' % (merge_type, col, e.message))
-            return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': pk},))
-        except Exception as e:
+            merged_silo_mapping = MergedSilosFieldMapping.objects.get(merged_silo = silo.pk)
+        except MergedSilosFieldMapping.DoesNotExist as e:
             pass
 
-        lvs = LabelValueStore.objects(silo_id=silo.id)
-        num_rows_deleted = lvs.delete()
+        # if merge mapping exist then it must be a merged silo so re-apply the merge fn.
+        if merged_silo_mapping:
+            left_table_id = merged_silo_mapping.from_silo.pk
+            right_table_id = merged_silo_mapping.to_silo.pk
+            mapping = merged_silo_mapping.mapping
+            merged_data = mergeTwoSilos(mapping, left_table_id, right_table_id)
 
-        # put the new silo data in mongo db.
-        for counter, row in enumerate(merged_data):
-            lvs = LabelValueStore()
-            lvs.silo_id = silo.pk
-            for l, v in row.iteritems():
-                if l == 'silo_id' or l == '_id' or l == 'create_date' or l == 'edit_date':
-                    continue
-                else:
-                    setattr(lvs, l, v)
-            lvs.create_date = timezone.now()
-            result = lvs.save()
-
-    except MergedSilosFieldMapping.DoesNotExist as e:
-        # Check if the silo has a source from ONA: and if so, then update its data
-        read_type = ReadType.objects.get(read_type="ONA")
-        reads = silo.reads.filter(type=read_type.pk)
-        for read in reads:
-            ona_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="ONA")
-            response = requests.get(read.read_url, headers={'Authorization': 'Token %s' % ona_token.token})
-            data = json.loads(response.content)
-
-            # import data into this silo
-            num_rows = len(data)
-            if num_rows == 0:
-                continue
-
-            counter = None
-            #loop over data and insert create and edit dates and append to dict
-            for counter, row in enumerate(data):
-                skip_row = False
-                #if the value of unique column is already in existing_silo_data then skip the row
-                for unique_field in silo.unique_fields.all():
-                    filter_criteria = {'silo_id': silo.pk, unique_field.name: row[unique_field.name]}
-                    if LabelValueStore.objects.filter(**filter_criteria).count() > 0:
-                        skip_row = True
-                        continue
-                if skip_row == True:
-                    continue
-                # at this point, the unique column value is not in existing data so append it.
-                lvs = LabelValueStore()
-                lvs.silo_id = silo.pk
-                for new_label, new_value in row.iteritems():
-                    if new_label is not "" and new_label is not None and new_label is not "edit_date" and new_label is not "create_date":
-                        setattr(lvs, new_label, new_value)
-                lvs.create_date = timezone.now()
-                result = lvs.save()
-
-            if num_rows == (counter+1):
-                combineColumns(silo.pk)
-        # Now if the same table has sources from Google Sheet import those datasets as well.
-        # reset num_rows
-        num_rows = 0
-        #read_types = ReadType.objects.filter(Q(read_type="GSheet Import") | Q(read_type="Google Spreadsheet"))
-        read_types = ReadType.objects.filter(read_type="GSheet Import")
-        reads = silo.reads.filter(reduce(or_, [Q(type=read.id) for read in read_types]))
-        for read in reads:
-            # get gsheet authorized client and the gsheet id to fetch its data into the silo
-            storage = Storage(GoogleCredentialsModel, 'id', silo.owner, 'credential')
-            credential = storage.get()
-            credential_json = json.loads(credential.to_json())
-            #self.stdout.write("%s" % credential_json)
-            if credential is None or credential.invalid == True:
-                messages.error(request, "There was a Google credential problem with user: %s for gsheet %s" % (request.user, read.pk))
-                continue
-
-            msgs = import_from_gsheet_helper(request.user, silo.id, None, read.resource_id)
-            for msg in msgs:
-                messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
+            if 'status' in merged_data:
+                messages.add_message(request, merged_data['status'], merged_data['message'])
+            else:
+                lvs = LabelValueStore.objects(silo_id=silo.id)
+                num_rows_deleted = lvs.delete()
+                print(num_rows_deleted)
+                res = saveDataToSilo(silo, merged_data)
+                print(res)
+        else:
+            # It's not merged silo so update data from all of its sources.
+            reads = silo.reads.all()
+            for read in reads:
+                if read.type.read_type == "ONA":
+                    ona_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="ONA")
+                    response = requests.get(read.read_url, headers={'Authorization': 'Token %s' % ona_token.token})
+                    data = json.loads(response.content)
+                    res = saveDataToSilo(silo, data)
+                elif read.type.read_type == "CSV":
+                    messages.info(request, "When updating data in a table, its CSV source is ignored.")
+                elif read.type.read_type == "JSON":
+                    pass
+                elif read.type.read_type == "GSheet Import":
+                    msgs = import_from_gsheet_helper(request.user, silo.id, None, read.resource_id)
+                    for msg in msgs:
+                        messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
 
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': pk},))
 
