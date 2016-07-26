@@ -640,7 +640,8 @@ def updateSiloData(request, pk):
                 elif read.type.read_type == "CSV":
                     messages.info(request, "When updating data in a table, its CSV source is ignored.")
                 elif read.type.read_type == "JSON":
-                    pass
+                    result = importJSON(read, request.user, None, None, silo.pk, None)
+                    messages.add_message(request, result[0], result[1])
                 elif read.type.read_type == "GSheet Import":
                     msgs = import_from_gsheet_helper(request.user, silo.id, None, read.resource_id)
                     for msg in msgs:

@@ -9,7 +9,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 
 from silo.models import Read, Silo, LabelValueStore
-
+from django.contrib import messages
 import pymongo
 from bson.objectid import ObjectId
 from pymongo import MongoClient
@@ -138,35 +138,10 @@ def importJSON(read_obj, user, remote_user = None, password = None, silo_id = No
         data = json.load(json_file)
         json_file.close()
 
-        #loop over data and insert create and edit dates and append to dict
-        """
-        for row in data:
-            filter_criteria = {'silo_id': silo.id}
-            #if the value of unique column is already in existing_silo_data then skip the row
-            if silo.unique_fields.all().exists():
-                for unique_field in silo.unique_fields.all():
-                    try:
-                        filter_criteria.update({unique_field.name: row[unique_field.name]})
-                    except Exception as e:
-                        pass
-                if len(filter_criteria) > 1 and LabelValueStore.objects.filter(**filter_criteria).count() > 0:
-                    continue
-
-            lvs = LabelValueStore()
-            lvs.silo_id = silo_id
-            for new_label, new_value in row.iteritems():
-                if new_label is not "" and new_label is not None and new_label is not "edit_date" and new_label is not "create_date":
-                    if new_label == "id" or new_label == "_id": new_label="user_assigned_id"
-                    setattr(lvs, new_label, new_value)
-            lvs.create_date = timezone.now()
-            lvs.save()
-        combineColumns(silo_id)
-        """
         skipped_rows = saveDataToSilo(silo, data)
-        print(skipped_rows)
-        return ("success", "Data imported successfully.", str(silo_id))
+        return (messages.SUCCESS, "Data imported successfully.", str(silo_id))
     except Exception as e:
-        return ("error", "An error has occured: %s" % e, str(silo_id))
+        return (messages.ERROR, "An error has occured: %s" % e, str(silo_id))
 
 def getSiloColumnNames(id):
     lvs = LabelValueStore.objects(silo_id=id).to_json()
