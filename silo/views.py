@@ -3,6 +3,7 @@ import urllib2
 import json
 import base64
 import csv
+import logging
 from operator import and_, or_
 from collections import OrderedDict
 from django.core.urlresolvers import reverse_lazy
@@ -32,10 +33,9 @@ from gviews_v4 import import_from_gsheet_helper
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites
 
 from .tables import define_table
-from tola.util import getSiloColumnNames
 
 from django.contrib.auth.decorators import login_required
-from tola.util import siloToDict, combineColumns, importJSON
+from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames
 
 from django.core.urlresolvers import reverse
 
@@ -240,65 +240,56 @@ def saveAndImportRead(request):
     try:
         silo_id = int(request.POST.get("silo_id", None))
     except Exception as e:
-         #print(e)
          return HttpResponse("Silo ID can only be an integer")
 
     try:
-        read, created = Read.objects.get_or_create(read_name=name, owner=owner,
+        read, read_created = Read.objects.get_or_create(read_name=name, owner=owner,
             defaults={'read_url': url, 'type': read_type, 'description': description})
-        if created: read.save()
+        if read_created: read.save()
     except Exception as e:
-        #print(e)
         return HttpResponse("Invalid name and/or URL")
 
     existing_silo_cols = []
     new_cols = []
     show_mapping = False
 
-    if silo_id <= 0:
-        # create a new silo by the name of "name"
-        silo = Silo(name=name, public=False, owner=owner)
-        silo.save()
+    silo, silo_created = Silo.objects.get_or_create(id=silo_id, defaults={"name": name,
+                                      "public": False,
+                                      "owner": owner})
+    if silo_created or read_created:
         silo.reads.add(read)
-    else:
-        # import into existing silo
-        # Compare the columns of imported data with existing silo in case it needs merging
-        silo = Silo.objects.get(pk=silo_id)
-        lvs = json.loads(LabelValueStore.objects(silo_id=silo.id).to_json())
-        for l in lvs:
-            existing_silo_cols.extend(c for c in l.keys() if c not in existing_silo_cols)
+    elif read not in silo.reads.all():
+        silo.reads.add(read)
 
-        for row in data:
-            new_cols.extend(c for c in row.keys() if c not in new_cols)
+    """
+    #
+    # THIS WILL BE ADDED LATER ONCE THE saveDataToSilo REFACTORING IS COMPLETE!
+    #
+    # Get all of the unique cols for this silo into an array
+    lvs = json.loads(LabelValueStore.objects(silo_id=silo.id).to_json())
+    for l in lvs:
+        existing_silo_cols.extend(c for c in l.keys() if c not in existing_silo_cols)
 
-        for c in existing_silo_cols:
-            if c == "silo_id" or c == "create_date": continue
-            if c not in new_cols: show_mapping = True
-            if show_mapping == True:
-                params = {'getSourceFrom':existing_silo_cols, 'getSourceTo':new_cols, 'from_silo_id':0, 'to_silo_id':silo.id}
-                response = render_to_response("display/merge-column-form-inner.html", params, context_instance=RequestContext(request))
-                response['show_mapping'] = '1'
-                return response
+    # Get all of the unique cols of the fetched data in a separate array
+    for row in data:
+        new_cols.extend(c for c in row.keys() if c not in new_cols)
 
-    if silo:
-        # import data into this silo
-        num_rows = len(data)
-        counter = None
-        #loop over data and insert create and edit dates and append to dict
-        for counter, row in enumerate(data):
-            lvs = LabelValueStore()
-            lvs.silo_id = silo.pk
-            for new_label, new_value in row.iteritems():
-                if new_label is not "" and new_label is not None and new_label is not "edit_date" and new_label is not "create_date":
-                    setattr(lvs, new_label, new_value)
-            lvs.create_date = timezone.now()
-            result = lvs.save()
+    # Loop through the unique cols of fetched data; if there are cols that do
+    # no exist in the existing silo, then show mapping.
+    for c in new_cols:
+        if c == "silo_id" or c == "create_date" or c == "edit_date" or c == "id": continue
+        if c not in existing_silo_cols: show_mapping = True
+        if show_mapping == True:
+            # store the newly fetched data into a temp table and then show mapping
+            params = {'getSourceFrom':existing_silo_cols, 'getSourceTo':new_cols, 'from_silo_id':0, 'to_silo_id':silo.id}
+            response = render_to_response("display/merge-column-form-inner.html", params, context_instance=RequestContext(request))
+            response['show_mapping'] = '1'
+            return response
+    """
 
-        if num_rows == (counter+1):
-            combineColumns(silo_id)
-            return HttpResponse("View table data at <a href='/silo_detail/%s' target='_blank'>See your data</a>" % silo.pk)
-
-    return HttpResponse(read.pk)
+    # import data into this silo
+    res = saveDataToSilo(silo, data)
+    return HttpResponse("View table data at <a href='/silo_detail/%s' target='_blank'>See your data</a>" % silo.pk)
 
 @login_required
 def getOnaForms(request):
@@ -444,26 +435,9 @@ def uploadFile(request, id):
             silo_id = silo.id
 
             #create object from JSON String
-            data = csv.reader(read_obj.file_data)
-            labels = None
-            try:
-                labels = data.next() #First row of CSV should be Column Headers
-            except IOError as e:
-                messages.error(request, "The CSV file could not be found")
-                return HttpResponseRedirect(reverse_lazy('showRead', kwargs={'id': read_obj.id},))
-
-            for row in data:
-                lvs = LabelValueStore()
-                lvs.silo_id = silo_id
-                for col_counter, val in enumerate(row):
-                    key = str(labels[col_counter]).replace(".", "_").replace("$", "USD")
-                    if key != "" and key is not None and key != "silo_id" and key != "id" and key != "_id":
-                        if key == "create_date": key = "created_date"
-                        if key == "edit_date": key = "editted_date"
-                        setattr(lvs, key, val)
-                lvs.create_date = timezone.now()
-                lvs.save()
-            combineColumns(silo_id)
+            #data = csv.reader(read_obj.file_data)
+            reader = csv.DictReader(read_obj.file_data)
+            res = saveDataToSilo(silo, reader)
             return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
         else:
             messages.error(request, "There was a problem with reading the contents of your file" + form.errors)

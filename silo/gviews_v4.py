@@ -244,9 +244,9 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
     try:
         silo = Silo.objects.get(pk=silo_id)
     except Exception as e:
-        logger.erro("Silo with id=%s does not exist" % silo_id)
+        logger.error("Silo with id=%s does not exist" % silo_id)
         msgs.append({"level": messages.ERROR,
-                    "msg": "Requires Google Authorization Setup",
+                    "msg": "Silo with id=%s does not exist" % silo_id,
                     "redirect": reverse('listSilos')})
         return msgs
 
@@ -285,17 +285,19 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
     # the first element in the array is a placeholder for column names
     rows = [{"values": []}]
     headers = []
-    silo_data = LabelValueStore.objects(silo_id=silo_id)
+    silo_data = json.loads(LabelValueStore.objects(silo_id=silo_id).to_json())
 
     for row in silo_data:
         values = [] # Get all of the values of a single mongodb document into this array
+        index = 0
         for i, col in enumerate(row):
             if col == "id" or col == "_id" or col == "silo_id" or col == "created_date" or col == "create_date" or col == "edit_date" or col == "editted_date":
                 continue
             if col not in headers:
                 headers.append(col)
 
-            values.append({"userEnteredValue": {"stringValue": smart_text(row[col])}})
+            values.append({"userEnteredValue": {"stringValue": smart_text(row[headers[index]])}})
+            index += 1
         rows.append({"values": values})
 
     # prepare column names as a header row in spreadsheet
