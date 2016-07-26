@@ -42,24 +42,5 @@ class Command(BaseCommand):
             ona_token = ThirdPartyTokens.objects.get(user=user.pk, name="ONA")
             response = requests.get(read.read_url, headers={'Authorization': 'Token %s' % ona_token.token})
             data = json.loads(response.content)
-
-            # import data into this silo
-            num_rows = len(data)
-            if num_rows == 0:
-                continue
-
-            counter = None
-            #loop over data and insert create and edit dates and append to dict
-            for counter, row in enumerate(data):
-                lvs = LabelValueStore()
-                lvs.silo_id = silo.pk
-                for new_label, new_value in row.iteritems():
-                    if new_label is not "" and new_label is not None and new_label is not "edit_date" and new_label is not "create_date":
-                        setattr(lvs, new_label, new_value)
-                lvs.create_date = timezone.now()
-                result = lvs.save()
-
-            if num_rows == (counter+1):
-                combineColumns(silo_id)
-
+            saveDataToSilo(silo, data)
             self.stdout.write('Successfully fetched the READ_ID, "%s", from database' % read_id)
