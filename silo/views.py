@@ -827,19 +827,7 @@ def doMerge(request):
     # Create a new silo
     new_silo = Silo(name=merged_silo_name , public=False, owner=request.user)
     new_silo.save()
-
-    # put the new silo data in mongo db.
-    for counter, row in enumerate(merged_data):
-        lvs = LabelValueStore()
-        lvs.silo_id = new_silo.pk
-        for l, v in row.iteritems():
-            if l == 'silo_id' or l == '_id' or l == 'create_date' or l == 'edit_date':
-                continue
-            else:
-                setattr(lvs, l, v)
-        lvs.create_date = timezone.now()
-        result = lvs.save()
-
+    res = saveDataToSilo(new_silo, merged_data)
     mapping = MergedSilosFieldMapping(from_silo=left_table, to_silo=right_table, merged_silo=new_silo, mapping=data)
     mapping.save()
     return JsonResponse({'status': "success",  'message': 'The merged table is accessible at <a href="/silo_detail/%s/" target="_blank">Merged Table</a>' % new_silo.pk})
