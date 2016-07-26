@@ -189,9 +189,11 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
 
         for c, col in enumerate(row):
             key = headers[c]
-            if key == "" or key is None or key == "silo_id" or key == "create_date" or key == "edit_date": continue
-            if key == "id" or key == "_id": key = "user_assigned_id"
-            setattr(lvs, key.replace(".", "_"), row[c])
+            if key == "" or key is None or key == "silo_id": continue
+            elif key == "id" or key == "_id": key = "user_assigned_id"
+            elif key == "edit_date": key = "editted_date"
+            elif key == "create_date": key = "created_date"
+            setattr(lvs, key.replace(".", "_").replace("$", "USD"), row[c])
         lvs.silo_id = silo.id
         lvs.create_date = timezone.now()
         lvs.save()
