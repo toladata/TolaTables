@@ -90,7 +90,7 @@ def mergeTwoSilos(data, left_table_id, right_table_id):
                                 else:
                                     mapped_value = float(mapped_value) + float(row[col])
                             except Exception as e1:
-                                return {"status": "danger", "message": "The value, %s, is not a numeric value." % mapped_value}
+                                return {"status": "danger", "message": "The merge-type, %s, requires a numeric value. But the value, %s, is not a numeric value." % (merge_type, mapped_value)}
                         else:
                             pass
                     except Exception as e:
