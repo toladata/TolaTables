@@ -54,5 +54,5 @@ def export_to_tola_activity(request, id):
     if len(data_failed_to_post) == 0:
         json_formatted_data = {"status": "Data pushed successfully to TolaActivity"}
     else:
-        json_formatted_data = {"status": "Some Project Agreements Failed to Post.", "data": data_failed_to_post }
+        json_formatted_data = {"status": "Some Project Agreements Failed to Post to TolaActivity.", "data": data_failed_to_post }
     return JsonResponse(json_formatted_data)
