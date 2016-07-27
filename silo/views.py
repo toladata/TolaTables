@@ -239,6 +239,7 @@ def saveAndImportRead(request):
 
     try:
         silo_id = int(request.POST.get("silo_id", None))
+        if silo_id == 0: silo_id = None
     except Exception as e:
          return HttpResponse("Silo ID can only be an integer")
 
