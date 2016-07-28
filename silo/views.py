@@ -1,48 +1,50 @@
 import datetime
-import urllib2
 import json
-import base64
 import csv
+import requests
+from requests.auth import HTTPDigestAuth
 import logging
 from operator import and_, or_
 from collections import OrderedDict
-from django.core.urlresolvers import reverse_lazy
+import pymongo
+from pymongo import MongoClient
+from bson.objectid import ObjectId
+from bson import CodecOptions, SON
+from bson.json_util import dumps
 
-from .forms import ReadForm, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm
-from django.contrib import messages
-from django.contrib.auth.models import User
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import reverse, reverse_lazy
 from django.http import HttpResponseForbidden,\
     HttpResponseRedirect, HttpResponseNotFound, HttpResponseBadRequest,\
     HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render_to_response, get_object_or_404, redirect, render
-from django.http import HttpResponse
-from django.template import RequestContext, Context
-from django.db import models
-from django.shortcuts import render_to_response
-from django.shortcuts import render
+from django.utils import timezone
+from django.utils.encoding import smart_str, smart_text
 from django.db.models import Max, F, Q
 from django.views.decorators.csrf import csrf_protect
-import django_tables2 as tables
-from django_tables2 import RequestConfig
+from django.template import RequestContext, Context
+from django.conf import settings
+
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 
 from oauth2client.contrib.django_orm import Storage
-from .models import GoogleCredentialsModel
-#from google_views import *
-from gviews_v4 import import_from_gsheet_helper
-from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites
-
+from django_tables2 import RequestConfig
 from .tables import define_table
-
-from django.contrib.auth.decorators import login_required
+from silo.custom_csv_dict_reader import CustomDictReader
+from .models import GoogleCredentialsModel
+from gviews_v4 import import_from_gsheet_helper
 from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames
 
-from django.core.urlresolvers import reverse
+from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites
+from .forms import ReadForm, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm
 
-from django.utils import timezone
-from django.utils.encoding import smart_str
-from django.utils.encoding import smart_text
+uri = 'mongodb://localhost/tola'
+db = MongoClient(settings.MONGODB_HOST).tola
 
+# To preserve fields order when reading BSON from MONGO
+opts = CodecOptions(document_class=SON)
+store = db.label_value_store.with_options(codec_options=opts)
 
 def mergeTwoSilos(data, left_table_id, right_table_id):
     """
@@ -189,9 +191,7 @@ def editSilo(request, id):
         'form': form, 'silo_id': id, "silo": edited_silo,
     })
 
-from silo.forms import *
-import requests
-from requests.auth import HTTPDigestAuth
+
 
 
 def tolaCon(request):
@@ -437,7 +437,8 @@ def uploadFile(request, id):
 
             #create object from JSON String
             #data = csv.reader(read_obj.file_data)
-            reader = csv.DictReader(read_obj.file_data)
+            #reader = csv.DictReader(read_obj.file_data)
+            reader = CustomDictReader(read_obj.file_data)
             res = saveDataToSilo(silo, reader)
             return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
         else:
@@ -564,23 +565,21 @@ def siloDetail(request,id):
     owner = silo.owner
     public = silo.public
 
-    lvs = json.loads(LabelValueStore.objects(silo_id = id).to_json())
+    # Loads the bson objects from mongo
+    bsondata = store.find({"silo_id": silo.pk})
+    # Now convert bson to json string using OrderedDict to main fields order
+    json_string = dumps(bsondata)
+    # Now decode the json string into python object
+    data = json.loads(json_string, object_pairs_hook=OrderedDict)
+
     cols = []
-    for l in lvs:
-        cols.extend([k for k in l.keys() if k not in cols and k != '_id' and k != 'silo_id' and k != 'create_date' and k != 'edit_date' and k != 'source_table_id'])
-    #cols = json.dumps(cols)
+    for row in data:
+        #cols.extend([k for k in row.keys() if k not in cols and k != '_id' and k != 'silo_id' and k != 'create_date' and k != 'edit_date' and k != 'source_table_id'])
+        cols.extend([k for k in row.keys() if k not in cols])
 
-    #if str(owner.username) == str(request.user) or public:
     if silo.owner == owner or silo.public == True or owner__in == silo.shared:
-        table = LabelValueStore.objects(silo_id=id).to_json()
-        decoded_json = json.loads(table)
-        column_names = []
-        #column_names = decoded_json[0].keys()
-        for row in decoded_json:
-            column_names.extend([k for k in row.keys() if k not in column_names])
-
-        if decoded_json:
-            silo_table = define_table(column_names)(decoded_json)
+        if data and cols:
+            silo_table = define_table(cols)(data)
 
             #This is needed in order for table sorting to work
             RequestConfig(request).configure(silo_table)
@@ -781,10 +780,7 @@ def mergeColumns(request):
 
     return render(request, "display/merge-column-form.html", {'getSourceFrom':getSourceFrom, 'getSourceTo':getSourceTo, 'from_silo_id':from_silo_id, 'to_silo_id':to_silo_id})
 
-import pymongo
-from bson.objectid import ObjectId
-from pymongo import MongoClient
-uri = 'mongodb://localhost/tola'
+
 
 def doMerge(request):
 
