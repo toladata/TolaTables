@@ -65,7 +65,6 @@ urlpatterns =[
                         url(r'^onalogin/$', views.getOnaForms, name='getOnaForms'),
                         url(r'^provider_logout/(?P<provider>\w+)/$', views.providerLogout, name='providerLogout'),
                         url(r'^saveAndImportRead/$', views.saveAndImportRead, name='saveAndImportRead'),
-                        url(r'^tolacon/$', views.tolaCon, name='tolacon'),
                         url(r'^toggle_silo_publicity/$', views.toggle_silo_publicity, name='toggle_silo_publicity'),
 
                         ###DISPLAY
@@ -116,9 +115,6 @@ urlpatterns =[
                         url(r'^import_gsheet/(?P<id>\d+)/$', gviews_v4.import_from_gsheet, name='import_gsheet'),
                         url(r'^get_sheets_from_google_spredsheet/$', gviews_v4.get_sheets_from_google_spredsheet, name='get_sheets'),
 
-                        #local login COmment out local login for now
-                        #url(r'^login/$', 'django.contrib.auth.views.login', name='login'),
-                        #url(r'^accounts/login/$', 'django.contrib.auth.views.login', name='login'),
                         url(r'^accounts/login/$', auth.views.login, name='login'),
                         url(r'^accounts/logout/$', tola_views.logout_view, name='logout'),
 

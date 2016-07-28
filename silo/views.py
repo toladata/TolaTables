@@ -192,25 +192,6 @@ def editSilo(request, id):
     })
 
 
-
-
-def tolaCon(request):
-    params = {'_method': 'OPTIONS'}
-    #response = requests.post("https://tola-activity-dev.mercycorps.org/api/proposals/", params)
-    response = requests.get("https://tola-activity-dev.mercycorps.org/api/")
-    #jsondata = json.loads(response.content)['actions']['POST']
-    jsondata = json.loads(response.content)
-    """
-    data = {}
-    for field in jsondata:
-        data[field] = {'label': jsondata[field]['label'], 'type': jsondata[field]['type']}
-
-    #print (data)
-    """
-    return render(request, 'silo/tolaactivity.html', {'data': jsondata })
-
-
-
 @login_required
 def saveAndImportRead(request):
     """
