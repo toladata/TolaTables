@@ -46,7 +46,120 @@ db = MongoClient(settings.MONGODB_HOST).tola
 opts = CodecOptions(document_class=SON)
 store = db.label_value_store.with_options(codec_options=opts)
 
-def mergeTwoSilos(data, left_table_id, right_table_id):
+
+def mergeTwoSilos(data, lsid, rsid):
+    mappings = json.loads(data)
+
+    l_unmapped_cols = mappings.pop('left_unmapped_cols')
+    r_unampped_cols = mappings.pop('right_unmapped_cols')
+
+    merged_cols = []
+
+    l_silo_data = LabelValueStore.objects(silo_id=lsid)
+
+    r_silo_data = LabelValueStore.objects(silo_id=rsid)
+
+    # Loop through the mapped cols and add them to the list of merged_cols
+    for k, v in mappings.iteritems():
+        col_name = v['right_table_col']
+        if col_name not in merged_cols: merged_cols.append(col_name)
+
+    for lef_col in l_unmapped_cols:
+        if lef_col not in merged_cols: merged_cols.append(lef_col)
+
+    for right_col in r_unampped_cols:
+        if right_col not in merged_cols: merged_cols.append(right_col)
+
+    # Get the correct set of data from the right table
+    for row in r_silo_data:
+        merged_row = OrderedDict()
+        for k in row:
+            if k not in merged_cols: continue
+            merged_row[k] = row[k]
+        merged_row["silo_id"] = 1111
+        merged_row["create_date"] = timezone.now()
+        db.label_value_store.insert(merged_row)
+
+
+    try:
+        lsilo = Silo.objects.get(pk=lsid)
+    except Silo.DoesNotExist as e:
+        logger.error("Left Silo does not exist: silo_id=%s" % lsid)
+
+    l_unique_fields = lsilo.unique_fields.all()
+    # now merge through left table and apply the mapping
+    for row in l_silo_data:
+        merged_row = OrderedDict()
+        # Loop through the column mappings for each row in left_table.
+        for k, v in mappings.iteritems():
+            merge_type = v['merge_type']
+            left_cols = v['left_table_cols']
+            right_col = v['right_table_col']
+
+            # if merge_type is specified then there must be multiple columns in the left_cols array
+            if merge_type:
+                mapped_value = ''
+                for col in left_cols:
+                    if merge_type == 'Sum' or merge_type == 'Avg':
+                        try:
+                            if mapped_value == '':
+                                mapped_value = float(row[col])
+                            else:
+                                mapped_value = float(mapped_value) + float(row[col])
+                        except Exception as e:
+                            return {'status': "danger",  'message': 'Failed to apply %s to column, %s : %s ' % (merge_type, col, e.message)}
+                    else:
+                        mapped_value += ' ' + smart_str(row[col])
+
+                # Now calculate avg if the merge_type was actually "Avg"
+                if merge_type == 'Avg':
+                    mapped_value = mapped_value / len(left_cols)
+
+            # only one col in left table is mapped to one col in the right table.
+            else:
+                col = str(left_cols[0])
+                try:
+                    mapped_value = row[col]
+                except KeyError as e:
+                    # When updating data in merged_table at a later time, it is possible
+                    # the origianl source tables may have had some columns removed in which
+                    # we might get a KeyError so in that case we just skip it.
+                    continue
+
+            #right_col is used as in index of merged_row because one or more left cols map to one col in right table
+            merged_row[right_col] = mapped_value
+
+        # Get data from left unmapped columns:
+        for col in l_unmapped_cols:
+            if col in row:
+                merged_row[col] = row[col]
+
+        filter_criteria = {}
+        for uf in l_unique_fields:
+            try:
+                filter_criteria.update({str(uf.name): str(row[uf.name])})
+            except KeyError:
+                # when this excpetion occurs, it means that the col identified
+                # as the unique_col is not present in all rows of the left_table
+                logger.warning("The field, %s, is not present in table id=%s" % (uf.name, lsid))
+                pass
+
+        if not filter_criteria:
+            logger.error("There must be a filter criteria")
+            return
+
+        #using the right table id becuase the filter_criteria is applied to right table
+        # to find a matching record and update it with data from left table.
+        filter_criteria.update({'silo_id': rsid})
+
+        # Now update or insert a row if there is no matching record available
+        db.label_value_store.update_one(filter_criteria, {"$set": merged_row}, upsert=True)
+
+        # Make sure all rows have the same cols in the merged_silo
+        combineColumns(rsid)
+
+        return "OK"
+def mergeTwoSilos2(data, left_table_id, right_table_id):
     """
     :param data: Mapping of the columns
     :param left_table_id: Data to merge from
@@ -608,11 +721,10 @@ def updateSiloData(request, pk):
             if 'status' in merged_data:
                 messages.add_message(request, merged_data['status'], merged_data['message'])
             else:
-                lvs = LabelValueStore.objects(silo_id=silo.id)
-                num_rows_deleted = lvs.delete()
-                print(num_rows_deleted)
-                res = saveDataToSilo(silo, merged_data)
-                print(res)
+                #lvs = LabelValueStore.objects(silo_id=silo.id)
+                #num_rows_deleted = lvs.delete()
+                #res = saveDataToSilo(silo, merged_data)
+                messages.add_message(request, messages.SUCCESS, "Done done!")
         else:
             # It's not merged silo so update data from all of its sources.
             reads = silo.reads.all()
