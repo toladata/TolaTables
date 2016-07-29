@@ -39,7 +39,6 @@ from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, ge
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites
 from .forms import ReadForm, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm
 
-uri = 'mongodb://localhost/tola'
 db = MongoClient(settings.MONGODB_HOST).tola
 
 # To preserve fields order when reading BSON from MONGO
@@ -640,8 +639,6 @@ def updateEntireColumn(request):
     colname = request.POST.get("update_col", None)
     new_val = request.POST.get("new_val", None)
     if silo_id and colname and new_val:
-        client = MongoClient(uri)
-        db = client.tola
         db.label_value_store.update_many(
                 {"silo_id": silo_id},
                     {
@@ -759,8 +756,6 @@ def newColumn(request,id):
     if request.method == 'POST':
         form = NewColumnForm(request.POST)  # A form bound to the POST data
         if form.is_valid():  # All validation rules pass
-            client = MongoClient(uri)
-            db = client.tola
             label = form.cleaned_data['new_column_name']
             value = form.cleaned_data['default_value']
             #insert a new column into the existing silo
@@ -792,8 +787,6 @@ def editColumns(request,id):
     if request.method == 'POST':
         form = EditColumnForm(request.POST or None, extra = data)  # A form bound to the POST data
         if form.is_valid():  # All validation rules pass
-            client = MongoClient(uri)
-            db = client.tola
             for label,value in form.cleaned_data.iteritems():
                 #update the column name if it doesn't have delete in it
                 if "_delete" not in label and str(label) != str(value) and label != "silo_id" and label != "suds" and label != "id":
@@ -831,8 +824,6 @@ def deleteColumn(request,id,column):
     DELETE A COLUMN FROM A SILO
     """
     silo = Silo.objects.get(id=id)
-    client = MongoClient(uri)
-    db = client.tola
 
     #delete a column from the existing table silo
     db.label_value_store.update_many(
@@ -880,10 +871,6 @@ def mergeColumns(request):
 
 
 def doMerge(request):
-
-    # setup mongodb conn.
-    client = MongoClient(uri)
-    db = client.tola
 
     # get the table_ids.
     left_table_id = request.POST['left_table_id']
