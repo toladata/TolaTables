@@ -104,7 +104,11 @@ def mergeTwoSilos(data, left_table_id, right_table_id):
             # there is only a single column in left_cols array
             else:
                 col = str(left_cols[0])
-                mapped_value = row[col]
+                try:
+                    mapped_value = row[col]
+                except KeyError as e:
+                    # The left table does not have this col anymore; so skip.
+                    continue
 
             # finally add the mapped_value to the merge_data_row
             merge_data_row[right_col] = mapped_value
