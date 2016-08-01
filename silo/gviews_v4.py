@@ -378,6 +378,7 @@ def get_sheets_from_google_spredsheet(request):
     spreadsheet_id = request.GET.get("spreadsheet_id", None)
     credential_obj = get_credential_object(request.user)
     if not isinstance(credential_obj, OAuth2Credentials):
+        request.session['redirect_uri_after_step2'] = reverse_lazy('listSilos')
         return JsonResponse(credential_obj)
 
     service = get_authorized_service(credential_obj)

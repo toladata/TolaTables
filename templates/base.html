@@ -287,19 +287,15 @@
                     doc = data[google.picker.Response.DOCUMENTS][0];
                     url = doc[google.picker.Document.URL];
                     spreadsheet_id = doc[google.picker.Document.ID];
-
-                    //console.log("URL: " + url);
-                    //console.log("ID: " + spreadsheet_id);
-                    //console.log("name:" + doc['name']);
-                    //console.log("silo_id: " + silo_id);
                     if (actionType == "import") {
                         //$(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + spreadsheet_id + "&name=" + doc['name']);
 
                         $.get('/get_sheets_from_google_spredsheet/', { "spreadsheet_id": spreadsheet_id } )
                             .done(function(data) {
                                 var sheets = data['sheets'];
-                                console.log(sheets);
-                                if (sheets == undefined) { return; }
+                                if (sheets == undefined) {
+                                    $(location).attr('href', data['redirect']);
+                                }
                                 $("#gsheet_select").empty();
                                 $.each(sheets, function(i, sheet) {
                                     var item = sheet["properties"];
@@ -311,8 +307,6 @@
                                 });
                                 $("#select_gsheet_modal").modal("show");
                             });
-
-
                     } else {
                         $(location).attr('href', '/export_to_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + spreadsheet_id);
                     }
