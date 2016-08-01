@@ -171,6 +171,8 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
                 filter_criteria.update({unique_field.name: row[headers.index(unique_field.name)]})
             except KeyError:
                 pass
+            except ValueError:
+                pass
         if filter_criteria:
             filter_criteria.update({'silo_id': silo.id})
             # if a row is found, then fetch and update it
