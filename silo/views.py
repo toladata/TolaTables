@@ -62,6 +62,7 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
 
     merged_cols = []
 
+    #print("lsid:% rsid:%s msid:%s" % (lsid, rsid, msid))
     l_silo_data = LabelValueStore.objects(silo_id=lsid)
 
     r_silo_data = LabelValueStore.objects(silo_id=rsid)
@@ -77,47 +78,7 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
     for right_col in r_unampped_cols:
         if right_col not in merged_cols: merged_cols.append(right_col)
 
-    try:
-        rsilo = Silo.objects.get(pk=rsid)
-    except Silo.DoesNotExist as e:
-        msg = "Right Table does not exist: silo_id=%s" % rsid
-        logger.error(msg)
-        return {'status': messages.ERROR,  'message': msg}
-
-    r_unique_fields = rsilo.unique_fields.all()
-
-    # Get the correct set of data from the right table
-    for row in r_silo_data:
-        merged_row = OrderedDict()
-        for k in row:
-            if k not in merged_cols: continue
-            merged_row[k] = row[k]
-        merged_row["silo_id"] = msid
-        merged_row["create_date"] = timezone.now()
-
-        filter_criteria = {}
-        for uf in r_unique_fields:
-            try:
-                filter_criteria.update({str(uf.name): str(row[uf.name])})
-            except KeyError:
-                # when this excpetion occurs, it means that the col identified
-                # as the unique_col is not present in all rows of the right_table
-                logger.warning("The field, %s, is not present in table id=%s" % (uf.name, rsid))
-                pass
-
-        if not r_unique_fields:
-            msg = 'A unique field must be set first for talbe id=%s.' % rsid
-            logger.error(msg)
-            return {'status': messages.ERROR,  'message': msg}
-
-        #using the right table id becuase the filter_criteria is applied to right table
-        # to find a matching record and update it with data from left table.
-        filter_criteria.update({'silo_id': rsid})
-
-        #db.label_value_store.insert(merged_row)
-        db.label_value_store.update_one(filter_criteria, {"$set": merged_row}, upsert=True)
-
-
+    # retrieve the left silo
     try:
         lsilo = Silo.objects.get(pk=lsid)
     except Silo.DoesNotExist as e:
@@ -125,7 +86,80 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
         logger.error(msg)
         return {'status': messages.ERROR,  'message': msg}
 
+    # retrieve the right silo
+    try:
+        rsilo = Silo.objects.get(pk=rsid)
+    except Silo.DoesNotExist as e:
+        msg = "Right Table does not exist: table_id=%s" % rsid
+        logger.error(msg)
+        return {'status': messages.ERROR,  'message': msg}
+
+    # retrieve the merged silo
+    try:
+        msilo = Silo.objects.get(pk=msid)
+    except Silo.DoesNotExist as e:
+        msg = "Merged Table does not exist: table_id=%s" % msid
+        logger.error(msg)
+        return {'status': messages.ERROR,  'message': msg}
+
+    # retrieve the unique fields set for the right silo
+    r_unique_fields = rsilo.unique_fields.all()
+
+    # retrive the unique fields of the merged_silo
+    m_unique_fields = msilo.unique_fields.all()
+
+    # make sure that the unique_fields from right table are in the merged_table
+    # by adding them to the merged_cols array.
+    for uf in r_unique_fields:
+        if uf.name not in merged_cols: merged_cols.append(uf.name)
+
+        #make sure to set the same unique_fields in the merged_table
+        if uf not in m_unique_fields:
+            unique_field = UniqueFields(name=uf.name, silo=msilo)
+            unique_field.save()
+
+    # Get the correct set of data from the right table
+    for row in r_silo_data:
+        merged_row = OrderedDict()
+        for k in row:
+            # Skip over those columns in the right table that sholdn't be in the merged_table
+            if k not in merged_cols: continue
+            merged_row[k] = row[k]
+
+        # now set its silo_id to the merged_table id
+        merged_row["silo_id"] = msid
+        merged_row["create_date"] = timezone.now()
+
+        filter_criteria = {}
+        for uf in r_unique_fields:
+            try:
+                filter_criteria.update({str(uf.name): str(merged_row[uf.name])})
+            except KeyError as e:
+                # when this excpetion occurs, it means that the col identified
+                # as the unique_col is not present in all rows of the right_table
+                logger.warning("The field, %s, is not present in table id=%s" % (uf.name, rsid))
+
+        if not r_unique_fields:
+            msg = 'The table, %s, does not have a column set as unique field' % rsilo.name
+            logger.error(msg)
+            return {'status': messages.ERROR,  'message': msg}
+
+        # adding the merged_table_id because the filter criteria should search the merged_table
+        filter_criteria.update({'silo_id': msid})
+
+        #this is an upsert operation.; note the upsert=True
+        db.label_value_store.update_one(filter_criteria, {"$set": merged_row}, upsert=True)
+
+
+    # Retrieve the unique_fields set by left table
     l_unique_fields = lsilo.unique_fields.all()
+    for uf in l_unique_fields:
+        # if there are unique fields that are not in the right table then show error
+        if uf not in r_unique_fields:
+            msg = "Both tables (%s, %s) must have the same column set as unique fields" % (lsilo.name, rsilo.name)
+            logger.error(msg)
+            return {"status": messages.ERROR, "message": msg}
+
     # now merge through left table and apply the mapping
     for row in l_silo_data:
         merged_row = OrderedDict()
@@ -178,29 +212,28 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
         filter_criteria = {}
         for uf in l_unique_fields:
             try:
-                filter_criteria.update({str(uf.name): str(row[uf.name])})
+                filter_criteria.update({str(uf.name): str(merged_row[uf.name])})
             except KeyError:
                 # when this excpetion occurs, it means that the col identified
                 # as the unique_col is not present in all rows of the left_table
-                logger.warning("The field, %s, is not present in table id=%s" % (uf.name, lsid))
-                pass
+                msg ="The field, %s, is not present in table id=%s" % (uf.name, lsid)
+                logger.warning(msg)
 
         if not l_unique_fields:
-            msg = 'A unique field must be set first.'
+            msg = 'The table, %s, does not have a column set as unique field' % lsilo.name
             logger.error(msg)
             return {'status': messages.ERROR,  'message': msg}
 
         #using the right table id becuase the filter_criteria is applied to right table
         # to find a matching record and update it with data from left table.
-        filter_criteria.update({'silo_id': rsid})
+        filter_criteria.update({'silo_id': msid})
 
         # Now update or insert a row if there is no matching record available
         res = db.label_value_store.update_one(filter_criteria, {"$set": merged_row}, upsert=True)
-        print(res.raw_result)
 
         # Make sure all rows have the same cols in the merged_silo
-        combineColumns(rsid)
-        return {'status': messages.SUCCESS,  'message': "Merged data successfully"}
+    combineColumns(msid)
+    return {'status': messages.SUCCESS,  'message': "Merged data successfully"}
 
 def mergeTwoSilos2(data, left_table_id, right_table_id):
     """
@@ -943,9 +976,9 @@ def doMerge(request):
     res = mergeTwoSilos(data, left_table_id, right_table_id, merge_table_id)
 
     try:
-        res['status'] == "danger"
-        new_silo.delete()
-        return JsonResponse(res)
+        if res['status'] == "danger":
+            new_silo.delete()
+            return JsonResponse(res)
     except Exception as e:
         pass
 
