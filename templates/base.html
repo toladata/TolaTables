@@ -268,6 +268,8 @@
                     view.setSelectFolderEnabled(false);
                     view.setMode("DocsViewMode.LIST");
                     var picker = new google.picker.PickerBuilder()
+                        .setOrigin(window.location.protocol + '//' + window.location.host)
+                        //.setOrigin('https://localhost:8000')
                         .enableFeature(google.picker.Feature.NAV_HIDDEN)
                         .addView(view)
                         .setOAuthToken(oauthToken)
