@@ -224,8 +224,6 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
             logger.error(msg)
             return {'status': messages.ERROR,  'message': msg}
 
-        #using the right table id becuase the filter_criteria is applied to right table
-        # to find a matching record and update it with data from left table.
         filter_criteria.update({'silo_id': msid})
 
         # Now update or insert a row if there is no matching record available
