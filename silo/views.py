@@ -114,7 +114,7 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
         if uf.name not in merged_cols: merged_cols.append(uf.name)
 
         #make sure to set the same unique_fields in the merged_table
-        if uf not in m_unique_fields:
+        if not m_unique_fields.filter(name=uf.name).exists():
             unique_field = UniqueFields(name=uf.name, silo=msilo)
             unique_field.save()
 
@@ -155,7 +155,7 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
     l_unique_fields = lsilo.unique_fields.all()
     for uf in l_unique_fields:
         # if there are unique fields that are not in the right table then show error
-        if uf not in r_unique_fields:
+        if not r_unique_fields.filter(name=uf.name).exists():
             msg = "Both tables (%s, %s) must have the same column set as unique fields" % (lsilo.name, rsilo.name)
             logger.error(msg)
             return {"status": messages.ERROR, "message": msg}
