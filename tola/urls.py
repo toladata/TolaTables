@@ -38,9 +38,6 @@ urlpatterns =[
                         #index
                         url(r'^$', views.index, name='index'),
 
-                        #base template for layout
-                        url(r'^$', TemplateView.as_view(template_name='base.html')),
-
                         #rest Custom Feed
                         url(r'^api/custom/(?P<id>[0-9]+)/$', views.customFeed, name='customFeed'),
 
