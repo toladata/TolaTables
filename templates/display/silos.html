@@ -3,28 +3,29 @@
 
 {% block content %}
     <p>Edit the detail information about table (data store) or go directly to your table to edit the data.</p>
-    <div class='panel panel-default'>
+    <div class='panel panel-default' id="list_silos_panel">
         <!-- Default panel contents -->
-        <div class='panel-heading'>Data Tables you own</div>
+        <div class='panel-heading'>Data Tables you own<a href="#" id="list_silo_page_tour"class="btn-small btn-link pull-right">Tour</a></div>
+
         {% if own_silos %}
             <!-- Table -->
             <div class="table-responsive">
                 <table id="list_silos" class="table table-striped table-hover table-condensed">
                     <thead>
                         <tr>
-                            <th>Table Name</th>
-                            <th>Table Source(s)</th>
-                            <th style="width:130px;">Table Operations</th>
-                            <th>Share</th>
-                            <th>Public</th>
+                            <th class="tableNameCol">Table Name</th>
+                            <th class="tableSourcesCol">Table Source(s)</th>
+                            <th class="tableOpsCol" style="width:130px;">Table Operations</th>
+                            <th class="tableShareCol">Share</th>
+                            <th class="tablePublicCol">Public</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for silo in own_silos %}
                             <tr>
-                                <td><a href="/silo_edit/{{ silo.id }}">{{ silo.name }}</a></br>
+                                <td class="tableNameCol"><a href="/silo_edit/{{ silo.id }}">{{ silo.name }}</a></br>
                                     {% if silo.tags.all %}<span><small>tags: {% for tag in silo.tags.all %} <a name="tag" class="tag"> {{ tag }}</a>{% endfor %}</small></span>{%endif%}</td>
-                                <td>
+                                <td class="tableSourcesCol">
                                     {% if silo.merged_silo_mappings %}
                                         <span><small>Merged Tables: <a href="{% url 'siloDetail' silo.merged_silo_mappings.from_silo.pk %}">{{silo.merged_silo_mappings.from_silo}}</a> and <a href="{% url 'siloDetail' silo.merged_silo_mappings.to_silo.pk %}">{{silo.merged_silo_mappings.to_silo}}</a></small</span>
                                     {% else %}
@@ -33,14 +34,14 @@
                                         {% endfor %}
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td class="tableOpsCol">
                                     <div class="btn-group" role="group">
                                         <a href="/silo_detail/{{ silo.id }}" class="btn btn-xs btn-success">View/Edit</span></a>
                                         <a href="/merge/{{ silo.id }}" class="btn btn-xs btn-warning">Merge</a>
                                         <a href="/silo_delete/{{ silo.id }}" class="btn btn-del btn-xs btn-danger" title="Are you sure you want to delete this table? All of the data stored in this table will also be deleted."><span class="glyphicon glyphicon-trash" title="Delete"></span></a>
                                      </div>
                                 </td>
-                                <td>
+                                <td class="tableShareCol">
                                     <div style="width: 100%; " class="input-group-btn">
                                         <button type="button" class="btn btn-xs btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">Share <span class="caret"></span></button>
                                         <ul class="dropdown-menu" role="menu">
@@ -57,7 +58,7 @@
                                     </div><!-- /btn-group -->
                                     <!-- <div id="silo_id" style="display: none;"> {{ silo.id }} </div> -->
                                 </td>
-                                <td>
+                                <td class="tablePublicCol">
                                     <a href="#" id="id_public-{{silo.id}}" class="public btn btn-xs {% if silo.public %} btn-warning {% else %} btn-primary {% endif %}" role="button">{% if silo.public %} Public {% else %} Private {% endif %}</a>
                                 </td>
                             </tr>
@@ -187,7 +188,54 @@
     </div>
 {% endblock content %}
 {% block extra_js_in_body %}
-    <script>
+    <script type="text/javascript">
+        $("#list_silos_panel").on("click", "#list_silo_page_tour", function(e) {
+            console.log("about to trip!");
+            var options = {
+                "delay": -1,
+                //"tripTheme": "minimalism",
+                "showHeader": true,
+                "showCloseBox": true,
+                "showNavigation": true,
+                "canGoPrev": true,
+                "canGoNext": true,
+
+            }
+            var trip = new Trip([
+                {
+                    sel : $('.tableNameCol'),
+                    expose: true,
+                    header: "Tables Name",
+                    content : 'Clickin a table name reveals its meta-data.'
+                },
+                {
+                    sel : $('.tableSourcesCol'),
+                    expose: true,
+                    header: "Sources of your table",
+                    content : 'Sources indicates where data comes from in a table.'
+                },
+                {
+                    sel : $('.tableOpsCol'),
+                    expose: true,
+                    header: "Taking action",
+                    content : 'These are the things you could do to a table.'
+                },
+                {
+                    sel : $('.tableShareCol'),
+                    expose: true,
+                    header: "You can share it",
+                    content : 'Export the data out to multiple destinations'
+                },
+                {
+                    sel : $('.tablePublicCol'),
+                    expose: true,
+                    header: "go all out",
+                    content : 'Let everyone see this table!'
+                }
+            ], options);
+            trip.start();
+        });
+
         $(document).ready(function() {
             $('#list_silos').DataTable();
             $("a.public").click(function(e) {
