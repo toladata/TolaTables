@@ -70,7 +70,9 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
     # Loop through the mapped cols and add them to the list of merged_cols
     for k, v in mappings.iteritems():
         col_name = v['right_table_col']
-        if col_name not in merged_cols: merged_cols.append(col_name)
+        if col_name == "silo_id" or col_name == "create_date": continue
+        if col_name not in merged_cols:
+            merged_cols.append(col_name)
 
     for lef_col in l_unmapped_cols:
         if lef_col not in merged_cols: merged_cols.append(lef_col)
@@ -164,7 +166,7 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
             logger.error(msg)
             return {"status": "danger", "message": msg}
 
-    # now merge through left table and apply the mapping
+    # now loop through left table and apply the mapping
     for row in l_silo_data:
         merged_row = OrderedDict()
         # Loop through the column mappings for each row in left_table.
@@ -193,10 +195,10 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
                 # Now calculate avg if the merge_type was actually "Avg"
                 if merge_type == 'Avg':
                     mapped_value = mapped_value / len(left_cols)
-
             # only one col in left table is mapped to one col in the right table.
             else:
                 col = str(left_cols[0])
+                if col == "silo_id": continue
                 try:
                     mapped_value = row[col]
                 except KeyError as e:
@@ -225,6 +227,11 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
 
         filter_criteria.update({'silo_id': msid})
 
+        # override the silo_id and create_date columns values to make sure they're not set
+        # to the values that are in left table or right table
+        merged_row["silo_id"] = msid
+        merged_row["create_date"] = timezone.now()
+
         # Now update or insert a row if there is no matching record available
         res = db.label_value_store.update_one(filter_criteria, {"$set": merged_row}, upsert=True)
 
@@ -232,15 +239,12 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
     combineColumns(msid)
     return {'status': "success",  'message': "Merged data successfully"}
 
-def mergeTwoSilos2(data, left_table_id, right_table_id):
+def appendTwoSilos(data, left_table_id, right_table_id):
     """
+    mapping_data, lsid, rsid, msid
     :param data: Mapping of the columns
     :param left_table_id: Data to merge from
     :param right_table_id: Data to merge into
-    :return: Merged data set from left and right with user defined mappind
-    TO-DO: Get the unique record defining column for each table, if they match then merge and column values math
-    then merge the data from the two tables into 1 row rather then unique rows.  Check in each for loop
-    (left then right) row for the uniquecolumn, then merge into 1 row.
     """
     columns_mapping = json.loads(data)
 
