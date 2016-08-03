@@ -237,7 +237,7 @@
         });
 
         $(document).ready(function() {
-            $('#list_silos').DataTable();
+            $('#list_silos').DataTable({stateSave: true});
             $("a.public").click(function(e) {
                 var btn_id = $(this).attr('id');
                 var silo_id = btn_id.split("-")[1];
