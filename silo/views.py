@@ -239,7 +239,138 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
     combineColumns(msid)
     return {'status': "success",  'message': "Merged data successfully"}
 
-def appendTwoSilos(data, left_table_id, right_table_id):
+def appendTwoSilos(mapping_data, lsid, rsid, msid):
+    """
+    @params
+    mapping_data: data that describes how mapping is done between two silos
+    lsid: Left Silo ID
+    rsid: Right Silo ID
+    msid: Merge Silo ID
+    """
+    mappings = json.loads(mapping_data)
+
+    l_unmapped_cols = mappings.pop('left_unmapped_cols')
+    r_unampped_cols = mappings.pop('right_unmapped_cols')
+
+    merged_cols = []
+
+    #print("lsid:% rsid:%s msid:%s" % (lsid, rsid, msid))
+    l_silo_data = LabelValueStore.objects(silo_id=lsid)
+
+    r_silo_data = LabelValueStore.objects(silo_id=rsid)
+
+    # Loop through the mapped cols and add them to the list of merged_cols
+    for k, v in mappings.iteritems():
+        col_name = v['right_table_col']
+        if col_name == "silo_id" or col_name == "create_date": continue
+        if col_name not in merged_cols:
+            merged_cols.append(col_name)
+
+    for lef_col in l_unmapped_cols:
+        if lef_col not in merged_cols: merged_cols.append(lef_col)
+
+    for right_col in r_unampped_cols:
+        if right_col not in merged_cols: merged_cols.append(right_col)
+
+    # retrieve the left silo
+    try:
+        lsilo = Silo.objects.get(pk=lsid)
+    except Silo.DoesNotExist as e:
+        msg = "Table id=%s does not exist." % lsid
+        logger.error(msg)
+        return {'status': "danger",  'message': msg}
+
+    # retrieve the right silo
+    try:
+        rsilo = Silo.objects.get(pk=rsid)
+    except Silo.DoesNotExist as e:
+        msg = "Right Table does not exist: table_id=%s" % rsid
+        logger.error(msg)
+        return {'status': "danger",  'message': msg}
+
+    # retrieve the merged silo
+    try:
+        msilo = Silo.objects.get(pk=msid)
+    except Silo.DoesNotExist as e:
+        msg = "Merged Table does not exist: table_id=%s" % msid
+        logger.error(msg)
+        return {'status': "danger",  'message': msg}
+
+
+    # Delete Any existing data from the merged_table
+    deleted_res = db.label_value_store.delete_many({"silo_id": msid})
+
+    # Get the correct set of data from the right table
+    for row in r_silo_data:
+        merged_row = OrderedDict()
+        for k in row:
+            # Skip over those columns in the right table that sholdn't be in the merged_table
+            if k not in merged_cols: continue
+            merged_row[k] = row[k]
+
+        # now set its silo_id to the merged_table id
+        merged_row["silo_id"] = msid
+        merged_row["create_date"] = timezone.now()
+        db.label_value_store.insert_one(merged_row)
+
+
+    # now loop through left table and apply the mapping
+    for row in l_silo_data:
+        merged_row = OrderedDict()
+        # Loop through the column mappings for each row in left_table.
+        for k, v in mappings.iteritems():
+            merge_type = v['merge_type']
+            left_cols = v['left_table_cols']
+            right_col = v['right_table_col']
+
+            # if merge_type is specified then there must be multiple columns in the left_cols array
+            if merge_type:
+                mapped_value = ''
+                for col in left_cols:
+                    if merge_type == 'Sum' or merge_type == 'Avg':
+                        try:
+                            if mapped_value == '':
+                                mapped_value = float(row[col])
+                            else:
+                                mapped_value = float(mapped_value) + float(row[col])
+                        except Exception as e:
+                            msg = 'Failed to apply %s to column, %s : %s ' % (merge_type, col, e.message)
+                            logger.error(msg)
+                            return {'status': "danger",  'message': msg}
+                    else:
+                        mapped_value += ' ' + smart_str(row[col])
+
+                # Now calculate avg if the merge_type was actually "Avg"
+                if merge_type == 'Avg':
+                    mapped_value = mapped_value / len(left_cols)
+            # only one col in left table is mapped to one col in the right table.
+            else:
+                col = str(left_cols[0])
+                if col == "silo_id": continue
+                try:
+                    mapped_value = row[col]
+                except KeyError as e:
+                    # When updating data in merged_table at a later time, it is possible
+                    # the origianl source tables may have had some columns removed in which
+                    # we might get a KeyError so in that case we just skip it.
+                    continue
+
+            #right_col is used as in index of merged_row because one or more left cols map to one col in right table
+            merged_row[right_col] = mapped_value
+
+        # Get data from left unmapped columns:
+        for col in l_unmapped_cols:
+            if col in row:
+                merged_row[col] = row[col]
+
+        merged_row["silo_id"] = msid
+        merged_row["create_date"] = timezone.now()
+
+        db.label_value_store.insert_one(merged_row)
+    combineColumns(msid)
+    return {'status': "success",  'message': "Appended data successfully"}
+
+def appendTwoSilosOLD(data, left_table_id, right_table_id):
     """
     mapping_data, lsid, rsid, msid
     :param data: Mapping of the columns
