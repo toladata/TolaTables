@@ -38,9 +38,6 @@ urlpatterns =[
                         #index
                         url(r'^$', views.index, name='index'),
 
-                        #rest Custom Feed
-                        url(r'^api/custom/(?P<id>[0-9]+)/$', views.customFeed, name='customFeed'),
-
                         #enable the admin:
                         url(r'^admin/', include(admin.site.urls)),
 

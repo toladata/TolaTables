@@ -1190,17 +1190,6 @@ def valueDelete(request,id):
     return HttpResponseRedirect('/silo_detail/%s/' % silo_id)
 
 
-
-def customFeed(request,id):
-    """
-    All tags in use on this system
-    id = Silo
-    """
-    queryset = LabelValueStore.objects.exclude("silo_id").filter(silo_id=id).to_json()
-
-    return render(request, 'feed/json.html', {"jsonData": queryset}, content_type="application/json")
-
-
 def export_silo(request, id):
 
     silo_name = Silo.objects.get(id=id).name
