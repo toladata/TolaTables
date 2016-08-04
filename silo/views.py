@@ -59,6 +59,7 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
 
     l_unmapped_cols = mappings.pop('left_unmapped_cols')
     r_unampped_cols = mappings.pop('right_unmapped_cols')
+    mergeType = mappings.pop("tableMergeType")
 
     merged_cols = []
 
@@ -251,7 +252,7 @@ def appendTwoSilos(mapping_data, lsid, rsid, msid):
 
     l_unmapped_cols = mappings.pop('left_unmapped_cols')
     r_unampped_cols = mappings.pop('right_unmapped_cols')
-
+    mergeType = mappings.pop("tableMergeType")
     merged_cols = []
 
     #print("lsid:% rsid:%s msid:%s" % (lsid, rsid, msid))
@@ -1081,6 +1082,7 @@ def doMerge(request):
     # get the table_ids.
     left_table_id = request.POST['left_table_id']
     right_table_id = request.POST["right_table_id"]
+    mergeType = request.POST.get("tableMergeType", None)
     left_table = None
     right_table = None
 
@@ -1107,8 +1109,11 @@ def doMerge(request):
     new_silo = Silo(name=merged_silo_name , public=False, owner=request.user)
     new_silo.save()
     merge_table_id = new_silo.pk
-
-    res = mergeTwoSilos(data, left_table_id, right_table_id, merge_table_id)
+    print("merging type is %s" % mergeType)
+    if mergeType == "merge":
+        res = mergeTwoSilos(data, left_table_id, right_table_id, merge_table_id)
+    else:
+        res = appendTwoSilos(data, left_table_id, right_table_id, merge_table_id)
 
     try:
         if res['status'] == "danger":
