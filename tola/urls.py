@@ -23,6 +23,7 @@ admin.autodiscover()
 #REST FRAMEWORK
 router = routers.DefaultRouter()
 router.register(r'silo', SiloViewSet, base_name="silo")
+router.register(r'public_tables', PublicSiloViewSet, base_name="public_tables")
 router.register(r'users', UserViewSet)
 router.register(r'read', ReadViewSet)
 router.register(r'readtype', ReadTypeViewSet)
