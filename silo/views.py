@@ -59,7 +59,6 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
 
     l_unmapped_cols = mappings.pop('left_unmapped_cols')
     r_unampped_cols = mappings.pop('right_unmapped_cols')
-    mergeType = mappings.pop("tableMergeType")
 
     merged_cols = []
 
@@ -252,7 +251,7 @@ def appendTwoSilos(mapping_data, lsid, rsid, msid):
 
     l_unmapped_cols = mappings.pop('left_unmapped_cols')
     r_unampped_cols = mappings.pop('right_unmapped_cols')
-    mergeType = mappings.pop("tableMergeType")
+
     merged_cols = []
 
     #print("lsid:% rsid:%s msid:%s" % (lsid, rsid, msid))
@@ -908,45 +907,45 @@ def updateSiloData(request, pk):
     except Silo.DoesNotExist as e:
         messages.error(request,"Table with id=%s does not exist." % pk)
 
-    unique_field_exist = silo.unique_fields.exists()
-    if  unique_field_exist == False:
-        messages.error(request, "To update data in a table, a unique column must be set")
-
-    if silo and unique_field_exist:
+    if silo:
         try:
             merged_silo_mapping = MergedSilosFieldMapping.objects.get(merged_silo = silo.pk)
-        except MergedSilosFieldMapping.DoesNotExist as e:
-            pass
-
-        # if merge mapping exist then it must be a merged silo so re-apply the merge fn.
-        if merged_silo_mapping:
             left_table_id = merged_silo_mapping.from_silo.pk
             right_table_id = merged_silo_mapping.to_silo.pk
             merge_table_id = merged_silo_mapping.merged_silo.pk
             mapping = merged_silo_mapping.mapping
-            res = mergeTwoSilos(mapping, left_table_id, right_table_id, merge_table_id)
+            mergeType = merged_silo_mapping.merge_type
+
+            if mergeType == "merge":
+                res = mergeTwoSilos(mapping, left_table_id, right_table_id, merge_table_id)
+            else:
+                res = appendTwoSilos(mapping, left_table_id, right_table_id, merge_table_id)
             if res['status'] == "success":
                 messages.success(request, res['message'])
             else:
                 messages.error(request, res['message'])
-        else:
-            # It's not merged silo so update data from all of its sources.
-            reads = silo.reads.all()
-            for read in reads:
-                if read.type.read_type == "ONA":
-                    ona_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="ONA")
-                    response = requests.get(read.read_url, headers={'Authorization': 'Token %s' % ona_token.token})
-                    data = json.loads(response.content)
-                    res = saveDataToSilo(silo, data)
-                elif read.type.read_type == "CSV":
-                    messages.info(request, "When updating data in a table, its CSV source is ignored.")
-                elif read.type.read_type == "JSON":
-                    result = importJSON(read, request.user, None, None, silo.pk, None)
-                    messages.add_message(request, result[0], result[1])
-                elif read.type.read_type == "GSheet Import":
-                    msgs = import_from_gsheet_helper(request.user, silo.id, None, read.resource_id)
-                    for msg in msgs:
-                        messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
+        except MergedSilosFieldMapping.DoesNotExist as e:
+            unique_field_exist = silo.unique_fields.exists()
+            if  unique_field_exist == False:
+                messages.error(request, "To update data in a table, a unique column must be set")
+            else:
+                # It's not merged silo so update data from all of its sources.
+                reads = silo.reads.all()
+                for read in reads:
+                    if read.type.read_type == "ONA":
+                        ona_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="ONA")
+                        response = requests.get(read.read_url, headers={'Authorization': 'Token %s' % ona_token.token})
+                        data = json.loads(response.content)
+                        res = saveDataToSilo(silo, data)
+                    elif read.type.read_type == "CSV":
+                        messages.info(request, "When updating data in a table, its CSV source is ignored.")
+                    elif read.type.read_type == "JSON":
+                        result = importJSON(read, request.user, None, None, silo.pk, None)
+                        messages.add_message(request, result[0], result[1])
+                    elif read.type.read_type == "GSheet Import":
+                        msgs = import_from_gsheet_helper(request.user, silo.id, None, read.resource_id)
+                        for msg in msgs:
+                            messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
 
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': pk},))
 
@@ -1109,7 +1108,7 @@ def doMerge(request):
     new_silo = Silo(name=merged_silo_name , public=False, owner=request.user)
     new_silo.save()
     merge_table_id = new_silo.pk
-    print("merging type is %s" % mergeType)
+
     if mergeType == "merge":
         res = mergeTwoSilos(data, left_table_id, right_table_id, merge_table_id)
     else:
@@ -1122,7 +1121,7 @@ def doMerge(request):
     except Exception as e:
         pass
 
-    mapping = MergedSilosFieldMapping(from_silo=left_table, to_silo=right_table, merged_silo=new_silo, mapping=data)
+    mapping = MergedSilosFieldMapping(from_silo=left_table, to_silo=right_table, merged_silo=new_silo, merge_type=mergeType, mapping=data)
     mapping.save()
     return JsonResponse({'status': "success",  'message': 'The merged table is accessible at <a href="/silo_detail/%s/" target="_blank">Merged Table</a>' % new_silo.pk})
 

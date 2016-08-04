@@ -286,89 +286,86 @@
             e.preventDefault();
             $('#mergeTypeModal').modal('toggle');
         });
+
         $('#mergeTypeModal').on('click', '#mergeBtn', function (e) {
-            //alert('The buttons id that closed the modal is: #' );
             submitMappedCols("merge");
         });
 
         $('#mergeTypeModal').on('click', '#appendBtn', function (e) {
-            //alert('The buttons id that closed the modal is: #' );
             submitMappedCols("append");
         });
     }); // end of document ready
 
 
-        //$('#mapped_columns_div').on('click', '#submit', function(e) {
-        function submitMappedCols(mergeType){
+    //$('#mapped_columns_div').on('click', '#submit', function(e) {
+    function submitMappedCols(mergeType){
 
-            var merged_table_name = prompt("Please enter a name for the merged table");
-            var columns_data = {};
-            var cols = [];
-            var right_col = undefined;
-            var counter = 0;
-            columns_data["tableMergeType"] = mergeType
+        var merged_table_name = prompt("Please enter a name for the merged table");
+        var columns_data = {};
+        var cols = [];
+        var right_col = undefined;
+        var counter = 0;
 
-            // Get all of the column mapping from the table.
-            $('#mapped_columns_table tr').each(function (i, tr) {
-                if (i == 0) { return; }
-                var rowspan = $("td",tr).eq(1).attr('rowspan');
-                if (rowspan > 0 ){
-                    if (cols.length > 0) { //first time
-                        columns_data[counter] = {'left_table_cols': cols, 'right_table_col': right_col, 'merge_type': merge_type};
-                        counter++;
-                    }
-                    right_col = $("td", tr).eq(1).text();
-                    merge_type = $("td", tr).eq(2).text();
-                    cols = [];
+        // Get all of the column mapping from the table.
+        $('#mapped_columns_table tr').each(function (i, tr) {
+            if (i == 0) { return; }
+            var rowspan = $("td",tr).eq(1).attr('rowspan');
+            if (rowspan > 0 ){
+                if (cols.length > 0) { //first time
+                    columns_data[counter] = {'left_table_cols': cols, 'right_table_col': right_col, 'merge_type': merge_type};
+                    counter++;
                 }
-                cols.push($("td",tr).eq(0).text());
-            });
-            columns_data[counter] = {'left_table_cols': cols, 'right_table_col': right_col, 'merge_type': merge_type};
+                right_col = $("td", tr).eq(1).text();
+                merge_type = $("td", tr).eq(2).text();
+                cols = [];
+            }
+            cols.push($("td",tr).eq(0).text());
+        });
+        columns_data[counter] = {'left_table_cols': cols, 'right_table_col': right_col, 'merge_type': merge_type};
 
-            // add all of the unmapped columns from the left bucket
-            var $table_1_visible_cols = $('#table_1_cols_bucket').children('.list-group-item:visible');
-            cols = [];
-            $table_1_visible_cols.each(function () {
-                cols.push($(this).text());
-            });
-            columns_data['left_unmapped_cols'] = cols;
+        // add all of the unmapped columns from the left bucket
+        var $table_1_visible_cols = $('#table_1_cols_bucket').children('.list-group-item:visible');
+        cols = [];
+        $table_1_visible_cols.each(function () {
+            cols.push($(this).text());
+        });
+        columns_data['left_unmapped_cols'] = cols;
 
-            // add all of the unmapped columns from the right bucket
-            var $table_2_visible_cols = $('#table_2_cols_bucket').children('.list-group-item:visible');
-            cols = [];
-            $table_2_visible_cols.each(function () {
-                cols.push($(this).text());
-            });
-            columns_data['right_unmapped_cols'] = cols;
+        // add all of the unmapped columns from the right bucket
+        var $table_2_visible_cols = $('#table_2_cols_bucket').children('.list-group-item:visible');
+        cols = [];
+        $table_2_visible_cols.each(function () {
+            cols.push($(this).text());
+        });
+        columns_data['right_unmapped_cols'] = cols;
 
-            // Now post the data object to the server
-            $.post("/doMerge/", {
-                'columns_data': JSON.stringify(columns_data),
-                'left_table_id': {{ from_silo_id  }},
-                'right_table_id': {{ to_silo_id }} ,
-                'merged_table_name': merged_table_name,
-                'tableMergeType': mergeType,
-                })
-                .success(function(data, textStatus, xhr) {
-                    //addMessage(data, "success" );
-                    //console.log(this.url);
-                    if (xhr.getResponseHeader('show_mapping') == "1") {
-                        $("#modal_content").html(data);
-                        $('#form_modal').modal('toggle');
-                    } else {
-                        addMessage(data['message'], data['status'] );
-                    }
-                })
-                .fail(function(data) {
-                    // addMessage(data, "error ");
-                })
-                .done(function(data, xhr) {
-                    //alert(xhr.status);
-                })
-                .complete(function(data, xhr) {
-                    //show_column_mapping();
-                });
-        }
-        //}); // end of '#mapped_columns_div' on click event
+        // Now post the data object to the server
+        $.post("/doMerge/", {
+            'columns_data': JSON.stringify(columns_data),
+            'left_table_id': {{ from_silo_id  }},
+            'right_table_id': {{ to_silo_id }} ,
+            'merged_table_name': merged_table_name,
+            'tableMergeType': mergeType,
+            })
+            .success(function(data, textStatus, xhr) {
+                //addMessage(data, "success" );
+                //console.log(this.url);
+                if (xhr.getResponseHeader('show_mapping') == "1") {
+                    $("#modal_content").html(data);
+                    $('#form_modal').modal('toggle');
+                } else {
+                    addMessage(data['message'], data['status'] );
+                }
+            })
+            .fail(function(data) {
+                // addMessage(data, "error ");
+            })
+            .done(function(data, xhr) {
+                //alert(xhr.status);
+            })
+            .complete(function(data, xhr) {
+                //show_column_mapping();
+            });
+    }
 </script>
 {% endblock %}
