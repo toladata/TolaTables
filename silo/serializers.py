@@ -10,10 +10,9 @@ class PublicSiloSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Silo
         fields = ('owner', 'name', 'reads', 'description', 'create_date', 'id', 'data','shared','tags','public')
-        depth =0
 
     def get_data(self, obj):
-        link = "/api/silo/" + str(obj.id) + "/data/"
+        link = "/api/public_tables/" + str(obj.id) + "/data/"
         return (self.context['request'].build_absolute_uri(link))
 
 class SiloSerializer(serializers.HyperlinkedModelSerializer):
