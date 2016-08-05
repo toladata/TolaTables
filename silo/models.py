@@ -230,9 +230,10 @@ class SiloAdmin(admin.ModelAdmin):
     display = 'Data Feeds'
 
 
-class AnonymizingFields(models.Model):
+class PIIColumn(models.Model):
     """
-    Fields that users have identified to contain personally identifiable info.
+    Personally Identifiable Information Column is a column with data, which
+    can be used to personally identify someone.
     """
     owner = models.ForeignKey(User)
     fieldname = models.CharField(blank=True, null=True, max_length=255)

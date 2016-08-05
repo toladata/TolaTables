@@ -1225,6 +1225,7 @@ def export_silo(request, id):
             writer.writerow(data[r])
     return response
 
+@login_required
 def anonymizeTable(request, id):
     silo = Silo.objects.get(pk=id)
     lvs = db.label_value_store.find({"silo_id": id})
@@ -1240,3 +1241,20 @@ def anonymizeTable(request, id):
     else:
         messages.info(request, "No personally identifiable fields found!")
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': id}))
+
+
+@login_required
+def identifyPII(request):
+    """
+    Identifying Columns with Personally Identifiable Information (PII)
+    """
+    if request.method != 'POST':
+        return HttpResponseBadRequest("HTTP method, %s, is not supported" % request.method)
+
+    columns = request.POST.getlist("piicolumns")
+    for i, c in enumerate(columns):
+        col, created = PIIColumn.objects.get_or_create(name=c, defaults={'owner': request.user})
+
+    return JsonResponse({"status":"success"})
+
+
