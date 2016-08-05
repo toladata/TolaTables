@@ -230,6 +230,15 @@ class SiloAdmin(admin.ModelAdmin):
     display = 'Data Feeds'
 
 
+class AnonymizingFields(models.Model):
+    """
+    Fields that users have identified to contain personally identifiable info.
+    """
+    owner = models.ForeignKey(User)
+    fieldname = models.CharField(blank=True, null=True, max_length=255)
+    create_date = models.DateTimeField(auto_now_add=False, editable=False)
+
+
 class MergedSilosFieldMapping(models.Model):
     MERGE = 'merge'
     APPEND = 'append'

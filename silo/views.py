@@ -1225,4 +1225,18 @@ def export_silo(request, id):
             writer.writerow(data[r])
     return response
 
+def anonymizeTable(request, id):
+    silo = Silo.objects.get(pk=id)
+    lvs = db.label_value_store.find({"silo_id": id})
 
+    fields_to_remove = {}
+    for row in lvs:
+        for k in row:
+            if k in annoymizied_fields_list:
+                fields_to_remove[k] = ""
+
+    if fields_to_remove:
+        res = db.label_value_store.update({"silo_id": id}, { "$unset": fields_to_remove})
+    else:
+        messages.info(request, "No personally identifiable fields found!")
+    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': id}))
