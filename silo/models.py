@@ -239,6 +239,10 @@ class PIIColumn(models.Model):
     fieldname = models.CharField(blank=True, null=True, max_length=255)
     create_date = models.DateTimeField(auto_now_add=False, editable=False)
 
+class PIIColumnAdmin(admin.ModelAdmin):
+    list_display = ('owner', 'fieldname', 'create_date')
+    search_fields = ('owner', 'fieldname')
+    display = 'PIIF Columns'
 
 class MergedSilosFieldMapping(models.Model):
     MERGE = 'merge'
