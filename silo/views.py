@@ -1233,6 +1233,7 @@ def anonymizeTable(request, id):
     for row in lvs:
         for k in row:
             if k in piif_cols:
+                if k == "_id": or k == "silo_id" or k == "create_date" or k == "edit_date" continue
                 fields_to_remove[str(k)] = ""
 
     if fields_to_remove:
