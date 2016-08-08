@@ -1255,7 +1255,7 @@ def identifyPII(request, silo_id):
             columns.extend([k for k in d.keys() if k not in columns])
         return render(request, 'display/annonymize_columns.html', {"silo_id": silo_id, "columns": columns})
 
-    columns = request.POST.getlist("piicolumns")
+    columns = request.POST.getlist("columns")
     for i, c in enumerate(columns):
         col, created = PIIColumn.objects.get_or_create(name=c, defaults={'owner': request.user})
 

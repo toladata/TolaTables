@@ -1,7 +1,6 @@
 {% block content %}
 
 <div style="display:none;">{{ silo_id }}</div>
-<!-- <div class="modal fade" id="myModal"> -->
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -16,19 +15,16 @@
                 </ul>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-success" data-dismiss="modal">Submit</button>
+                <button type="button" id="submitPIIFColsBtn" class="btn btn-success" data-dismiss="modal">Submit</button>
             </div>
         </div><!-- /.modal-content -->
     </div><!-- /.modal-dialog -->
-<!-- </div>/.modal -->
 
 {% endblock content %}
 
 
 {% block extra_js_in_body %}
 <script type-"text/javascript">
-    var row_bg_class = undefined;
-
 
     /*
      * Takes the current columns selection to the next step of mapping them.
@@ -47,38 +43,22 @@
 
 
     $(document).ready(function() {
-        $("#merge_type").val('');
 
         // Toggle background color as columns are clicked
-        $('div#step1_of_merge').on('click', '.list-group-item', function() {
+        $('ul#silo_columns').on('click', '.list-group-item', function() {
             $(this).toggleClass("list-group-item-success");
         });
-
-
-        $('div.panel-heading').on('click', '#select_all_left_columns', function() {
-            $('#table_1_cols_bucket').children().each(function() {
-                $(this).toggleClass('list-group-item-success');
+        var cols = [];
+        $("div.modal-footer").on("click", "#submitPIIFColsBtn", function(e){
+            e.preventDefault();
+            var silo_columns = $('#silo_columns').children('.list-group-item-success');
+            silo_columns.each(function() {
+                cols.push($(this).text());
+            });
+            $.post("/identifyPII/{{ silo_id }}/", function( data ) {
+                createAlert("success", data);
             });
         });
-
-        $('div.panel-heading').on('click', '#select_all_right_columns', function() {
-            $('#table_2_cols_bucket').children().each(function() {
-                $(this).toggleClass('list-group-item-success');
-            });
-        });
-
-        // Every time the modal closes, call the function that maps selected columns
-        $('#myModal').on('hidden.bs.modal', function (e) {
-            var merge_type = $('#merge_type option:selected').text();
-            if (merge_type.length == 0) {
-                alert("You must select an option from the Merge Type dropdown");
-            } else {
-                map_selected_column();
-            }
-        });
-
-
-
     }); // end of document ready
 
 

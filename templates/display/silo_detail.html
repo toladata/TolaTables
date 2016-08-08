@@ -191,6 +191,7 @@
             var url = $(this).attr("href");
 
             $.get( url, function( data ) {
+                $("#generic_modal").empty();
                 $("#generic_modal").append(data);
                 $("#generic_modal").modal('show');
             });
