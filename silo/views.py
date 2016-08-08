@@ -1227,19 +1227,20 @@ def export_silo(request, id):
 
 @login_required
 def anonymizeTable(request, id):
-    silo = Silo.objects.get(pk=id)
-    lvs = db.label_value_store.find({"silo_id": id})
-
+    lvs = db.label_value_store.find({"silo_id": int(id)})
+    piif_cols = PIIColumn.objects.values_list("fieldname",flat=True).order_by('fieldname')
     fields_to_remove = {}
     for row in lvs:
         for k in row:
-            if k in annoymizied_fields_list:
-                fields_to_remove[k] = ""
+            if k in piif_cols:
+                fields_to_remove[str(k)] = ""
 
     if fields_to_remove:
-        res = db.label_value_store.update({"silo_id": id}, { "$unset": fields_to_remove})
+        res = db.label_value_store.update_many({"silo_id": int(id)}, { "$unset": fields_to_remove})
+        messages.success(request, "Table has been annonymized! But do review it again.")
     else:
-        messages.info(request, "No personally identifiable fields found!")
+        messages.info(request, "No PIIF columns were found.")
+
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': id}))
 
 
