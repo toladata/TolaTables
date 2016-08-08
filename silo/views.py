@@ -36,7 +36,7 @@ from .models import GoogleCredentialsModel
 from gviews_v4 import import_from_gsheet_helper
 from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames
 
-from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites
+from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn
 from .forms import ReadForm, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
 
 logger = logging.getLogger("silo")
@@ -1255,9 +1255,10 @@ def identifyPII(request, silo_id):
             columns.extend([k for k in d.keys() if k not in columns])
         return render(request, 'display/annonymize_columns.html', {"silo_id": silo_id, "columns": columns})
 
-    columns = request.POST.getlist("columns")
+    columns = request.POST.getlist("cols[]")
+    print(columns)
     for i, c in enumerate(columns):
-        col, created = PIIColumn.objects.get_or_create(name=c, defaults={'owner': request.user})
+        col, created = PIIColumn.objects.get_or_create(fieldname=c, defaults={'owner': request.user})
 
     return JsonResponse({"status":"success"})
 

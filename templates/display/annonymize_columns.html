@@ -55,7 +55,8 @@
             silo_columns.each(function() {
                 cols.push($(this).text());
             });
-            $.post("/identifyPII/{{ silo_id }}/", function( data ) {
+            $.post("/identifyPII/{{ silo_id }}/", {"cols": cols}, function( data ) {
+                console.log(data);
                 createAlert("success", data);
             });
         });
