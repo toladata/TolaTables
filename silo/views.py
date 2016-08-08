@@ -1244,12 +1244,16 @@ def anonymizeTable(request, id):
 
 
 @login_required
-def identifyPII(request):
+def identifyPII(request, silo_id):
     """
     Identifying Columns with Personally Identifiable Information (PII)
     """
-    if request.method != 'POST':
-        return HttpResponseBadRequest("HTTP method, %s, is not supported" % request.method)
+    if request.method == 'GET':
+        columns = []
+        lvs = db.label_value_store.find({"silo_id": int(silo_id)})
+        for d in lvs:
+            columns.extend([k for k in d.keys() if k not in columns])
+        return render(request, 'display/annonymize_columns.html', {"silo_id": silo_id, "columns": columns})
 
     columns = request.POST.getlist("piicolumns")
     for i, c in enumerate(columns):

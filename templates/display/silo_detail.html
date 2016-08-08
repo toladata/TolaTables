@@ -66,6 +66,7 @@
         <a href="/edit_columns/{{ id }}/" class="btn btn-primary">Edit or Delete columns</a>
         <a href="/new_column/{{ id }}/" class="btn btn-primary">Add New Column</a>
         <a href="/anonymize_silo/{{ id }}/" class="btn btn-primary">Anonymize Table</a>
+        <a href="/identifyPII/{{ id }}/" id="identifyPIIBtn" class="btn btn-primary">Identify PIIF Columns</a>
         </p>
 
         <form class="form-inline" action="{% url 'updateColumn' %}"  method="POST">
@@ -183,6 +184,15 @@
             .done(function(data, textStatus, jqXHR) {
                 console.log(JSON.stringify(data));
                 $("#unique_col_lbl").text("Unique Column: " + $("#silo_cols_multi_select").val());
+            });
+        });
+        $("body").on("click", "#identifyPIIBtn", function(e) {
+            e.preventDefault();
+            var url = $(this).attr("href");
+
+            $.get( url, function( data ) {
+                $("#generic_modal").append(data);
+                $("#generic_modal").modal('show');
             });
         });
         $("body").on("click", "#push_to_activity_btn", function(e) {

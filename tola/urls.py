@@ -53,6 +53,7 @@ urlpatterns =[
     url(r'^silo_delete/(?P<id>\w+)/$', views.deleteSilo, name='deleteSilo'),
     url(r'^add_unique_fields', views.addUniqueFiledsToSilo, name='add_unique_fields_to_silo'),
     url(r'^anonymize_silo/(?P<id>\w+)/$', views.anonymizeTable, name='anonymize_table'),
+    url(r'^identifyPII/(?P<silo_id>\w+)/$', views.identifyPII, name='identifyPII'),
 
     url(r'^merge/(?P<id>\w+)/$', views.mergeForm, name='mergeForm'),
     url(r'^merge_columns', views.mergeColumns, name='mergeColumns'),
