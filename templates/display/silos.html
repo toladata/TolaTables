@@ -5,7 +5,7 @@
     <p>Edit the detail information about table (data store) or go directly to your table to edit the data.</p>
     <div class='panel panel-default' id="list_silos_panel">
         <!-- Default panel contents -->
-        <div class='panel-heading'>Data Tables you own<a href="#" id="list_silo_page_tour"class="btn-small btn-link pull-right">Tour</a></div>
+        <div class='panel-heading'>Data Tables you own<a href="javascript:void(0);" onclick="javascript:introJs().start();" class="btn-small btn-link pull-right">Tour</a></div>
 
         {% if own_silos %}
             <!-- Table -->
@@ -13,11 +13,11 @@
                 <table id="list_silos" class="table table-striped table-hover table-condensed">
                     <thead>
                         <tr>
-                            <th class="tableNameCol">Table Name</th>
-                            <th class="tableSourcesCol">Table Source(s)</th>
-                            <th class="tableOpsCol" style="width:130px;">Table Operations</th>
-                            <th class="tableShareCol">Share</th>
-                            <th class="tablePublicCol">Public</th>
+                            <th class="tableNameCol" data-step="1" data-intro="Click'n a table name takes you to its meta-data page.">Table Name</th>
+                            <th class="tableSourcesCol" data-step="2" data-intro="Sources indicates where data comes from in a table." data-position='right' >Table Source(s)</th>
+                            <th class="tableOpsCol" data-step="3" data-intro="These are the things you could do to a table." style="width:130px;">Table Operations</th>
+                            <th class="tableShareCol" data-step="4" data-intro="Export the data out to multiple destinations">Share</th>
+                            <th class="tablePublicCol" data-step="5" data-intro="Let everyone see this table!">Public</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -189,53 +189,6 @@
 {% endblock content %}
 {% block extra_js_in_body %}
     <script type="text/javascript">
-        $("#list_silos_panel").on("click", "#list_silo_page_tour", function(e) {
-            console.log("about to trip!");
-            var options = {
-                "delay": -1,
-                //"tripTheme": "minimalism",
-                "showHeader": true,
-                "showCloseBox": true,
-                "showNavigation": true,
-                "canGoPrev": true,
-                "canGoNext": true,
-
-            }
-            var trip = new Trip([
-                {
-                    sel : $('.tableNameCol'),
-                    expose: true,
-                    header: "Tables Name",
-                    content : 'Clickin a table name reveals its meta-data.'
-                },
-                {
-                    sel : $('.tableSourcesCol'),
-                    expose: true,
-                    header: "Sources of your table",
-                    content : 'Sources indicates where data comes from in a table.'
-                },
-                {
-                    sel : $('.tableOpsCol'),
-                    expose: true,
-                    header: "Taking action",
-                    content : 'These are the things you could do to a table.'
-                },
-                {
-                    sel : $('.tableShareCol'),
-                    expose: true,
-                    header: "You can share it",
-                    content : 'Export the data out to multiple destinations'
-                },
-                {
-                    sel : $('.tablePublicCol'),
-                    expose: true,
-                    header: "go all out",
-                    content : 'Let everyone see this table!'
-                }
-            ], options);
-            trip.start();
-        });
-
         $(document).ready(function() {
             $('#list_silos').DataTable({stateSave: true});
             $("a.public").click(function(e) {
