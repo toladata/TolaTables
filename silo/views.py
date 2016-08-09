@@ -685,16 +685,18 @@ def showRead(request, id):
 
     try:
         read_instance = Read.objects.get(pk=id)
-        if read_instance.type.read_type != "CSV":
-            excluded_fields = ('file_data',)
+        read_type = read_instance.type.read_type
     except Read.DoesNotExist as e:
         read_instance = None
         read_type = request.GET.get("type", None)
-        if read_type == None or read_type == "CSV":
-            read_type = "CSV"
-        else:
-            excluded_fields = ('file_data',)
         initial['type'] = ReadType.objects.get(read_type=read_type)
+
+    if read_type == "GSheet Import" or read_type == "ONA" or read_type == "JSON":
+        excluded_fields = ('file_data','autopush_frequency')
+    elif read_type == "Google Spreadsheet":
+        excluded_fields = ('file_data', 'autopull_frequency')
+    elif read_type == "CSV":
+        pass
 
     if request.method == 'POST':
         form = ReadForm(request.POST, request.FILES, instance=read_instance)
