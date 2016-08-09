@@ -1258,7 +1258,7 @@ def identifyPII(request, silo_id):
         return render(request, 'display/annonymize_columns.html', {"silo_id": silo_id, "columns": columns})
 
     columns = request.POST.getlist("cols[]")
-    print(columns)
+
     for i, c in enumerate(columns):
         col, created = PIIColumn.objects.get_or_create(fieldname=c, defaults={'owner': request.user})
 
