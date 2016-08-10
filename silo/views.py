@@ -37,7 +37,7 @@ from gviews_v4 import import_from_gsheet_helper
 from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames
 
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn
-from .forms import ReadForm, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
+from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
 
 logger = logging.getLogger("silo")
 db = MongoClient(settings.MONGODB_HOST).tola
@@ -680,8 +680,8 @@ def showRead(request, id):
     """
     Show a read data source and allow user to edit it
     """
+    excluded_fields = ['owner', 'gsheet_id', 'resource_id', 'username', 'token', 'create_date', 'edit_date', 'token']
     initial = {'owner': request.user}
-    excluded_fields=('autopush_frequency', 'autopull_frequency', 'read_url')
 
     try:
         read_instance = Read.objects.get(pk=id)
@@ -691,15 +691,16 @@ def showRead(request, id):
         read_type = request.GET.get("type", "CSV")
         initial['type'] = ReadType.objects.get(read_type=read_type)
 
+
     if read_type == "GSheet Import" or read_type == "ONA" or read_type == "JSON":
-        excluded_fields = ('file_data','autopush_frequency')
+        excluded_fields = excluded_fields + ['file_data','autopush_frequency']
     elif read_type == "Google Spreadsheet":
-        excluded_fields = ('file_data', 'autopull_frequency')
+        excluded_fields = excluded_fields + ['file_data', 'autopull_frequency']
     elif read_type == "CSV":
-        pass
+        excluded_fields = excluded_fields + ['autopush_frequency', 'autopull_frequency', 'read_url']
 
     if request.method == 'POST':
-        form = ReadForm(request.POST, request.FILES, instance=read_instance)
+        form = get_read_form(excluded_fields)(request.POST, request.FILES, instance=read_instance)
         if form.is_valid():
             read = form.save()
             if form.instance.type.read_type == "CSV":
@@ -713,7 +714,7 @@ def showRead(request, id):
         else:
             messages.error(request, 'Invalid Form', fail_silently=False)
     else:
-        form = ReadForm(exclude_list=excluded_fields, instance=read_instance, initial=initial)
+        form = get_read_form(excluded_fields)(instance=read_instance, initial=initial)
     return render(request, 'read/read.html', {
         'form': form, 'read_id': id,
     })
