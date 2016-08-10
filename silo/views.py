@@ -680,7 +680,7 @@ def showRead(request, id):
     """
     Show a read data source and allow user to edit it
     """
-    excluded_fields = ['owner', 'gsheet_id', 'resource_id', 'username', 'token', 'create_date', 'edit_date', 'token']
+    excluded_fields = ['gsheet_id', 'resource_id', 'username', 'token', 'create_date', 'edit_date', 'token']
     initial = {'owner': request.user}
 
     try:
