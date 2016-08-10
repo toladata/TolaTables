@@ -64,16 +64,16 @@ class NewColumnForm(forms.Form):
 def get_read_form(excluded_fields):
     class ReadForm(forms.ModelForm):
         def __init__(self, *args, **kwargs):
-            exclude_list=kwargs.pop('exclude_list', '')
+            #exclude_list=kwargs.pop('exclude_list', '')
             super(ReadForm, self).__init__(*args, **kwargs)
             self.helper = FormHelper(self)
             self.helper.layout.append(Hidden('read_id', '{{read_id}}'))
             self.helper.layout.append(Submit('save', 'save'))
-            self.fields['type'].widget.attrs['disabled'] = True
+            #self.fields['type'].widget.attrs['disabled'] = True
         class Meta:
             model = Read
             exclude = excluded_fields
-            widgets = {'owner': forms.HiddenInput()}
+            widgets = {'owner': forms.HiddenInput(), 'type': forms.HiddenInput()}
     return ReadForm
 
 class UploadForm(forms.Form):

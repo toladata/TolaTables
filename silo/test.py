@@ -145,7 +145,9 @@ class SiloTest(TestCase):
             #'file_data': upload_file,
         }
         file_dict = {'file_data': SimpleUploadedFile(upload_file.name, upload_file.read())}
-        form = ReadForm(params, file_dict)
+        #form = ReadForm(params, file_dict)
+        excluded_fields = ['create_date', 'edit_date',]
+        form = get_read_form(excluded_fields)(params, file_dict)
         self.assertTrue(form.is_valid())
 
     def test_delete_data_from_silodata(self):
