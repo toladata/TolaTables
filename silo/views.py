@@ -688,7 +688,7 @@ def showRead(request, id):
         read_type = read_instance.type.read_type
     except Read.DoesNotExist as e:
         read_instance = None
-        read_type = request.GET.get("type", None)
+        read_type = request.GET.get("type", "CSV")
         initial['type'] = ReadType.objects.get(read_type=read_type)
 
     if read_type == "GSheet Import" or read_type == "ONA" or read_type == "JSON":
