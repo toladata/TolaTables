@@ -6,6 +6,7 @@ import base64
 from django.utils.encoding import smart_text
 from django.utils import timezone
 from django.conf import settings
+from django.utils.encoding import smart_str
 from django.contrib.auth.models import User
 
 from silo.models import Read, Silo, LabelValueStore
@@ -57,6 +58,7 @@ def saveDataToSilo(silo, data):
     """
     unique_fields = silo.unique_fields.all()
     skipped_rows = set()
+    enc = "latin-1"
     for counter, row in enumerate(data):
         # reseting filter_criteria for each row
         filter_criteria = {}
@@ -99,6 +101,7 @@ def saveDataToSilo(silo, data):
             elif key == "id" or key == "_id": key = "user_assigned_id"
             elif key == "edit_date": key = "editted_date"
             elif key == "create_date": key = "created_date"
+            val = val.decode(enc).encode("utf8")
             setattr(lvs, key.replace(".", "_").replace("$", "USD"), val)
             counter += 1
         lvs.save()
