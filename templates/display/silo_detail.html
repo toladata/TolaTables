@@ -44,7 +44,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if read.type.read_type == "CSV" or read.type.read_type == "GSheet Import" %}
+                                {% if read.type.read_type == "CSV" or read.type.read_type == "GSheet Import" or read.type.read_type == "JSON" or read.type.read_type == "ONA"  %}
                                     N/A
                                 {% else %}
                                     {% if read.autopush_frequency %} {{ read.autopush_frequency }} {% else %} <a href="/show_read/{{read.id}}">Setup</a> * {% endif %}
