@@ -163,8 +163,8 @@ class Read(models.Model):
     read_url = models.CharField(max_length=250, blank=True, default='', verbose_name='source url')
     resource_id = models.CharField(max_length=200, null=True, blank=True)
     gsheet_id = models.CharField(max_length=200, null=True, blank=True) # sheetid within google spreadsheet
-    username = models.CharField(max_length=20, null=True, blank=True)
-    password = models.CharField(max_length=40, null=True, blank=True)
+    username = models.CharField(max_length=20, null=True, blank=True, help_text="Enter username only if the data at this source is protected by a login")
+    password = models.CharField(max_length=40, null=True, blank=True, help_text="Enter password only if the data at this source is protected by a login")
     token = models.CharField(max_length=254, null=True, blank=True)
     file_data = models.FileField("Upload CSV File", upload_to='uploads', blank=True, null=True)
     autopull_frequency = models.CharField(max_length=25, choices=FREQUENCY_CHOICES, null=True, blank=True)
