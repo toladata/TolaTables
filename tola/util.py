@@ -116,11 +116,14 @@ def importJSON(read_obj, user, remote_user = None, password = None, silo_id = No
     today = str(today)
     try:
         request2 = urllib2.Request(read_obj.read_url)
-        #if they passed in a usernmae get auth info from form post then encode and add to the request header
-
-        if remote_user and password:
+        # If the read_obj has token then use it; otherwise, check for login info.
+        if read_obj.token:
+            request2.add_header("Authorization", "Basic %s" % read_obj.token)
+        elif remote_user and password:
             base64string = base64.encodestring('%s:%s' % (remote_user, password))[:-1]
             request2.add_header("Authorization", "Basic %s" % base64string)
+        else:
+            pass
         #retrieve JSON data from formhub via auth info
         json_file = urllib2.urlopen(request2)
         silo = None
