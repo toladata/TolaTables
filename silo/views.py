@@ -576,7 +576,7 @@ def showRead(request, id):
     """
     Show a read data source and allow user to edit it
     """
-    excluded_fields = ['gsheet_id', 'resource_id', 'username', 'token', 'create_date', 'edit_date', 'token']
+    excluded_fields = ['gsheet_id', 'resource_id', 'token', 'create_date', 'edit_date', 'token']
     initial = {'owner': request.user}
 
     try:
@@ -588,12 +588,14 @@ def showRead(request, id):
         initial['type'] = ReadType.objects.get(read_type=read_type)
 
 
-    if read_type == "GSheet Import" or read_type == "ONA" or read_type == "JSON":
+    if read_type == "GSheet Import" or read_type == "ONA":
+        excluded_fields = excluded_fields + ['username', 'password', 'file_data','autopush_frequency']
+    elif read_type == "JSON":
         excluded_fields = excluded_fields + ['file_data','autopush_frequency']
     elif read_type == "Google Spreadsheet":
-        excluded_fields = excluded_fields + ['file_data', 'autopull_frequency']
+        excluded_fields = excluded_fields + ['username', 'password', 'file_data', 'autopull_frequency']
     elif read_type == "CSV":
-        excluded_fields = excluded_fields + ['autopush_frequency', 'autopull_frequency', 'read_url']
+        excluded_fields = excluded_fields + ['username', 'password', 'autopush_frequency', 'autopull_frequency', 'read_url']
 
     if request.method == 'POST':
         form = get_read_form(excluded_fields)(request.POST, request.FILES, instance=read_instance)
