@@ -159,15 +159,15 @@ class Read(models.Model):
     owner = models.ForeignKey(User)
     type = models.ForeignKey(ReadType)
     read_name = models.CharField(max_length=100, blank=True, default='', verbose_name='source name') #RemoteEndPoint = name
-    autopull_frequency = models.CharField(max_length=25, choices=FREQUENCY_CHOICES, null=True, blank=True)
-    autopush_frequency = models.CharField(max_length=25, choices=FREQUENCY_CHOICES, null=True, blank=True)
     description = models.TextField()
-    read_url = models.CharField(max_length=250, blank=True, default='', verbose_name='source url') #RemoteEndPoint = link
+    read_url = models.CharField(max_length=250, blank=True, default='', verbose_name='source url')
     resource_id = models.CharField(max_length=200, null=True, blank=True) #RemoteEndPoint
     gsheet_id = models.CharField(max_length=200, null=True, blank=True) # sheetid within google spreadsheet
     username = models.CharField(max_length=20, null=True, blank=True) #RemoteEndPoint
     token = models.CharField(max_length=254, null=True, blank=True) #RemoteEndPoint
     file_data = models.FileField("Upload CSV File", upload_to='uploads', blank=True, null=True)
+    autopull_frequency = models.CharField(max_length=25, choices=FREQUENCY_CHOICES, null=True, blank=True)
+    autopush_frequency = models.CharField(max_length=25, choices=FREQUENCY_CHOICES, null=True, blank=True)
     create_date = models.DateTimeField(null=True, blank=True, auto_now=False, auto_now_add=True)
     edit_date = models.DateTimeField(null=True, blank=True, auto_now=True, auto_now_add=False) #RemoteEndPoint
 
