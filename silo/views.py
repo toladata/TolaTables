@@ -1,6 +1,7 @@
 import datetime
 import json
 import csv
+import base64
 import requests
 from requests.auth import HTTPDigestAuth
 import logging
@@ -600,7 +601,12 @@ def showRead(request, id):
     if request.method == 'POST':
         form = get_read_form(excluded_fields)(request.POST, request.FILES, instance=read_instance)
         if form.is_valid():
-            read = form.save()
+            read = form.save(commit=False)
+            if read.username and read.password:
+                basic_auth = base64.encodestring('%s:%s' % (read.username, read.password))[:-1]
+                read.token = basic_auth
+                read.password = None
+            read.save()
             if form.instance.type.read_type == "CSV":
                 return HttpResponseRedirect("/file/" + str(read.id) + "/")
             elif form.instance.type.read_type == "JSON":
