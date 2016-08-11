@@ -73,7 +73,10 @@ def get_read_form(excluded_fields):
         class Meta:
             model = Read
             exclude = excluded_fields
-            widgets = {'owner': forms.HiddenInput(), 'type': forms.HiddenInput()}
+            widgets = {
+                'owner': forms.HiddenInput(),
+                'type': forms.HiddenInput(),
+                'password': forms.PasswordInput(),}
     return ReadForm
 
 class UploadForm(forms.Form):
