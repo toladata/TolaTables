@@ -1,4 +1,5 @@
 import datetime
+import time
 import json
 import csv
 import base64
@@ -1105,7 +1106,12 @@ def export_silo(request, id):
     response['Content-Disposition'] = 'attachment; filename="%s.csv"' % silo_name
     writer = csv.writer(response)
 
-    silo_data = LabelValueStore.objects(silo_id=id)
+    # Loads the bson objects from mongo
+    bsondata = store.find({"silo_id": int(id)})
+    # Now convert bson to json string using OrderedDict to main fields order
+    json_string = dumps(bsondata)
+    # Now decode the json string into python object
+    silo_data = json.loads(json_string, object_pairs_hook=OrderedDict)
     data = []
     num_cols = 0
     cols = OrderedDict()
@@ -1115,7 +1121,8 @@ def export_silo(request, id):
         for row in silo_data:
             for i, col in enumerate(row):
                 if col not in cols.keys():
-                    num_cols = num_cols + 1
+                    num_cols += 1
+                    col = col.decode("latin-1").encode("utf8")
                     cols[col] = num_cols
 
         # Convert OrderedDict to Python list so that it can be written to CSV writer.
@@ -1128,7 +1135,14 @@ def export_silo(request, id):
         for r, row in enumerate(silo_data):
             for col in row:
                 # Map values to column names and place them in the correct position in the data array
-                data[r][cols.index(col)] = smart_str(row[col])
+                val = row[col]
+                if isinstance(val, OrderedDict): val  = val.popitem()
+                if isinstance(val, tuple):
+                    if val[0] == "$date": val = smart_text(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(val[1]/1000)))
+                    if val[0] == "$oid": val = smart_text(val[1])
+                #val = val.decode("latin-1").encode("utf8")
+                val = smart_text(val).decode("latin-1").encode("utf8")
+                data[r][cols.index(col)] = val
             writer.writerow(data[r])
     return response
 
