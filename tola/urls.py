@@ -48,6 +48,7 @@ urlpatterns =[
     url(r'^toggle_silo_publicity/$', views.toggle_silo_publicity, name='toggle_silo_publicity'),
 
     url(r'^silos', views.listSilos, name='listSilos'),
+    url(r'^silo/(?P<silo_id>\w+)/$', views.siloDetail2, name='siloDetail2'),
     url(r'^silo_detail/(?P<id>\w+)/$', views.siloDetail, name='siloDetail'),
     url(r'^silo_edit/(?P<id>\w+)/$', views.editSilo, name='editSilo'),
     url(r'^silo_delete/(?P<id>\w+)/$', views.deleteSilo, name='deleteSilo'),
