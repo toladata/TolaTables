@@ -802,7 +802,7 @@ def siloDetail(request,id):
             messages.error(request, "There is not data in Table with id = %s" % id)
             return HttpResponseRedirect(reverse_lazy("listSilos"))
     else:
-        messages.info(request, "You don't have the permission to see data in this table")
+        messages.info(request, "You do not have permissions to view this table.")
         return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
 
