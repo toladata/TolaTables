@@ -789,7 +789,7 @@ def siloDetail(request,id):
         #cols.extend([k for k in row.keys() if k not in cols and k != '_id' and k != 'silo_id' and k != 'create_date' and k != 'edit_date' and k != 'source_table_id'])
         cols.extend([k for k in row.keys() if k not in cols])
 
-    if silo.owner == owner or silo.public == True or owner__in == silo.shared:
+    if silo.owner == request.user or silo.public == True or owner__in == silo.shared:
         if data and cols:
             silo_table = define_table(cols)(data)
 
