@@ -31,7 +31,7 @@
             $("#data_table").find("th").each(function(i){
                 if (i == 0) {
                     // make the first col have a set width and non-sortable
-                    cols.push({"data": $(this).text(), "orderable": false , "width": "40px"});
+                    cols.push({"data": $(this).text(), "orderable": false , "width": "45px"});
                 } else {
                     cols.push({"data": $(this).text()});
                 }
@@ -55,6 +55,8 @@
             */
             var silo_table = $('#data_table').DataTable({
                 stateSave: true, // save table state in local cache
+                "ordering": true,
+                "order": [[1,"desc"]],
                 "pageLength": 50,
                 "data": data,
                 "columns": cols,
