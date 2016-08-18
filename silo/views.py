@@ -813,7 +813,7 @@ def siloDetail2(request, silo_id):
     """
     silo = Silo.objects.get(pk=silo_id)
     bsondata = store.find({"silo_id": silo.pk})
-    cols = ["Action"]
+    cols = [""]
     data = []
     for row in bsondata:
         row[cols[0]]=(
@@ -825,7 +825,11 @@ def siloDetail2(request, silo_id):
                 "<span style='color:red;' class='glyphicon glyphicon-trash' aria-hidden='true'></span>"
             "</a>") % (row["_id"], row['_id'])
         data.append(OrderedDict(row))
-        cols.extend([c for c in row.keys() if c not in cols and c != "_id" and c != "create_date" and c != "edit_date"])
+        cols.extend([c for c in row.keys() if c not in cols and
+                    c != "_id" and
+                    c != "create_date" and
+                    c != "edit_date" and
+                    c != "silo_id"])
     data = dumps(data)
 
     return render(request, "display/silo.html", {"data": data, "silo": silo, "cols": cols})

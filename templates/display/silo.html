@@ -31,7 +31,7 @@
 
             $("#data_table").find("th").each(function(i){
                 if (i == 0) {
-                    cols.push({"data": $(this).text(), "width": "25px"});
+                    cols.push({"data": $(this).text(), "orderable": false , "width": "40px"});
                 } else {
                     cols.push({"data": $(this).text()});
                 }
@@ -57,7 +57,7 @@
                 stateSave: true,
                 "pageLength": 50,
                 "data": data,
-                "columns": cols
+                "columns": cols,
             });
 
             $('a.toggle-viz').on('click', function(e){
