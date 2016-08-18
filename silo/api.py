@@ -1,6 +1,6 @@
 import json
 
-from django.http import HttpResponseBadRequest, JsonResponse
+from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 from django.contrib.auth.models import User
 
 from rest_framework import renderers, viewsets,filters,permissions
@@ -43,6 +43,9 @@ class PublicSiloViewSet(viewsets.ReadOnlyModelViewSet):
         if id <= 0:
             return HttpResponseBadRequest("The silo_id = %s is invalid" % id)
 
+        silo = Silo.objects.get(pk=id)
+        if silo.public == False:
+            return HttpResponse("This table is not public. You must use the private API.")
         data = LabelValueStore.objects(silo_id=id).to_json()
         json_data = json.loads(data)
         return JsonResponse(json_data, safe=False)
