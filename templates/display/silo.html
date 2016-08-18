@@ -31,6 +31,7 @@
 
             $("#data_table").find("th").each(function(i){
                 if (i == 0) {
+                    // make the first col have a set width and non-sortable
                     cols.push({"data": $(this).text(), "orderable": false , "width": "40px"});
                 } else {
                     cols.push({"data": $(this).text()});
@@ -54,12 +55,13 @@
             console.log(mydata);
             */
             var silo_table = $('#data_table').DataTable({
-                stateSave: true,
+                stateSave: true, // save table state in local cache
                 "pageLength": 50,
                 "data": data,
                 "columns": cols,
             });
 
+            // toggles tables' column visibility
             $('a.toggle-viz').on('click', function(e){
                 e.preventDefault();
                 var column = silo_table.column($(this).attr('data-column') );

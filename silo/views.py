@@ -816,6 +816,7 @@ def siloDetail2(request, silo_id):
     cols = [""]
     data = []
     for row in bsondata:
+        # Add a column that contains edit/del links for each row in the table
         row[cols[0]]=(
             "<a href='/value_edit/%s'>"
                 "<span class='glyphicon glyphicon-edit' aria-hidden='true'></span>"
@@ -824,12 +825,17 @@ def siloDetail2(request, silo_id):
             "<a href='/value_delete/%s'>"
                 "<span style='color:red;' class='glyphicon glyphicon-trash' aria-hidden='true'></span>"
             "</a>") % (row["_id"], row['_id'])
+
+        # Using OrderedDict to maintain column orders
         data.append(OrderedDict(row))
+
+        # create a distinct list of column names to be used for datatables in templates
         cols.extend([c for c in row.keys() if c not in cols and
                     c != "_id" and
                     c != "create_date" and
                     c != "edit_date" and
                     c != "silo_id"])
+    # convert bson data to json data using json_utils.dumps from pymongo module
     data = dumps(data)
 
     return render(request, "display/silo.html", {"data": data, "silo": silo, "cols": cols})
