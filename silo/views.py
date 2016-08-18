@@ -813,23 +813,22 @@ def siloDetail2(request, silo_id):
     """
     silo = Silo.objects.get(pk=silo_id)
     bsondata = store.find({"silo_id": silo.pk})
-    data = dumps(bsondata)
-    jdata = json.loads(data, object_pairs_hook=OrderedDict)
-    cols = ["ops"]
-    for row in jdata:
+    cols = ["Action"]
+    data = []
+    for row in bsondata:
+        row[cols[0]]=(
+            "<a href='/value_edit/%s'>"
+                "<span class='glyphicon glyphicon-edit' aria-hidden='true'></span>"
+            "</a>"
+            "&nbsp;"
+            "<a href='/value_delete/%s'>"
+                "<span style='color:red;' class='glyphicon glyphicon-trash' aria-hidden='true'></span>"
+            "</a>") % (row["_id"], row['_id'])
+        data.append(OrderedDict(row))
         cols.extend([c for c in row.keys() if c not in cols and c != "_id" and c != "create_date" and c != "edit_date"])
-        row['ops']="<a href='/value_edit/%s'><span class='glyphicon glyphicon-edit' aria-hidden='true'></span></a>&nbsp; <a href='/value_delete/%s'><span style='color:red;' class='glyphicon glyphicon-trash' aria-hidden='true'></span></a>" % (row["_id"]["$oid"], row['_id']['$oid'])
+    data = dumps(data)
 
-    datatables_cols = []
-    for c in cols:
-        if c == "ops":
-            datatables_cols.append({"data": str(c), "width": "25px"})
-        else:
-            datatables_cols.append({"data": str(c)})
-    data = dumps(jdata)
-
-    return render(request, "display/silo.html", {
-                  "data": data, "silo": silo, "cols": cols, "datatables_cols":json.dumps(datatables_cols)})
+    return render(request, "display/silo.html", {"data": data, "silo": silo, "cols": cols})
 
 
 @login_required

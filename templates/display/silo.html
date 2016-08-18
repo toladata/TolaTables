@@ -26,8 +26,16 @@
 {% block extra_js_in_body %}
     <script type="text/javascript">
         $(document).ready(function() {
-            var cols = $.parseJSON(`{{ datatables_cols|safe }}`);
             var data = $.parseJSON(`{{ data|safe }}`);
+            var cols = [];
+
+            $("#data_table").find("th").each(function(i){
+                if (i == 0) {
+                    cols.push({"data": $(this).text(), "width": "25px"});
+                } else {
+                    cols.push({"data": $(this).text()});
+                }
+            })
             /*
             var mydata = [];
             $.each(data, function(i,row){
@@ -58,10 +66,12 @@
                 column.visible( ! column.visible() );
             });
 
+            /*
             console.log( 'Table\'s column visibility are set to: '+silo_table.columns().visible().join(', ') );
             $.each(silo_table.columns(), function(i,col){
                 console.log("i="+i + " " + col);
             });
+            */
         });
     </script>
 
