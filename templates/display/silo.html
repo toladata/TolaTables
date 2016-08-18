@@ -8,32 +8,60 @@
 {% block content %}
 
 
-<div class="modal fade" tabindex="-1" role="dialog" id="repeats_modal">
-    <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-        <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <h4 class="modal-title">Modal title</h4>
+    <div class="modal fade" tabindex="-1" role="dialog" id="repeats_modal">
+        <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">Repeats</h4>
+            </div>
+            <div class="modal-body" id="repeats_modal_body">
+                <p>One fine body&hellip;</p>
+            </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+    <div>
+        <!-- Nav tabs -->
+        <ul class="nav nav-tabs" role="tablist">
+            <li role="presentation" class="active">
+                <a href="#sources" aria-controls="sources" role="tab" data-toggle="tab">Sources</a>
+            </li>
+
+            <li role="presentation">
+                <a href="#options" aria-controls="options" role="tab" data-toggle="tab">Options</a>
+            </li>
+            <li role="presentation">
+                <a href="#profile" aria-controls="profile" role="tab" data-toggle="tab">Profile</a>
+            </li>
+        </ul>
+
+        <!-- Tab panes -->
+        <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade in active" id="sources">
+                <p>Sources go here ...</p>
+            </div>
+            <div role="tabpanel" class="tab-pane" id="options">
+                <p>Options go here</p>
+            </div>
+            <div role="tabpanel" class="tab-pane" id="profile">
+                {% for col in cols %}
+                    <a class="toggle-viz" data-column="{{forloop.counter0}}">{{col}}</a>
+                {% endfor %}
+            </div>
         </div>
-        <div class="modal-body" id="repeats_modal_body">
-            <p>One fine body&hellip;</p>
-        </div>
-        </div><!-- /.modal-content -->
-    </div><!-- /.modal-dialog -->
-</div><!-- /.modal -->
+    </div>
+    <br />
 
-
-{% for col in cols %}
-    <a class="toggle-viz" data-column="{{forloop.counter0}}">{{col}}</a>
-{% endfor %}
-<table id="data_table" class="display table-hover table table-striped table-bordered" cellspacing="0" width="100%">
-    <thead>
-        {% for c in cols %}
-            <th>{{c}}</th>
-        {% endfor %}
-    </thead>
-</table>
-
+    <table id="data_table" class="display table-hover table table-striped table-bordered" cellspacing="0"
+    width="100%">
+        <thead>
+            {% for c in cols %}
+                <th>{{c}}</th>
+            {% endfor %}
+        </thead>
+    </table>
 {% endblock content %}
 
 
