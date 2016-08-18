@@ -11,7 +11,7 @@
 {% for col in cols %}
     <a class="toggle-viz" data-column="{{forloop.counter0}}">{{col}}</a>
 {% endfor %}
-<table id="data_table" class="table table-striped table-bordered" cellspacing="0" width="100%">
+<table id="data_table" class="display table-hover table table-striped table-bordered" cellspacing="0" width="100%">
     <thead>
         {% for c in cols %}
             <th>{{c}}</th>
@@ -33,7 +33,17 @@
                     // make the first col have a set width and non-sortable
                     cols.push({"data": $(this).text(), "orderable": false , "width": "45px"});
                 } else {
-                    cols.push({"data": $(this).text()});
+                    cols.push({
+                        "data": $(this).text(),
+                        // Use the cell render function to return "repeats if the value is an array"
+                        "render": function(data, type, row) {
+                            if (jQuery.type(data) == "array" ) {
+                                return "repeats...";
+                            } else {
+                                return data;
+                            }
+                        }
+                    });
                 }
             })
             /*
@@ -54,12 +64,31 @@
             console.log(mydata);
             */
             var silo_table = $('#data_table').DataTable({
-                stateSave: true, // save table state in local cache
+                stateSave: false, // save table state in local cache
                 "ordering": true,
                 "order": [], // show rows as they are read. To set order: [[1, "asc"]]
                 "pageLength": 50,
                 "data": data,
                 "columns": cols,
+
+            });
+            var data = undefined;
+            $('#data_table tbody').on( 'click', 'td', function () {
+                var cell = silo_table.cell( this );
+                data = cell.data();
+                //cell.data( "repeats" ).draw();
+                if (jQuery.type(data) == "object") {
+                    data = data[0];
+                }
+                if (jQuery.type(data) == "array") {
+                    $.each(data, function(i,row){
+                        if (jQuery.type(row) == "object") {
+                           $.each(row, function(r, ro){
+                                console.log("r: " + r + " ro: " + ro);
+                           });
+                        }
+                    });
+                }
             });
 
             // toggles tables' column visibility
