@@ -56,7 +56,7 @@
             var silo_table = $('#data_table').DataTable({
                 stateSave: true, // save table state in local cache
                 "ordering": true,
-                "order": [[1,"desc"]],
+                "order": [], // show rows as they are read. To set order: [[1, "asc"]]
                 "pageLength": 50,
                 "data": data,
                 "columns": cols,

@@ -46,7 +46,7 @@
                                         <button type="button" class="btn btn-xs btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">Share <span class="caret"></span></button>
                                         <ul class="dropdown-menu" role="menu">
                                             <li><a href="/api/silo/{{ silo.id }}" target="_new">REST API</a></li>
-                                            <li><a href="/api/custom/{{ silo.id }}" target="_new">JSON FEED</a></li>
+                                            <li><a href="/api/public_tables/{{ silo.id }}/data/" target="_new">JSON FEED</a></li>
                                             <li><a href="/export/{{ silo.id }}"><span class="glyphicon glyphicon-file"></span> Export as CSV </a></li>
                                             <li class="divider"></li>
                                             <li><a href="/export_to_gsheet/{{ silo.id }}/"><span class="glyphicon glyphicon-cloud-upload"></span> New Google SHEET</a></li>
