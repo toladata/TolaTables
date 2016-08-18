@@ -8,6 +8,21 @@
 {% block content %}
 
 
+<div class="modal fade" tabindex="-1" role="dialog" id="repeats_modal">
+    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title">Modal title</h4>
+        </div>
+        <div class="modal-body" id="repeats_modal_body">
+            <p>One fine body&hellip;</p>
+        </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+
 {% for col in cols %}
     <a class="toggle-viz" data-column="{{forloop.counter0}}">{{col}}</a>
 {% endfor %}
@@ -75,19 +90,42 @@
             var data = undefined;
             $('#data_table tbody').on( 'click', 'td', function () {
                 var cell = silo_table.cell( this );
+                var table = '<table class="table table-bordered table-hover table-striped" width="100%" cellspacing="0"><tr>';
                 data = cell.data();
                 //cell.data( "repeats" ).draw();
                 if (jQuery.type(data) == "object") {
                     data = data[0];
                 }
+
                 if (jQuery.type(data) == "array") {
+                    var column_names = [];
                     $.each(data, function(i,row){
+                        $.each(row, function(c, v){
+                            if (jQuery.inArray(c, column_names) < 0) {
+                                column_names.push(c);
+                            }
+                        });
+                    });
+                    $.each(column_names, function(i, col){
+                        col = col.split("/");
+                        table += "<th>../" + col[col.length-1] + "</th>";
+                    });
+                    table += "</tr>";
+
+                    $.each(data, function(i,row){
+                        table += "<tr>";
                         if (jQuery.type(row) == "object") {
-                           $.each(row, function(r, ro){
-                                console.log("r: " + r + " ro: " + ro);
+                           $.each(row, function(c, v){
+                                table += "<td>" + v + "</td>";
+                                //console.log("c: " + c + " v: " + v);
                            });
                         }
+                        table += "</tr>";
                     });
+                    table += "</table>";
+                    //console.log(table);
+                    $("#repeats_modal_body").html(table);
+                    $('#repeats_modal').modal("show");
                 }
             });
 
