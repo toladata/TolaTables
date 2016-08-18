@@ -99,6 +99,7 @@
 
                 if (jQuery.type(data) == "array") {
                     var column_names = [];
+                    // First get all of the column names in this array
                     $.each(data, function(i,row){
                         $.each(row, function(c, v){
                             if (jQuery.inArray(c, column_names) < 0) {
@@ -106,12 +107,14 @@
                             }
                         });
                     });
+                    // Now use the column names to populate the table's header row
                     $.each(column_names, function(i, col){
                         col = col.split("/");
                         table += "<th>../" + col[col.length-1] + "</th>";
                     });
                     table += "</tr>";
 
+                    // now populate the remaining data rows for the table
                     $.each(data, function(i,row){
                         table += "<tr>";
                         if (jQuery.type(row) == "object") {
@@ -123,7 +126,7 @@
                         table += "</tr>";
                     });
                     table += "</table>";
-                    //console.log(table);
+                    //set the table to be the html content of the modal's body
                     $("#repeats_modal_body").html(table);
                     $('#repeats_modal').modal("show");
                 }
