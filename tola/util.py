@@ -101,7 +101,8 @@ def saveDataToSilo(silo, data):
             elif key == "id" or key == "_id": key = "user_assigned_id"
             elif key == "edit_date": key = "editted_date"
             elif key == "create_date": key = "created_date"
-            val = val.decode(enc).encode("utf8")
+            if type(val) == str or type(val) == unicode:
+                val = val.decode(enc).encode("utf8")
             setattr(lvs, key.replace(".", "_").replace("$", "USD"), val)
             counter += 1
         lvs.save()
