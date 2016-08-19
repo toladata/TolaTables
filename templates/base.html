@@ -42,7 +42,7 @@
     <body>
         <!--http://getbootstrap.com/examples/sticky-footer-navbar/-->
         <div class="navbar navbar-default navbar-tola navbar-fixed-top" role="navigation">
-            <div class="container">
+            <div class="container-fluid">
             <div class="navbar-header">
                 <a class="navbar-brand" href="{% url 'index' %}">
                     <img style="margin-top: -3px; max-width: 140px;" src="{{ STATIC_URL }}img/tola-tables-primary-mark-white.png" />
@@ -105,7 +105,7 @@
         </div><!-- .navbar collapse -->
 
 
-        <div class="container">
+        <div class="container-fluid">
             <div>{% block bread_crumb %}{% endblock %}</div>
             <div id = "alerts">
                 <!-- Any messages for users -->
@@ -122,14 +122,19 @@
                     {% endif %}
                 {% endblock messages %}
             </div>
-            <br/>
+        </div><!-- .container collapse -->
+
+
+        <!-- Main body content -->
+        <div class="container-fluid" id="content">
             <!-- Page title  -->
             <h2>{% block page_title %}{% endblock %}</h2>
 
             <!-- Main body content -->
-            <p>{% block content %}{% endblock %}</p>
+            {% block content %} {% endblock %}
+        </div>
 
-        </div><!-- .container collapse -->
+
 
         <div id = "loading" class="modal"> </div>
 
@@ -176,7 +181,7 @@
         <div id = "loading" class="modal"> </div>
         <div id="footer">
             <!-- Sticky Footer -->
-            <div class="container">
+            <div class="container-fluid">
                 <div class="col-md-6 text-left">
                     <a href="http://www.toladata.com" class="text-muted"><b>Tola</b>Data: Built by</a> <a href="http://www.mercycorps.org" class="text-muted">MercyCorps</a>
                 </div>
