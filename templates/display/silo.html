@@ -25,7 +25,7 @@
     <div>
         <!-- Nav tabs -->
         <ul class="nav nav-tabs" role="tablist">
-            <li role="presentation" class="active">
+            <li role="presentation">
                 <a href="#sources" aria-controls="sources" role="tab" data-toggle="tab">Sources</a>
             </li>
 
@@ -39,8 +39,55 @@
 
         <!-- Tab panes -->
         <div class="tab-content">
-            <div role="tabpanel" class="tab-pane fade in active" id="sources">
-                <p>Sources go here ...</p>
+            <div role="tabpanel" class="tab-pane" id="sources">
+
+
+
+
+
+        <div class = "table-responsive">
+            <table class="table table-bordered table-striped table-hover table-condensed">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Type</th>
+                    <th>Source</th>
+                    <th>Auto-pull</th>
+                    <th>Auto-push</th>
+                </tr>
+                </thead>
+                <tbody>
+                    {% for read in silo.reads.all %}
+                        <tr>
+                            <td><a href="/show_read/{{read.id}}" target="_blank">{{read.read_name }}</a></td>
+                            <td>{{read.description}}</td>
+                            <td>{{ read.type.read_type}}</td>
+                            <td><a href="{{ read.read_url }}" target="_blank">link to source</a></td>
+                            <td>
+                                {% if read.type.read_type == "CSV" or read.type.read_type == "Google Spreadsheet" %}
+                                    N/A
+                                {% else %}
+                                    {% if read.autopull_frequency %} {{ read.autopull_frequency }} {% else %} <a href="/show_read/{{read.id}}">Setup</a> {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if read.type.read_type == "CSV" or read.type.read_type == "GSheet Import" or read.type.read_type == "JSON" or read.type.read_type == "ONA"  %}
+                                    N/A
+                                {% else %}
+                                    {% if read.autopush_frequency %} {{ read.autopush_frequency }} {% else %} <a href="/show_read/{{read.id}}">Setup</a> * {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <span class="text-muted"><small>*Auto Push will replace all your data in the destination source</small></span>
+        </div>
+
+
+
+
             </div>
             <div role="tabpanel" class="tab-pane" id="options">
                 <p>Options go here</p>
@@ -52,16 +99,23 @@
             </div>
         </div>
     </div>
-    <br />
 
-    <table id="data_table" class="display table-hover table table-striped table-bordered" cellspacing="0"
-    width="100%">
-        <thead>
-            {% for c in cols %}
-                <th>{{c}}</th>
-            {% endfor %}
-        </thead>
-    </table>
+
+
+<div class="panel panel-primary">
+    <div class="panel-heading">
+        <h3 class="panel-title">{{silo.name}}</h3>
+    </div>
+    <div class="panel panel-body" style="padding: 5px 0px 5px 0px;">
+        <table id="data_table" class="table table-hover table table-striped table-bordered" width="100%" style="overflow-x: scroll; display:block; ">
+            <thead>
+                {% for c in cols %}
+                    <th>{{c}}</th>
+                {% endfor %}
+            </thead>
+        </table>
+    </div>
+</div>
 {% endblock content %}
 
 
@@ -74,7 +128,7 @@
             $("#data_table").find("th").each(function(i){
                 if (i == 0) {
                     // make the first col have a set width and non-sortable
-                    cols.push({"data": $(this).text(), "orderable": false , "width": "45px"});
+                    cols.push({"data": $(this).text(), "orderable": false , "width": "30px"});
                 } else {
                     cols.push({
                         "data": $(this).text(),
@@ -113,8 +167,13 @@
                 "pageLength": 50,
                 "data": data,
                 "columns": cols,
-
+                "oLanguage": {
+                    "sSearch": '',
+                    "sSearchPlaceholder": "Search ",
+                },
             });
+
+            //silo_table.order([[1, 'desc']]).redraw(true);
             var data = undefined;
             $('#data_table tbody').on( 'click', 'td', function () {
                 var cell = silo_table.cell( this );
