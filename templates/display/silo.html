@@ -24,7 +24,7 @@
 
     <div>
         <!-- Nav tabs -->
-        <ul class="nav nav-tabs" role="tablist">
+        <ul id="table_tabs" class="nav nav-tabs" role="tablist">
             <li role="presentation">
                 <a href="#sources" aria-controls="sources" role="tab" data-toggle="tab">Sources</a>
             </li>
@@ -232,6 +232,18 @@
                 console.log("i="+i + " " + col);
             });
             */
+
+            $("#table_tabs li a").click(function(e){
+                e.preventDefault();
+
+                if($(this).parent('li').hasClass('active')){
+                    $(this).parent('li').removeClass('active');
+                    $( $(this).attr('href') ).toggle();
+                    e.stopPropagation();
+                }
+
+
+            })
         });
     </script>
 
