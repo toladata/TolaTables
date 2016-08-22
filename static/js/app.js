@@ -1,10 +1,8 @@
 //App specific JavaScript//App specific JavaScript
-$(function () {
-  $('[data-toggle="tooltip"]').tooltip()
-})
 
 //custom jquery to trigger dat picker, info pop-over and print category text
 $(document).ready(function() {
+    $('[data-toggle="tooltip"]').tooltip({delay: {show: 500, hide: 100}});
     $('.datepicker').datepicker();
     $('.btn-del').click(function(e) {
         e.preventDefault();
@@ -66,7 +64,7 @@ $(document).ready(function() {
     /*
      * Handle change in the province drop-down; updates the distirct drop-down accordingly.
      */
-    
+
     // A global ajaxComplete method that shows you any messages that are set in Django's view
     $( document )
         .ajaxComplete(function(e, xhr, settings) {

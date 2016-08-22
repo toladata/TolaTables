@@ -25,70 +25,159 @@
         <!-- Nav tabs -->
         <ul id="table_tabs" class="nav nav-tabs" role="tablist">
             <li role="presentation">
-                <a href="#sources" aria-controls="sources" role="tab" data-toggle="tab">Fetch/Export</a>
+                <a href="#options" aria-controls="options" role="tab" data-toggle="tab">Options</a>
             </li>
 
             <li role="presentation">
-                <a href="#options" aria-controls="options" role="tab" data-toggle="tab">Options</a>
+                <a href="#fetchdata" aria-controls="fetchdata" role="tab" data-toggle="tab">Fetch Data</a>
             </li>
+
+            <li role="presentation">
+                <a href="#export" aria-controls="export" role="tab" data-toggle="tab">Export</a>
+            </li>
+
             <li role="presentation">
                 <a href="#edit" aria-controls="edit" role="tab" data-toggle="tab">Edit</a>
+            </li>
+            <li role="presentation">
+                <a href="#test" aria-controls="test" role="tab" data-toggle="tab">Test</a>
             </li>
         </ul>
 
         <!-- Tab panes -->
         <div class="tab-content">
-            <div role="tabpanel" class="tab-pane" id="sources">
-                <div class = "table-responsive">
+
+            <div role="tabpanel" class="tab-pane" id="options">
+            <div class="panel panel-default">
+                <div class="list-group">
+                    <li class="list-group-item">
+                        <a href="{% url 'updateMergedTable' silo.pk %}" id="update_silo_btn" class="btn btn-sm btn-primary" data-toggle="tooltip" title="Updates data in this table from it sources.">Update Data</a>
+                        <a href="/merge/{{ silo.pk }}" class="btn btn-sm btn-warning">Merge</a>
+                    </li>
+
+                    <li class="list-group-item">
+                        <a href="#" id="id_public-{{silo.pk}}" class="public btn btn-sm {% if silo.public %} btn-warning {% else %} btn-primary {% endif %}" role="button">{% if silo.public %} Make Private {% else %} Make Public {% endif %}</a>
+
+                        <a href="{% url 'acitivity_push' silo.pk %}" id="push_to_activity_btn" class="btn btn-sm btn-primary">Send To Tola Activity</a>
+
+                        <a href="/silo_delete/{{ silo.pk }}" class="btn btn-del btn-sm btn-danger" title="Are you sure you want to delete this table? All of the data stored in this table will also be deleted."><span class="glyphicon glyphicon-trash" title="Delete"></span> Delete Table</a>
+                    </li>
+                </div>
+            </div>
+
+            </div> <!-- end of tab, options -->
+
+            <div role="tabpanel" class="tab-pane" id="fetchdata">
+                <div class = "panel panel-default">
                     <table class="table table-bordered table-striped table-hover table-condensed">
                         <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Description</th>
-                            <th>Type</th>
-                            <th>Source</th>
-                            <th>Auto-pull</th>
-                            <th>Auto-push</th>
-                        </tr>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Type</th>
+                                <th>Source</th>
+                                <th>Auto-pull Frequency</th>
+                            </tr>
                         </thead>
                         <tbody>
                             {% for read in silo.reads.all %}
+                                {% if read.type.read_type != "Google Spreadsheet" %}
                                 <tr>
                                     <td><a href="/show_read/{{read.id}}" target="_blank">{{read.read_name }}</a></td>
                                     <td>{{read.description}}</td>
                                     <td>{{ read.type.read_type}}</td>
                                     <td><a href="{{ read.read_url }}" target="_blank">link to source</a></td>
                                     <td>
-                                        {% if read.type.read_type == "CSV" or read.type.read_type == "Google Spreadsheet" %}
+                                        {% if read.type.read_type == "CSV" %}
                                             N/A
                                         {% else %}
                                             {% if read.autopull_frequency %} {{ read.autopull_frequency }} {% else %} <a href="/show_read/{{read.id}}">Setup</a> {% endif %}
                                         {% endif %}
                                     </td>
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div><!-- end of tab, fetchdata.-->
+
+            <div role="tabpanel" class="tab-pane" id="export">
+                <div class = "panel panel-default">
+                    <table class="table table-bordered table-striped table-hover table-condensed">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Type</th>
+                                <th>Source</th>
+                                <th>Auto-push Frequency</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for read in silo.reads.all %}
+                                <tr>
+                                {% if read.type.read_type == "Google Spreadsheet" %}
+                                    <td><a href="/show_read/{{read.id}}" target="_blank">{{read.read_name }}</a></td>
+                                    <td>{{read.description}}</td>
+                                    <td>{{ read.type.read_type}}</td>
+                                    <td><a href="{{ read.read_url }}" target="_blank">link to source</a></td>
                                     <td>
-                                        {% if read.type.read_type == "CSV" or read.type.read_type == "GSheet Import" or read.type.read_type == "JSON" or read.type.read_type == "ONA"  %}
-                                            N/A
+                                        {% if read.autopull_frequency %}
+                                            {{ read.autopull_frequency }}
                                         {% else %}
-                                            {% if read.autopush_frequency %} {{ read.autopush_frequency }} {% else %} <a href="/show_read/{{read.id}}">Setup</a> * {% endif %}
+                                            <a href="/show_read/{{read.id}}">Setup</a>
                                         {% endif %}
                                     </td>
+                                {% else %}
+                                    <td colspan="5"><p class="bg-info">No export targets are defined.</p></td>
+                                {% endif %}
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                     <span class="text-muted"><small>*Auto Push will replace all your data in the destination source</small></span>
                 </div>
-            </div><!-- end of tab, sources.-->
-
-            <div role="tabpanel" class="tab-pane" id="options">
-                <p>Options go here</p>
-            </div> <!-- end of tab, options -->
+            </div> <!-- end of tab, export -->
 
             <div role="tabpanel" class="tab-pane" id="edit">
-                {% for col in cols %}
-                    <a class="toggle-viz" data-column="{{forloop.counter0}}">{{col}}</a>
-                {% endfor %}
+                <div class="well">
+                    <a href="/edit_columns/{{ silo.pk }}/" class="btn btn-primary">Edit or Delete columns</a>
+                    <a href="/new_column/{{ silo.pk }}/" class="btn btn-primary">Add New Column</a>
+                    <!--
+                    <a href="/anonymize_silo/{{ id }}/" class="btn btn-primary">Anonymize Table</a>
+                    <a href="/identifyPII/{{ id }}/" id="identifyPIIBtn" class="btn btn-primary">Identify PIIF Columns</a>
+                    -->
+                    </p>
+
+                    <form class="form-inline" action="{% url 'updateColumn' %}"  method="POST">
+                        {% csrf_token %}
+                        <input name="silo_id" value="{{silo.pk}}" type="hidden">
+                        <div class="form-group">
+                            <label for="all_cols">Set new value  for a column</label>
+                            <select name="update_col" class="form-control">
+                                <option value="-1">Select Column</option>
+                                {% for col in cols %}
+                                    <option value="{{ col }}">{{ col }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" class="form-control" id="new_val" name="new_val" placeholder="New Value">
+                        </div>
+                        <button type="submit" class="btn btn-default">Submit</button>
+                    </form>
+                </div>
             </div> <!-- end of tab, edit -->
+
+            <div role="tabpanel" class="tab-pane" id="test">
+                <div class="well">
+                    {% for col in cols %}
+                        <a class="toggle-viz" data-column="{{forloop.counter0}}">{{col}}</a>
+                    {% endfor %}
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -98,7 +187,7 @@
             <small>{{ silo.description|default:"" }}</small>
         </div>
         <div class="panel panel-body" style="padding: 5px 0px 5px 0px;">
-            <table id="data_table" class="table table-hover table table-striped table-bordered" style="overflow-x: scroll; display:block; width:100%;" width="100%">
+            <table id="data_table" class="table table-hover table table-striped table-bordered" style="overflow-x: scroll; display:inline-block; width:100%;" width="100%">
                 <thead>
                     {% for c in cols %}
                         <th>{{c}}</th>
@@ -224,17 +313,31 @@
             });
             */
 
+
             $("#table_tabs li a").click(function(e){
                 e.preventDefault();
-
+                /*
                 if($(this).parent('li').hasClass('active')){
                     $(this).parent('li').removeClass('active');
                     $( $(this).attr('href') ).toggle();
                     e.stopPropagation();
                 }
-
-
+                */
+                /*
+                if($(this).parent('li').hasClass('active')){
+                    var target_pane=$(this).attr('href');
+                    $( target_pane ).toggle( !$( target_pane ).is(":visible") );
+                }
+                */
+                var tab = $(this);
+                if(tab.parent('li').hasClass('active')){
+                    window.setTimeout(function(){
+                        $(".tab-pane").removeClass('active');
+                        tab.parent('li').removeClass('active');
+                    },1);
+                }
             });
+
 
             $('.btn-del').click(function(e) {
                 e.preventDefault();
