@@ -29,11 +29,11 @@
             </li>
 
             <li role="presentation">
-                <a href="#fetchdata" aria-controls="fetchdata" role="tab" data-toggle="tab">Fetch Data</a>
+                <a href="#fetchdata" aria-controls="fetchdata" role="tab" data-toggle="tab">Import Sources</a>
             </li>
 
             <li role="presentation">
-                <a href="#export" aria-controls="export" role="tab" data-toggle="tab">Export</a>
+                <a href="#export" aria-controls="export" role="tab" data-toggle="tab">Export Targets</a>
             </li>
 
             <li role="presentation">
@@ -129,15 +129,13 @@
                                             <a href="/show_read/{{read.id}}">Setup</a>
                                         {% endif %}
                                     </td>
-                                {% else %}
-                                    <td colspan="5"><p class="bg-info">No export targets are defined.</p></td>
                                 {% endif %}
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
-                    <span class="text-muted"><small>*Auto Push will replace all your data in the destination source</small></span>
                 </div>
+                <span class="text-muted"><small>*Auto Push will replace all your data in the destination source</small></span>
             </div> <!-- end of tab, export -->
 
             <div role="tabpanel" class="tab-pane" id="edit">
