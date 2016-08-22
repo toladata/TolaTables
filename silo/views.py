@@ -824,7 +824,7 @@ def siloDetail2(request, silo_id):
                     "<span class='glyphicon glyphicon-edit' aria-hidden='true'></span>"
                 "</a>"
                 "&nbsp;"
-                "<a href='/value_delete/%s'>"
+                "<a href='/value_delete/%s' class='btn-del' title='You are about to delete a record. Are you sure?'>"
                     "<span style='color:red;' class='glyphicon glyphicon-trash' aria-hidden='true'></span>"
                 "</a>") % (row["_id"], row['_id'])
 

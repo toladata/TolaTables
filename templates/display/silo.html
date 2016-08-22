@@ -1,8 +1,7 @@
 {% extends "base.html" %}
 
 
-{% block page_title %}<center> <a href="/silo_edit/{{ silo.id }}">{{ silo.name }}</a>
-    <br /><small><p>{{ silo.description|default:"" }}</p></small></center>
+{% block page_title %}
 {% endblock %}
 
 {% block content %}
@@ -26,96 +25,88 @@
         <!-- Nav tabs -->
         <ul id="table_tabs" class="nav nav-tabs" role="tablist">
             <li role="presentation">
-                <a href="#sources" aria-controls="sources" role="tab" data-toggle="tab">Sources</a>
+                <a href="#sources" aria-controls="sources" role="tab" data-toggle="tab">Fetch/Export</a>
             </li>
 
             <li role="presentation">
                 <a href="#options" aria-controls="options" role="tab" data-toggle="tab">Options</a>
             </li>
             <li role="presentation">
-                <a href="#profile" aria-controls="profile" role="tab" data-toggle="tab">Profile</a>
+                <a href="#edit" aria-controls="edit" role="tab" data-toggle="tab">Edit</a>
             </li>
         </ul>
 
         <!-- Tab panes -->
         <div class="tab-content">
             <div role="tabpanel" class="tab-pane" id="sources">
-
-
-
-
-
-        <div class = "table-responsive">
-            <table class="table table-bordered table-striped table-hover table-condensed">
-                <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Description</th>
-                    <th>Type</th>
-                    <th>Source</th>
-                    <th>Auto-pull</th>
-                    <th>Auto-push</th>
-                </tr>
-                </thead>
-                <tbody>
-                    {% for read in silo.reads.all %}
+                <div class = "table-responsive">
+                    <table class="table table-bordered table-striped table-hover table-condensed">
+                        <thead>
                         <tr>
-                            <td><a href="/show_read/{{read.id}}" target="_blank">{{read.read_name }}</a></td>
-                            <td>{{read.description}}</td>
-                            <td>{{ read.type.read_type}}</td>
-                            <td><a href="{{ read.read_url }}" target="_blank">link to source</a></td>
-                            <td>
-                                {% if read.type.read_type == "CSV" or read.type.read_type == "Google Spreadsheet" %}
-                                    N/A
-                                {% else %}
-                                    {% if read.autopull_frequency %} {{ read.autopull_frequency }} {% else %} <a href="/show_read/{{read.id}}">Setup</a> {% endif %}
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if read.type.read_type == "CSV" or read.type.read_type == "GSheet Import" or read.type.read_type == "JSON" or read.type.read_type == "ONA"  %}
-                                    N/A
-                                {% else %}
-                                    {% if read.autopush_frequency %} {{ read.autopush_frequency }} {% else %} <a href="/show_read/{{read.id}}">Setup</a> * {% endif %}
-                                {% endif %}
-                            </td>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Type</th>
+                            <th>Source</th>
+                            <th>Auto-pull</th>
+                            <th>Auto-push</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <span class="text-muted"><small>*Auto Push will replace all your data in the destination source</small></span>
-        </div>
+                        </thead>
+                        <tbody>
+                            {% for read in silo.reads.all %}
+                                <tr>
+                                    <td><a href="/show_read/{{read.id}}" target="_blank">{{read.read_name }}</a></td>
+                                    <td>{{read.description}}</td>
+                                    <td>{{ read.type.read_type}}</td>
+                                    <td><a href="{{ read.read_url }}" target="_blank">link to source</a></td>
+                                    <td>
+                                        {% if read.type.read_type == "CSV" or read.type.read_type == "Google Spreadsheet" %}
+                                            N/A
+                                        {% else %}
+                                            {% if read.autopull_frequency %} {{ read.autopull_frequency }} {% else %} <a href="/show_read/{{read.id}}">Setup</a> {% endif %}
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if read.type.read_type == "CSV" or read.type.read_type == "GSheet Import" or read.type.read_type == "JSON" or read.type.read_type == "ONA"  %}
+                                            N/A
+                                        {% else %}
+                                            {% if read.autopush_frequency %} {{ read.autopush_frequency }} {% else %} <a href="/show_read/{{read.id}}">Setup</a> * {% endif %}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <span class="text-muted"><small>*Auto Push will replace all your data in the destination source</small></span>
+                </div>
+            </div><!-- end of tab, sources.-->
 
-
-
-
-            </div>
             <div role="tabpanel" class="tab-pane" id="options">
                 <p>Options go here</p>
-            </div>
-            <div role="tabpanel" class="tab-pane" id="profile">
+            </div> <!-- end of tab, options -->
+
+            <div role="tabpanel" class="tab-pane" id="edit">
                 {% for col in cols %}
                     <a class="toggle-viz" data-column="{{forloop.counter0}}">{{col}}</a>
                 {% endfor %}
-            </div>
+            </div> <!-- end of tab, edit -->
         </div>
     </div>
 
-
-
-<div class="panel panel-primary">
-    <div class="panel-heading">
-        <h3 class="panel-title">{{silo.name}}</h3>
+    <div class="panel panel-primary">
+        <div class="panel-heading">
+            <h3 class="panel-title"><a href="/silo_edit/{{ silo.id }}">{{silo.name}}</a></h3>
+            <small>{{ silo.description|default:"" }}</small>
+        </div>
+        <div class="panel panel-body" style="padding: 5px 0px 5px 0px;">
+            <table id="data_table" class="table table-hover table table-striped table-bordered" style="overflow-x: scroll; display:block; width:100%;" width="100%">
+                <thead>
+                    {% for c in cols %}
+                        <th>{{c}}</th>
+                    {% endfor %}
+                </thead>
+            </table>
+        </div>
     </div>
-    <div class="panel panel-body" style="padding: 5px 0px 5px 0px;">
-        <table id="data_table" class="table table-hover table table-striped table-bordered" style="overflow-x: scroll; display:block; width:100%;" width="100%">
-            <thead>
-                {% for c in cols %}
-                    <th>{{c}}</th>
-                {% endfor %}
-            </thead>
-        </table>
-    </div>
-</div>
 {% endblock content %}
 
 
@@ -125,6 +116,7 @@
             var data = $.parseJSON(`{{ data|safe }}`);
             var cols = [];
 
+            // Loop through the header row and create a cols array for datatables.
             $("#data_table").find("th").each(function(i){
                 if (i == 0) {
                     // make the first col have a set width and non-sortable
@@ -135,7 +127,7 @@
                         // Use the cell render function to return "repeats if the value is an array"
                         "render": function(data, type, row) {
                             if (jQuery.type(data) == "array" ) {
-                                return "repeats...";
+                                return "<a href='#''>repeats</a>";
                             } else {
                                 return data;
                             }
@@ -173,11 +165,10 @@
                 },
             });
 
-            //silo_table.order([[1, 'desc']]).redraw(true);
             var data = undefined;
             $('#data_table tbody').on( 'click', 'td', function () {
                 var cell = silo_table.cell( this );
-                var table = '<table class="table table-bordered table-hover table-striped" width="100%" cellspacing="0"><tr>';
+                var repeats_table = '<table class="table table-bordered table-hover table-striped" width="100%" cellspacing="0"><tr>';
                 data = cell.data();
                 //cell.data( "repeats" ).draw();
                 if (jQuery.type(data) == "object") {
@@ -194,27 +185,27 @@
                             }
                         });
                     });
-                    // Now use the column names to populate the table's header row
+                    // Now use the column names to populate the repeats_table's header row
                     $.each(column_names, function(i, col){
                         col = col.split("/");
-                        table += "<th>../" + col[col.length-1] + "</th>";
+                        repeats_table += "<th>../" + col[col.length-1] + "</th>";
                     });
-                    table += "</tr>";
+                    repeats_table += "</tr>";
 
-                    // now populate the remaining data rows for the table
+                    // now populate the remaining data rows for the repeats_table
                     $.each(data, function(i,row){
-                        table += "<tr>";
+                        repeats_table += "<tr>";
                         if (jQuery.type(row) == "object") {
                            $.each(row, function(c, v){
-                                table += "<td>" + v + "</td>";
+                                repeats_table += "<td>" + v + "</td>";
                                 //console.log("c: " + c + " v: " + v);
                            });
                         }
-                        table += "</tr>";
+                        repeats_table += "</tr>";
                     });
-                    table += "</table>";
-                    //set the table to be the html content of the modal's body
-                    $("#repeats_modal_body").html(table);
+                    repeats_table += "</table>";
+                    //set the repeats_table to be the html content of the modal's body
+                    $("#repeats_modal_body").html(repeats_table);
                     $('#repeats_modal').modal("show");
                 }
             });
@@ -243,7 +234,19 @@
                 }
 
 
-            })
+            });
+
+            $('.btn-del').click(function(e) {
+                e.preventDefault();
+                var msg = e.currentTarget.title;
+                if (msg == undefined || msg.length == 0) {
+                    msg = "Are you sure you want to delete?";
+                }
+                var response = confirm(msg);
+                    if (response == true) {
+                    window.location = $(this).attr('href');
+                }
+            });
         });
     </script>
 
