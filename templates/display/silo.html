@@ -107,7 +107,7 @@
         <h3 class="panel-title">{{silo.name}}</h3>
     </div>
     <div class="panel panel-body" style="padding: 5px 0px 5px 0px;">
-        <table id="data_table" class="table table-hover table table-striped table-bordered" width="100%" style="overflow-x: scroll; display:block; ">
+        <table id="data_table" class="table table-hover table table-striped table-bordered" style="overflow-x: scroll; display:block; width:100%;" width="100%">
             <thead>
                 {% for c in cols %}
                     <th>{{c}}</th>
@@ -128,7 +128,7 @@
             $("#data_table").find("th").each(function(i){
                 if (i == 0) {
                     // make the first col have a set width and non-sortable
-                    cols.push({"data": $(this).text(), "orderable": false , "width": "30px"});
+                    cols.push({"data": $(this).text(), "orderable": false , "width": "40px"});
                 } else {
                     cols.push({
                         "data": $(this).text(),
