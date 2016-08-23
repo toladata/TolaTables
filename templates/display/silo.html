@@ -6,7 +6,6 @@
 
 {% block content %}
 
-
     <div class="modal fade" tabindex="-1" role="dialog" id="repeats_modal">
         <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -89,9 +88,17 @@
                                     <td><a href="{{ read.read_url }}" target="_blank">link to source</a></td>
                                     <td>
                                         {% if read.type.read_type == "CSV" %}
-                                            N/A
+                                            NA
                                         {% else %}
-                                            {% if read.autopull_frequency %} {{ read.autopull_frequency }} {% else %} <a href="/show_read/{{read.id}}">Setup</a> {% endif %}
+                                            <select name="autopull_frequency" id="autopull_frequency" class="form-control input-sm">
+                                                {% for frequency in silo.reads.all.0.FREQUENCY_CHOICES %}
+                                                    {% if read.autopull_frequency == frequency.0 %}
+                                                        <option value={{ frequency.0 }} selected> {{ frequency.1 }}</option>
+                                                    {% else %}
+                                                        <option value={{ frequency.0 }}> {{ frequency.1 }}</option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -123,11 +130,15 @@
                                     <td>{{ read.type.read_type}}</td>
                                     <td><a href="{{ read.read_url }}" target="_blank">link to source</a></td>
                                     <td>
-                                        {% if read.autopull_frequency %}
-                                            {{ read.autopull_frequency }}
-                                        {% else %}
-                                            <a href="/show_read/{{read.id}}">Setup</a>
-                                        {% endif %}
+                                        <select name="autopush_frequency" id="autopush_frequency" class="form-control input-sm">
+                                            {% for frequency in read.FREQUENCY_CHOICES %}
+                                                {% if read.autopush_frequency == frequency.0 %}
+                                                    <option value={{ frequency.0 }} selected> {{ frequency.1 }}</option>
+                                                {% else %}
+                                                    <option value={{ frequency.0 }}> {{ frequency.1 }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
                                     </td>
                                 {% endif %}
                                 </tr>
