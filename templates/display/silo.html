@@ -90,8 +90,8 @@
                                         {% if read.type.read_type == "CSV" %}
                                             NA
                                         {% else %}
-                                            <select name="autopull_frequency" id="autopull_frequency" class="form-control input-sm">
-                                                {% for frequency in silo.reads.all.0.FREQUENCY_CHOICES %}
+                                            <select name="autopull_frequency" id="autopull_frequency" data-read-id={{read.pk}} class="form-control input-sm">
+                                                {% for frequency in read.FREQUENCY_CHOICES %}
                                                     {% if read.autopull_frequency == frequency.0 %}
                                                         <option value={{ frequency.0 }} selected> {{ frequency.1 }}</option>
                                                     {% else %}
@@ -130,7 +130,7 @@
                                     <td>{{ read.type.read_type}}</td>
                                     <td><a href="{{ read.read_url }}" target="_blank">link to source</a></td>
                                     <td>
-                                        <select name="autopush_frequency" id="autopush_frequency" class="form-control input-sm">
+                                        <select name="autopush_frequency" id="autopush_frequency" data-read-id={{read.pk}} class="form-control input-sm">
                                             {% for frequency in read.FREQUENCY_CHOICES %}
                                                 {% if read.autopush_frequency == frequency.0 %}
                                                     <option value={{ frequency.0 }} selected> {{ frequency.1 }}</option>
@@ -325,19 +325,6 @@
 
             $("#table_tabs li a").click(function(e){
                 e.preventDefault();
-                /*
-                if($(this).parent('li').hasClass('active')){
-                    $(this).parent('li').removeClass('active');
-                    $( $(this).attr('href') ).toggle();
-                    e.stopPropagation();
-                }
-                */
-                /*
-                if($(this).parent('li').hasClass('active')){
-                    var target_pane=$(this).attr('href');
-                    $( target_pane ).toggle( !$( target_pane ).is(":visible") );
-                }
-                */
                 var tab = $(this);
                 if(tab.parent('li').hasClass('active')){
                     window.setTimeout(function(){
@@ -358,6 +345,27 @@
                     if (response == true) {
                     window.location = $(this).attr('href');
                 }
+            });
+
+
+            // Watch for autopush_frequency and autopull_frequency dropdowns changes
+            $(".tab-content").on("change", "#autopull_frequency, #autopush_frequency", function(e){
+                var data = {};
+                data[$(this).attr('name')] = this.value;
+                var api_url = '/api/read/' + $(this).data("readId") + '/';
+                $.ajax({
+                    url: api_url,
+                    type: "PATCH",
+                    data: data,
+                    success: function(data, textStatus, jqXHR) {
+                        console.log(data);
+                        createAlert("info", "Your chanse was successful.");
+                    },
+                    error: function(jqXHR, textStatus, error) {
+                        createAlert("error", error);
+                    },
+                });
+
             });
         });
     </script>

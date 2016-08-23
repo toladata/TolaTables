@@ -42,7 +42,7 @@ class ReadSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Read
-        fields = ('owner', 'type', 'read_name', 'read_url')
+        fields = ('pk', 'owner', 'type', 'read_name', 'read_url', 'autopull_frequency', 'autopush_frequency')
 
 
 class ReadTypeSerializer(serializers.HyperlinkedModelSerializer):
