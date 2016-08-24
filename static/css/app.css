@@ -64,7 +64,7 @@ button:focus,
 -------------------------------------------------- */
 /* Not required for template or sticky footer method. */
 
-body > .container-fluid {
+body > .container {
     height: 100%;
     margin-top: 20px;
 }

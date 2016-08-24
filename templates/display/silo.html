@@ -51,7 +51,7 @@
                 <div class="list-group">
                     <li class="list-group-item">
                         <a href="{% url 'updateMergedTable' silo.pk %}" id="update_silo_btn" class="btn btn-sm btn-primary" data-toggle="tooltip" title="Updates data in this table from it sources.">Update Data</a>
-                        <a href="/merge/{{ silo.pk }}" class="btn btn-sm btn-warning">Merge</a>
+                        <a href="/merge/{{ silo.pk }}" class="btn btn-sm btn-warning" data-toggle="tooltip" title="Merges the data from this table with another table to create a third table.">Merge</a>
                     </li>
 
                     <li class="list-group-item">
@@ -233,23 +233,7 @@
                     });
                 }
             })
-            /*
-            var mydata = [];
-            $.each(data, function(i,row){
-                mydata.push({});
-                var r = mydata.length -1;
-                $.each(row, function(k,v){
-                    if (jQuery.type(v) == "object") {
-                        var d = new Date(0);
-                        d.setUTCSeconds(v['$date']/1000);
-                        mydata[r][k] = d.toDateString();
-                    } else {
-                        mydata[r][k] = v;
-                    }
-                })
-            });
-            console.log(mydata);
-            */
+
             var silo_table = $('#data_table').DataTable({
                 stateSave: false, // save table state in local cache
                 "ordering": true,
