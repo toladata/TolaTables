@@ -5,6 +5,7 @@ import json
 import base64
 from django.utils.encoding import smart_text
 from django.utils import timezone
+from django.utils.encoding import smart_str, smart_unicode
 from django.conf import settings
 from django.utils.encoding import smart_str
 from django.contrib.auth.models import User
@@ -102,7 +103,7 @@ def saveDataToSilo(silo, data):
             elif key == "edit_date": key = "editted_date"
             elif key == "create_date": key = "created_date"
             if type(val) == str or type(val) == unicode:
-                val = val.decode(enc).encode("utf8")
+                val = smart_str(val, strings_only=True)
             setattr(lvs, key.replace(".", "_").replace("$", "USD"), val)
             counter += 1
         lvs.save()
