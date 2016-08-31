@@ -11,7 +11,7 @@ from django.http import HttpResponseRedirect, HttpResponseBadRequest, JsonRespon
 from django.views.decorators.csrf import csrf_protect
 from django.conf import settings
 from django.utils import timezone
-from django.utils.encoding import smart_text
+from django.utils.encoding import smart_text, smart_str
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -200,7 +200,9 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
             elif key == "id" or key == "_id": key = "user_assigned_id"
             elif key == "edit_date": key = "editted_date"
             elif key == "create_date": key = "created_date"
-            setattr(lvs, key.replace(".", "_").replace("$", "USD"), row[c])
+            val = smart_str(row[c], strings_only=True)
+            key = smart_str(key)
+            setattr(lvs, key.replace(".", "_").replace("$", "USD"), val)
         lvs.silo_id = silo.id
         lvs.create_date = timezone.now()
         lvs.save()

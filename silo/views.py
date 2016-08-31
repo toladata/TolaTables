@@ -4,6 +4,7 @@ import json
 import csv
 import base64
 import requests
+import re
 from requests.auth import HTTPDigestAuth
 import logging
 from operator import and_, or_
@@ -21,6 +22,7 @@ from django.http import HttpResponseForbidden,\
 from django.shortcuts import render_to_response, get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.encoding import smart_str, smart_text
+from django.utils.text import Truncator
 from django.db.models import Max, F, Q
 from django.views.decorators.csrf import csrf_protect
 from django.template import RequestContext, Context
@@ -787,7 +789,7 @@ def siloDetail(request,id):
     cols = []
     for row in data:
         #cols.extend([k for k in row.keys() if k not in cols and k != '_id' and k != 'silo_id' and k != 'create_date' and k != 'edit_date' and k != 'source_table_id'])
-        cols.extend([k for k in row.keys() if k not in cols])
+        cols.extend([smart_str(k) for k in row.keys() if k not in cols])
 
     if silo.owner == request.user or silo.public == True or owner__in == silo.shared:
         if data and cols:
@@ -805,7 +807,6 @@ def siloDetail(request,id):
         messages.info(request, "You do not have permissions to view this table.")
         return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
-
 @login_required
 def siloDetail2(request, silo_id):
     """
@@ -817,6 +818,7 @@ def siloDetail2(request, silo_id):
 
     if silo.owner == request.user or silo.public == True or request.user in silo.shared.all():
         bsondata = store.find({"silo_id": silo.pk})
+        #bsondata = db.label_value_store.find({"silo_id": silo.pk})
         for row in bsondata:
             # Add a column that contains edit/del links for each row in the table
             row[cols[0]]=(
@@ -829,6 +831,7 @@ def siloDetail2(request, silo_id):
                 "</a>") % (row["_id"], row['_id'])
 
             # Using OrderedDict to maintain column orders
+            #print(type(row))
             data.append(OrderedDict(row))
 
             # create a distinct list of column names to be used for datatables in templates
@@ -1083,9 +1086,10 @@ def valueEdit(request,id):
     data = {}
     jsondoc = json.loads(doc)
     silo_id = None
+
     for item in jsondoc:
         for k, v in item.iteritems():
-            #print("The key and value are ({}) = ({})".format(k, v))
+            #print("The key and value are ({}) = ({})".format(smart_str(k), smart_str(v)))
             if k == "_id":
                 #data[k] = item['_id']['$oid']
                 pass
@@ -1099,6 +1103,7 @@ def valueEdit(request,id):
                 create_date = datetime.datetime.fromtimestamp(item['create_date']['$date']/1000)
                 data[k] = create_date.strftime('%Y-%m-%d')
             else:
+                k = Truncator(re.sub('\s+', ' ', k).strip()).chars(40)
                 data[k] = v
     if request.method == 'POST': # If the form has been submitted...
         form = MongoEditForm(request.POST or None, extra = data) # A form bound to the POST data

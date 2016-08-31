@@ -7,7 +7,6 @@ from django.utils.encoding import smart_text
 from django.utils import timezone
 from django.utils.encoding import smart_str, smart_unicode
 from django.conf import settings
-from django.utils.encoding import smart_str
 from django.contrib.auth.models import User
 
 from silo.models import Read, Silo, LabelValueStore
