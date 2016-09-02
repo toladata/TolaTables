@@ -211,18 +211,21 @@
     <script type="text/javascript">
         $(document).ready(function() {
             //var data_str = `{{data|safe}}`;
-            var data = JSON.parse(JSON.stringify({{data|safe}}));
+            //var data = JSON.parse(JSON.stringify({{data|safe}}));
+
+            var data = [];
             var cols = [];
 
             // Loop through the header row and create a cols array for datatables.
             $("#data_table").find("th").each(function(i){
-                if (i == 0) {
+                if (i == -1) {
                     // make the first col have a set width and non-sortable
-                    cols.push({"data": $(this).text(), "orderable": false , "width": "40px"});
+                    //cols.push({"data": $(this).text(), "orderable": false , "width": "40px"});
                 } else {
                     cols.push({
                         "data": $(this).text(),
                         // Use the cell render function to return "repeats if the value is an array"
+                        /*
                         "render": function(data, type, row) {
                             if (jQuery.type(data) == "array" ) {
                                 return "<a href='#''>repeats</a>";
@@ -230,21 +233,21 @@
                                 return data;
                             }
                         }
+                        */
                     });
                 }
-            })
+            });
+            console.log(cols);
 
             var silo_table = $('#data_table').DataTable({
-                stateSave: false, // save table state in local cache
-                "ordering": true,
-                "order": [], // show rows as they are read. To set order: [[1, "asc"]]
-                "pageLength": 50,
-                "data": data,
+                "processing": true,
+                "serverSide": true,
+                "ajax": "/api/silo/{{silo.pk}}/data/",
                 "columns": cols,
-                "oLanguage": {
-                    "sSearch": '',
-                    "sSearchPlaceholder": "Search ",
-                },
+                "pageLength": 50,
+                "searching": false,
+                "ordering": true,
+                "stateSave": false,
             });
 
             var data = undefined;
