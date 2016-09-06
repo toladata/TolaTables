@@ -771,7 +771,7 @@ def updateEntireColumn(request):
 
 #SILO-DETAIL Show data from source
 @login_required
-def siloDetail(request,id):
+def siloDetail_OLD(request,id):
     """
     Show silo source details
     """
@@ -808,7 +808,7 @@ def siloDetail(request,id):
         return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
 @login_required
-def siloDetail2(request, silo_id):
+def siloDetail(request, silo_id):
     """
     Silo Detail
     """
