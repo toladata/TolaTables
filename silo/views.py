@@ -767,7 +767,7 @@ def updateEntireColumn(request):
             )
         messages.success(request, "Successfully, changed the %s column value to %s" % (colname, new_val))
 
-    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': silo_id}))
+    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': silo_id}))
 
 #SILO-DETAIL Show data from source
 @login_required
@@ -899,7 +899,7 @@ def updateSiloData(request, pk):
                         for msg in msgs:
                             messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
 
-    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': pk},))
+    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
 
 
 #Add a new column on to a silo
@@ -1209,7 +1209,7 @@ def anonymizeTable(request, id):
     else:
         messages.info(request, "No PIIF columns were found.")
 
-    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': id}))
+    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': id}))
 
 
 @login_required
