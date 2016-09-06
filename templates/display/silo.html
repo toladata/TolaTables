@@ -37,9 +37,11 @@
             <li role="presentation">
                 <a href="#edit" aria-controls="edit" role="tab" data-toggle="tab">Edit</a>
             </li>
+            <!--
             <li role="presentation">
                 <a href="#test" aria-controls="test" role="tab" data-toggle="tab">Test</a>
             </li>
+            -->
         </ul>
 
         <!-- Tab panes -->
@@ -225,24 +227,32 @@
                     cols.push({
                         "data": $(this).text(),
                         // Use the cell render function to return "repeats if the value is an array"
-                        /*
+
                         "render": function(data, type, row) {
                             if (jQuery.type(data) == "array" ) {
                                 return "<a href='#''>repeats</a>";
+                            } else if(jQuery.type(data) == "object") {
+                                return "<a href='/value_edit/" + data[Object.keys(data)[0]] + "'><span class='glyphicon glyphicon-edit' aria-hidden='true'></span></a> &nbsp;" +
+                                    "<a href='/value_delete/" + data[Object.keys(data)[0]] + "' class='btn-del' title='You are about to delete a record. Are you sure?'>" +
+                                    "<span style='color:red;' class='glyphicon glyphicon-trash' aria-hidden='true'></span></a>";
                             } else {
                                 return data;
                             }
                         }
-                        */
+
                     });
                 }
             });
-            console.log(cols);
 
             var silo_table = $('#data_table').DataTable({
                 "processing": true,
                 "serverSide": true,
-                "ajax": "/api/silo/{{silo.pk}}/data/",
+                "ajax": {
+                    "url": "/api/silo/{{silo.pk}}/data/",
+                    "data": function ( d ) {
+                        console.log(d);
+                    }
+                },
                 "columns": cols,
                 "pageLength": 50,
                 "searching": false,
@@ -318,19 +328,6 @@
                         $(".tab-pane").removeClass('active');
                         tab.parent('li').removeClass('active');
                     },1);
-                }
-            });
-
-
-            $('.btn-del').click(function(e) {
-                e.preventDefault();
-                var msg = e.currentTarget.title;
-                if (msg == undefined || msg.length == 0) {
-                    msg = "Are you sure you want to delete?";
-                }
-                var response = confirm(msg);
-                    if (response == true) {
-                    window.location = $(this).attr('href');
                 }
             });
 
