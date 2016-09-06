@@ -4,7 +4,7 @@
 $(document).ready(function() {
     $('[data-toggle="tooltip"]').tooltip({delay: {show: 500, hide: 100}});
     $('.datepicker').datepicker();
-    $('.btn-del').click(function(e) {
+    $('body').on('click', '.btn-del', function(e) {
         e.preventDefault();
         var msg = e.currentTarget.title;
         if (msg == undefined || msg.length == 0) {
