@@ -1,4 +1,4 @@
-import requests, json
+import requests, json, logging
 from requests.auth import HTTPDigestAuth
 
 from django.core.management.base import BaseCommand, CommandError
@@ -7,8 +7,8 @@ from django.contrib.auth.models import User
 
 from silo.models import *
 from tola.util import siloToDict, combineColumns
-from silo.google_views import *
-
+from silo.gviews_v4 import *
+logger = logging.getLogger("silo")
 
 class Command(BaseCommand):
     """
@@ -30,17 +30,10 @@ class Command(BaseCommand):
         for silo in silos:
             reads = silo.reads.filter(type=read_type.pk)
             for read in reads:
-                # get gsheet authorized client and the gsheet id to fetch its data into the silo
-                storage = Storage(GoogleCredentialsModel, 'id', silo.owner, 'credential')
-                credential = storage.get()
-                credential_json = json.loads(credential.to_json())
-                #self.stdout.write("%s" % credential_json)
-                if credential is None or credential.invalid == True:
-                    self.stdout.write("There was a Google credential problem with user: %s for gsheet %s" % (silo.owner, read.pk))
-                    continue
-
-                suc = import_from_google_spreadsheet(credential_json, silo, read.resource_id)
-                if suc == False:
-                    self.stdout.write("The Google sheet import failed for user: %s  with ghseet: %s" % (silo.owner, read.pk))
-                self.stdout.write('Successfully fetched the READ_ID, "%s", from Gsheet for %s' % (read.pk, silo.owner))
+                msgs = import_from_gsheet_helper(silo.owner, silo.pk, None, read.resource_id, read.gsheet_id)
+                for msg in msgs:
+                    # if it is not a success message then I want to know
+                    if msg.get("level") != 25:
+                        # replace with logger
+                        logger.error("silo_id=%s, read_id=%s, level: %s, msg: %s" % (silo.pk, read.pk, msg.get("level"), msg.get("msg")))
         self.stdout.write("done executing gsheet import command job")

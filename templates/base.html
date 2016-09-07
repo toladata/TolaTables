@@ -22,6 +22,7 @@
         <link href="{{ STATIC_URL }}css/app.css" rel="stylesheet" type="text/css">
 
         <link href="{{ STATIC_URL }}css/select2.min.css" rel="stylesheet" type="text/css">
+        <link href="{{ STATIC_URL }}css/introjs.min.css" rel="stylesheet" type="text/css">
 
         <!--- Django Tables2 css -->
         <link rel="stylesheet" href="{{ STATIC_URL }}django_tables2/themes/paleblue/css/screen.css" />
@@ -105,8 +106,6 @@
 
 
         <div class="container">
-            <br/>
-            <br/>
             <div>{% block bread_crumb %}{% endblock %}</div>
             <div id = "alerts">
                 <!-- Any messages for users -->
@@ -123,14 +122,19 @@
                     {% endif %}
                 {% endblock messages %}
             </div>
-            <br/>
+        </div><!-- .container collapse -->
+
+
+        <!-- Main body content -->
+        <div class="container" id="content">
             <!-- Page title  -->
             <h2>{% block page_title %}{% endblock %}</h2>
 
             <!-- Main body content -->
-            <p>{% block content %}{% endblock %}</p>
+            {% block content %} {% endblock %}
+        </div>
 
-        </div><!-- .container collapse -->
+
 
         <div id = "loading" class="modal"> </div>
 
@@ -158,6 +162,22 @@
             </div>
         </div>
 
+        <div class="modal fade" id="select_gsheet_modal" tabindex="-1" role="dialog" aria-labelledby="select_gsheet_modal" aria-hidden="true">
+            <div class="modal-dialog modal-md">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <label for="gsheets">Select a sheet to import its data</label>
+                        <select id="gsheet_select" name="gsheets" class="form-control input-sm" style="width: 100%;">
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="button" id="select_gsheet_btn" class="btn btn-primary" data-dismiss="modal">Select</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="generic_modal" class="modal"></div>
         <div id = "loading" class="modal"> </div>
         <div id="footer">
             <!-- Sticky Footer -->
@@ -182,6 +202,8 @@
 
         <script type="text/javascript" src="{{ STATIC_URL }}js/select2.min.js"></script>
 
+        <script type="text/javascript" src="{{ STATIC_URL }}js/intro.min.js"></script>
+
         <!-- Typekit (Fonts) -->
         <script src="https://use.typekit.net/shi4wqr.js"></script>
         <script>try{Typekit.load({ async: true });}catch(e){}</script>
@@ -193,11 +215,14 @@
             // developerKey is the same as the Browser API key, at least, as of writing this code.
             var developerKey = 'AIzaSyCuDmq8DjGziPnfAl4bW7fEZtf25teO3x4';
             // The list of scopes to request access to is available at: https://developers.google.com/picker/docs/#otherviews
-            var scope = ['https://www.googleapis.com/auth/drive'];
+            var scope = ['https://www.googleapis.com/auth/drive.readonly'];
             var silo_id;
             var pickerApiLoaded = false;
             var oauthToken;
             var actionType = null;
+            var doc = null;
+            var url = null;
+            var spreadsheet_id = null;
 
             function select_silo_for_importing_gsheet() {
                 $("#select_silo_for_gsheet_import_modal").modal("show");
@@ -249,6 +274,8 @@
                     view.setSelectFolderEnabled(false);
                     view.setMode("DocsViewMode.LIST");
                     var picker = new google.picker.PickerBuilder()
+                        .setOrigin(window.location.protocol + '//' + window.location.host)
+                        //.setOrigin('https://localhost:8000')
                         .enableFeature(google.picker.Feature.NAV_HIDDEN)
                         .addView(view)
                         .setOAuthToken(oauthToken)
@@ -263,21 +290,40 @@
             function pickerCallback(data) {
                 //console.log(JSON.stringify(data));
                 if (data[google.picker.Response.ACTION] == google.picker.Action.PICKED) {
-                    var doc = data[google.picker.Response.DOCUMENTS][0];
-                    var url = doc[google.picker.Document.URL];
-                    var id = doc[google.picker.Document.ID];
-
-                    //console.log("URL: " + url);
-                    //console.log("ID: " + id);
-                    //console.log("name:" + doc['name']);
-                    //console.log("silo_id: " + silo_id);
+                    doc = data[google.picker.Response.DOCUMENTS][0];
+                    url = doc[google.picker.Document.URL];
+                    spreadsheet_id = doc[google.picker.Document.ID];
                     if (actionType == "import") {
-                        $(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + id + "&name=" + doc['name']);
+                        //$(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + spreadsheet_id + "&name=" + doc['name']);
+
+                        $.get('/get_sheets_from_google_spredsheet/', { "spreadsheet_id": spreadsheet_id } )
+                            .done(function(data) {
+                                var sheets = data['sheets'];
+                                if (sheets == undefined) {
+                                    $(location).attr('href', data['redirect']);
+                                }
+                                $("#gsheet_select").empty();
+                                $.each(sheets, function(i, sheet) {
+                                    var item = sheet["properties"];
+
+                                    $("#gsheet_select").append($('<option>', {
+                                        value: item.sheetId,
+                                        text : item.title
+                                    }));
+                                });
+                                $("#select_gsheet_modal").modal("show");
+                            });
                     } else {
-                        $(location).attr('href', '/export_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + id);
+                        $(location).attr('href', '/export_to_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + spreadsheet_id);
                     }
                 }
             }
+
+            $("#select_gsheet_modal").on("click", "#select_gsheet_btn", function(e) {
+                e.preventDefault();
+                sheet_id = $("#gsheet_select").val();
+                $(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + spreadsheet_id + "&name=" + doc['name'] + "&sheet_id=" + sheet_id);
+            });
 
         </script>
         <script type="text/javascript" src="https://apis.google.com/js/api.js?onload=onApiLoad"></script>

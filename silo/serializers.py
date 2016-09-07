@@ -4,6 +4,17 @@ from silo.models import Silo, Read, ReadType, LabelValueStore, Tag
 from django.contrib.auth.models import User
 import json
 
+
+class PublicSiloSerializer(serializers.HyperlinkedModelSerializer):
+    data = serializers.SerializerMethodField()
+    class Meta:
+        model = Silo
+        fields = ('owner', 'name', 'reads', 'description', 'create_date', 'id', 'data','shared','tags','public')
+
+    def get_data(self, obj):
+        link = "/api/public_tables/" + str(obj.id) + "/data/"
+        return (self.context['request'].build_absolute_uri(link))
+
 class SiloSerializer(serializers.HyperlinkedModelSerializer):
     data = serializers.SerializerMethodField()
     class Meta:
@@ -31,7 +42,7 @@ class ReadSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Read
-        fields = ('owner', 'type', 'read_name', 'read_url')
+        fields = ('pk', 'owner', 'type', 'read_name', 'read_url', 'autopull_frequency', 'autopush_frequency')
 
 
 class ReadTypeSerializer(serializers.HyperlinkedModelSerializer):
