@@ -481,7 +481,9 @@ def uploadFile(request, id):
 @login_required
 def getJSON(request):
     """
-    Get JSON feed info from a JSON feed that may or may not have basic authentication
+    Get JSON feed info from a feed that does not have basic authentication
+    :param request:
+    :return:
     """
     if request.method == 'POST':
         # retrieve submitted Feed info from database
