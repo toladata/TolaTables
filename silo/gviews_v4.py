@@ -105,7 +105,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
     silo, created = Silo.objects.get_or_create(pk=None if silo_id=='0' else silo_id, defaults=defaults)
     if not created and silo.unique_fields.exists() == False:
         msgs.append({"level": messages.ERROR,
-                    "msg": "A unique column must be specfied when importing to an existing table. <a href='%s'>Specify Unique Column</a>" % reverse_lazy('siloDetail', kwargs={"id": silo.id}),
+                    "msg": "A unique column must be specfied when importing to an existing table. <a href='%s'>Specify Unique Column</a>" % reverse_lazy('siloDetail', kwargs={"silo_id": silo.id}),
                     "redirect": None})
         return msgs
 
@@ -235,7 +235,7 @@ def import_from_gsheet(request, id):
             return HttpResponseRedirect(msg.get("redirect"))
         messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
 
-    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': str(id)},))
+    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': str(id)},))
 
 
 
