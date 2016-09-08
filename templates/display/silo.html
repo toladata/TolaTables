@@ -269,7 +269,7 @@
             $("#unique_cols_selection_modal").on("click", "#add_unique_cols_save_btn", function(e) {
                 e.preventDefault();
                 var url = "{% url 'add_unique_fields_to_silo' %}" + "/";
-                var params = {"silo_id": `{{ id }}`, "fields": $("select#silo_cols_multi_select").val()};
+                var params = {"silo_id": `{{ silo.id }}`, "fields": $("select#silo_cols_multi_select").val()};
                 //console.log(params);
                 $.post(url, params)
                 .done(function(data, textStatus, jqXHR) {
