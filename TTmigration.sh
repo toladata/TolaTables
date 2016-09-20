@@ -39,7 +39,7 @@ scp TolaTables/dump TTSERVERNAME:/home/TolaTables/dump
 
 docker-compose build
 
-### MySQL container ####
+### MySQL container & restore database ####
 docker-compose up -d mysqldb
 sleep 5
 docker cp ttrestore.sql tolatables_mysqldb_1:/
@@ -48,7 +48,7 @@ docker exec tolatables_mysqldb_1 bash -c "mysql -u USER -pPASSWORD tolatables < 
 sleep 22
 docker exec tolatables_mysqldb_1 bash -c "mysql -u USER -pPASSWORD tolatables < ttrestore.sql"
 
-### MongoDB container ####
+### MongoDB container & restore database ####
 docker-compose up -d mongodb
 docker cp dump tolatables_mongodb_1:/
 docker exec tolatables_mongodb_1 bash -c "mongorestore -d dump"
