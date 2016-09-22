@@ -306,10 +306,10 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
                 headers.append(col)
 
             if col == "gaitid":
-                val = row[headers[index]]
+                val = {"numberValue": row[headers[index]] }
             else:
-                val = smart_text(row[headers[index]])
-            values.append({"userEnteredValue": {"stringValue": val}})
+                val = {"stringValue": smart_text(row[headers[index]]) }
+            values.append({"userEnteredValue": val})
             index += 1
         rows.append({"values": values})
 
