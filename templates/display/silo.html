@@ -315,9 +315,14 @@
                 "serverSide": true,
                 "ajax": {
                     "url": "/api/silo/{{silo.pk}}/data/",
+                    "type": "GET",
                     "data": function ( d ) {
                         //console.log(d);
                     }
+                },
+                // remove extra params from the request to avoid uri-too-large error
+                "fnServerParams": function ( aoData ) {
+                    delete aoData.columns;
                 },
                 "columns": cols,
                 "pageLength": 50,
