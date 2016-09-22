@@ -48,26 +48,25 @@
         <div class="tab-content">
 
             <div role="tabpanel" class="tab-pane" id="options">
-            <div class="panel panel-default">
-                <div class="list-group">
-                    <li class="list-group-item">
-                        <a href="{% url 'updateMergedTable' silo.pk %}" id="update_silo_btn" class="btn btn-sm btn-primary" data-toggle="tooltip" title="Updates data in this table from it sources.">Update Data</a>
-                        <a href="/merge/{{ silo.pk }}" class="btn btn-sm btn-warning" data-toggle="tooltip" title="Merges the data from this table with another table to create a third table.">Merge</a>
-                    </li>
+                <div class="panel panel-default">
+                    <div class="list-group">
+                        <li class="list-group-item">
+                            <a href="{% url 'updateMergedTable' silo.pk %}" id="update_silo_btn" class="btn btn-sm btn-primary" data-toggle="tooltip" title="Updates data in this table from it sources.">Update Data</a>
+                            <a href="/merge/{{ silo.pk }}" class="btn btn-sm btn-warning" data-toggle="tooltip" title="Merges the data from this table with another table to create a third table.">Merge</a>
+                        </li>
 
-                    <li class="list-group-item">
-                        <a href="#" id="id_public-{{silo.pk}}" class="public btn btn-sm {% if silo.public %} btn-warning {% else %} btn-primary {% endif %}" role="button">{% if silo.public %} Make Private {% else %} Make Public {% endif %}</a>
+                        <li class="list-group-item">
+                            <a href="#" id="id_public-{{silo.pk}}" class="public btn btn-sm {% if silo.public %} btn-warning {% else %} btn-primary {% endif %}" role="button">{% if silo.public %} Make Private {% else %} Make Public {% endif %}</a>
 
-                        <a href="{% url 'acitivity_push' silo.pk %}" id="push_to_activity_btn" class="btn btn-sm btn-primary">Send To Tola Activity</a>
+                            <a href="{% url 'acitivity_push' silo.pk %}" id="push_to_activity_btn" class="btn btn-sm btn-primary">Send To Tola Activity</a>
 
-                        <a href="/silo_delete/{{ silo.pk }}" class="btn btn-del btn-sm btn-danger" title="Are you sure you want to delete this table? All of the data stored in this table will also be deleted."><span class="glyphicon glyphicon-trash" title="Delete"></span> Delete Table</a>
+                            <a href="/silo_delete/{{ silo.pk }}" class="btn btn-del btn-sm btn-danger" title="Are you sure you want to delete this table? All of the data stored in this table will also be deleted."><span class="glyphicon glyphicon-trash" title="Delete"></span> Delete Table</a>
 
-                        <a href="/set_unique_columns/{{ id }}/" id="unique_cols_selection_btn" class="btn btn-primary"> Assign a Unique Column</a>
-                        <span class="label label-info" id="unique_col_lbl"></span>
-                    </li>
+                            <a href="/set_unique_columns/{{ id }}/" id="unique_cols_selection_btn" class="btn btn-primary"> Assign a Unique Column</a>
+                            <span class="label label-info" id="unique_col_lbl"></span>
+                        </li>
+                    </div>
                 </div>
-            </div>
-
             </div> <!-- end of tab, options -->
 
             <div role="tabpanel" class="tab-pane" id="fetchdata">
@@ -155,34 +154,35 @@
 
             <div role="tabpanel" class="tab-pane" id="edit">
                 <div class="panel panel-default">
-                <div class="list-group">
-                    <li class="list-group-item">
-                        <a href="/edit_columns/{{ silo.pk }}/" class="btn btn-primary">Edit or Delete columns</a>
-                        <a href="/new_column/{{ silo.pk }}/" class="btn btn-primary">Add New Column</a>
-                    <!--
-                    <a href="/anonymize_silo/{{ id }}/" class="btn btn-primary">Anonymize Table</a>
-                    <a href="/identifyPII/{{ id }}/" id="identifyPIIBtn" class="btn btn-primary">Identify PIIF Columns</a>
-                    -->
-                    </li>
-                    <li class="list-group-item">
-                        <form class="form-inline" action="{% url 'updateColumn' %}"  method="POST">
-                            {% csrf_token %}
-                            <input name="silo_id" value="{{silo.pk}}" type="hidden">
-                            <div class="form-group">
-                                <label for="all_cols">Set new value  for a column</label>
-                                <select name="update_col" class="form-control">
-                                    <option value="-1">Select Column</option>
-                                    {% for col in cols %}
-                                        <option value="{{ col }}">{{ col }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <input type="text" class="form-control" id="new_val" name="new_val" placeholder="New Value">
-                            </div>
-                            <button type="submit" class="btn btn-default">Submit</button>
-                        </form>
-                    </li>
+                    <div class="list-group">
+                        <li class="list-group-item">
+                            <a href="/edit_columns/{{ silo.pk }}/" class="btn btn-primary">Edit or Delete columns</a>
+                            <a href="/new_column/{{ silo.pk }}/" class="btn btn-primary">Add New Column</a>
+                        <!--
+                        <a href="/anonymize_silo/{{ id }}/" class="btn btn-primary">Anonymize Table</a>
+                        <a href="/identifyPII/{{ id }}/" id="identifyPIIBtn" class="btn btn-primary">Identify PIIF Columns</a>
+                        -->
+                        </li>
+                        <li class="list-group-item">
+                            <form class="form-inline" action="{% url 'updateColumn' %}"  method="POST">
+                                {% csrf_token %}
+                                <input name="silo_id" value="{{silo.pk}}" type="hidden">
+                                <div class="form-group">
+                                    <label for="all_cols">Set new value  for a column</label>
+                                    <select name="update_col" class="form-control">
+                                        <option value="-1">Select Column</option>
+                                        {% for col in cols %}
+                                            <option value="{{ col }}">{{ col }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <input type="text" class="form-control" id="new_val" name="new_val" placeholder="New Value">
+                                </div>
+                                <button type="submit" class="btn btn-default">Submit</button>
+                            </form>
+                        </li>
+                    </div>
                 </div>
             </div> <!-- end of tab, edit -->
 
@@ -269,7 +269,7 @@
             $("#unique_cols_selection_modal").on("click", "#add_unique_cols_save_btn", function(e) {
                 e.preventDefault();
                 var url = "{% url 'add_unique_fields_to_silo' %}" + "/";
-                var params = {"silo_id": `{{ id }}`, "fields": $("select#silo_cols_multi_select").val()};
+                var params = {"silo_id": `{{ silo.id }}`, "fields": $("select#silo_cols_multi_select").val()};
                 //console.log(params);
                 $.post(url, params)
                 .done(function(data, textStatus, jqXHR) {
@@ -315,9 +315,14 @@
                 "serverSide": true,
                 "ajax": {
                     "url": "/api/silo/{{silo.pk}}/data/",
+                    "type": "GET",
                     "data": function ( d ) {
                         //console.log(d);
                     }
+                },
+                // remove extra params from the request to avoid uri-too-large error
+                "fnServerParams": function ( aoData ) {
+                    delete aoData.columns;
                 },
                 "columns": cols,
                 "pageLength": 50,
