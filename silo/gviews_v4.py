@@ -138,11 +138,13 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
     if sheet_id:
         gsheet_read.gsheet_id = sheet_id
         gsheet_read.save()
+
+    if gsheet_read.gsheet_id:
         sheets = spreadsheet.get("sheets", None)
         for sheet in sheets:
             properties = sheet.get("properties", None)
             if properties:
-                if str(properties.get("sheetId")) == str(sheet_id):
+                if str(properties.get("sheetId")) == str(gsheet_read.gsheet_id):
                     sheet_name = properties.get("title")
 
     headers = []
@@ -154,8 +156,9 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
         result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=sheet_name).execute()
         data = result.get("values", [])
     except Exception as e:
+        logger.error(e)
         msgs.append({"level": messages.ERROR,
-                    "msg": "Something went wrong: %s" % e.message,
+                    "msg": "Something went wrong 22: %s" % e,
                     "redirect": None})
         return msgs
 
