@@ -193,7 +193,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
         for c, col in enumerate(row):
             try:
                 key = headers[c]
-            except KeyError as e:
+            except IndexError as e:
                 #this happens when a column header is missing gsheet
                 continue
             if key == "" or key is None or key == "silo_id": continue
