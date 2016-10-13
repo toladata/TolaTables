@@ -880,6 +880,8 @@ def updateSiloData(request, pk):
             unique_field_exist = silo.unique_fields.exists()
             if  unique_field_exist == False:
                 messages.error(request, "To update data in a table, a unique column must be set")
+                # delete all the rows in this able and then reimprot data from its source
+                pass
             else:
                 # It's not merged silo so update data from all of its sources.
                 reads = silo.reads.all()

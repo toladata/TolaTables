@@ -212,6 +212,10 @@ MIDDLEWARE_CLASSES = (
 ROOT_URLCONF = '%s.urls' % SITE_NAME
 ########## END URL CONFIGURATION
 
+# Email setup
+EMAIL_HOST = 'localhost'
+EMAIL_PORT = 25
+
 
 ########## APP CONFIGURATION
 DJANGO_APPS = (
@@ -300,6 +304,9 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'simple'
         },
+        'mail_admins': {
+            'class': 'django.utils.log.AdminEmailHandler',
+        },
     },
     'loggers': {
         'django': {
@@ -316,6 +323,12 @@ LOGGING = {
             'handlers': ['file'],
             'level': 'WARNING',
             'propagate': True,
+        },
+        'silo_mail': {
+            'handlers': ['file', 'mail_admins',],
+            'level': 'ERROR',
+            'propagate': True,
+            'include_html': True,
         },
     }
 }
