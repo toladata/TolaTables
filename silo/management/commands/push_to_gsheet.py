@@ -1,6 +1,7 @@
 import requests, json, logging
 from requests.auth import HTTPDigestAuth
 
+from django.core.mail import send_mail
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Q
 from operator import and_, or_
@@ -39,5 +40,6 @@ class Command(BaseCommand):
                     if msg.get("level") != 25:
                         # replace with logger
                         logger.error("silo_id=%s, read_id=%s, level: %s, msg: %s" % (silo.pk, read.pk, msg.get("level"), msg.get("msg")))
+                        send_mail("Tola-Tables Auto-Pull Failed", "table_id: %s, source_id: %s, %s %s" % (silo.pk, read.pk, msg.get("level"), msg.get("msg")), "tolatables@mercycorps.org", [silo.owner.email], fail_silently=False)
 
         self.stdout.write("done executing gsheet export command job")
