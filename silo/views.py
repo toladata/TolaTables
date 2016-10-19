@@ -741,12 +741,14 @@ def addUniqueFiledsToSilo(request):
     if request.method == 'POST':
         unique_cols = request.POST.getlist("fields[]", None)
         silo_id = request.POST.get("silo_id", None)
-        if unique_cols and silo_id:
+        if silo_id:
             silo = Silo.objects.get(pk=silo_id)
             silo.unique_fields.all().delete()
             for col in unique_cols:
                 unique_field = UniqueFields(name=col, silo=silo)
                 unique_field.save()
+            if not unique_cols:
+                silo.unique_fields.all().delete()
             return HttpResponse("Unique Fields saved")
     return HttpResponse("Only POST requests are processed.")
 
@@ -879,12 +881,9 @@ def updateSiloData(request, pk):
         except MergedSilosFieldMapping.DoesNotExist as e:
             unique_field_exist = silo.unique_fields.exists()
             if  unique_field_exist == False:
-                #messages.error(request, "To update data in a table, a unique column must be set")
-                # delete all the rows in this able and then reimprot data from its source
-                lvs = LabelValueStore.objects(id=silo.pk)
+                lvs = LabelValueStore.objects(silo_id=silo.pk)
                 lvs.delete()
-            #else:
-            # It's not merged silo so update data from all of its sources.
+
             reads = silo.reads.all()
             msgs = importDataFromReads(request, silo, reads)
             if type(msgs) == list:

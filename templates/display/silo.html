@@ -298,15 +298,23 @@
                 //console.log(params);
                 $.post(url, params)
                 .done(function(data, textStatus, jqXHR) {
-                    console.log(JSON.stringify(data));
-                    $("#unique_col_lbl").text("Unique Column: " + $("#silo_cols_multi_select").val());
+                    //console.log(JSON.stringify(data));
+                    var col = $("#silo_cols_multi_select").val();
+                    //if (col == "null" || col == null) {
+                    //    col = "not specified";
+                    //}
+                    $("#unique_col_lbl").text("Unique Column: " + col);
+                    $("#silo_cols_multi_select").val(col).trigger("change");
+                    unique_col = $("#silo_cols_multi_select").val();
+                    console.log(unique_col);
                 });
+                //window.location.reload();
             });
 
             $("body").on("click", "#update_silo_btn", function(e){
                 e.preventDefault();
                 var url = $(this).attr('href');
-                if (unique_col == "not specified") {
+                if (unique_col == "not specified" || unique_col == null) {
                     $("#confirmation_modal").find('.btn-del-import').attr('href', url);
                     $("#confirmation_modal").modal('toggle');
                 } else {
