@@ -31,3 +31,4 @@ selenium==2.48.0
 simplejson==3.9.0
 six==1.10.0
 uritemplate==3.0.0
+django-cors-headers

@@ -193,6 +193,7 @@ TEMPLATES = [
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#middleware-classes
 MIDDLEWARE_CLASSES = (
     # Default Django middleware.
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -242,7 +243,7 @@ THIRD_PARTY_APPS = (
     'crispy_forms',
     #'floppyforms',
     'django_extensions',
-
+    'corsheaders',
     #'mongoengine'
 )
 
@@ -254,6 +255,12 @@ LOCAL_APPS = (
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 ########## END APP CONFIGURATION
+
+CORS_ORIGIN_WHITELIST = (
+    "localhost:8000",
+    "localhost:4200"
+)
+
 
 ####### AUTHENTICATION BAKEND CONFIG ##################
 # https://github.com/django/django/blob/master/django/contrib/auth/backends.py
