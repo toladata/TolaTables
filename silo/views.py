@@ -32,7 +32,6 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 
-from oauth2client.contrib.django_orm import Storage
 from django_tables2 import RequestConfig
 from .tables import define_table
 from silo.custom_csv_dict_reader import CustomDictReader
