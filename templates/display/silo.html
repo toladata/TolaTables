@@ -247,6 +247,30 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="confirmation_modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <!--
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"></h4>
+            </div>
+            -->
+            <div class="modal-body">
+                <p>This table does NOT have a unique column set. If you proceed, all existing<br />
+                data will be deleted from the table and then it will try to import data from its source(s) again.</p>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">No, cancel</button>
+                <a class="btn btn-danger btn-del-import">Yes, erase and re-import data</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock content %}
 
 
@@ -259,6 +283,7 @@
             if (unique_col == null || unique_col == "null") {
                 unique_col = "not specified";
             }
+
             $("#unique_col_lbl").text("Unique Column: " + unique_col);
             $("#silo_cols_multi_select").select2();
             $("body").on("click", "#unique_cols_selection_btn", function(e) {
@@ -273,9 +298,28 @@
                 //console.log(params);
                 $.post(url, params)
                 .done(function(data, textStatus, jqXHR) {
-                    console.log(JSON.stringify(data));
-                    $("#unique_col_lbl").text("Unique Column: " + $("#silo_cols_multi_select").val());
+                    //console.log(JSON.stringify(data));
+                    var col = $("#silo_cols_multi_select").val();
+                    //if (col == "null" || col == null) {
+                    //    col = "not specified";
+                    //}
+                    $("#unique_col_lbl").text("Unique Column: " + col);
+                    $("#silo_cols_multi_select").val(col).trigger("change");
+                    unique_col = $("#silo_cols_multi_select").val();
+                    console.log(unique_col);
                 });
+                //window.location.reload();
+            });
+
+            $("body").on("click", "#update_silo_btn", function(e){
+                e.preventDefault();
+                var url = $(this).attr('href');
+                if (unique_col == "not specified" || unique_col == null) {
+                    $("#confirmation_modal").find('.btn-del-import').attr('href', url);
+                    $("#confirmation_modal").modal('toggle');
+                } else {
+                    window.location.href = url;
+                }
             });
 
             //var data_str = `{{data|safe}}`;
@@ -414,7 +458,7 @@
                     data: data,
                     success: function(data, textStatus, jqXHR) {
                         //console.log(data);
-                        createAlert("info", "Your chanse was successful.");
+                        createAlert("info", "Your change was successful.");
                     },
                     error: function(jqXHR, textStatus, error) {
                         createAlert("error", error);

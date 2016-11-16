@@ -743,12 +743,14 @@ def addUniqueFiledsToSilo(request):
     if request.method == 'POST':
         unique_cols = request.POST.getlist("fields[]", None)
         silo_id = request.POST.get("silo_id", None)
-        if unique_cols and silo_id:
+        if silo_id:
             silo = Silo.objects.get(pk=silo_id)
             silo.unique_fields.all().delete()
             for col in unique_cols:
                 unique_field = UniqueFields(name=col, silo=silo)
                 unique_field.save()
+            if not unique_cols:
+                silo.unique_fields.all().delete()
             return HttpResponse("Unique Fields saved")
     return HttpResponse("Only POST requests are processed.")
 
@@ -881,27 +883,38 @@ def updateSiloData(request, pk):
         except MergedSilosFieldMapping.DoesNotExist as e:
             unique_field_exist = silo.unique_fields.exists()
             if  unique_field_exist == False:
-                messages.error(request, "To update data in a table, a unique column must be set")
+                lvs = LabelValueStore.objects(silo_id=silo.pk)
+                lvs.delete()
+
+            reads = silo.reads.all()
+            msgs = importDataFromReads(request, silo, reads)
+            if type(msgs) == list:
+                for msg in msgs:
+                    messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
             else:
-                # It's not merged silo so update data from all of its sources.
-                reads = silo.reads.all()
-                for read in reads:
-                    if read.type.read_type == "ONA":
-                        ona_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="ONA")
-                        response = requests.get(read.read_url, headers={'Authorization': 'Token %s' % ona_token.token})
-                        data = json.loads(response.content)
-                        res = saveDataToSilo(silo, data)
-                    elif read.type.read_type == "CSV":
-                        messages.info(request, "When updating data in a table, its CSV source is ignored.")
-                    elif read.type.read_type == "JSON":
-                        result = importJSON(read, request.user, None, None, silo.pk, None)
-                        messages.add_message(request, result[0], result[1])
-                    elif read.type.read_type == "GSheet Import":
-                        msgs = import_from_gsheet_helper(request.user, silo.id, None, read.resource_id)
-                        for msg in msgs:
-                            messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
+                messages.add_message(request, msgs[0], msgs[1])
 
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
+
+def importDataFromReads(request, silo, reads):
+    for read in reads:
+        if read.type.read_type == "ONA":
+            ona_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="ONA")
+            response = requests.get(read.read_url, headers={'Authorization': 'Token %s' % ona_token.token})
+            data = json.loads(response.content)
+            res = saveDataToSilo(silo, data)
+        elif read.type.read_type == "CSV":
+            #messages.info(request, "When updating data in a table, its CSV source is ignored.")
+            return (messages.INFO, "When updating data in a table, its CSV source is ignored.")
+        elif read.type.read_type == "JSON":
+            result = importJSON(read, request.user, None, None, silo.pk, None)
+            #messages.add_message(request, result[0], result[1])
+            return (result[0], result[1])
+        elif read.type.read_type == "GSheet Import":
+            msgs = import_from_gsheet_helper(request.user, silo.id, None, read.resource_id)
+            return msgs
+            #for msg in msgs:
+            #    messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
 
 
 #Add a new column on to a silo

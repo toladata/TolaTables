@@ -103,14 +103,14 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
 
     defaults = {"name": silo_name, "description": "Google Sheet Import", "public": False, "owner": user}
     silo, created = Silo.objects.get_or_create(pk=None if silo_id=='0' else silo_id, defaults=defaults)
-    if not created and silo.unique_fields.exists() == False:
-        msgs.append({"level": messages.ERROR,
-                    "msg": "A unique column must be specfied when importing to an existing table. <a href='%s'>Specify Unique Column</a>" % reverse_lazy('siloDetail', kwargs={"silo_id": silo.id}),
-                    "redirect": None})
-        return msgs
+    #if not created and silo.unique_fields.exists() == False:
+    #    msgs.append({"level": messages.ERROR,
+    #                "msg": "A unique column must be specfied when importing to an existing table. <a href='%s'>Specify Unique Column</a>" % reverse_lazy('siloDetail', kwargs={"silo_id": silo.id}),
+    #                "redirect": None})
+    #    return msgs
 
-    if created:
-        msgs.append({"silo_id": silo.id})
+    #if created:
+    msgs.append({"silo_id": silo.id})
 
     service = get_authorized_service(credential_obj)
 
@@ -138,11 +138,13 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
     if sheet_id:
         gsheet_read.gsheet_id = sheet_id
         gsheet_read.save()
+
+    if gsheet_read.gsheet_id:
         sheets = spreadsheet.get("sheets", None)
         for sheet in sheets:
             properties = sheet.get("properties", None)
             if properties:
-                if str(properties.get("sheetId")) == str(sheet_id):
+                if str(properties.get("sheetId")) == str(gsheet_read.gsheet_id):
                     sheet_name = properties.get("title")
 
     headers = []
@@ -154,8 +156,9 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
         result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=sheet_name).execute()
         data = result.get("values", [])
     except Exception as e:
+        logger.error(e)
         msgs.append({"level": messages.ERROR,
-                    "msg": "Something went wrong: %s" % e.message,
+                    "msg": "Something went wrong 22: %s" % e,
                     "redirect": None})
         return msgs
 
@@ -193,7 +196,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
         for c, col in enumerate(row):
             try:
                 key = headers[c]
-            except KeyError as e:
+            except IndexError as e:
                 #this happens when a column header is missing gsheet
                 continue
             if key == "" or key is None or key == "silo_id": continue

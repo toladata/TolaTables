@@ -193,6 +193,7 @@ TEMPLATES = [
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#middleware-classes
 MIDDLEWARE_CLASSES = (
     # Default Django middleware.
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -211,6 +212,10 @@ MIDDLEWARE_CLASSES = (
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#root-urlconf
 ROOT_URLCONF = '%s.urls' % SITE_NAME
 ########## END URL CONFIGURATION
+
+# Email setup
+EMAIL_HOST = 'localhost'
+EMAIL_PORT = 25
 
 
 ########## APP CONFIGURATION
@@ -233,11 +238,12 @@ DJANGO_APPS = (
 THIRD_PARTY_APPS = (
     'rest_framework',
     'rest_framework.authtoken',
+    'rest_framework_swagger',
     'django_tables2',
     'crispy_forms',
     #'floppyforms',
     'django_extensions',
-
+    'corsheaders',
     #'mongoengine'
 )
 
@@ -249,6 +255,12 @@ LOCAL_APPS = (
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 ########## END APP CONFIGURATION
+
+CORS_ORIGIN_WHITELIST = (
+    "localhost:8000",
+    "localhost:4200"
+)
+
 
 ####### AUTHENTICATION BAKEND CONFIG ##################
 # https://github.com/django/django/blob/master/django/contrib/auth/backends.py
@@ -300,6 +312,9 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'simple'
         },
+        'mail_admins': {
+            'class': 'django.utils.log.AdminEmailHandler',
+        },
     },
     'loggers': {
         'django': {
@@ -316,6 +331,12 @@ LOGGING = {
             'handlers': ['file'],
             'level': 'WARNING',
             'propagate': True,
+        },
+        'silo_mail': {
+            'handlers': ['file', 'mail_admins',],
+            'level': 'ERROR',
+            'propagate': True,
+            'include_html': True,
         },
     }
 }
