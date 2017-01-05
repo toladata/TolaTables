@@ -8,3 +8,15 @@
     <input type="hidden" name="read_id" value="{{ read_id }}">
 
 {% endblock content %}
+
+{% block extra_js_in_body %}
+<script type="text/javascript">
+"use strict";
+    $(document).ready(function() {
+        var autopull_frequency = $("#id_autopull_frequency").val();
+        if (!uniqueautopull_frequency_col) {
+            alert("Reminder: A Unique column must be set for the autopull to work");
+        }
+    });
+</script>
+{% endblock %}

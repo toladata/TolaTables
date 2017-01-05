@@ -5,9 +5,13 @@ html {
     position: relative;
     min-height: 100%;
 }
-
+body {
+    /* Margin bottom by footer height */
+    height: 100%;
+    margin-bottom: 60px;
+}
 #footer {
-    position: fixed;
+    position: absolute;
     bottom: 0px;
     width: 100%;
     /* Set the fixed height of the footer here */
@@ -61,7 +65,8 @@ button:focus,
 /* Not required for template or sticky footer method. */
 
 body > .container {
-    padding-bottom: 80px;
+    height: 100%;
+    margin-top: 20px;
 }
 
 .alert{
@@ -69,6 +74,9 @@ body > .container {
     margin-bottom: -20px;
 }
 
+#footer > .container-fluid {
+    padding: 10px;
+}
 
 .btn-frozen {
     color: #fff;
@@ -171,4 +179,12 @@ body > .container {
 .tag:hover:after {
     text-decoration: none;
     color: #fff;
+}
+
+
+#failed_project_agreements_modal_body {
+    max-height:calc(100vh - 150px);
+    overflow-y:auto;
+    overflow-x:auto;
+    font-family:monospace;
 }

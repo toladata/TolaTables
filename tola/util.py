@@ -3,9 +3,14 @@ import datetime
 import urllib2
 import json
 import base64
+from django.utils.encoding import smart_text
+from django.utils import timezone
+from django.utils.encoding import smart_str, smart_unicode
 from django.conf import settings
-from silo.models import Read, Silo, LabelValueStore
+from django.contrib.auth.models import User
 
+from silo.models import Read, Silo, LabelValueStore
+from django.contrib import messages
 import pymongo
 from bson.objectid import ObjectId
 from pymongo import MongoClient
@@ -43,41 +48,107 @@ def siloToDict(silo):
     return parsed_data
 
 
+def saveDataToSilo(silo, data):
+    """
+    This saves data to the silo
+
+    Keyword arguments:
+    silo -- the silo object, which is meta data for its labe_value_store
+    data -- a python list of dictionaries. stored in MONGODB
+    """
+    unique_fields = silo.unique_fields.all()
+    skipped_rows = set()
+    enc = "latin-1"
+    for counter, row in enumerate(data):
+        # reseting filter_criteria for each row
+        filter_criteria = {}
+        for uf in unique_fields:
+            try:
+                filter_criteria.update({str(uf.name): str(row[uf.name])})
+            except KeyError:
+                # when this excpetion occurs, it means that the col identified
+                # as the unique_col is not present in the fetched dataset
+                pass
+
+        # if filter_criteria is set, then update it with current silo_id
+        # else set filter_criteria to some non-existent key and value so
+        # that it triggers a DoesNotExist exception in order to create a new
+        # document instead of updating an existing one.
+        if filter_criteria:
+            filter_criteria.update({'silo_id': silo.id})
+        else:
+            filter_criteria.update({"nonexistentkey":"NEVER0101010101010NEVER"})
+
+        try:
+            lvs = LabelValueStore.objects.get(**filter_criteria)
+            #print("updating")
+            setattr(lvs, "edit_date", timezone.now())
+        except LabelValueStore.DoesNotExist as e:
+            lvs = LabelValueStore()
+            lvs.silo_id = silo.pk
+            lvs.create_date = timezone.now()
+            #print("creating")
+        except LabelValueStore.MultipleObjectsReturned as e:
+            for k,v in filter_criteria.iteritems():
+                skipped_rows.add("%s=%s" % (k,v))
+            #print("skipping")
+            continue
+
+        counter = 0
+        # set the fields in the curernt document and save it
+        for key, val in row.iteritems():
+            if key == "" or key is None or key == "silo_id": continue
+            elif key == "id" or key == "_id": key = "user_assigned_id"
+            elif key == "edit_date": key = "editted_date"
+            elif key == "create_date": key = "created_date"
+            if type(val) == str or type(val) == unicode:
+                val = smart_str(val, strings_only=True)
+            setattr(lvs, key.replace(".", "_").replace("$", "USD"), val)
+            counter += 1
+        lvs.save()
+
+    combineColumns(silo.pk)
+    res = {"skipped_rows": skipped_rows, "num_rows": counter}
+    return res
+
+
 #IMPORT JSON DATA
-def getJSON(id):
-    """
-    Get JSON feed info from form then grab data
-    """
-    # retrieve submitted Feed info from database
-    read_obj = Read.objects.get(id)
+def importJSON(read_obj, user, remote_user = None, password = None, silo_id = None, silo_name = None):
     # set date time stamp
     today = datetime.date.today()
     today.strftime('%Y-%m-%d')
     today = str(today)
+    try:
+        request2 = urllib2.Request(read_obj.read_url)
+        # If the read_obj has token then use it; otherwise, check for login info.
+        if read_obj.token:
+            request2.add_header("Authorization", "Basic %s" % read_obj.token)
+        elif remote_user and password:
+            base64string = base64.encodestring('%s:%s' % (remote_user, password))[:-1]
+            request2.add_header("Authorization", "Basic %s" % base64string)
+        else:
+            pass
+        #retrieve JSON data from formhub via auth info
+        json_file = urllib2.urlopen(request2)
+        silo = None
 
-    #get auth info from form post then encode and add to the request header
-    username = request.POST['user_name']
-    password = request.POST['password']
-    base64string = base64.encodestring('%s:%s' % (username, password))[:-1]
-    request2 = urllib2.Request(read_obj.read_url)
-    request2.add_header("Authorization", "Basic %s" % base64string)
-    #retrieve JSON data from formhub via auth info
-    json_file = urllib2.urlopen(request2)
+        if silo_name:
+            silo = Silo(name=silo_name, owner=user, public=False, create_date=today)
+            silo.save()
+        else:
+            silo = Silo.objects.get(id = silo_id)
 
-    #create object from JSON String
-    data = json.load(json_file)
-    json_file.close()
-    #loop over data and insert create and edit dates and append to dict
-    row_num = 1
-    for row in data:
-        for new_label, new_value in row.iteritems():
-            if new_value is not "" and new_label is not None:
-                #save to DB
-                saveData(new_value, new_label, silo_id, row_num)
-        row_num = row_num + 1
+        silo.reads.add(read_obj)
+        silo_id = silo.id
 
+        #create object from JSON String
+        data = json.load(json_file)
+        json_file.close()
 
-    return get_fields
+        skipped_rows = saveDataToSilo(silo, data)
+        return (messages.SUCCESS, "Data imported successfully.", str(silo_id))
+    except Exception as e:
+        return (messages.ERROR, "An error has occured: %s" % e, str(silo_id))
 
 def getSiloColumnNames(id):
     lvs = LabelValueStore.objects(silo_id=id).to_json()
