@@ -86,9 +86,6 @@ urlpatterns =[
     url('', include('django.contrib.auth.urls', namespace='auth')),
     url('', include('social.apps.django_app.urls', namespace='social')),
 
-    url(r'^contact', tola_views.contact, name='contact'),
-    url(r'^faq', tola_views.faq, name='faq'),
-    url(r'^documentation', tola_views.documentation, name='documentation'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
