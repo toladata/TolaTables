@@ -31,6 +31,8 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.db.models import Count
+
 
 from django_tables2 import RequestConfig
 from .tables import define_table
@@ -707,11 +709,15 @@ def index(request):
         get_silos = Silo.objects.filter(owner=user)
     else:
         get_silos = None
+    # count all public and private data sets
     count_all = Silo.objects.count()
-    count_max = count_all + (count_all * .10)
+    count_public = Silo.objects.filter(public=1).count()
+    # top 4 data sources and tags
+    get_reads = Read.objects.annotate(num_type=Count('type')).order_by('-num_type')[:4]
+    get_tags = Tag.objects.annotate(num_tag=Count('name')).order_by('-num_tag')[:8]
     get_public = Silo.objects.filter(public=1)
     site = TolaSites.objects.get(site_id=1)
-    return render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_max':count_max, 'site': site})
+    return render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_public': count_public, 'get_reads': get_reads, 'get_tags': get_tags, 'site': site})
 
 
 def toggle_silo_publicity(request):

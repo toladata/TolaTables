@@ -3,127 +3,47 @@
 {% block page_title %}<h2>TolaTables</h2>{% endblock %}
 
 {% block content %}
-<script src="{{ STATIC_URL }}js/highcharts/js/highcharts.js"></script>
-<script src="{{ STATIC_URL }}js/highcharts/js/highcharts-more.js"></script>
-<script src="{{ STATIC_URL }}js/highcharts/js/modules/exporting.js"></script>
+<script src="{{ STATIC_URL }}js/Chart.min.js"></script>
 
-<script>
-    $(function () {
-
-    $('#container').highcharts({
-
-        chart: {
-            type: 'gauge',
-            plotBackgroundColor: null,
-            plotBackgroundImage: null,
-            plotBorderWidth: 0,
-            plotShadow: false
-        },
-
-        title: {
-            text: 'Number of Tables'
-        },
-
-        pane: {
-            startAngle: -150,
-            endAngle: 150,
-            background: [{
-                backgroundColor: {
-                    linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-                    stops: [
-                        [0, '#FFF'],
-                        [1, '#333']
-                    ]
-                },
-                borderWidth: 0,
-                outerRadius: '109%'
-            }, {
-                backgroundColor: {
-                    linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-                    stops: [
-                        [0, '#333'],
-                        [1, '#FFF']
-                    ]
-                },
-                borderWidth: 1,
-                outerRadius: '107%'
-            }, {
-                // default background
-            }, {
-                backgroundColor: '#DDD',
-                borderWidth: 0,
-                outerRadius: '105%',
-                innerRadius: '103%'
-            }]
-        },
-
-        // the value axis
-        yAxis: {
-            min: 0,
-            max: {{ count_max }} ,
-
-            minorTickInterval: 'auto',
-            minorTickWidth: 1,
-            minorTickLength: 10,
-            minorTickPosition: 'inside',
-            minorTickColor: '#666',
-
-            tickPixelInterval: 30,
-            tickWidth: 2,
-            tickPosition: 'inside',
-            tickLength: 10,
-            tickColor: '#666',
-            labels: {
-                step: 2,
-                rotation: 'auto'
-            },
-            title: {
-                text: 'tables'
-            },
-            plotBands: [{
-                from: 0,
-                to: 120,
-                color: '#55BF3B' // green
-            }, {
-                from: 0,
-                to: 0,
-                color: '#DDDF0D' // green
-            }, {
-                from: 0,
-                to: 0,
-                color: '#DF5353' // green
-            }]
-        },
-
-        series: [{
-            name: 'Tables',
-            data: [ {{ count_all }} ],
-            tooltip: {
-                valueSuffix: ' tables'
-            }
-        }]
-
-    });
-});
-</script>
     <div class="panel panel-default">
-        <div class="panel-heading">Collection, aggregation and sharing of mulitple data sources.</div>
+        <div class="panel-heading">TolaTables, a tool for all types of data collection.</div>
         <div class="panel-body">
-
             <div class="row">
-                <div class="col-md-8">
-                    <p>This application allows you to connect to a third party data collection tool and
-                    read in that data into a local data source.  You can then edit, combine and share that data in
-                    a number of formats.</p>
-
-                    <div class="well">
-                        <p>Select an existing Table of Data to <a href="/silos/">view or edit</a></p>
-                        <ul>
-                            {% for item in get_silos %}
-                                <li>Table: <a href="/silo_detail/{{ item.id }}">{{ item.name }}</a></li>
-                            {% endfor %}
-                        </ul>
+                <div class="col-sm-6 col-md-4">
+                    <div class="thumbnail" style="min-height:300px;height:300px;">
+                        <div class="canvas-container-doughnut">
+                              <canvas id="count"></canvas>
+                              <div id="count-legend" class="chart-legend"></div>
+                        </div>
+                        <div class="caption">
+                            Public, Private and shared data sets can be combined and aggregated.
+                        </div>
                     </div>
+                </div>
+                <div class="col-sm-6 col-md-4">
+                     <div class="thumbnail" style="min-height:300px;height:300px;">
+                        <div class="canvas-container-doughnut">
+                            <canvas id="read"></canvas>
+                            <div id="read-legend" class="chart-legend"></div>
+                        </div>
+                        <div class="caption">
+                            TolaTables can integrate with data from multiple platforms and data sources.
+                        </div>
+                     </div>
+                </div>
+                <div class="col-sm-6 col-md-4">
+                     <div class="thumbnail" style="min-height:300px;height:300px;">
+                        <div class="canvas-container-doughnut">
+                            <canvas id="tag"></canvas>
+                        </div>
+                         <div class="caption">
+                            Clean, edit and share data for analysis and visualization.
+                         </div>
+                     </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
                     {% if user.is_authenticated %}
                         <a href="/silos/" class="btn btn-lg btn-success">View My Data</a>
                     {% else %}
@@ -133,9 +53,7 @@
                         </div>
                     {% endif %}
                 </div>
-                <div class="col-md-4">
-                    <div id="container" style="min-width: 310px; max-width: 400px; height: 300px; margin: 0 auto"></div>
-                </div>
+
             </div>
 
         </div>
@@ -154,6 +72,15 @@
                       <th>Public</th>
                       <th>Date Created</th>
                   </tr>
+                  {% for item in get_silos %}
+                  <tr>
+                      <td>{{ item.tag_list }}</td>
+                      <td><a href="/silo_detail/{{ item.id }}/">{{ item.name }}</a></td>
+                      <td>{{ item.description }}</td>
+                      <td>{{ item.public }}</td>
+                      <td>{{ item.created }}</td>
+                  </tr>
+                  {% endfor %}
                   {% for item in get_public %}
                   <tr>
                       <td>{{ item.tag_list }}</td>
@@ -187,5 +114,83 @@
 
         </div>
     </div>
+
+<script>
+    var dynamicColors = function() {
+    var r = Math.floor(Math.random() * 255);
+    var g = Math.floor(Math.random() * 255);
+    var b = Math.floor(Math.random() * 255);
+    return "rgb(" + r + "," + g + "," + b + ")";
+    }
+</script>
+
+<script id="doughnutchart">
+//render tables in a doughnut chart
+var private = {{ count_all }} - {{ count_public }}
+var options = {
+    // single tooltip
+    tooltipTemplate: "<%=label + ' Tables' %>",
+};
+var data = [
+    {
+    value: private,
+    color:"#637b85",
+    label: "Private - " + private
+    },
+    {
+    value: {{ count_public }},
+    color:"#2c9c69",
+    label: "Public - {{ count_public }}"
+    },
+];
+var ctx = document.getElementById("count").getContext("2d");
+var statusChart = new Chart(ctx).Doughnut(data,options);
+document.getElementById('count-legend').innerHTML = statusChart.generateLegend();
+</script>
+
+<script id="read">
+//render reads in a polar chart
+var options = {
+    // single tooltip
+    tooltipTemplate: "<%=label + ' Sources' %>",
+};
+var data = [
+    {% for read in get_reads %}
+    {
+    value: {{read.num_type }},
+    color: dynamicColors(),
+    label: "{{ read.type.read_type }}"
+    },
+    {% endfor %}
+
+];
+var ctx = document.getElementById("read").getContext("2d");
+var statusChart = new Chart(ctx).PolarArea(data,options);
+document.getElementById('read-legend').innerHTML = statusChart.generateLegend();
+</script>
+
+<script id="tags">
+//render tags  in a radar chart
+var options = {
+    // single tooltip
+    tooltipTemplate: "<%=label + ' Tags' %>",
+};
+var data = {
+    labels : [{% for label in get_tags %} "{{ label.name }}", {% endfor %}],
+    datasets : [
+        {
+            fillColor : dynamicColors(),
+            strokeColor : "#637b85",
+            pointColor : "#dbba34",
+            pointStrokeColor : "#637b85",
+            data : [{% for data in get_tags %} {{ data.num_tag }},{% endfor %}]
+        }
+    ]
+}
+var ctx = document.getElementById("tag").getContext("2d");
+var statusChart = new Chart(ctx).Radar(data,options);
+document.getElementById('tag-legend').innerHTML = statusChart.generateLegend();
+
+</script>
 
 {% endblock content %}
