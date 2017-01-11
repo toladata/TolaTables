@@ -11,7 +11,7 @@ from django.http import HttpResponseRedirect, HttpResponseBadRequest, JsonRespon
 from django.views.decorators.csrf import csrf_protect
 from django.conf import settings
 from django.utils import timezone
-from django.utils.encoding import smart_text
+from django.utils.encoding import smart_text, smart_str
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -103,14 +103,14 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
 
     defaults = {"name": silo_name, "description": "Google Sheet Import", "public": False, "owner": user}
     silo, created = Silo.objects.get_or_create(pk=None if silo_id=='0' else silo_id, defaults=defaults)
-    if not created and silo.unique_fields.exists() == False:
-        msgs.append({"level": messages.ERROR,
-                    "msg": "A unique column must be specfied when importing to an existing table. <a href='%s'>Specify Unique Column</a>" % reverse_lazy('siloDetail', kwargs={"id": silo.id}),
-                    "redirect": None})
-        return msgs
+    #if not created and silo.unique_fields.exists() == False:
+    #    msgs.append({"level": messages.ERROR,
+    #                "msg": "A unique column must be specfied when importing to an existing table. <a href='%s'>Specify Unique Column</a>" % reverse_lazy('siloDetail', kwargs={"silo_id": silo.id}),
+    #                "redirect": None})
+    #    return msgs
 
-    if created:
-        msgs.append({"silo_id": silo.id})
+    #if created:
+    msgs.append({"silo_id": silo.id})
 
     service = get_authorized_service(credential_obj)
 
@@ -138,37 +138,43 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
     if sheet_id:
         gsheet_read.gsheet_id = sheet_id
         gsheet_read.save()
+
+    if gsheet_read.gsheet_id:
         sheets = spreadsheet.get("sheets", None)
         for sheet in sheets:
             properties = sheet.get("properties", None)
             if properties:
-                if str(properties.get("sheetId")) == str(sheet_id):
+                if str(properties.get("sheetId")) == str(gsheet_read.gsheet_id):
                     sheet_name = properties.get("title")
 
     headers = []
     data = None
-    filter_criteria = {}
+
     combine_cols = False
     # Fetch data from gsheet
     try:
         result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=sheet_name).execute()
         data = result.get("values", [])
     except Exception as e:
+        logger.error(e)
         msgs.append({"level": messages.ERROR,
-                    "msg": "Something went wrong: %s" % e.message,
+                    "msg": "Something went wrong 22: %s" % e,
                     "redirect": None})
         return msgs
 
+    unique_fields = silo.unique_fields.all()
     skipped_rows = set()
     for r, row in enumerate(data):
         if r == 0: headers = row; continue;
+        filter_criteria = {}
 
         # build filter_criteria if unique field(s) have been setup for this silo
-        for unique_field in silo.unique_fields.all():
+        for unique_field in unique_fields:
             try:
                 filter_criteria.update({unique_field.name: row[headers.index(unique_field.name)]})
+            except KeyError:
+                pass
             except ValueError:
-                combine_cols = True
                 pass
         if filter_criteria:
             filter_criteria.update({'silo_id': silo.id})
@@ -188,17 +194,23 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
             lvs = LabelValueStore()
 
         for c, col in enumerate(row):
-            key = headers[c]
-            if key == "" or key is None or key == "silo_id" or key == "create_date" or key == "edit_date": continue
-            if key == "id" or key == "_id": key = "user_assigned_id"
-            setattr(lvs, key.replace(".", "_"), row[c])
+            try:
+                key = headers[c]
+            except IndexError as e:
+                #this happens when a column header is missing gsheet
+                continue
+            if key == "" or key is None or key == "silo_id": continue
+            elif key == "id" or key == "_id": key = "user_assigned_id"
+            elif key == "edit_date": key = "editted_date"
+            elif key == "create_date": key = "created_date"
+            val = smart_str(row[c], strings_only=True)
+            key = smart_str(key)
+            setattr(lvs, key.replace(".", "_").replace("$", "USD"), val)
         lvs.silo_id = silo.id
         lvs.create_date = timezone.now()
         lvs.save()
 
-    # Combine all of the columns
-    if combine_cols:
-        combineColumns(silo.pk)
+    combineColumns(silo.pk)
 
     if skipped_rows:
         msgs.append({"level": messages.WARNING,
@@ -226,7 +238,7 @@ def import_from_gsheet(request, id):
             return HttpResponseRedirect(msg.get("redirect"))
         messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
 
-    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'id': str(id)},))
+    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': str(id)},))
 
 
 
@@ -371,6 +383,7 @@ def get_sheets_from_google_spredsheet(request):
     spreadsheet_id = request.GET.get("spreadsheet_id", None)
     credential_obj = get_credential_object(request.user)
     if not isinstance(credential_obj, OAuth2Credentials):
+        request.session['redirect_uri_after_step2'] = request.META.get('HTTP_REFERER')
         return JsonResponse(credential_obj)
 
     service = get_authorized_service(credential_obj)

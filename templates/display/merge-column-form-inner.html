@@ -7,10 +7,10 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title">Merge Options</h4>
+                <h4 class="modal-title">Column Aggregation Options</h4>
             </div>
             <div class="modal-body">
-                <p>Select how to merge the columns&hellip;</p>
+                <p>Select how to aggregate the columns&hellip;</p>
                 <select id="merge_type">
                     <option value='concatenate'>Join</option>
                     <option value='sum'>Sum</option>
@@ -23,6 +23,26 @@
         </div><!-- /.modal-content -->
     </div><!-- /.modal-dialog -->
 </div><!-- /.modal -->
+
+
+<!-- Modal -->
+<div class="modal fade" id="mergeTypeModal" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-body">
+                <p>Select "Merge" if you'd like to combine rows into a single row.</p>
+                <p>Select "Append" if you'd like to append rows without merging them</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="closeBtn" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" id="mergeBtn" class="btn btn-default" data-dismiss="modal">Merge</button>
+                <button type="button" id="appendBtn" class="btn btn-default" data-dismiss="modal">Append</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <div id = 'mapped_columns_div' class="table-responsive" style="display: none;">
     <h3>Mapped columns from the two tables are shown below</h3>
@@ -104,7 +124,7 @@
             $(this).addClass('list-group-item-success');
         });
         $('#table_1_cols_bucket li:hidden').show();
-        
+
         var $table_2_visible_cols = $('#table_2_cols_bucket').children('.list-group-item:visible');
         $table_2_visible_cols.each(function() {
             $(this).addClass('list-group-item-success');
@@ -173,7 +193,7 @@
             $(this).remove();
         });
 
-        
+
         $table_1_cols_bucket.each(function () {
             if (row == undefined) {
                 row = "<tr " + row_bg_class + "><td>" + $(this).text() + "</td><td rowspan=" + $table_1_cols_bucket.length + ">" + table_2_cols_bucket_str   + "<td rowspan=" + $table_1_cols_bucket.length + ">"  + merge_type + "</td><td rowspan=" + $table_1_cols_bucket.length + ">" + undo_btn + "</td></tr>";
@@ -185,12 +205,12 @@
         });
 
         // alternate bgcolor for mapped columns
-        if (row_bg_class == undefined) { 
-            row_bg_class = 'class="info"'; 
-        } else { 
-            row_bg_class = undefined; 
+        if (row_bg_class == undefined) {
+            row_bg_class = 'class="info"';
+        } else {
+            row_bg_class = undefined;
         }
-        
+
     }
 
     $(document).ready(function() {
@@ -211,7 +231,7 @@
                 map_selected_column();
             }
         });
-        
+
         $('div.panel-heading').on('click', '#select_all_left_columns', function() {
             $('#table_1_cols_bucket').children().each(function() {
                 $(this).toggleClass('list-group-item-success');
@@ -227,12 +247,13 @@
         // Every time the modal closes, call the function that maps selected columns
         $('#myModal').on('hidden.bs.modal', function (e) {
             var merge_type = $('#merge_type option:selected').text();
-            if (merge_type.length == 0) { 
+            if (merge_type.length == 0) {
                 alert("You must select an option from the Merge Type dropdown");
-            } else { 
+            } else {
                 map_selected_column();
             }
         });
+
 
         // Undo individual mapping
         $('div#mapped_columns_div').on('click', 'input[type=button].undo', function() {
@@ -248,7 +269,7 @@
             // Get the left table column(s) added back to the left bucket.
             for (var i=0; i<=(num_rows_to_iterate-1); i++) {
                 var cell_value = $rows.eq((clicked_row_index+i)).children().eq(0).text();
-                $('#table_1_cols_bucket').append('<li class="list-group-item">' + cell_value + '</li>');                
+                $('#table_1_cols_bucket').append('<li class="list-group-item">' + cell_value + '</li>');
             }
 
             // Remove the rows that were unmapped from the mapped-table.
@@ -263,74 +284,88 @@
 
         $('#mapped_columns_div').on('click', '#submit', function(e) {
             e.preventDefault();
-            var merged_table_name = prompt("Please enter a name for the merged table");
+            $('#mergeTypeModal').modal('toggle');
+        });
 
-            var columns_data = {};
-            var cols = [];
-            var right_col = undefined;
-            var counter = 0;
+        $('#mergeTypeModal').on('click', '#mergeBtn', function (e) {
+            submitMappedCols("merge");
+        });
 
-            // Get all of the column mapping from the table.
-            $('#mapped_columns_table tr').each(function (i, tr) {
-                if (i == 0) { return; }
-                var rowspan = $("td",tr).eq(1).attr('rowspan');
-                if (rowspan > 0 ){
-                    if (cols.length > 0) { //first time
-                        columns_data[counter] = {'left_table_cols': cols, 'right_table_col': right_col, 'merge_type': merge_type};
-                        counter++;
-                    }
-                    right_col = $("td", tr).eq(1).text();
-                    merge_type = $("td", tr).eq(2).text();
-                    cols = [];
-                }
-                cols.push($("td",tr).eq(0).text());
-            });
-            columns_data[counter] = {'left_table_cols': cols, 'right_table_col': right_col, 'merge_type': merge_type};
-
-            // add all of the unmapped columns from the left bucket
-            var $table_1_visible_cols = $('#table_1_cols_bucket').children('.list-group-item:visible');
-            cols = [];
-            $table_1_visible_cols.each(function () {
-                cols.push($(this).text());
-            });
-            columns_data['left_unmapped_cols'] = cols;
-
-            // add all of the unmapped columns from the right bucket
-            var $table_2_visible_cols = $('#table_2_cols_bucket').children('.list-group-item:visible');
-            cols = [];
-            $table_2_visible_cols.each(function () {
-                cols.push($(this).text());
-            });
-            columns_data['right_unmapped_cols'] = cols;
-
-            // Now post the data object to the server
-            $.post("/doMerge/", {
-                'columns_data': JSON.stringify(columns_data), 
-                'left_table_id': {{ from_silo_id  }}, 
-                'right_table_id': {{ to_silo_id }} ,
-                'merged_table_name': merged_table_name,
-                })
-                .success(function(data, textStatus, xhr) {
-                    //addMessage(data, "success" );
-                    //console.log(this.url);
-                    if (xhr.getResponseHeader('show_mapping') == "1") {
-                        $("#modal_content").html(data);
-                        $('#form_modal').modal('toggle');
-                    } else {
-                        addMessage(data['message'], data['status'] );
-                    }
-                })
-                .fail(function(data) {
-                    // addMessage(data, "error ");
-                })
-                .done(function(data, xhr) {
-                    //alert(xhr.status);
-                })
-                .complete(function(data, xhr) {
-                    //show_column_mapping();
-                });
-
-        }); // end of '#mapped_columns_div' on click event
+        $('#mergeTypeModal').on('click', '#appendBtn', function (e) {
+            submitMappedCols("append");
+        });
     }); // end of document ready
+
+
+    //$('#mapped_columns_div').on('click', '#submit', function(e) {
+    function submitMappedCols(mergeType){
+
+        var merged_table_name = prompt("Please enter a name for the merged table");
+        var columns_data = {};
+        var cols = [];
+        var right_col = undefined;
+        var counter = 0;
+
+        // Get all of the column mapping from the table.
+        $('#mapped_columns_table tr').each(function (i, tr) {
+            if (i == 0) { return; }
+            var rowspan = $("td",tr).eq(1).attr('rowspan');
+            if (rowspan > 0 ){
+                if (cols.length > 0) { //first time
+                    columns_data[counter] = {'left_table_cols': cols, 'right_table_col': right_col, 'merge_type': merge_type};
+                    counter++;
+                }
+                right_col = $("td", tr).eq(1).text();
+                merge_type = $("td", tr).eq(2).text();
+                cols = [];
+            }
+            cols.push($("td",tr).eq(0).text());
+        });
+        columns_data[counter] = {'left_table_cols': cols, 'right_table_col': right_col, 'merge_type': merge_type};
+
+        // add all of the unmapped columns from the left bucket
+        var $table_1_visible_cols = $('#table_1_cols_bucket').children('.list-group-item:visible');
+        cols = [];
+        $table_1_visible_cols.each(function () {
+            cols.push($(this).text());
+        });
+        columns_data['left_unmapped_cols'] = cols;
+
+        // add all of the unmapped columns from the right bucket
+        var $table_2_visible_cols = $('#table_2_cols_bucket').children('.list-group-item:visible');
+        cols = [];
+        $table_2_visible_cols.each(function () {
+            cols.push($(this).text());
+        });
+        columns_data['right_unmapped_cols'] = cols;
+
+        // Now post the data object to the server
+        $.post("/doMerge/", {
+            'columns_data': JSON.stringify(columns_data),
+            'left_table_id': {{ from_silo_id  }},
+            'right_table_id': {{ to_silo_id }} ,
+            'merged_table_name': merged_table_name,
+            'tableMergeType': mergeType,
+            })
+            .success(function(data, textStatus, xhr) {
+                //addMessage(data, "success" );
+                //console.log(this.url);
+                if (xhr.getResponseHeader('show_mapping') == "1") {
+                    $("#modal_content").html(data);
+                    $('#form_modal').modal('toggle');
+                } else {
+                    addMessage(data['message'], data['status'] );
+                }
+            })
+            .fail(function(data) {
+                // addMessage(data, "error ");
+            })
+            .done(function(data, xhr) {
+                //alert(xhr.status);
+            })
+            .complete(function(data, xhr) {
+                //show_column_mapping();
+            });
+    }
 </script>
 {% endblock %}

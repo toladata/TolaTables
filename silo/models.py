@@ -159,17 +159,18 @@ class Read(models.Model):
     owner = models.ForeignKey(User)
     type = models.ForeignKey(ReadType)
     read_name = models.CharField(max_length=100, blank=True, default='', verbose_name='source name') #RemoteEndPoint = name
+    description = models.TextField(null=True, blank=True)
+    read_url = models.CharField(max_length=250, blank=True, default='', verbose_name='source url')
+    resource_id = models.CharField(max_length=200, null=True, blank=True)
+    gsheet_id = models.CharField(max_length=200, null=True, blank=True) # sheetid within google spreadsheet
+    username = models.CharField(max_length=20, null=True, blank=True, help_text="Enter username only if the data at this source is protected by a login")
+    password = models.CharField(max_length=40, null=True, blank=True, help_text="Enter password only if the data at this source is protected by a login")
+    token = models.CharField(max_length=254, null=True, blank=True)
+    file_data = models.FileField("Upload CSV File", upload_to='uploads', blank=True, null=True)
     autopull_frequency = models.CharField(max_length=25, choices=FREQUENCY_CHOICES, null=True, blank=True)
     autopush_frequency = models.CharField(max_length=25, choices=FREQUENCY_CHOICES, null=True, blank=True)
-    description = models.TextField()
-    read_url = models.CharField(max_length=250, blank=True, default='', verbose_name='source url') #RemoteEndPoint = link
-    resource_id = models.CharField(max_length=200, null=True, blank=True) #RemoteEndPoint
-    gsheet_id = models.CharField(max_length=200, null=True, blank=True) # sheetid within google spreadsheet
-    username = models.CharField(max_length=20, null=True, blank=True) #RemoteEndPoint
-    token = models.CharField(max_length=254, null=True, blank=True) #RemoteEndPoint
-    file_data = models.FileField("Upload CSV File", upload_to='uploads', blank=True, null=True)
     create_date = models.DateTimeField(null=True, blank=True, auto_now=False, auto_now_add=True)
-    edit_date = models.DateTimeField(null=True, blank=True, auto_now=True, auto_now_add=False) #RemoteEndPoint
+    edit_date = models.DateTimeField(null=True, blank=True, auto_now=True, auto_now_add=False)
 
     class Meta:
         ordering = ('create_date',)
@@ -230,10 +231,31 @@ class SiloAdmin(admin.ModelAdmin):
     display = 'Data Feeds'
 
 
+class PIIColumn(models.Model):
+    """
+    Personally Identifiable Information Column is a column with data, which
+    can be used to personally identify someone.
+    """
+    owner = models.ForeignKey(User)
+    fieldname = models.CharField(blank=True, null=True, max_length=255)
+    create_date = models.DateTimeField(auto_now_add=True, editable=False)
+
+class PIIColumnAdmin(admin.ModelAdmin):
+    list_display = ('owner', 'fieldname', 'create_date')
+    search_fields = ('owner', 'fieldname')
+    display = 'PIIF Columns'
+
 class MergedSilosFieldMapping(models.Model):
+    MERGE = 'merge'
+    APPEND = 'append'
+    MERGE_CHOICES = (
+        (MERGE, 'Merge'),
+        (APPEND, 'Append'),
+    )
     from_silo = models.ForeignKey(Silo, related_name='from_mappings')
     to_silo = models.ForeignKey(Silo, related_name='to_mappings')
     merged_silo = models.OneToOneField(Silo, related_name='merged_silo_mappings')
+    merge_type = models.CharField(max_length=60, choices=MERGE_CHOICES, null=True, blank=True)
     mapping = models.TextField()
     create_date = models.DateTimeField(auto_now=False, auto_now_add=True)
 

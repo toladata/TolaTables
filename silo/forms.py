@@ -61,22 +61,23 @@ class NewColumnForm(forms.Form):
         )
         super(NewColumnForm, self).__init__(*args, **kwargs)
 
-
-#READ FORMS
-class ReadForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        exclude_list=kwargs.pop('exclude_list', '')
-        super(ReadForm, self).__init__(*args, **kwargs)
-        self.helper = FormHelper(self)
-        self.helper.layout.append(Hidden('read_id', '{{read_id}}'))
-        self.helper.layout.append(Submit('save', 'save'))
-        for field in exclude_list:
-            del self.fields[field]
-
-    class Meta:
-        model = Read
-        fields = ['read_name', 'read_url', 'description', 'autopull_frequency', 'autopush_frequency', 'type','file_data', 'owner']
-        widgets = {'owner': forms.HiddenInput(), 'type': forms.HiddenInput()}
+def get_read_form(excluded_fields):
+    class ReadForm(forms.ModelForm):
+        def __init__(self, *args, **kwargs):
+            #exclude_list=kwargs.pop('exclude_list', '')
+            super(ReadForm, self).__init__(*args, **kwargs)
+            self.helper = FormHelper(self)
+            self.helper.layout.append(Hidden('read_id', '{{read_id}}'))
+            self.helper.layout.append(Submit('save', 'save'))
+            #self.fields['type'].widget.attrs['disabled'] = True
+        class Meta:
+            model = Read
+            exclude = excluded_fields
+            widgets = {
+                'owner': forms.HiddenInput(),
+                'type': forms.HiddenInput(),
+                'password': forms.PasswordInput(),}
+    return ReadForm
 
 class UploadForm(forms.Form):
     def __init__(self, *args, **kwargs):

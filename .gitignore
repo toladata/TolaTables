@@ -25,6 +25,7 @@ frds-venv/
 
 #allvritualenv
 venv/
+venv-tt/
 
 #conf
 conf/awstats.conf

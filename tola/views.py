@@ -8,46 +8,6 @@ from django.contrib.auth import logout
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.contrib import auth
-from silo.models import DocumentationApp, FAQ, Feedback
-from django.contrib.auth.models import User
-
-
-def contact(request):
-    """
-    Feedback form
-    """
-    form = FeedbackForm(initial={'submitter': request.user})
-
-    if request.method == 'POST':
-        form = FeedbackForm(request.POST)  # A form bound to the POST data
-        if form.is_valid():  # All validation rules pass
-            form.save()
-            messages.error(request, 'Thank you', fail_silently=False)
-        else:
-            messages.error(request, 'Invalid', fail_silently=False)
-            print form.errors
-
-    return render(request, "contact.html", {'form': form, 'helper': FeedbackForm.helper})
-
-
-def faq(request):
-    """
-    Get FAQ and display them on template
-    """
-
-    getFAQ = FAQ.objects.all()
-
-    return render(request, 'faq.html', {'getFAQ': getFAQ})
-
-
-def documentation(request):
-    """
-    Get Documentation and display them on template
-    """
-
-    getDocumentation = DocumentationApp.objects.all()
-
-    return render(request, 'documentation.html', {'getDocumentation': getDocumentation})
 
 
 def register(request):

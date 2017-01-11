@@ -22,9 +22,7 @@
         <link href="{{ STATIC_URL }}css/app.css" rel="stylesheet" type="text/css">
 
         <link href="{{ STATIC_URL }}css/select2.min.css" rel="stylesheet" type="text/css">
-
-        <!--- Django Tables2 css -->
-        <link rel="stylesheet" href="{{ STATIC_URL }}django_tables2/themes/paleblue/css/screen.css" />
+        <link href="{{ STATIC_URL }}css/introjs.min.css" rel="stylesheet" type="text/css">
 
         <link href="{{ STATIC_URL }}css/datatables.min.css" rel="stylesheet" type="text/css" />
 
@@ -105,8 +103,6 @@
 
 
         <div class="container">
-            <br/>
-            <br/>
             <div>{% block bread_crumb %}{% endblock %}</div>
             <div id = "alerts">
                 <!-- Any messages for users -->
@@ -123,14 +119,19 @@
                     {% endif %}
                 {% endblock messages %}
             </div>
-            <br/>
+        </div><!-- .container collapse -->
+
+
+        <!-- Main body content -->
+        <div class="container" id="content">
             <!-- Page title  -->
             <h2>{% block page_title %}{% endblock %}</h2>
 
             <!-- Main body content -->
-            <p>{% block content %}{% endblock %}</p>
+            {% block content %} {% endblock %}
+        </div>
 
-        </div><!-- .container collapse -->
+
 
         <div id = "loading" class="modal"> </div>
 
@@ -173,7 +174,7 @@
                 </div>
             </div>
         </div>
-
+        <div id="generic_modal" class="modal"></div>
         <div id = "loading" class="modal"> </div>
         <div id="footer">
             <!-- Sticky Footer -->
@@ -197,6 +198,8 @@
         <script type="text/javascript" src="{{ STATIC_URL }}js/bootstrap.min.js"></script>
 
         <script type="text/javascript" src="{{ STATIC_URL }}js/select2.min.js"></script>
+
+        <script type="text/javascript" src="{{ STATIC_URL }}js/intro.min.js"></script>
 
         <!-- Typekit (Fonts) -->
         <script src="https://use.typekit.net/shi4wqr.js"></script>
@@ -268,6 +271,8 @@
                     view.setSelectFolderEnabled(false);
                     view.setMode("DocsViewMode.LIST");
                     var picker = new google.picker.PickerBuilder()
+                        .setOrigin(window.location.protocol + '//' + window.location.host)
+                        //.setOrigin('https://localhost:8000')
                         .enableFeature(google.picker.Feature.NAV_HIDDEN)
                         .addView(view)
                         .setOAuthToken(oauthToken)
@@ -285,19 +290,15 @@
                     doc = data[google.picker.Response.DOCUMENTS][0];
                     url = doc[google.picker.Document.URL];
                     spreadsheet_id = doc[google.picker.Document.ID];
-
-                    //console.log("URL: " + url);
-                    //console.log("ID: " + spreadsheet_id);
-                    //console.log("name:" + doc['name']);
-                    //console.log("silo_id: " + silo_id);
                     if (actionType == "import") {
                         //$(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + spreadsheet_id + "&name=" + doc['name']);
 
                         $.get('/get_sheets_from_google_spredsheet/', { "spreadsheet_id": spreadsheet_id } )
                             .done(function(data) {
                                 var sheets = data['sheets'];
-                                console.log(sheets);
-                                if (sheets == undefined) { return; }
+                                if (sheets == undefined) {
+                                    $(location).attr('href', data['redirect']);
+                                }
                                 $("#gsheet_select").empty();
                                 $.each(sheets, function(i, sheet) {
                                     var item = sheet["properties"];
@@ -309,8 +310,6 @@
                                 });
                                 $("#select_gsheet_modal").modal("show");
                             });
-
-
                     } else {
                         $(location).attr('href', '/export_to_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + spreadsheet_id);
                     }
