@@ -9,35 +9,33 @@
         <div class="panel-heading">TolaTables, a tool for all types of data collection.</div>
         <div class="panel-body">
             <div class="row">
-                <div class="col-sm-6 col-md-4">
-                    <div class="thumbnail" style="min-height:300px;height:300px;">
+                <div class="col-sm-8 col-md-4">
+                    <div class="thumbnail" style="min-height:400px;height:400px;">
                         <div class="canvas-container-doughnut">
                               <canvas id="count"></canvas>
-                              <div id="count-legend" class="chart-legend"></div>
                         </div>
                         <div class="caption">
                             Public, Private and shared data sets can be combined and aggregated.
                         </div>
                     </div>
                 </div>
-                <div class="col-sm-6 col-md-4">
-                     <div class="thumbnail" style="min-height:300px;height:300px;">
+                <div class="col-sm-8 col-md-4">
+                     <div class="thumbnail" style="min-height:400px;height:400px;">
                         <div class="canvas-container-doughnut">
                             <canvas id="read"></canvas>
-                            <div id="read-legend" class="chart-legend"></div>
                         </div>
                         <div class="caption">
                             TolaTables can integrate with data from multiple platforms and data sources.
                         </div>
                      </div>
                 </div>
-                <div class="col-sm-6 col-md-4">
-                     <div class="thumbnail" style="min-height:300px;height:300px;">
+                <div class="col-sm-8 col-md-4">
+                     <div class="thumbnail" style="min-height:400px;height:400px;">
                         <div class="canvas-container-doughnut">
                             <canvas id="tag"></canvas>
                         </div>
                          <div class="caption">
-                            Clean, edit and share data for analysis and visualization.
+                            Clean, edit, tag and categorize your data for sharing, analysis and visualization.
                          </div>
                      </div>
                 </div>
@@ -126,25 +124,51 @@
 
 <script id="doughnutchart">
 //render tables in a doughnut chart
-var private = {{ count_all }} - {{ count_public }}
+var private = {{ count_all }} - {{ count_public }} - {{ count_shared }}
 var options = {
+    padding: 10,
     // single tooltip
     tooltipTemplate: "<%=label + ' Tables' %>",
+    legend: {
+            position: 'bottom',
+            display: true,
+            labels: {
+                fontColor: 'rgb(77, 178, 209)',
+                boxWidth: 15,
+            }
+        },
+     tooltips: {
+            enabled: true,
+        }
 };
-var data = [
-    {
-    value: private,
-    color:"#637b85",
-    label: "Private - " + private
-    },
-    {
-    value: {{ count_public }},
-    color:"#2c9c69",
-    label: "Public - {{ count_public }}"
-    },
-];
+
+var data = {
+    datasets: [{
+        data: [
+            private,
+            {{ count_public }},
+            {{ count_shared }}
+        ],
+        backgroundColor: [
+            "rgb(77, 178, 209)",
+            "#637b85",
+            "#2c9c69",
+        ],
+        label: 'My dataset' // for legend
+    }],
+    labels: [
+        "Private - " + private,
+        "Public - {{ count_public }}",
+        "Shared - {{ count_shared }}",
+    ]
+};
+
 var ctx = document.getElementById("count").getContext("2d");
-var statusChart = new Chart(ctx).Doughnut(data,options);
+var statusChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: data,
+    options: options
+});
 document.getElementById('count-legend').innerHTML = statusChart.generateLegend();
 </script>
 
@@ -153,19 +177,41 @@ document.getElementById('count-legend').innerHTML = statusChart.generateLegend()
 var options = {
     // single tooltip
     tooltipTemplate: "<%=label + ' Sources' %>",
+    legend: {
+        display: true,
+        position: 'top',
+        labels: {
+            fontColor: 'rgb(77, 178, 209)',
+            boxWidth: 15,
+        }
+    }
 };
-var data = [
-    {% for read in get_reads %}
-    {
-    value: {{read.num_type }},
-    color: dynamicColors(),
-    label: "{{ read.type.read_type }}"
-    },
-    {% endfor %}
-
-];
+var data = {
+    datasets: [{
+        data: [
+           {% for read in get_reads %}
+                {{ read.num_type }},
+           {% endfor%}
+        ],
+        backgroundColor: [
+           {% for read in get_reads %}
+                dynamicColors(),
+           {% endfor%}
+        ],
+        label: 'My dataset' // for legend
+    }],
+    labels: [
+        {% for read in get_reads %}
+            " {{ read.read_type }}",
+        {% endfor%}
+    ]
+};
 var ctx = document.getElementById("read").getContext("2d");
-var statusChart = new Chart(ctx).PolarArea(data,options);
+var statusChart =  new Chart(ctx, {
+    type: 'polarArea',
+    data: data,
+    options: options
+    });
 document.getElementById('read-legend').innerHTML = statusChart.generateLegend();
 </script>
 
@@ -174,21 +220,40 @@ document.getElementById('read-legend').innerHTML = statusChart.generateLegend();
 var options = {
     // single tooltip
     tooltipTemplate: "<%=label + ' Tags' %>",
+    legend: {
+        display: true,
+        position: 'top',
+        labels: {
+            fontColor: 'rgb(77, 178, 209)',
+            boxWidth: 15,
+        }
+    }
 };
 var data = {
-    labels : [{% for label in get_tags %} "{{ label.name }}", {% endfor %}],
-    datasets : [
-        {
-            fillColor : dynamicColors(),
-            strokeColor : "#637b85",
-            pointColor : "#dbba34",
-            pointStrokeColor : "#637b85",
-            data : [{% for data in get_tags %} {{ data.num_tag }},{% endfor %}]
-        }
+    datasets: [{
+        data: [
+           {% for tag in get_tags %}
+                {{ tag.num_tag }},
+           {% endfor%}
+        ],
+        backgroundColor: [
+           {% for tag in get_tags %}
+                dynamicColors(),
+           {% endfor%}
+        ],
+        label: 'Tags' // for legend
+    }],
+    labels: [
+        {% for tag in get_tags %}
+            " {{ tag.name }}",
+        {% endfor%}
     ]
-}
+};
 var ctx = document.getElementById("tag").getContext("2d");
-var statusChart = new Chart(ctx).Radar(data,options);
+var statusChart = new Chart(ctx, {
+    type: 'radar',
+    data: data,
+    options: options});
 document.getElementById('tag-legend').innerHTML = statusChart.generateLegend();
 
 </script>

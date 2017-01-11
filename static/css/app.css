@@ -191,12 +191,17 @@ body > .container {
 
 
 /* Chart.js legends */
-
 .chart-legend {
   list-style: none;
   position: relative;
   right: 8px;
   top: 0;
+}
+
+.chart-legend ul {
+  columns: 2;
+  -webkit-columns: 2;
+  -moz-columns: 2;
 }
 .chart-legend li {
   display: block;
