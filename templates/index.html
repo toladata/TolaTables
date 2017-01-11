@@ -10,7 +10,7 @@
         <div class="panel-body">
             <div class="row">
                 <div class="col-sm-8 col-md-4">
-                    <div class="thumbnail" style="min-height:400px;height:400px;">
+                    <div class="thumbnail" style="min-height:300px;height:300px;">
                         <div class="canvas-container-doughnut">
                               <canvas id="count"></canvas>
                         </div>
@@ -20,7 +20,7 @@
                     </div>
                 </div>
                 <div class="col-sm-8 col-md-4">
-                     <div class="thumbnail" style="min-height:400px;height:400px;">
+                     <div class="thumbnail" style="min-height:300px;height:300px;">
                         <div class="canvas-container-doughnut">
                             <canvas id="read"></canvas>
                         </div>
@@ -30,7 +30,7 @@
                      </div>
                 </div>
                 <div class="col-sm-8 col-md-4">
-                     <div class="thumbnail" style="min-height:400px;height:400px;">
+                     <div class="thumbnail" style="min-height:300px;height:300px;">
                         <div class="canvas-container-doughnut">
                             <canvas id="tag"></canvas>
                         </div>
@@ -118,7 +118,7 @@
     var r = Math.floor(Math.random() * 255);
     var g = Math.floor(Math.random() * 255);
     var b = Math.floor(Math.random() * 255);
-    return "rgb(" + r + "," + g + "," + b + ")";
+    return "rgba(" + r + "," + g + "," + b + ", 0.3)";
     }
 </script>
 
@@ -164,6 +164,7 @@ var data = {
 };
 
 var ctx = document.getElementById("count").getContext("2d");
+ctx.canvas.height = 200;
 var statusChart = new Chart(ctx, {
     type: 'doughnut',
     data: data,
@@ -207,6 +208,7 @@ var data = {
     ]
 };
 var ctx = document.getElementById("read").getContext("2d");
+ctx.canvas.height = 200;
 var statusChart =  new Chart(ctx, {
     type: 'polarArea',
     data: data,
@@ -238,7 +240,7 @@ var data = {
         ],
         backgroundColor: [
            {% for tag in get_tags %}
-                dynamicColors(),
+                'rgb(77, 178, 209)',
            {% endfor%}
         ],
         label: 'Tags' // for legend
@@ -250,6 +252,7 @@ var data = {
     ]
 };
 var ctx = document.getElementById("tag").getContext("2d");
+ctx.canvas.height = 200;
 var statusChart = new Chart(ctx, {
     type: 'radar',
     data: data,
