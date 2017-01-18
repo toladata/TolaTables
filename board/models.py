@@ -67,7 +67,7 @@ class Item(CommonBaseAbstractModel):
     widget_size_x = models.IntegerField(null=False, blank=False)
     widget_size_y = models.IntegerField(null=False, blank=False)
     graph = models.ForeignKey(Graph, related_name='items', blank=True, null=True)
-    aggregation_function = models.CharField(max_length=20, null=True, blank=True)
+
 
 class GraphInput(CommonBaseAbstractModel):
     """
@@ -76,7 +76,7 @@ class GraphInput(CommonBaseAbstractModel):
     """
     graph = models.ForeignKey(Graph, related_name='graph_inputs', blank=False, null=False)
     graph_input = models.ForeignKey(GraphModel, related_name='graph_inputs', blank=False, null=False)
-
+    aggregation_function = models.CharField(max_length=20, null=True, blank=True)
 
 
 
