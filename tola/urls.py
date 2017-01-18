@@ -15,6 +15,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth.views import login, logout
 from silo.api import *
+from board.api import *
 
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
@@ -28,6 +29,11 @@ router.register(r'users', UserViewSet)
 router.register(r'read', ReadViewSet)
 router.register(r'readtype', ReadTypeViewSet)
 router.register(r'tag', TagViewSet)
+router.register(r'board', BoardViewSet)
+router.register(r'graph', GraphViewSet)
+router.register(r'graphmodel', GraphModelViewSet)
+router.register(r'item', ItemViewSet)
+router.register(r'graphinput', GraphInputViewSet)
 
 
 urlpatterns =[
