@@ -60,7 +60,7 @@ class GraphModel(CommonBaseAbstractModel):
     input_type = models.CharField(max_length=250, blank=False, null=False)
 
     def __unicode__(self):
-        return u'%s' % self.label
+        return u'%s-%s' % (self.graph.label, self.name)
 
 class Item(CommonBaseAbstractModel):
     """
