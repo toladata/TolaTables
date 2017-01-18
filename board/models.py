@@ -42,6 +42,9 @@ class Graph(CommonBaseAbstractModel):
     thumbnail = models.CharField(max_length=250, null=True, blank=True)
     ember_component = models.CharField(max_length=50, null=True, blank=True)
 
+    def __unicode__(self):
+        return u'%s' % self.label
+
 
 class GraphModel(CommonBaseAbstractModel):
     """
@@ -56,6 +59,8 @@ class GraphModel(CommonBaseAbstractModel):
     is_required = models.BooleanField(default=False)
     input_type = models.CharField(max_length=250, blank=False, null=False)
 
+    def __unicode__(self):
+        return u'%s' % self.label
 
 class Item(CommonBaseAbstractModel):
     """
@@ -70,6 +75,9 @@ class Item(CommonBaseAbstractModel):
     widget_size_y = models.IntegerField(null=False, blank=False)
     graph = models.ForeignKey(Graph, related_name='items', blank=True, null=True)
 
+    def __unicode__(self):
+        return u'%s' % self.title
+
 
 class GraphInput(CommonBaseAbstractModel):
     """
@@ -80,5 +88,6 @@ class GraphInput(CommonBaseAbstractModel):
     graph_input = models.ForeignKey(GraphModel, related_name='graph_inputs', blank=False, null=False)
     aggregation_function = models.CharField(max_length=20, null=True, blank=True)
 
-
+    def __unicode__(self):
+        return u'%s - %s' % (self.graph.label, self.graph_input.label)
 
