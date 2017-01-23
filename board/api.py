@@ -16,6 +16,7 @@ class BoardViewSet(viewsets.ModelViewSet):
     #authentication_classes = (JSONWebTokenAuthentication, )
     parser_classes = (JSONParser,)
     renderer_classes = (JSONRenderer,)
+    permission_classes = []
 
 
 class GraphViewSet(viewsets.ModelViewSet):
@@ -23,6 +24,7 @@ class GraphViewSet(viewsets.ModelViewSet):
     serializer_class = GraphSerializer
     parser_classes = (JSONParser,)
     renderer_classes = (JSONRenderer,)
+    permission_classes = []
 
 
 class GraphModelViewSet(viewsets.ModelViewSet):
@@ -30,6 +32,7 @@ class GraphModelViewSet(viewsets.ModelViewSet):
     serializer_class = GraphModelSerializer
     parser_classes = (JSONParser,)
     renderer_classes = (JSONRenderer,)
+    permission_classes = []
 
 
 class ItemViewSet(viewsets.ModelViewSet):
@@ -37,6 +40,7 @@ class ItemViewSet(viewsets.ModelViewSet):
     serializer_class = ItemSerializer
     parser_classes = (JSONParser,)
     renderer_classes = (JSONRenderer,)
+    permission_classes = []
 
 
 
@@ -45,3 +49,4 @@ class GraphInputViewSet(viewsets.ModelViewSet):
     serializer_class = GraphInputSerializer
     parser_classes = (JSONParser,)
     renderer_classes = (JSONRenderer,)
+    permission_classes = []
