@@ -30,11 +30,11 @@ router.register(r'users', UserViewSet)
 router.register(r'read', ReadViewSet)
 router.register(r'readtype', ReadTypeViewSet)
 router.register(r'tag', TagViewSet)
-router.register(r'board', BoardViewSet)
-router.register(r'graph', GraphViewSet)
-router.register(r'graphmodel', GraphModelViewSet)
-router.register(r'item', ItemViewSet)
-router.register(r'graphinput', GraphInputViewSet)
+router.register(r'boards', BoardViewSet)
+router.register(r'graphs', GraphViewSet)
+router.register(r'graphmodels', GraphModelViewSet)
+router.register(r'items', ItemViewSet)
+router.register(r'graphinputs', GraphInputViewSet)
 
 
 urlpatterns =[

@@ -87,6 +87,7 @@ class GraphInput(CommonBaseAbstractModel):
     graph = models.ForeignKey(Graph, related_name='graph_inputs', blank=False, null=False)
     graph_input = models.ForeignKey(GraphModel, related_name='graph_inputs', blank=False, null=False)
     aggregation_function = models.CharField(max_length=20, null=True, blank=True)
+    item = models.ForeignKey(Item, related_name='graph_inputs', blank=False, null=False)
 
     def __unicode__(self):
         return u'%s - %s' % (self.graph.label, self.graph_input.label)
