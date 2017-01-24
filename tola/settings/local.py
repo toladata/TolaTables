@@ -1,81 +1,102 @@
 """Development settings and globals."""
-import os, yaml
+
+
+from os.path import join, normpath
 
 from base import *
 
-def read_yaml(path):
-    with open(path) as f:
-        data = yaml.load(f)
-    return data
+#from mongoengine import connect
 
-SETTINGS_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_DIR = os.path.abspath(os.path.join(SETTINGS_DIR,
-                                          os.pardir,
-                                          os.pardir,
-                                          'config'))
-app_settings = read_yaml(os.path.join(CONFIG_DIR, './settings.secret.yml'))
-
-# MANAGER CONFIGURATION
+########## MANAGER CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#admins
-ADMINS = app_settings['ADMINS']
+ADMINS = (
+    ('admin', 'admin@example.org'),
+)
+
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#managers
-MANAGERS = app_settings['ADMINS']
+MANAGERS = ADMINS
+########## END MANAGER CONFIGURATION
 
-# ALLOWED HOSTS
-# Hosts/domain names that are valid for this site; required if DEBUG is False
-# See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = app_settings['ALLOWED_HOSTS']
 
-# CACHE CONFIGURATION
-# See: https://docs.djangoproject.com/en/dev/ref/settings/#caches
-CACHES = app_settings['CACHES']
-
-# DATABASE CONFIGURATION
-# See: https://docs.djangoproject.com/en/dev/ref/settings/#databases
-DATABASES = app_settings['DATABASES']
-
-# DEBUG CONFIGURATION
+########## DEBUG CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#debug
-DEBUG = app_settings['DEBUG']
-# See: https://docs.djangoproject.com/en/dev/ref/settings/#template-debug
-TEMPLATE_DEBUG = app_settings['TEMPLATE_DEBUG']
+DEBUG = True
 
-# EMAIL CONFIGURATION
+########## END DEBUG CONFIGURATION
+
+
+########## SECRET CONFIGURATION
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
+# Note: REPLACE IT WITH YOUR OWN SECRET_KEY
+SECRET_KEY = r"xxxxxxxxxx"
+########## END SECRET CONFIGURATION
+
+########## EMAIL CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
-EMAIL_BACKEND = app_settings['EMAIL_BACKEND']
-EMAIL_FILE_PATH = app_settings['EMAIL_FILE_PATH']
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+########## END EMAIL CONFIGURATION
 
-# GOOGLE CLIENT CONFIG
-GOOGLE_CLIENT_ID = app_settings['GOOGLE_CLIENT_ID']
-GOOGLE_CLIENT_SECRET = app_settings['GOOGLE_CLIENT_SECRET']
-GOOGLE_STEP2_URI = app_settings['GOOGLE_STEP2_URI']
 
-# SOCIAL GOOGLE AUTH
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = app_settings['SOCIAL_AUTH_GOOGLE_OAUTH2_KEY']
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = app_settings['SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET']
-SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS = app_settings['SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS']
+########## DATABASE CONFIGURATION
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#databases
+DATABASES = {
+    'default': {
+        #'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'tola_tables',                      # Or path to database file if using sqlite3.
+        # The following settings are not used with sqlite3:
+        'USER': 'tola_tables',
+        'PASSWORD': 'ttmtola2016',
+        'HOST': 'localhost',                      # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
+        'PORT': '',                      # Set to empty string for default.
+    }
+}
 
-# TOLA TABLES AUTH
-TOLA_TABLES_TOKEN = app_settings['TOLA_TABLES_TOKEN']
-TOLA_TABLES_USER = app_settings['TOLA_TABLES_USER']
+########## MongoDB Connect
 
-# LOCAL APPS DEPENDING ON SERVER DEBUG FOR DEV BOXES,
-# REPORT BUILDER FOR REPORT SERVER
-#DEV_APPS = app_settings['DEV_APPS']
+#connect('feeds')
 
-#INSTALLED_APPS = INSTALLED_APPS + tuple(DEV_APPS)
+########## END DATABASE CONFIGURATION
 
-LDAP_LOGIN = app_settings['LDAP_LOGIN']
-LDAP_SERVER = app_settings['LDAP_SERVER']
-LDAP_PASSWORD = app_settings['LDAP_PASSWORD']
-LDAP_USER_GROUP = app_settings['LDAP_USER_GROUP']
-LDAP_ADMIN_GROUP = app_settings['LDAP_ADMIN_GROUP']
+########## GOOGLE CLIENT CONFIG ###########
+GOOGLE_REDIRECT_URL = 'http://localhost:8000/oauth2callback/'
+#GOOGLE_STEP2_URI = 'http://tola.mercycorps.org/gwelcome'
+#GOOGLE_CLIENT_ID = 'xxxxxxx.apps.googleusercontent.com'
+#GOOGLE_CLIENT_SECRET = 'xxxxxxxxx'
 
-AUTHENTICATION_BACKENDS = app_settings['AUTHENTICATION_BACKENDS']
 
-SECRET_KEY = app_settings['SECRET_KEY']
 
-# If report server then limit navigation and allow access to public dashboards
-REPORT_SERVER = app_settings['REPORT_SERVER']
-OFFLINE_MODE = app_settings['OFFLINE_MODE']
-NON_LDAP = app_settings['NON_LDAP']
+####### Tola Activity API #######
+TOLA_ACTIVITY_API_URL = 'https://tola-activity-dev.mercycorps.org/api/'
+TOLA_ACTIVITY_API_TOKEN = 'Token xxxxxxxxxxxx'
+
+########## CACHE CONFIGURATION
+# See: https://docs.djangoproject.com/en/dev/ref/settings/#caches
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
+########## END CACHE CONFIGURATION
+#Update the logging file handler fo my local mac to be inside project folder
+LOGGING['handlers']['file']['filename'] = "/var/log/httpd/tolatables_app_error.log"
+
+
+########## END CACHE CONFIGURATION
+
+#LDAP stuff
+LDAP_LOGIN = 'uid=xxx,ou=xxx,dc=xx,dc=xx,dc=xx'
+LDAP_SERVER = 'ldaps://xxxx.example.org' # ldap dev
+#LDAP_SERVER = 'ldaps://xxxx.example.org' # ldap prod
+LDAP_PASSWORD = 'xxxxxx' # ldap dev
+#LDAP_PASSWORD = 'xxxxxxx!' # ldap prod
+LDAP_USER_GROUP = 'xxxx'
+LDAP_ADMIN_GROUP = 'xxxx-xxx'
+#ERTB_ADMIN_URL = 'https://xxxx.example.org/xx-xx-dev/'
+
+
+########## GOOGLE AUTH
+#SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = "445847194486-s6v6mntl2fhn7ve5d0ubolsnvm57l03k.apps.googleusercontent.com"
+#SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = "vjFMy47999sHMoNd_DZSdmPK"
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = "xxx-xxx.apps.googleusercontent.com"
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = "xxxxxxx"
