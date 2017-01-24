@@ -14,7 +14,6 @@ Contents:
    api
    install
    deploy
-   tests
 
 
 
