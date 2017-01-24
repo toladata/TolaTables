@@ -40,8 +40,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'frds_project'
-copyright = u'2013, ChangeMyName'
+project = u'TolaTables'
+copyright = u'2017, ChangeMyName'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -164,7 +164,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'frds_projectdoc'
+htmlhelp_basename = 'TolaTablesdoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -183,7 +183,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'frds_project.tex', u'frds_project Documentation',
+  ('index', 'TolaTables.tex', u'TolaTables Documentation',
    u'ChangeToMyName', 'manual'),
 ]
 
@@ -213,7 +213,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'frds_project', u'frds_project Documentation',
+    ('index', 'TolaTables', u'TolaTables Documentation',
      [u'ChangeToMyName'], 1)
 ]
 
@@ -227,8 +227,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'frds_project', u'frds_project Documentation',
-   u'ChangeToMyName', 'frds_project', 'One line description of project.',
+  ('index', 'TolaTables', u'TolaTables Documentation',
+   u'ChangeToMyName', 'TolaTables', 'One line description of project.',
    'Miscellaneous'),
 ]
 
