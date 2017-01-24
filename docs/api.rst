@@ -1,18 +1,18 @@
 API
 =========
 
-Endpoints:
-* "silo": "http://tables.toladata.io/api/silo/"
-* "public_tables": "http://tables.toladata.io/api/public_tables/"
-* "users": "http://tables.toladata.io/api/users/"
-* "read": "http://tables.toladata.io/api/read/"
-* "readtype": "http://tables.toladata.io/api/readtype/"
+### Endpoints:
+* "silo": "http://tables.toladata.io/api/silo/",
+* "public_tables": "http://tables.toladata.io/api/public_tables/",
+* "users": "http://tables.toladata.io/api/users/",
+* "read": "http://tables.toladata.io/api/read/",
+* "readtype": "http://tables.toladata.io/api/readtype/",
 * "tag": "http://tables.toladata.io/api/tag/"
 
-Silo (Represents a Table)
+### Silo (Represents a Table)
 
-Example
-curl -H "Authorization: Token adkai39a9sdfj239m0afi2" https://tables.toladata.io/api/silo/{{siloid}}/
+#### Example
+`curl -H "Authorization: Token adkai39a9sdfj239m0afi2" https://tables.toladata.io/api/silo/{{siloid}}/`
 
 GET /api/silo/
 
@@ -21,7 +21,7 @@ Allow: GET, POST, OPTIONS
 Content-Type: application/json
 Vary: Accept
 
-[
+`[
     {
         "owner": {
             "url": "http://tables.toladata.io/api/users/2/",
@@ -84,4 +84,4 @@ Vary: Accept
         "shared": [],
         "tags": [],
         "public": false
-    },
+    },`
