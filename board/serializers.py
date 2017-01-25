@@ -27,7 +27,7 @@ class GraphModelSerializer(serializers.ModelSerializer):
 class ItemSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = GraphModel
+        model = ItemModel
         exclude = ('created', 'updated')
 
 
