@@ -90,5 +90,5 @@ class GraphInput(CommonBaseAbstractModel):
     item = models.ForeignKey(Item, related_name='graph_inputs', blank=False, null=False)
 
     def __unicode__(self):
-        return u'%s - %s' % (self.graph.label, self.graph_input.label)
+        return u'%s - %s' % (self.graph.label, self.graph_input)
 
