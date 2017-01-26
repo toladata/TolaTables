@@ -1,6 +1,4 @@
 from django.shortcuts import get_object_or_404
-from forms import FeedbackForm, RegistrationForm
-from .forms import FeedbackForm, RegistrationForm
 from django.contrib import messages
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
@@ -8,22 +6,37 @@ from django.contrib.auth import logout
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.contrib import auth
+from silo.models import TolaUser,TolaSites
+from tola.forms import RegistrationForm, NewUserRegistrationForm, NewTolaUserRegistrationForm
+
 
 
 def register(request):
     """
     Register a new User profile using built in Django Users Model
     """
+    privacy = TolaSites.objects.get(id=1)
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            form.save()
+        uf = NewUserRegistrationForm(request.POST)
+        tf = NewTolaUserRegistrationForm(request.POST)
+
+        if uf.is_valid() * tf.is_valid():
+            user = uf.save()
+            user.groups.add(Group.objects.get(name='ViewOnly'))
+
+            tolauser = tf.save(commit=False)
+            tolauser.user = user
+            tolauser.save()
+            messages.error(request, 'Thank you, You have been registered as a new user.', fail_silently=False)
             return HttpResponseRedirect("/")
     else:
-        form = UserCreationForm()
+        uf = NewUserRegistrationForm()
+        tf = NewTolaUserRegistrationForm()
+
     return render(request, "registration/register.html", {
-        'form': form,
+        'userform': uf,'tolaform': tf, 'helper': NewTolaUserRegistrationForm.helper,'privacy':privacy
     })
+
 
 
 def profile(request):
@@ -32,7 +45,7 @@ def profile(request):
     otherwise redirect them to registration version
     """
     if request.user.is_authenticated():
-        obj = get_object_or_404(User, username=request.user)
+        obj = get_object_or_404(TolaUser, user=request.user)
         form = RegistrationForm(request.POST or None, instance=obj,initial={'username': request.user})
 
         if request.method == 'POST':
