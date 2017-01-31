@@ -9,7 +9,7 @@ from django.utils.encoding import smart_str, smart_unicode
 from django.conf import settings
 from django.contrib.auth.models import User
 
-from silo.models import Read, Silo, LabelValueStore
+from silo.models import Read, Silo, LabelValueStore, TolaUser, Country
 from django.contrib import messages
 import pymongo
 from bson.objectid import ObjectId
@@ -162,3 +162,18 @@ def getSiloColumnNames(id):
             else:
                 data[k] = v
     return data
+
+def user_to_tola(backend, user, response, *args, **kwargs):
+
+    # Add a google auth user to the tola profile
+    default_country = Country.objects.first()
+    userprofile, created = TolaUser.objects.get_or_create(
+        user = user)
+
+    userprofile.country = default_country
+
+    userprofile.name = response.get('displayName')
+
+    userprofile.email = response.get('emails["value"]')
+
+    userprofile.save()

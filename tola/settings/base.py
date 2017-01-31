@@ -238,7 +238,6 @@ DJANGO_APPS = (
 THIRD_PARTY_APPS = (
     'rest_framework',
     'rest_framework.authtoken',
-    'django_tables2',
     'crispy_forms',
     'django_extensions',
     'corsheaders',
@@ -268,11 +267,19 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
-##### NOT WORKING COMMENTED OUT FOR NOW GWL 041816
-##### Match google email with local email if it exists
-##SOCIAL_AUTH_PIPELINE = (
-#    'social.pipeline.social_auth.associate_by_email',  # <--- enable this one
-#)
+SOCIAL_AUTH_PIPELINE = (
+    'social.pipeline.social_auth.social_details',
+    'social.pipeline.social_auth.social_uid',
+    'social.pipeline.social_auth.auth_allowed',
+    'social.pipeline.social_auth.social_user',
+    'social.pipeline.social_auth.associate_by_email',
+    'social.pipeline.user.get_username',
+    'social.pipeline.user.create_user',
+    'social.pipeline.social_auth.associate_user',
+    'social.pipeline.social_auth.load_extra_data',
+    'social.pipeline.user.user_details',
+    'tola.util.user_to_tola',
+)
 
 ############ END OF AUTHENTICATION BACKEND ##############
 
