@@ -13,14 +13,14 @@ class GraphSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Graph
-        fields = ('id', 'label', 'thumbnail', 'ember_component')
+        fields = ('id', 'label', 'thumbnail', 'embercomponent')
 
 
 class GraphModelSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = GraphModel
-        fields = ('id', 'graph', 'name', 'label', 'is_required', 'input_type')
+        fields = ('id', 'graph', 'name', 'label', 'isrequired', 'inputtype')
 
 
 
