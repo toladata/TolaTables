@@ -40,7 +40,7 @@ class Graph(CommonBaseAbstractModel):
     """
     label = models.CharField(max_length = 250, null=False, blank=False)
     thumbnail = models.CharField(max_length=250, null=True, blank=True)
-    ember_component = models.CharField(max_length=50, null=True, blank=True)
+    embercomponent = models.CharField(max_length=50, null=True, blank=True)
 
     def __unicode__(self):
         return u'%s' % self.label
@@ -56,8 +56,8 @@ class GraphModel(CommonBaseAbstractModel):
     graph = models.ForeignKey(Graph, related_name='inputs', null=False, blank=False)
     name = models.CharField(max_length=250, blank=False, null=False)
     label = models.CharField(max_length=250, blank=False, null=False)
-    is_required = models.BooleanField(default=False)
-    input_type = models.CharField(max_length=250, blank=False, null=False)
+    isrequired = models.BooleanField(default=False)
+    inputtype = models.CharField(max_length=250, blank=False, null=False)
 
     def __unicode__(self):
         return u'%s-%s' % (self.graph.label, self.name)
@@ -69,10 +69,10 @@ class Item(CommonBaseAbstractModel):
     board = models.ForeignKey(Board, related_name='items', null=True, blank=True)
     source = models.ForeignKey(Silo, related_name='items', null=True, blank=True)
     title = models.CharField(max_length = 250, blank=False, null=False)
-    widget_col = models.IntegerField(null=False, blank=False)
-    widget_row = models.IntegerField(null=False, blank=False)
-    widget_size_x = models.IntegerField(null=False, blank=False)
-    widget_size_y = models.IntegerField(null=False, blank=False)
+    widgetcol = models.IntegerField(null=False, blank=False)
+    widgetrow = models.IntegerField(null=False, blank=False)
+    widgetsizex = models.IntegerField(null=False, blank=False)
+    widgetsizey = models.IntegerField(null=False, blank=False)
     graph = models.ForeignKey(Graph, related_name='items', blank=True, null=True)
 
     def __unicode__(self):
@@ -85,8 +85,8 @@ class GraphInput(CommonBaseAbstractModel):
     for the chosen graph.
     """
     graph = models.ForeignKey(Graph, related_name='graph_inputs', blank=False, null=False)
-    graph_input = models.CharField(max_length=150, blank=False, null=False)
-    aggregation_function = models.CharField(max_length=20, null=True, blank=True)
+    graphinput = models.CharField(max_length=150, blank=False, null=False)
+    aggregationfunction = models.CharField(max_length=20, null=True, blank=True)
     item = models.ForeignKey(Item, related_name='graph_inputs', blank=False, null=False)
 
     def __unicode__(self):
