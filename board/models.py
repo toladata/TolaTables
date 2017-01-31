@@ -70,7 +70,7 @@ class Item(CommonBaseAbstractModel):
     source = models.ForeignKey(Silo, related_name='items', null=True, blank=True)
     title = models.CharField(max_length = 250, blank=False, null=False)
     widget_col = models.IntegerField(null=False, blank=False)
-    wdiget_row = models.IntegerField(null=False, blank=False)
+    widget_row = models.IntegerField(null=False, blank=False)
     widget_size_x = models.IntegerField(null=False, blank=False)
     widget_size_y = models.IntegerField(null=False, blank=False)
     graph = models.ForeignKey(Graph, related_name='items', blank=True, null=True)
