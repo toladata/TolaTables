@@ -927,8 +927,6 @@ def editColumns(request,id):
     FORM TO CREATE A NEW COLUMN FOR A SILO
     """
     silo = Silo.objects.get(id=id)
-    data = getSiloColumnNames(id)
-    form = EditColumnForm(initial={'silo_id': silo.id}, extra=data)
 
     if request.method == 'POST':
         form = EditColumnForm(request.POST or None, extra = data)  # A form bound to the POST data
