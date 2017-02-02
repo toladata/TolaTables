@@ -13,7 +13,7 @@ class PublicSiloSerializer(serializers.HyperlinkedModelSerializer):
         fields = ('owner', 'name', 'reads', 'description', 'create_date', 'id', 'data','shared','tags','public')
 
     def get_data(self, obj):
-        link = "/api/public_tables/" + str(obj.id) + "/data/"
+        link = "/api/public_tables/" + str(obj.id) + "/data"
         return (self.context['request'].build_absolute_uri(link))
 
 class SiloSerializer(serializers.HyperlinkedModelSerializer):
@@ -24,7 +24,7 @@ class SiloSerializer(serializers.HyperlinkedModelSerializer):
         depth =1
 
     def get_data(self, obj):
-        link = "/api/silo/" + str(obj.id) + "/data/"
+        link = "/api/silo/" + str(obj.id) + "/data"
         return (self.context['request'].build_absolute_uri(link))
 
 class TagSerializer(serializers.HyperlinkedModelSerializer):
