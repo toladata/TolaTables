@@ -22,6 +22,10 @@ class CommonBaseAbstractModel(models.Model):
             self.created = now_utc
         super(CommonBaseAbstractModel, self).save(*args, **kwargs)
 
+class Boardsilo(Silo):
+    class Meta:
+        proxy=True
+
 # Create your models here.
 class Board(CommonBaseAbstractModel):
     """
@@ -67,7 +71,7 @@ class Item(CommonBaseAbstractModel):
     Item represents a single visualization on the Board
     """
     board = models.ForeignKey(Board, related_name='items', null=True, blank=True)
-    source = models.ForeignKey(Silo, related_name='items', null=True, blank=True)
+    source = models.ForeignKey(Boardsilo, related_name='items', null=True, blank=True)
     title = models.CharField(max_length = 250, blank=False, null=False)
     widgetcol = models.IntegerField(null=False, blank=False)
     widgetrow = models.IntegerField(null=False, blank=False)
@@ -92,7 +96,3 @@ class GraphInput(CommonBaseAbstractModel):
     def __unicode__(self):
         return u'%s - %s' % (self.graph.label, self.graph_input)
 
-
-class BoardSilo(Silo):
-    class Meta:
-        proxy=True

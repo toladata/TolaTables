@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Board, Graph, GraphModel, Item, GraphInput, BoardSilo
+from .models import Board, Graph, GraphModel, Item, GraphInput, Boardsilo
 
 class BoardSerializer(serializers.ModelSerializer):
 
@@ -41,9 +41,9 @@ class GraphInputSerializer(serializers.ModelSerializer):
 class BoardSiloSerializer(serializers.ModelSerializer):
     silodata = serializers.SerializerMethodField()
     class Meta:
-        model = BoardSilo
+        model = Boardsilo
         fields = ('owner', 'name', 'reads', 'description', 'create_date', 'id', 'silodata','shared','tags','public')
 
     def get_silodata(self, obj):
-        link = "/api/boardsilo/" + str(obj.id) + "/data"
+        link = "/api/silo/" + str(obj.id) + "/data"
         return (self.context['request'].build_absolute_uri(link))
