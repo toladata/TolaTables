@@ -8,7 +8,7 @@ from rest_framework_json_api.renderers import JSONRenderer
 
 from silo.models import Silo
 from .models import Board, Graph, GraphModel, Item, GraphInput
-from .serializers import BoardSerializer, GraphSerializer, GraphModelSerializer, ItemSerializer, GraphInputSerializer, SiloSerializer
+from .serializers import BoardSerializer, GraphSerializer, GraphModelSerializer, ItemSerializer, GraphInputSerializer, BoardSiloSerializer
 
 
 class BoardViewSet(viewsets.ModelViewSet):
@@ -55,7 +55,7 @@ class GraphInputViewSet(viewsets.ModelViewSet):
 
 class SiloBoardViewSet(viewsets.ModelViewSet):
     queryset = Silo.objects.all()
-    serializer_class = SiloSerializer
+    serializer_class = BoardSiloSerializer
     parser_classes = (JSONParser,)
     renderer_classes = (JSONRenderer,)
     permission_classes = []

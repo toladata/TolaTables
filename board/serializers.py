@@ -1,7 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Board, Graph, GraphModel, Item, GraphInput
-from silo.models import Silo
+from .models import Board, Graph, GraphModel, Item, GraphInput, BoardSilo
 
 class BoardSerializer(serializers.ModelSerializer):
 
@@ -39,13 +38,12 @@ class GraphInputSerializer(serializers.ModelSerializer):
         exclude = ('created', 'updated')
 
 
-class SiloSerializer(serializers.ModelSerializer):
+class BoardSiloSerializer(serializers.ModelSerializer):
     silodata = serializers.SerializerMethodField()
     class Meta:
-        model = Silo
+        model = BoardSilo
         fields = ('owner', 'name', 'reads', 'description', 'create_date', 'id', 'silodata','shared','tags','public')
-        depth =1
 
     def get_silodata(self, obj):
-        link = "/api/silo/" + str(obj.id) + "/data"
+        link = "/api/boardsilo/" + str(obj.id) + "/data"
         return (self.context['request'].build_absolute_uri(link))

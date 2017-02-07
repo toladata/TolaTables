@@ -92,3 +92,7 @@ class GraphInput(CommonBaseAbstractModel):
     def __unicode__(self):
         return u'%s - %s' % (self.graph.label, self.graph_input)
 
+
+class BoardSilo(Silo):
+    class Meta:
+        proxy=True
