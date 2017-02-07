@@ -64,7 +64,6 @@ class Organization(models.Model):
     class Meta:
         ordering = ('name',)
         verbose_name_plural = "Organizations"
-        app_label = 'workflow'
 
     # on save add create date or update edit date
     def save(self, *args, **kwargs):
