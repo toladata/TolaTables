@@ -40,12 +40,12 @@ class GraphInputSerializer(serializers.ModelSerializer):
 
 
 class SiloSerializer(serializers.ModelSerializer):
-    data = serializers.SerializerMethodField()
+    silodata = serializers.SerializerMethodField()
     class Meta:
         model = Silo
-        fields = ('owner', 'name', 'reads', 'description', 'create_date', 'id', 'data','shared','tags','public')
+        fields = ('owner', 'name', 'reads', 'description', 'create_date', 'id', 'silodata','shared','tags','public')
         depth =1
 
-    def get_data(self, obj):
+    def get_silodata(self, obj):
         link = "/api/silo/" + str(obj.id) + "/data"
         return (self.context['request'].build_absolute_uri(link))
