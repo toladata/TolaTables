@@ -293,7 +293,7 @@
 
             $("#unique_cols_selection_modal").on("click", "#add_unique_cols_save_btn", function(e) {
                 e.preventDefault();
-                var url = "{% url 'add_unique_fields_to_silo' %}" + "/";
+                var url = "{% url 'add_unique_fields_to_silo' %}";
                 var params = {"silo_id": `{{ silo.id }}`, "fields": $("select#silo_cols_multi_select").val()};
                 //console.log(params);
                 $.post(url, params)
@@ -358,7 +358,7 @@
                 "processing": true,
                 "serverSide": true,
                 "ajax": {
-                    "url": "/api/silo/{{silo.pk}}/data/",
+                    "url": "/api/silo/{{silo.pk}}/data",
                     "type": "GET",
                     "data": function ( d ) {
                         //console.log(d);
@@ -451,7 +451,7 @@
             $(".tab-content").on("change", "#autopull_frequency, #autopush_frequency", function(e){
                 var data = {};
                 data[$(this).attr('name')] = this.value;
-                var api_url = '/api/read/' + $(this).data("readId") + '/';
+                var api_url = '/api/read/' + $(this).data("readId");
                 $.ajax({
                     url: api_url,
                     type: "PATCH",

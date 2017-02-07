@@ -109,7 +109,7 @@ class EditColumnForm(forms.Form):
         self.helper.form_class = 'form-horizontal'
         self.helper.label_class = 'col-sm-5'
         self.helper.field_class = 'col-sm-7'
-        #self.helper.label_size = ' col-sm-offset-2'
+        self.helper.label_size = 'col-sm-offset-2'
         self.helper.html5_required = True
         self.helper.form_tag = True
         self.helper.add_input(Submit('save', 'save'))
@@ -141,6 +141,7 @@ class MongoEditForm(forms.Form):
             if item == "edit_date" or item == "create_date":
                 self.fields[item] = forms.CharField(label = item, initial=extra[item], required=False, widget=forms.TextInput(attrs={'readonly': "readonly"}))
             elif item != "_id" and item != "silo_id":
+                print item
                 self.fields[item] = forms.CharField(label = item, initial=extra[item], required=False)
 
 
