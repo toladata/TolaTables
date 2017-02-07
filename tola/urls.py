@@ -35,6 +35,7 @@ router.register(r'graphs', GraphViewSet)
 router.register(r'graphmodels', GraphModelViewSet)
 router.register(r'items', ItemViewSet)
 router.register(r'graphinputs', GraphInputViewSet)
+router.register(r'boardsilos', SiloBoardViewSet)
 
 
 urlpatterns =[
