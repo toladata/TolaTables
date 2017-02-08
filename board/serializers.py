@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
-from rest_framework import serializers
+#from rest_framework import serializers
+from rest_framework_json_api import serializers
 from .models import Board, Graph, GraphModel, Item, GraphInput, Boardsilo
 
 class BoardSerializer(serializers.ModelSerializer):
