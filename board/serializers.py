@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 #from rest_framework import serializers
 from rest_framework_json_api import serializers
-from .models import Board, Graph, GraphModel, Item, GraphInput, Boardsilo
+from .models import Board, Graph, Graphmodel, Item, Graphinput, Boardsilo
 
 class BoardSerializer(serializers.ModelSerializer):
 
@@ -20,7 +20,7 @@ class GraphSerializer(serializers.ModelSerializer):
 class GraphModelSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = GraphModel
+        model = Graphmodel
         fields = ('id', 'graph', 'name', 'label', 'isrequired', 'inputtype')
 
 
@@ -35,7 +35,7 @@ class ItemSerializer(serializers.ModelSerializer):
 class GraphInputSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = GraphInput
+        model = Graphinput
         exclude = ('created', 'updated')
 
 

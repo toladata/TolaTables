@@ -4,6 +4,6 @@ from .models import *
 
 admin.site.register(Board)
 admin.site.register(Graph)
-admin.site.register(GraphModel)
+admin.site.register(Graphmodel)
 admin.site.register(Item)
-admin.site.register(GraphInput)
+admin.site.register(Graphinput)

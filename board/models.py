@@ -50,7 +50,7 @@ class Graph(CommonBaseAbstractModel):
         return u'%s' % self.label
 
 
-class GraphModel(CommonBaseAbstractModel):
+class Graphmodel(CommonBaseAbstractModel):
     """
     This defines a graph's model e.g. a bar chart takes two inputs (x and y axis)
     and their types must be numeric and both are required.
@@ -83,7 +83,7 @@ class Item(CommonBaseAbstractModel):
         return u'%s' % self.title
 
 
-class GraphInput(CommonBaseAbstractModel):
+class Graphinput(CommonBaseAbstractModel):
     """
     User defines what colums in the data represent the necessary inputs
     for the chosen graph.
