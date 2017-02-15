@@ -26,12 +26,16 @@ class Boardsilo(Silo):
     class Meta:
         proxy=True
 
+class Owner(User):
+    class Meta:
+        proxy=True
+
 # Create your models here.
 class Board(CommonBaseAbstractModel):
     """
     A Board is essentially a canvas that can hold many graphs/maps.
     """
-    owner = models.ForeignKey(User, related_name='boards')
+    owner = models.ForeignKey(Owner, related_name='boards')
     title = models.CharField(max_length = 250, blank=False, null=False)
 
     def __unicode__(self):

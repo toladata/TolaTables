@@ -30,6 +30,8 @@ router.register(r'users', UserViewSet)
 router.register(r'read', ReadViewSet)
 router.register(r'readtype', ReadTypeViewSet)
 router.register(r'tag', TagViewSet)
+
+router.register(r'owners', OwnerViewSet)
 router.register(r'boards', BoardViewSet)
 router.register(r'graphs', GraphViewSet)
 router.register(r'graphmodels', GraphModelViewSet)
