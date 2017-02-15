@@ -88,10 +88,10 @@ class Graphinput(CommonBaseAbstractModel):
     User defines what colums in the data represent the necessary inputs
     for the chosen graph.
     """
-    graph = models.ForeignKey(Graph, related_name='graph_inputs', blank=False, null=False)
-    graphinput = models.CharField(max_length=150, blank=False, null=False)
+    graphmodel = models.ForeignKey(Graphmodel, related_name='graphinputs', blank=False, null=False)
+    graphmodelvalue = models.CharField(max_length=150, blank=False, null=False)
     aggregationfunction = models.CharField(max_length=20, null=True, blank=True)
-    item = models.ForeignKey(Item, related_name='graph_inputs', blank=False, null=False)
+    item = models.ForeignKey(Item, related_name='graphinputs', blank=False, null=False)
 
     def __unicode__(self):
         return u'%s - %s' % (self.graph.label, self.graphinput)
