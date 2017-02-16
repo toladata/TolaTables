@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 import datetime, time, logging
 from django.utils import timezone
 from django.utils.timezone import utc
+from django.utils.encoding import python_2_unicode_compatible
 from django.db import models
 
 from django.contrib.auth.models import User
@@ -22,15 +23,30 @@ class CommonBaseAbstractModel(models.Model):
             self.created = now_utc
         super(CommonBaseAbstractModel, self).save(*args, **kwargs)
 
+@python_2_unicode_compatible
 class Boardsilo(Silo):
     class Meta:
         proxy=True
 
+    def __str__(self):
+        return self.name
+
+
+    class JSONAPIMeta:
+        resource_name = 'boardsilos'
+
+@python_2_unicode_compatible
 class Owner(User):
     class Meta:
         proxy=True
 
-# Create your models here.
+    def __str__(self):
+        return "%s %s" % (self.first_name, self.last_name)
+
+    class JSONAPIMeta:
+        resource_name = 'owners'
+
+@python_2_unicode_compatible
 class Board(CommonBaseAbstractModel):
     """
     A Board is essentially a canvas that can hold many graphs/maps.
@@ -38,10 +54,13 @@ class Board(CommonBaseAbstractModel):
     owner = models.ForeignKey(Owner, related_name='boards')
     title = models.CharField(max_length = 250, blank=False, null=False)
 
-    def __unicode__(self):
-        return u'%s' % self.title
+    def __str__(self):
+        return '%s' % self.title
 
+    class JSONAPIMeta:
+        resource_name = 'boards'
 
+@python_2_unicode_compatible
 class Graph(CommonBaseAbstractModel):
     """
     This is metadata about a graph
@@ -50,10 +69,14 @@ class Graph(CommonBaseAbstractModel):
     thumbnail = models.CharField(max_length=250, null=True, blank=True)
     embercomponent = models.CharField(max_length=50, null=True, blank=True)
 
-    def __unicode__(self):
-        return u'%s' % self.label
+    def __str__(self):
+        return '%s' % self.label
+
+    class JSONAPIMeta:
+        resource_name = 'graphs'
 
 
+@python_2_unicode_compatible
 class Graphmodel(CommonBaseAbstractModel):
     """
     This defines a graph's model e.g. a bar chart takes two inputs (x and y axis)
@@ -67,9 +90,14 @@ class Graphmodel(CommonBaseAbstractModel):
     isrequired = models.BooleanField(default=False)
     inputtype = models.CharField(max_length=250, blank=False, null=False)
 
-    def __unicode__(self):
-        return u'%s-%s' % (self.graph.label, self.name)
+    def __str__(self):
+        return '%s-%s' % (self.graph.label, self.name)
 
+    class JSONAPIMeta:
+        resource_name = 'graphmodels'
+
+
+@python_2_unicode_compatible
 class Item(CommonBaseAbstractModel):
     """
     Item represents a single visualization on the Board
@@ -83,10 +111,14 @@ class Item(CommonBaseAbstractModel):
     widgetsizey = models.IntegerField(null=False, blank=False)
     graph = models.ForeignKey(Graph, related_name='items', blank=True, null=True)
 
-    def __unicode__(self):
-        return u'%s' % self.title
+    def __str__(self):
+        return '%s' % self.title
+
+    class JSONAPIMeta:
+        resource_name = 'items'
 
 
+@python_2_unicode_compatible
 class Graphinput(CommonBaseAbstractModel):
     """
     User defines what colums in the data represent the necessary inputs
@@ -97,6 +129,8 @@ class Graphinput(CommonBaseAbstractModel):
     aggregationfunction = models.CharField(max_length=20, null=True, blank=True)
     item = models.ForeignKey(Item, related_name='graphinputs', blank=False, null=False)
 
-    def __unicode__(self):
-        return u'%s - %s' % (self.graph.label, self.graphinput)
+    def __str__(self):
+        return '%s - %s' % (self.graph.label, self.graphinput)
 
+    class JSONAPIMeta:
+        resource_name = 'graphinputs'

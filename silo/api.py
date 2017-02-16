@@ -81,6 +81,7 @@ class SiloViewSet(viewsets.ModelViewSet):
     # permission_classes = (IsOwnerOrReadOnly,)
     filter_fields = ('owner__username','shared__username','id','tags','public')
     filter_backends = (filters.DjangoFilterBackend,)
+    permission_classes = []
 
     def get_queryset(self):
         user = self.request.user
