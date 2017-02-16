@@ -43,6 +43,7 @@ router.register(r'boardsilos', SiloBoardViewSet)
 urlpatterns =[
     url(r'^api/', include(router.urls)),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    url(r'^api/docs/', tola_views.schema_view),
 
     url(r'^admin/', include(admin.site.urls)),
     url(r'^$', views.index, name='index'),
