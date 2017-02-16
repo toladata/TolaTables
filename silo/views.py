@@ -699,6 +699,7 @@ def getJSON(request):
 #display
 #INDEX
 def index(request):
+    #if request.COOKIES.get('auth_token', None):
 
     # get all of the table(silo) info for logged in user and public data
     if request.user.is_authenticated():
@@ -722,7 +723,11 @@ def index(request):
         get_tags = Tag.objects.annotate(num_tag=Count('silos')).order_by('-num_tag')[:8]
     get_public = Silo.objects.filter(public=1)
     site = TolaSites.objects.get(site_id=1)
-    return render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_shared':count_shared, 'count_public': count_public, 'get_reads': get_reads, 'get_tags': get_tags, 'site': site})
+    response = render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_shared':count_shared, 'count_public': count_public, 'get_reads': get_reads, 'get_tags': get_tags, 'site': site})
+
+    if request.COOKIES.get('auth_token', None) is None and user is not None:
+        response.set_cookie('auth_token', user.auth_token)
+    return  response
 
 
 def toggle_silo_publicity(request):
