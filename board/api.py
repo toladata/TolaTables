@@ -24,6 +24,8 @@ from rest_framework_json_api.views import RelationshipView
 
 from rest_framework_json_api.utils import format_drf_errors
 
+HTTP_422_UNPROCESSABLE_ENTITY = 422
+
 class JsonApiViewSet(viewsets.ModelViewSet):
     """
     Configuring DRF-jsonapi from within a class so that it can be used alongside
