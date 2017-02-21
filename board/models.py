@@ -130,7 +130,7 @@ class Graphinput(CommonBaseAbstractModel):
     item = models.ForeignKey(Item, related_name='graphinputs', blank=False, null=False)
 
     def __str__(self):
-        return '%s - %s' % (self.graph.label, self.graphinput)
+        return '%s - %s' % (self.item.title, self.graphinput)
 
     class JSONAPIMeta:
         resource_name = 'graphinputs'
