@@ -7,7 +7,7 @@ class BoardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Board
-        fields = ('id', 'owner', 'title')
+        fields = ('id', 'owner', 'title', 'created')
 
 
 class GraphSerializer(serializers.ModelSerializer):
