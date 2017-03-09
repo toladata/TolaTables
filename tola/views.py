@@ -6,6 +6,10 @@ from django.contrib.auth import logout
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.contrib import auth
+
+from django.views.generic import TemplateView
+from django.contrib.auth.mixins import LoginRequiredMixin
+
 from silo.models import TolaUser,TolaSites
 from tola.forms import RegistrationForm, NewUserRegistrationForm, NewTolaUserRegistrationForm
 
@@ -76,4 +80,14 @@ def logout_view(request):
     logout(request)
     # Redirect to a success page.
     return HttpResponseRedirect("/")
+
+
+class BoardView(LoginRequiredMixin, TemplateView):
+    template_name = 'board.html'
+
+    def render_to_response(self, context, **response_kwargs):
+        response = super(BoardView, self).render_to_response(context, **response_kwargs)
+        if self.request.user.is_authenticated():
+            response.set_cookie(key='token', value=self.request.user.auth_token)
+        return response
 

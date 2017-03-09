@@ -91,6 +91,7 @@ urlpatterns =[
     url(r'^accounts/logout/$', tola_views.logout_view, name='logout'),
 
     url(r'^accounts/profile/$', tola_views.profile, name='profile'),
+    url(r'^board/$', tola_views.BoardView.as_view(), name='board'),
 
     #Auth backend URL's
     url('', include('django.contrib.auth.urls', namespace='auth')),

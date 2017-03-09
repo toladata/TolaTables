@@ -26,12 +26,18 @@
 
         <link href="{{ STATIC_URL }}css/datatables.min.css" rel="stylesheet" type="text/css" />
 
-        {% block extra_js_in_header %}
-        <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
         <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.11.1.min.js"></script>
 
         <!-- App specific Javascript -->
         <script type="text/javascript" src="{{ STATIC_URL }}js/app.js"></script>
+
+        {% block extra_js_in_header %}
+        <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+
+
+        {% endblock %}
+
+        {% block extra_css %}
 
         {% endblock %}
 
