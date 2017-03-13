@@ -11,7 +11,8 @@ from silo.models import Silo
 from .models import Board, Graph, Graphmodel, Item, Graphinput, Owner
 from .serializers import BoardSerializer, GraphSerializer, GraphModelSerializer, ItemSerializer, GraphInputSerializer, BoardSiloSerializer, OwnerSerializer
 
-
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
+from rest_framework.permissions import IsAuthenticated
 from rest_framework import exceptions
 from rest_framework import viewsets
 import rest_framework.parsers
@@ -57,41 +58,48 @@ class JsonApiViewSet(viewsets.ModelViewSet):
 class BoardViewSet(JsonApiViewSet):
     queryset = Board.objects.all()
     serializer_class = BoardSerializer
-    permission_classes = []
+    authentication_classes = (BasicAuthentication, SessionAuthentication)
+    permission_classes = (IsAuthenticated,)
 
 
 class GraphViewSet(JsonApiViewSet):
     queryset = Graph.objects.all()
     serializer_class = GraphSerializer
-    permission_classes = []
+    permission_classes = (IsAuthenticated,)
 
 
 class GraphModelViewSet(JsonApiViewSet):
     queryset = Graphmodel.objects.all()
     serializer_class = GraphModelSerializer
-    permission_classes = []
+    authentication_classes = (BasicAuthentication, SessionAuthentication)
+    permission_classes = (IsAuthenticated,)
 
 
 class ItemViewSet(JsonApiViewSet):
     queryset = Item.objects.all()
     serializer_class = ItemSerializer
-    permission_classes = []
+    authentication_classes = (BasicAuthentication, SessionAuthentication)
+    permission_classes = (IsAuthenticated,)
 
 
 
 class GraphInputViewSet(JsonApiViewSet):
     queryset = Graphinput.objects.all()
     serializer_class = GraphInputSerializer
-    permission_classes = []
+    authentication_classes = (BasicAuthentication, SessionAuthentication)
+    permission_classes = (IsAuthenticated,)
 
 
 class SiloBoardViewSet(JsonApiViewSet):
     queryset = Silo.objects.all()
     serializer_class = BoardSiloSerializer
-    permission_classes = []
+    authentication_classes = (BasicAuthentication, SessionAuthentication)
+    permission_classes = (IsAuthenticated,)
 
 
 class OwnerViewSet(JsonApiViewSet):
     queryset = Owner.objects.all()
     serializer_class = OwnerSerializer
-    permission_classes = []
+    authentication_classes = (BasicAuthentication, SessionAuthentication)
+    permission_classes = (IsAuthenticated,)
+
