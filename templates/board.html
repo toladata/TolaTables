@@ -2,7 +2,7 @@
 
 {% block extra_js_in_header %}
 <base href="/" />
-<meta name="tolaboard/config/environment" content="%7B%22modulePrefix%22%3A%22tolaboard%22%2C%22environment%22%3A%22production%22%2C%22baseURL%22%3A%22/%22%2C%22locationType%22%3A%22auto%22%2C%22contentSecurityPolicy%22%3A%7B%22connect-src%22%3A%5B%22%27self%27%22%2C%22https%3A//tola-tables-dev.mercycorps.org%22%5D%7D%2C%22EmberENV%22%3A%7B%22FEATURES%22%3A%7B%7D%7D%2C%22APP%22%3A%7B%22name%22%3A%22tolaboard%22%2C%22version%22%3A%220.0.0+a6499730%22%7D%2C%22API%22%3A%7B%22url%22%3A%22https%3A//tola-tables.mercycorps.org%22%2C%22previewSize%22%3A20%7D%2C%22something%22%3A%22test%22%2C%22exportApplicationGlobal%22%3Afalse%7D" />
+<meta name="tolaboard/config/environment" content="%7B%22modulePrefix%22%3A%22tolaboard%22%2C%22environment%22%3A%22production%22%2C%22baseURL%22%3A%22/%22%2C%22locationType%22%3A%22auto%22%2C%22contentSecurityPolicy%22%3A%7B%22connect-src%22%3A%5B%22%27self%27%22%2C%22https%3A//tola-tables-dev.mercycorps.org%22%5D%7D%2C%22EmberENV%22%3A%7B%22FEATURES%22%3A%7B%7D%7D%2C%22APP%22%3A%7B%22name%22%3A%22tolaboard%22%2C%22version%22%3A%220.0.0+a6499730%22%7D%2C%22API%22%3A%7B%22url%22%3A%22https%3A//tola-tables-dev.mercycorps.org%22%2C%22previewSize%22%3A20%7D%2C%22something%22%3A%22test%22%2C%22exportApplicationGlobal%22%3Afalse%7D" />
 
 
 
@@ -12,16 +12,16 @@
 {% block extra_css %}
     <link href="https://fonts.googleapis.com/css?family=Questrial" rel="stylesheet">
 
-     <link rel="stylesheet" href="{{STATIC_URL}}/tolaboard/vendor-23bb9f7d83e716811522081e8bc02142.css" integrity="sha256-qUpCBR1Js4OPzSjvkIig0sAJTS1mK1CYNDMbPiIQxLs= sha512-Wucc6eothQ7vBANaa6vcRRuITM14fUH4CSmGzWuVYpBsF209lrPSHHgKTbLye/7/Vb5F44AKEVL2HnI5tq5CFw==" >
-    <link rel="stylesheet" href="{{STATIC_URL}}/tolaboard/tolaboard-bd857b2067436959fdc86b165ef2cd29.css" integrity="sha256-gAqXBry8+qPCmg1O4sc9Pzx4wpldDrdNCEgh68T2+mA= sha512-vAAufI8BQYchc6egZEMABBFiAq530manoejQYpzZnHAZNbd20Cgcx/EwWMBvLJWYPlm8j0K0ALrRPX65S+y7jw==" >
+     <link rel="stylesheet" href="/static/assets/vendor-23bb9f7d83e716811522081e8bc02142.css">
+    <link rel="stylesheet" href="/static/assets/tolaboard-bd857b2067436959fdc86b165ef2cd29.css">
 
 {% endblock extra_css %}
 {% block content %}
 
     <div id="app-container">
 
-    <script src="{{STATIC_URL}}/tolaboard/vendor-dd3f2cc33b5a894c148a529cb29deab1.js" integrity="sha256-m4DfvB23fkAH0NTpUMD7RT++z034SxaL9zc3LjjHx1Q= sha512-Wc5FPwhj7aLZqjVZiGjCAW7zK03d2FvQZY2OUAfZQ6jCagtv0M64ZAvf83xuuCU9S/yqgqE2el9HXOY8nsTotw==" ></script>
-        <script src="{{STATIC_URL}}/tolaboard/tolaboard-2e0bc16b7d08dcf4e4ba271b2653feeb.js" integrity="sha256-C8pXfb7SFTg85pvUiEKNwtvSXAsDp6fGRUB+9kat0ZE= sha512-HvFSLx3gc7S2ugOC8yeHQC4KKYfliNL5738kayOISHbOwX72Qa1Dym/Vz+SrBexCJmYyaTeWpTi7TODw4EH1Dw==" ></script>
+    <script src="/static/assets/vendor-dd3f2cc33b5a894c148a529cb29deab1.js"></script>
+        <script src="/static/assets/tolaboard-2e0bc16b7d08dcf4e4ba271b2653feeb.js"></script>
     </div>
 
 {% endblock content %}
