@@ -24,8 +24,6 @@ path.append(DJANGO_ROOT)
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#debug
 DEBUG = False
 
-# See: https://docs.djangoproject.com/en/dev/ref/settings/#template-debug
-TEMPLATE_DEBUG = DEBUG
 ########## END DEBUG CONFIGURATION
 
 
@@ -139,6 +137,7 @@ FIXTURE_DIRS = (
 
 ########## TEMPLATE CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#template-context-processors
+"""
 TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.auth.context_processors.auth',
     'django.core.context_processors.debug',
@@ -161,6 +160,32 @@ TEMPLATE_LOADERS = (
 TEMPLATE_DIRS = (
     normpath(join(SITE_ROOT, 'templates')),
 )
+"""
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [normpath(join(SITE_ROOT, 'templates')),],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.template.context_processors.debug',
+                'django.template.context_processors.i18n',
+                'django.template.context_processors.media',
+                'django.template.context_processors.static',
+                'django.template.context_processors.tz',
+                'django.contrib.messages.context_processors.messages',
+                'django.core.context_processors.request',
+                'tola.context_processors.get_silos',
+            ],
+            'builtins': [
+                'django.contrib.staticfiles.templatetags.staticfiles',
+                'silo.templatetags.underscoretags',
+            ],
+        },
+    },
+]
 ########## END TEMPLATE CONFIGURATION
 
 
@@ -168,6 +193,7 @@ TEMPLATE_DIRS = (
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#middleware-classes
 MIDDLEWARE_CLASSES = (
     # Default Django middleware.
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -180,25 +206,16 @@ MIDDLEWARE_CLASSES = (
 ########## END MIDDLEWARE CONFIGURATION
 
 
-########## REST CONFIGURATION
-# Add Pagination to Rest Framework lists
-REST_FRAMEWORK = {
-    'PAGINATE_BY': 10,
-    'DEFAULT_FILTER_BACKENDS': ('rest_framework.filters.DjangoFilterBackend',),
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
-    ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    )
-}
 ########## END REST CONFIGURATION
 
 ########## URL CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#root-urlconf
 ROOT_URLCONF = '%s.urls' % SITE_NAME
 ########## END URL CONFIGURATION
+
+# Email setup
+EMAIL_HOST = 'localhost'
+EMAIL_PORT = 25
 
 
 ########## APP CONFIGURATION
@@ -220,23 +237,28 @@ DJANGO_APPS = (
 
 THIRD_PARTY_APPS = (
     'rest_framework',
-    'django_tables2',
+    'rest_framework.authtoken',
     'crispy_forms',
-    #'floppyforms',
     'django_extensions',
-
-    #'mongoengine'
+    'corsheaders',
 )
 
 # Apps specific for this project go here.
 LOCAL_APPS = (
     'silo',
     'tola',
+    'board',
 )
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 ########## END APP CONFIGURATION
+
+CORS_ORIGIN_WHITELIST = (
+    "localhost:8000",
+    "localhost:4200"
+)
+
 
 ####### AUTHENTICATION BAKEND CONFIG ##################
 # https://github.com/django/django/blob/master/django/contrib/auth/backends.py
@@ -245,11 +267,19 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
-##### NOT WORKING COMMENTED OUT FOR NOW GWL 041816
-##### Match google email with local email if it exists
-##SOCIAL_AUTH_PIPELINE = (
-#    'social.pipeline.social_auth.associate_by_email',  # <--- enable this one
-#)
+SOCIAL_AUTH_PIPELINE = (
+    'social.pipeline.social_auth.social_details',
+    'social.pipeline.social_auth.social_uid',
+    'social.pipeline.social_auth.auth_allowed',
+    'social.pipeline.social_auth.social_user',
+    'social.pipeline.social_auth.associate_by_email',
+    'social.pipeline.user.get_username',
+    'social.pipeline.user.create_user',
+    'social.pipeline.social_auth.associate_user',
+    'social.pipeline.social_auth.load_extra_data',
+    'social.pipeline.user.user_details',
+    'tola.util.user_to_tola',
+)
 
 ############ END OF AUTHENTICATION BACKEND ##############
 
@@ -259,35 +289,6 @@ SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'
 
 ########## LOGGING CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#logging
-# A sample logging configuration. The only tangible logging
-# performed by this configuration is to send an email to
-# the site admins on every HTTP 500 error when DEBUG=False.
-# See http://docs.djangoproject.com/en/dev/topics/logging for
-# more details on how to customize your logging configuration.
-#LOGGING = {
-#    'version': 1,
-#    'disable_existing_loggers': False,
-#    'filters': {
-#        'require_debug_false': {
-#            '()': 'django.utils.log.RequireDebugFalse'
-#        }
-#    },
-#    'handlers': {
-#        'mail_admins': {
-#            'level': 'ERROR',
-#            'filters': ['require_debug_false'],
-#            'class': 'django.utils.log.AdminEmailHandler'
-#        }
-#    },
-#    'loggers': {
-#        'django.request': {
-#            'handlers': ['mail_admins'],
-#            'level': 'ERROR',
-#            'propagate': True,
-#        },
-#    }
-#}
-
 
 import os
 PROJECT_PATH = dirname(dirname(dirname(abspath(__file__))))
@@ -313,15 +314,18 @@ LOGGING = {
             'formatter': 'verbose'
         },
         'console':{
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.StreamHandler',
             'formatter': 'simple'
+        },
+        'mail_admins': {
+            'class': 'django.utils.log.AdminEmailHandler',
         },
     },
     'loggers': {
         'django': {
             'handlers': ['file'],
-            'level': 'DEBUG',
+            'level': 'INFO',
             'propagate': True,
         },
         'django.db.backends': {
@@ -329,10 +333,16 @@ LOGGING = {
             'level': 'ERROR',
             'propagate': False,
         },
-        'epro': {
+        'silo': {
             'handlers': ['file'],
             'level': 'WARNING',
             'propagate': True,
+        },
+        'silo_mail': {
+            'handlers': ['file', 'mail_admins',],
+            'level': 'ERROR',
+            'propagate': True,
+            'include_html': True,
         },
     }
 }
@@ -340,6 +350,25 @@ LOGGING = {
 
 ########## END LOGGING CONFIGURATION
 
+
+####### Tola Activity API #######
+TOLA_ACTIVITY_API_URL = 'https://tola-activity-demo.mercycorps.org/api/'
+TOLA_ACTIVITY_API_TOKEN = 'Token xxxxxxxxxxx'
+
+
+########## REST CONFIGURATION
+# Add Pagination to Rest Framework lists
+REST_FRAMEWORK = {
+    'PAGINATE_BY': 10,
+    'DEFAULT_FILTER_BACKENDS': ('rest_framework.filters.DjangoFilterBackend',),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    )
+}
 
 ########## WSGI CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#wsgi-application

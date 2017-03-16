@@ -1,6 +1,6 @@
 import json
 
-from django.http import HttpResponseBadRequest, JsonResponse
+from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 from django.contrib.auth.models import User
 
 from rest_framework import renderers, viewsets,filters,permissions
@@ -10,9 +10,15 @@ from .serializers import *
 from silo.permissions import IsOwnerOrReadOnly
 from django.contrib.auth.models import User
 from rest_framework.decorators import detail_route, list_route
+from rest_framework import pagination
+from rest_framework.views import APIView
+from rest_framework_json_api.parsers import JSONParser
+from rest_framework_json_api.renderers import JSONRenderer
+
 
 import django_filters
 
+"""
 def silo_data_api(request, id):
     if id <= 0:
         return HttpResponseBadRequest("The silo_id = %s is invalid" % id)
@@ -20,11 +26,48 @@ def silo_data_api(request, id):
     data = LabelValueStore.objects(silo_id=id).to_json()
     json_data = json.loads(data)
     return JsonResponse(json_data, safe=False)
-
+"""
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+
+class PublicSiloViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = PublicSiloSerializer
+    permission_classes = (permissions.IsAuthenticatedOrReadOnly,
+                          IsOwnerOrReadOnly,)
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        return Silo.objects.filter(public=True)
+
+    @detail_route()
+    def data(self, request, id):
+        if id <= 0:
+            return HttpResponseBadRequest("The silo_id = %s is invalid" % id)
+
+        silo = Silo.objects.get(pk=id)
+        if silo.public == False:
+            return HttpResponse("This table is not public. You must use the private API.")
+        data = LabelValueStore.objects(silo_id=id).to_json()
+        json_data = json.loads(data)
+        return JsonResponse(json_data, safe=False)
+
+class SilosByUser(viewsets.ReadOnlyModelViewSet):
+    """
+    Lists all silos by a user; returns data in a format
+    understood by Ember DataStore.
+    """
+    serializer_class = SiloSerializer
+    parser_classes = (JSONParser,)
+    renderer_classes = (JSONRenderer,)
+
+    def get_queryset(self):
+        silos = Silo.objects.all()
+        user_id = self.request.query_params.get("user_id", None)
+        if user_id:
+            silos = silos.filter(owner__id=user_id)
+        return silos
 
 
 class SiloViewSet(viewsets.ModelViewSet):
@@ -32,22 +75,45 @@ class SiloViewSet(viewsets.ModelViewSet):
     This viewset automatically provides `list`, `create`, `retrieve`,
     `update` and `destroy` actions.
     """
-    queryset = Silo.objects.all()
     serializer_class = SiloSerializer
     lookup_field = 'id'
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,
-                          IsOwnerOrReadOnly,)
-    filter_fields = ('owner__username','id','tags','public')
+    # this permission sets seems to break the default permissions set by the restframework
+    # permission_classes = (IsOwnerOrReadOnly,)
+    filter_fields = ('owner__username','shared__username','id','tags','public')
     filter_backends = (filters.DjangoFilterBackend,)
+    permission_classes = []
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            #pagination.PageNumberPagination.page_size = 200
+            return Silo.objects.all()
+        return Silo.objects.filter(owner=user)
 
     @detail_route()
     def data(self, request, id):
         if id <= 0:
             return HttpResponseBadRequest("The silo_id = %s is invalid" % id)
 
-        data = LabelValueStore.objects(silo_id=id).to_json()
+        draw = int(request.GET.get("draw", 1))
+        offset = int(request.GET.get('start', -1))
+        length = int(request.GET.get('length', 10))
+        recordsTotal = LabelValueStore.objects(silo_id=id).count()
+
+        #print("offset=%s length=%s" % (offset, length))
+        #page_size = 100
+        #page = int(request.GET.get('page', 1))
+        #offset = (page - 1) * page_size
+        #if page > 0:
+        # workaround until the problem of javascript not increasing the value of length is fixed
+        if offset >= 0:
+            length = offset + length
+            data = LabelValueStore.objects(silo_id=id).exclude('create_date', 'edit_date', 'silo_id').skip(offset).limit(length).to_json()
+        else:
+            data = LabelValueStore.objects(silo_id=id).exclude('create_date', 'edit_date', 'silo_id').to_json()
         json_data = json.loads(data)
-        return JsonResponse(json_data, safe=False)
+
+        return JsonResponse({"data": json_data, "draw": draw, "recordsTotal": recordsTotal, "recordsFiltered": recordsTotal}, safe=False)
 
 
 class TagViewSet(viewsets.ModelViewSet):

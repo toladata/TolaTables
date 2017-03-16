@@ -9,6 +9,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import resolve, reverse
 from django.template.loader import render_to_string
 
+from django.contrib import messages
+
 from django.test import TestCase
 from django.test import Client
 from django.test import RequestFactory
@@ -28,7 +30,7 @@ class ReadTest(TestCase):
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
 
     def test_new_read_post(self):
-        read_type = ReadType.objects.get(read_type="JSON")
+        read_type = ReadType.objects.get(read_type="ONA")
         upload_file = open('test.csv', 'rb')
         params = {
             'owner': self.user.pk,
@@ -143,7 +145,9 @@ class SiloTest(TestCase):
             #'file_data': upload_file,
         }
         file_dict = {'file_data': SimpleUploadedFile(upload_file.name, upload_file.read())}
-        form = ReadForm(params, file_dict)
+        #form = ReadForm(params, file_dict)
+        excluded_fields = ['create_date', 'edit_date',]
+        form = get_read_form(excluded_fields)(params, file_dict)
         self.assertTrue(form.is_valid())
 
     def test_delete_data_from_silodata(self):

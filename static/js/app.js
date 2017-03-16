@@ -1,12 +1,10 @@
 //App specific JavaScript//App specific JavaScript
-$(function () {
-  $('[data-toggle="tooltip"]').tooltip()
-})
 
 //custom jquery to trigger dat picker, info pop-over and print category text
 $(document).ready(function() {
+    $('[data-toggle="tooltip"]').tooltip({delay: {show: 500, hide: 100}});
     $('.datepicker').datepicker();
-    $('.btn-del').click(function(e) {
+    $('body').on('click', '.btn-del', function(e) {
         e.preventDefault();
         var msg = e.currentTarget.title;
         if (msg == undefined || msg.length == 0) {
@@ -66,7 +64,7 @@ $(document).ready(function() {
     /*
      * Handle change in the province drop-down; updates the distirct drop-down accordingly.
      */
-    
+
     // A global ajaxComplete method that shows you any messages that are set in Django's view
     $( document )
         .ajaxComplete(function(e, xhr, settings) {
@@ -167,3 +165,127 @@ $.ajaxSetup({
         }
     }
 });
+
+
+/*
+ * Create and show a Bootstrap alert.
+ */
+function createAlert (type, message, fade, whereToAppend) {
+    if (whereToAppend == undefined ){
+        whereToAppend = "#alerts";
+    }
+    $(whereToAppend).append(
+        $(
+            "<div class='alert alert-" + type + " dynamic-alert alert-dismissable'>" +
+            "<button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>" +
+            "<p>" + message + "</p>" +
+            "</div>"
+        )
+    );
+    if (fade == true) {
+        // Remove the alert after 5 seconds if the user does not close it.
+        $(".dynamic-alert").delay(5000).fadeOut("slow", function () { $(this).remove(); });
+    }
+}
+
+
+function buildHtmlTable(myList, selector) {
+    var tableHeaders = "";
+    var json = {"data": []};
+
+    // Get column header
+    $.each(myList[0], function(k,v) {
+        tableHeaders += "<th>" + k + "</th>";
+    });
+
+    $(selector).empty();
+    $(selector).append('<table id="failed_pas_tbl" class="display table datatable table-bordered" cellspacing="0" width="100%"><thead><tr>' + tableHeaders + '</tr></thead></table>');
+
+    for (var i=0; i<myList.length; i++){
+        json["data"].push([]);
+        $.each(myList[i], function(k,v) {
+            json["data"][i].push(v);
+        });
+    }
+    $("#failed_pas_tbl").dataTable(json);
+}
+
+var tableObject = function (json, id) {
+    var headerCount = new Object();
+
+    var createTHEAD = function () {
+        var thead = document.createElement('thead');
+        return thead;
+    }
+
+    var createTBODY = function () {
+        var tbody = document.createElement('tbody');
+        return tbody;
+    }
+
+    var createTR = function (id) {
+        var tr = document.createElement("tr");
+        tr.ID = id;
+        return tr;
+    };
+
+    var createTH = function (html) {
+        var th = document.createElement("th");
+        th.innerHTML = html;
+        return th;
+    };
+
+    var createTD = function (html) {
+        var td = document.createElement("td");
+        td.innerHTML = html;
+        return td;
+    };
+
+    var getName = function (id) {
+        for (var name in headerCount) {
+            if (eval("headerCount." + name) == id) {
+                return name;
+            }
+        }
+    };
+    var data = json.slice();
+    //data.forEach(function(v){ delete v.drilldown });
+    var pTable;
+    if (data.length > 0) {
+        var index = 0;
+        pTable = document.createElement("table");
+        var thead = createTHEAD();
+        var head = createTR();
+        for (var i = 0; i < data.length; i++) {
+            for (var item in data[i]) {
+                if (item == 'drilldown'  || item == 'y') { continue };
+                if (!headerCount.hasOwnProperty(item)) {
+                    head.appendChild(createTH(item));
+                    eval('headerCount.' + item + "=" + index);
+                    index++;
+                }
+            }
+        }
+        thead.appendChild(head);
+        pTable.appendChild(thead);
+        var tbody = createTBODY();
+        for (var i = 0; i < data.length; i++) {
+            var row = new createTR(i);
+            for (var j = 0; j < index; j++) {
+                var name = getName(j);
+                if (eval("data[" + i + "].hasOwnProperty('" + name + "')")) {
+                    var cell_value = eval('data[' + i + '].' + name);
+                    if (name == 'gait_id') {
+                        cell_value = "<a href='https://gait.mercycorps.org/editgrant.vm?GrantID=" + cell_value + "' target='_blank'>" + cell_value + "</a>";
+                    }
+                    row.appendChild(createTD(cell_value));
+                }
+            }
+            tbody.appendChild(row);
+        }
+        pTable.appendChild(tbody);
+        pTable.setAttribute("id", id);
+        pTable.setAttribute("class", "table table-striped table-bordered table-hover table-condensed");
+    }
+    return pTable;
+};

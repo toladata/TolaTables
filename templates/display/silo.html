@@ -1,0 +1,490 @@
+{% extends "base.html" %}
+
+
+{% block page_title %}
+{% endblock %}
+
+{% block content %}
+    <div class="modal fade" tabindex="-1" role="dialog" id="repeats_modal">
+        <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">Repeats</h4>
+            </div>
+            <div class="modal-body" id="repeats_modal_body">
+                <p>One fine body&hellip;</p>
+            </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+    <div>
+        <!-- Nav tabs -->
+        <ul id="table_tabs" class="nav nav-tabs" role="tablist">
+            <li role="presentation">
+                <a href="#options" aria-controls="options" role="tab" data-toggle="tab">Options</a>
+            </li>
+
+            <li role="presentation">
+                <a href="#fetchdata" aria-controls="fetchdata" role="tab" data-toggle="tab">Data Sources</a>
+            </li>
+
+            <li role="presentation">
+                <a href="#export" aria-controls="export" role="tab" data-toggle="tab">Export</a>
+            </li>
+
+            <li role="presentation">
+                <a href="#edit" aria-controls="edit" role="tab" data-toggle="tab">Edit</a>
+            </li>
+            <!--
+            <li role="presentation">
+                <a href="#test" aria-controls="test" role="tab" data-toggle="tab">Test</a>
+            </li>
+            -->
+        </ul>
+
+        <!-- Tab panes -->
+        <div class="tab-content">
+
+            <div role="tabpanel" class="tab-pane" id="options">
+                <div class="panel panel-default">
+                    <div class="list-group">
+                        <li class="list-group-item">
+                            <a href="{% url 'updateMergedTable' silo.pk %}" id="update_silo_btn" class="btn btn-sm btn-primary" data-toggle="tooltip" title="Updates data in this table from it sources.">Update Data</a>
+                            <a href="/merge/{{ silo.pk }}" class="btn btn-sm btn-warning" data-toggle="tooltip" title="Merges the data from this table with another table to create a third table.">Merge</a>
+                        </li>
+
+                        <li class="list-group-item">
+                            <a href="#" id="id_public-{{silo.pk}}" class="public btn btn-sm {% if silo.public %} btn-warning {% else %} btn-primary {% endif %}" role="button">{% if silo.public %} Make Private {% else %} Make Public {% endif %}</a>
+
+                            <a href="{% url 'acitivity_push' silo.pk %}" id="push_to_activity_btn" class="btn btn-sm btn-primary">Send To Tola Activity</a>
+
+                            <a href="/silo_delete/{{ silo.pk }}" class="btn btn-del btn-sm btn-danger" title="Are you sure you want to delete this table? All of the data stored in this table will also be deleted."><span class="glyphicon glyphicon-trash" title="Delete"></span> Delete Table</a>
+
+                            <a href="/set_unique_columns/{{ id }}/" id="unique_cols_selection_btn" class="btn btn-primary"> Assign a Unique Column</a>
+                            <span class="label label-info" id="unique_col_lbl"></span>
+                        </li>
+                    </div>
+                </div>
+            </div> <!-- end of tab, options -->
+
+            <div role="tabpanel" class="tab-pane" id="fetchdata">
+                <div class = "panel panel-default">
+                    <table class="table table-bordered table-striped table-hover table-condensed">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Type</th>
+                                <th>Source</th>
+                                <th>Auto-pull Frequency</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for read in silo.reads.all %}
+                                {% if read.type.read_type != "Google Spreadsheet" %}
+                                <tr>
+                                    <td><a href="/show_read/{{read.id}}" target="_blank">{{read.read_name }}</a></td>
+                                    <td>{{read.description}}</td>
+                                    <td>{{ read.type.read_type}}</td>
+                                    <td><a href="{{ read.read_url }}" target="_blank">link to source</a></td>
+                                    <td>
+                                        {% if read.type.read_type == "CSV" %}
+                                            NA
+                                        {% else %}
+                                            <select name="autopull_frequency" id="autopull_frequency" data-read-id={{read.pk}} class="form-control input-sm">
+                                                {% for frequency in read.FREQUENCY_CHOICES %}
+                                                    {% if read.autopull_frequency == frequency.0 %}
+                                                        <option value={{ frequency.0 }} selected> {{ frequency.1 }}</option>
+                                                    {% else %}
+                                                        <option value={{ frequency.0 }}> {{ frequency.1 }}</option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div><!-- end of tab, fetchdata.-->
+
+            <div role="tabpanel" class="tab-pane" id="export">
+                <div class = "panel panel-default">
+                    <table class="table table-bordered table-striped table-hover table-condensed">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Type</th>
+                                <th>Source</th>
+                                <th>Auto-push Frequency</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for read in silo.reads.all %}
+                                <tr>
+                                {% if read.type.read_type == "Google Spreadsheet" %}
+                                    <td><a href="/show_read/{{read.id}}" target="_blank">{{read.read_name }}</a></td>
+                                    <td>{{read.description}}</td>
+                                    <td>{{ read.type.read_type}}</td>
+                                    <td><a href="{{ read.read_url }}" target="_blank">link to source</a></td>
+                                    <td>
+                                        <select name="autopush_frequency" id="autopush_frequency" data-read-id={{read.pk}} class="form-control input-sm">
+                                            {% for frequency in read.FREQUENCY_CHOICES %}
+                                                {% if read.autopush_frequency == frequency.0 %}
+                                                    <option value={{ frequency.0 }} selected> {{ frequency.1 }}</option>
+                                                {% else %}
+                                                    <option value={{ frequency.0 }}> {{ frequency.1 }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                {% endif %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <span class="text-muted"><small>*Auto Push will replace all your data in the destination source</small></span>
+            </div> <!-- end of tab, export -->
+
+            <div role="tabpanel" class="tab-pane" id="edit">
+                <div class="panel panel-default">
+                    <div class="list-group">
+                        <li class="list-group-item">
+                            <a href="/edit_columns/{{ silo.pk }}/" class="btn btn-primary">Edit or Delete columns</a>
+                            <a href="/new_column/{{ silo.pk }}/" class="btn btn-primary">Add New Column</a>
+                        <!--
+                        <a href="/anonymize_silo/{{ id }}/" class="btn btn-primary">Anonymize Table</a>
+                        <a href="/identifyPII/{{ id }}/" id="identifyPIIBtn" class="btn btn-primary">Identify PIIF Columns</a>
+                        -->
+                        </li>
+                        <li class="list-group-item">
+                            <form class="form-inline" action="{% url 'updateColumn' %}"  method="POST">
+                                {% csrf_token %}
+                                <input name="silo_id" value="{{silo.pk}}" type="hidden">
+                                <div class="form-group">
+                                    <label for="all_cols">Set new value  for a column</label>
+                                    <select name="update_col" class="form-control">
+                                        <option value="-1">Select Column</option>
+                                        {% for col in cols %}
+                                            <option value="{{ col }}">{{ col }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <input type="text" class="form-control" id="new_val" name="new_val" placeholder="New Value">
+                                </div>
+                                <button type="submit" class="btn btn-default">Submit</button>
+                            </form>
+                        </li>
+                    </div>
+                </div>
+            </div> <!-- end of tab, edit -->
+
+            <!--
+            <div role="tabpanel" class="tab-pane" id="test">
+                <div class="well">
+                    {% for col in cols %}
+                        <a class="toggle-viz" data-column="{{forloop.counter0}}">{{col}}</a>
+                    {% endfor %}
+                </div>
+            </div>
+            -->
+        </div>
+    </div>
+
+    <div class="panel panel-primary">
+        <div class="panel-heading">
+            <h3 class="panel-title"><a href="/silo_edit/{{ silo.id }}">{{silo.name}}</a></h3>
+            <small>{{ silo.description|default:"" }}</small>
+        </div>
+        <div class="panel panel-body" style="padding: 5px 0px 5px 0px;">
+            <table id="data_table" class="table table-hover table table-striped table-bordered" style="overflow-x: scroll; display:inline-block; width:100%;" width="100%">
+                <thead>
+                    {% for c in cols %}
+                        <th>{{c}}</th>
+                    {% endfor %}
+                </thead>
+            </table>
+        </div>
+    </div>
+
+<div class="modal fade" id="unique_cols_selection_modal" tabindex="-1" role="dialog" aria-labelledby="pr_items_modal_div_label" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title">Choose unique column(s) for this table.</h4> <br />
+                <p>
+                A Unique Column is any column in your Tola Table that does not have the same data in any of its rows; each row in the column is unique and does not repeat
+                </p>
+            </div>
+            <div class="modal-body" id="unique_cols_selection_modal_body_div">
+                <label for="silo_cols">Unique Columns</label>
+                <select multiple id="silo_cols_multi_select" name="silo_cols" class="form-control input-sm" style="width: 100%;">
+                    {% for col in cols %}
+                        {% for unique_field in silo.unique_fields.all %}
+                            {% if col  == unique_field.name %}
+                                <option value="{{ col }}" selected="True">{{ unique_field.name }}</option>
+                            {% else %}
+                                <option value="{{ col }}">{{ col }}</option>
+                            {% endif %}
+                        {% empty %}
+                            <option value="{{ col }}">{{ col }}</option>
+                        {% endfor %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" id="add_unique_cols_save_btn" class="btn btn-primary" data-dismiss="modal">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="confirmation_modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <!--
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title"></h4>
+            </div>
+            -->
+            <div class="modal-body">
+                <p>This table does NOT have a unique column set. If you proceed, all existing<br />
+                data will be deleted from the table and then it will try to import data from its source(s) again.</p>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">No, cancel</button>
+                <a class="btn btn-danger btn-del-import">Yes, erase and re-import data</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+
+{% block extra_js_in_body %}
+    <script type="text/javascript">
+        $(document).ready(function() {
+
+
+            var unique_col = $("#silo_cols_multi_select").val();
+            if (unique_col == null || unique_col == "null") {
+                unique_col = "not specified";
+            }
+
+            $("#unique_col_lbl").text("Unique Column: " + unique_col);
+            $("#silo_cols_multi_select").select2();
+            $("body").on("click", "#unique_cols_selection_btn", function(e) {
+                e.preventDefault();
+                $("#unique_cols_selection_modal").modal('show');
+            });
+
+            $("#unique_cols_selection_modal").on("click", "#add_unique_cols_save_btn", function(e) {
+                e.preventDefault();
+                var url = "{% url 'add_unique_fields_to_silo' %}";
+                var params = {"silo_id": `{{ silo.id }}`, "fields": $("select#silo_cols_multi_select").val()};
+                //console.log(params);
+                $.post(url, params)
+                .done(function(data, textStatus, jqXHR) {
+                    //console.log(JSON.stringify(data));
+                    var col = $("#silo_cols_multi_select").val();
+                    //if (col == "null" || col == null) {
+                    //    col = "not specified";
+                    //}
+                    $("#unique_col_lbl").text("Unique Column: " + col);
+                    $("#silo_cols_multi_select").val(col).trigger("change");
+                    unique_col = $("#silo_cols_multi_select").val();
+                    console.log(unique_col);
+                });
+                //window.location.reload();
+            });
+
+            $("body").on("click", "#update_silo_btn", function(e){
+                e.preventDefault();
+                var url = $(this).attr('href');
+                if (unique_col == "not specified" || unique_col == null) {
+                    $("#confirmation_modal").find('.btn-del-import').attr('href', url);
+                    $("#confirmation_modal").modal('toggle');
+                } else {
+                    window.location.href = url;
+                }
+            });
+
+            //var data_str = `{{data|safe}}`;
+            //var data = JSON.parse(JSON.stringify({{data|safe}}));
+
+            var data = [];
+            var cols = [];
+
+            // Loop through the header row and create a cols array for datatables.
+            $("#data_table").find("th").each(function(i){
+                if (i == -1) {
+                    // make the first col have a set width and non-sortable
+                    //cols.push({"data": $(this).text(), "orderable": false , "width": "40px"});
+                } else {
+                    cols.push({
+                        "data": $(this).text(),
+                        // Use the cell render function to return "repeats if the value is an array"
+
+                        "render": function(data, type, row) {
+                            if (jQuery.type(data) == "array" ) {
+                                return "<a href='#''>repeats</a>";
+                            } else if(jQuery.type(data) == "object") {
+                                return "<a href='/value_edit/" + data[Object.keys(data)[0]] + "'><span class='glyphicon glyphicon-edit' aria-hidden='true'></span></a> &nbsp;" +
+                                    "<a href='/value_delete/" + data[Object.keys(data)[0]] + "' class='btn-del' title='You are about to delete a record. Are you sure?'>" +
+                                    "<span style='color:red;' class='glyphicon glyphicon-trash' aria-hidden='true'></span></a>";
+                            } else {
+                                return data;
+                            }
+                        }
+
+                    });
+                }
+            });
+
+            var silo_table = $('#data_table').DataTable({
+                "processing": true,
+                "serverSide": true,
+                "ajax": {
+                    "url": "/api/silo/{{silo.pk}}/data",
+                    "type": "GET",
+                    "data": function ( d ) {
+                        //console.log(d);
+                    }
+                },
+                // remove extra params from the request to avoid uri-too-large error
+                "fnServerParams": function ( aoData ) {
+                    delete aoData.columns;
+                },
+                "columns": cols,
+                "pageLength": 50,
+                "searching": false,
+                "ordering": true,
+                "stateSave": false,
+            });
+
+            var data = undefined;
+            $('#data_table tbody').on( 'click', 'td', function () {
+                var cell = silo_table.cell( this );
+                var repeats_table = '<table class="table table-bordered table-hover table-striped" width="100%" cellspacing="0"><tr>';
+                data = cell.data();
+                //cell.data( "repeats" ).draw();
+                if (jQuery.type(data) == "object") {
+                    data = data[0];
+                }
+
+                if (jQuery.type(data) == "array") {
+                    var column_names = [];
+                    // First get all of the column names in this array
+                    $.each(data, function(i,row){
+                        $.each(row, function(c, v){
+                            if (jQuery.inArray(c, column_names) < 0) {
+                                column_names.push(c);
+                            }
+                        });
+                    });
+                    // Now use the column names to populate the repeats_table's header row
+                    $.each(column_names, function(i, col){
+                        col = col.split("/");
+                        repeats_table += "<th>../" + col[col.length-1] + "</th>";
+                    });
+                    repeats_table += "</tr>";
+
+                    // now populate the remaining data rows for the repeats_table
+                    $.each(data, function(i,row){
+                        repeats_table += "<tr>";
+                        if (jQuery.type(row) == "object") {
+                           $.each(row, function(c, v){
+                                repeats_table += "<td>" + v + "</td>";
+                                //console.log("c: " + c + " v: " + v);
+                           });
+                        }
+                        repeats_table += "</tr>";
+                    });
+                    repeats_table += "</table>";
+                    //set the repeats_table to be the html content of the modal's body
+                    $("#repeats_modal_body").html(repeats_table);
+                    $('#repeats_modal').modal("show");
+                }
+            });
+
+            // toggles tables' column visibility
+            $('a.toggle-viz').on('click', function(e){
+                e.preventDefault();
+                var column = silo_table.column($(this).attr('data-column') );
+                column.visible( ! column.visible() );
+            });
+
+            /*
+            console.log( 'Table\'s column visibility are set to: '+silo_table.columns().visible().join(', ') );
+            $.each(silo_table.columns(), function(i,col){
+                console.log("i="+i + " " + col);
+            });
+            */
+
+
+            $("#table_tabs li a").click(function(e){
+                e.preventDefault();
+                var tab = $(this);
+                if(tab.parent('li').hasClass('active')){
+                    window.setTimeout(function(){
+                        $(".tab-pane").removeClass('active');
+                        tab.parent('li').removeClass('active');
+                    },1);
+                }
+            });
+
+
+            // Watch for autopush_frequency and autopull_frequency dropdowns changes
+            $(".tab-content").on("change", "#autopull_frequency, #autopush_frequency", function(e){
+                var data = {};
+                data[$(this).attr('name')] = this.value;
+                var api_url = '/api/read/' + $(this).data("readId");
+                $.ajax({
+                    url: api_url,
+                    type: "PATCH",
+                    data: data,
+                    success: function(data, textStatus, jqXHR) {
+                        //console.log(data);
+                        createAlert("info", "Your change was successful.");
+                    },
+                    error: function(jqXHR, textStatus, error) {
+                        createAlert("error", error);
+                    },
+                });
+
+            });
+
+            // Listener for the button that makes a table public/private
+            $(".tab-content").on("click", "a.public", function(e) {
+                var btn_id = $(this).attr('id');
+                var silo_id = btn_id.split("-")[1];
+                var btn_txt = $(this).text();
+                var btn = $(this);
+                $.get('/toggle_silo_publicity/', { "silo_id": silo_id } )
+                    .done(function() {
+                        btn.text(btn_txt == "Make Public" ? "Make Private" : "Make Public");
+                        btn.toggleClass("btn-warning btn-primary");
+                        btn.blur();
+                    })
+                    .fail(function(a, b, c) {
+                        createAlert("error", "Something went wrong: " + c);
+                    });
+            });
+        });
+    </script>
+
+
+{% endblock extra_js_in_body %}

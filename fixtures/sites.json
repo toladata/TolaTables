@@ -1,0 +1,10 @@
+[
+{
+    "fields": {
+        "domain": "mercycorps.org",
+        "name": "mercycorps.org"
+    },
+    "model": "sites.site",
+    "pk": 1
+}
+]
