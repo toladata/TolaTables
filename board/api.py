@@ -58,7 +58,7 @@ class JsonApiViewSet(viewsets.ModelViewSet):
 class BoardViewSet(JsonApiViewSet):
     queryset = Board.objects.all()
     serializer_class = BoardSerializer
-    authentication_classes = (BasicAuthentication, SessionAuthentication)
+    authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
 
@@ -71,14 +71,14 @@ class GraphViewSet(JsonApiViewSet):
 class GraphModelViewSet(JsonApiViewSet):
     queryset = Graphmodel.objects.all()
     serializer_class = GraphModelSerializer
-    authentication_classes = (BasicAuthentication, SessionAuthentication)
+    authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
 
 class ItemViewSet(JsonApiViewSet):
     queryset = Item.objects.all()
     serializer_class = ItemSerializer
-    authentication_classes = (BasicAuthentication, SessionAuthentication)
+    authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
 
@@ -86,20 +86,20 @@ class ItemViewSet(JsonApiViewSet):
 class GraphInputViewSet(JsonApiViewSet):
     queryset = Graphinput.objects.all()
     serializer_class = GraphInputSerializer
-    authentication_classes = (BasicAuthentication, SessionAuthentication)
+    authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
 
 class SiloBoardViewSet(JsonApiViewSet):
     queryset = Silo.objects.all()
     serializer_class = BoardSiloSerializer
-    authentication_classes = (BasicAuthentication, SessionAuthentication)
+    authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
 
 class OwnerViewSet(JsonApiViewSet):
     queryset = Owner.objects.all()
     serializer_class = OwnerSerializer
-    authentication_classes = (BasicAuthentication, SessionAuthentication)
+    authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
