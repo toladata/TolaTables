@@ -261,6 +261,10 @@ class Silo(models.Model):
     def tag_list(self):
         return ', '.join([x.name for x in self.tags.all()])
 
+    @property
+    def data_count(self):
+        return LabelValueStore.objects(silo_id=self.id).count()
+
 
 class SiloAdmin(admin.ModelAdmin):
     list_display = ('owner', 'name', 'description', 'public','create_date')
