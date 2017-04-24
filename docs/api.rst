@@ -9,6 +9,15 @@ Endpoints
  * "read": "http://tables.toladata.io/api/read/",
  * "readtype": "http://tables.toladata.io/api/readtype/",
  * "tag": "http://tables.toladata.io/api/tag/"
+ * "owners": "http://tables-demo.toladata.io/api/owners"
+ * "boards": "http://tables-demo.toladata.io/api/boards"
+ * "graphs": "http://tables-demo.toladata.io/api/graphs"
+ * "graphmodels": "http://tables-demo.toladata.io/api/graphmodels"
+ * "items": "http://tables-demo.toladata.io/api/items"
+ * "graphinputs": "http://tables-demo.toladata.io/api/graphinputs"
+ * "boardsilos": "http://tables-demo.toladata.io/api/boardsilos"
+
+ 
 
 Silo (Represents a Table)
 
