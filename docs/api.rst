@@ -3,19 +3,19 @@ API
 
 Endpoints
 ---------
- * "silo": "http://tables.toladata.io/api/silo/",
- * "public_tables": "http://tables.toladata.io/api/public_tables/",
- * "users": "http://tables.toladata.io/api/users/",
- * "read": "http://tables.toladata.io/api/read/",
- * "readtype": "http://tables.toladata.io/api/readtype/",
- * "tag": "http://tables.toladata.io/api/tag/"
- * "owners": "http://tables-demo.toladata.io/api/owners"
- * "boards": "http://tables-demo.toladata.io/api/boards"
- * "graphs": "http://tables-demo.toladata.io/api/graphs"
- * "graphmodels": "http://tables-demo.toladata.io/api/graphmodels"
- * "items": "http://tables-demo.toladata.io/api/items"
- * "graphinputs": "http://tables-demo.toladata.io/api/graphinputs"
- * "boardsilos": "http://tables-demo.toladata.io/api/boardsilos"
+ * "silo": "https://tables.toladata.io/api/silo/",
+ * "public_tables": "https://tables.toladata.io/api/public_tables/",
+ * "users": "https://tables.toladata.io/api/users/",
+ * "read": "https://tables.toladata.io/api/read/",
+ * "readtype": "https://tables.toladata.io/api/readtype/",
+ * "tag": "https://tables.toladata.io/api/tag/"
+ * "owners": "https://tables.toladata.io/api/owners"
+ * "boards": "https://tables.toladata.io/api/boards"
+ * "graphs": "https://tables.toladata.io/api/graphs"
+ * "graphmodels": "https://tables.toladata.io/api/graphmodels"
+ * "items": "https://tables.toladata.io/api/items"
+ * "graphinputs": "https://tables.toladata.io/api/graphinputs"
+ * "boardsilos": "https://tables.toladata.io/api/boardsilos"
 
  
 
