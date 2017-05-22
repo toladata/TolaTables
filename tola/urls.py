@@ -54,6 +54,8 @@ urlpatterns =[
     url(r'^file/(?P<id>\w+)/$', views.uploadFile, name='uploadFile'),
     url(r'^json', views.getJSON, name='getJSON'),
 
+    url(r'commcarelogin/', include('commcare.urls')),
+
     url(r'^onalogin/$', views.getOnaForms, name='getOnaForms'),
     url(r'^provider_logout/(?P<provider>\w+)/$', views.providerLogout, name='providerLogout'),
     url(r'^saveAndImportRead/$', views.saveAndImportRead, name='saveAndImportRead'),
@@ -98,5 +100,3 @@ urlpatterns =[
     url('', include('social.apps.django_app.urls', namespace='social')),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-

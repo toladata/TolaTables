@@ -7,9 +7,16 @@ Goes in datasources/
 #Your Apps readme
 In order for the tolatables to read the your apps urls, the tolatables admin must paste a way to
 find your apps urls. To accomplish this in your readme put a line for the tolatables admin to paste
-in the tola/urls.py . It should look something like:
+in the tola/urls.py . For testing purposes you will have to do it manually. It should look
+something like:
 
-url(r'YOUR_APP/', include('datasources.YOUR_APP.urls')),
+url(r'YOUR_APP/', include('YOUR_APP.urls')),
+
+Additionally the admin will need to put the name of the app in the base.py file. For testing
+purposes you will have to do that manually. The base.py is contained within:
+tola/settings
+
+
 
 #static files
 Goes in datasources/YOUR_APP/static/
@@ -22,6 +29,8 @@ Goes in datasources/YOUR_APP/templates
 #new models
 
 #using existing models
+To use existing models use this import
+from silo.models import <Model name here>
 
 
 

@@ -248,6 +248,7 @@ LOCAL_APPS = (
     'silo',
     'tola',
     'board',
+    'commcare'
 )
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
