@@ -1,4 +1,6 @@
 {% load staticfiles %}
+{% load topbartags %}
+
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -61,7 +63,10 @@
                                 <li><a href="{% url 'newRead' %}?type=JSON"><span class="glyphicon glyphicon-list-alt"></span> Import JSON Feed</a></li>
                                 <li><a href="{% url 'newRead' %}?type=CSV"><span class="glyphicon glyphicon-list-alt"></span> Import From CSV</a></li>
                                 <li><a href="#" onclick="select_silo_for_importing_gsheet();"><span class="glyphicon glyphicon-list-alt"></span> Import from Google Spreadsheet</a></li>
-
+                                {%getDataImports as apps%}
+                                {%for app in apps%}
+                                  <li><a href=/{{app}}><span class="glyphicon glyphicon-list-alt"></span> Import from {{app}}</a></li>
+                                {% endfor %}
                             </ul>
                         </li>
                          <li class="dropdown">
@@ -356,4 +361,3 @@
 
     </body>
 </html>
-

@@ -17,6 +17,8 @@ from django.contrib.auth.views import login, logout
 from silo.api import *
 from board.api import *
 
+from util import getImportedApps
+
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
 admin.autodiscover()
@@ -53,8 +55,6 @@ urlpatterns =[
 
     url(r'^file/(?P<id>\w+)/$', views.uploadFile, name='uploadFile'),
     url(r'^json', views.getJSON, name='getJSON'),
-
-    url(r'commcarelogin/', include('commcare.urls')),
 
     url(r'^onalogin/$', views.getOnaForms, name='getOnaForms'),
     url(r'^provider_logout/(?P<provider>\w+)/$', views.providerLogout, name='providerLogout'),
@@ -100,3 +100,10 @@ urlpatterns =[
     url('', include('social.apps.django_app.urls', namespace='social')),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+#add app domains
+folders = getImportedApps()
+for app in folders:
+    url_construct = '^' + app + '/$'
+    url_include =  app + '.urls'
+    urlpatterns.append(url(url_construct,include(url_include)))

@@ -15,6 +15,9 @@ import pymongo
 from bson.objectid import ObjectId
 from pymongo import MongoClient
 
+from os import walk, listdir
+
+
 def combineColumns(silo_id):
     client = MongoClient(settings.MONGODB_HOST)
     db = client.tola
@@ -177,3 +180,12 @@ def user_to_tola(backend, user, response, *args, **kwargs):
     userprofile.email = response.get('emails["value"]')
 
     userprofile.save()
+
+
+def getImportedApps():
+    folders = next(walk("datasources"))[1]
+    for i in folders:
+        file_path = "datasources/"+i
+        if "__init__.py" not in listdir(file_path) or i not in settings.LOCAL_APPS:
+            folders.remove(i)
+    return folders

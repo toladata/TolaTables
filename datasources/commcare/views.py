@@ -82,7 +82,7 @@ def getCommCareForm(request):
             if response.status_code == 401:
                 messages.error(request, "Invalid username, password or project.")
             elif response.status_code == 200:
-                data = json.loads(response.content) #load data into the json
+                data = json.loads(response.content) #load json into data
             else:
                 messages.error(request, "A %s error has occured: %s " % (response.status_code, response.text))
     else:
