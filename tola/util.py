@@ -203,4 +203,5 @@ def getImportAppsVerbose():
             if 'verbose_name' in line:
                 word = line.split('\'')[1::2]
                 app[1] = word[0]
+                break
     return apps

@@ -6,13 +6,7 @@ Goes in datasources/
 
 #Your Apps readme
 In order for your app to run it must be in the list of apps:
-put the name of your app in the LOCAL_APPS list in the tola/settings/base.py file
-
-#static files
-Goes in YOUR_APP/static/
-
-#template files
-Goes in YOUR_APP/templates
+To do this put the name of your app LOCAL_APPS list in the tola/settings/base.py file
 
 #new models
 
