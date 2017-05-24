@@ -9,6 +9,8 @@ In order for your app to run it must be in the list of apps:
 To do this put the name of your app LOCAL_APPS list in the tola/settings/base.py file
 
 #new models
+Before running your server you'll have to run migrations in order for the server to use your apps
+models
 
 #using existing models
 To use existing models use this import
