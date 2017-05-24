@@ -4,7 +4,7 @@ to import data from a data system of your choosing.
 #App folder
 Goes in datasources/
 
-#Your Apps readme
+#Getting your app to run
 In order for your app to run it must be in the list of apps:
 To do this put the name of your app LOCAL_APPS list in the tola/settings/base.py file
 
