@@ -17,7 +17,8 @@ from django.contrib.auth.views import login, logout
 from silo.api import *
 from board.api import *
 
-from util import getImportedApps
+from util import getImportApps
+import json
 
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
@@ -101,8 +102,8 @@ urlpatterns =[
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-#add app domains
-folders = getImportedApps()
+#add app domains and add the data types to the read_type.json
+folders = getImportApps()
 for app in folders:
     url_construct = '^' + app + '/$'
     url_include =  app + '.urls'

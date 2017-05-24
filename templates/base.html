@@ -65,7 +65,7 @@
                                 <li><a href="#" onclick="select_silo_for_importing_gsheet();"><span class="glyphicon glyphicon-list-alt"></span> Import from Google Spreadsheet</a></li>
                                 {%getDataImports as apps%}
                                 {%for app in apps%}
-                                  <li><a href=/{{app}}><span class="glyphicon glyphicon-list-alt"></span> Import from {{app}}</a></li>
+                                  <li><a href=/{{app.0}}><span class="glyphicon glyphicon-list-alt"></span> Import from {{app.1}}</a></li>
                                 {% endfor %}
                             </ul>
                         </li>

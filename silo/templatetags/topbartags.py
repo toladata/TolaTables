@@ -1,6 +1,7 @@
 import json
 from django import template
-from util import getImportedApps
+from util import getImportApps
+from util import getImportAppsVerbose
 
 
 
@@ -9,4 +10,4 @@ register = template.Library()
 
 @register.assignment_tag
 def getDataImports():
-    return getImportedApps()
+    return getImportAppsVerbose()
