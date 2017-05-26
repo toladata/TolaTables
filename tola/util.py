@@ -199,7 +199,9 @@ def getImportAppsVerbose():
     for app in apps:
         filepath = "datasources/" + app[0] + "/apps.py"
         f = open(filepath,"r")
-        for line in f:
+        for i, line in enumerate(f):
+            if i > 100:
+                break
             if 'verbose_name' in line:
                 word = line.split('\'')[1::2]
                 app[1] = word[0]

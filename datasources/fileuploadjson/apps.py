@@ -4,4 +4,5 @@ from django.apps import AppConfig
 
 
 class JsonfileConfig(AppConfig):
-    name = 'jsonfile'
+    name = 'fileuploadjson'
+    verbose_name = 'JSON File'

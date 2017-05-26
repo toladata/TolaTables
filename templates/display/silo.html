@@ -337,14 +337,20 @@
                     cols.push({
                         "data": $(this).text(),
                         // Use the cell render function to return "repeats if the value is an array"
-
+                        // This function places the data in the table on a silo
                         "render": function(data, type, row) {
                             if (jQuery.type(data) == "array" ) {
-                                return "<a href='#''>repeats</a>";
+                                return "<a href='#''>view data</a>";
                             } else if(jQuery.type(data) == "object") {
-                                return "<a href='/value_edit/" + data[Object.keys(data)[0]] + "'><span class='glyphicon glyphicon-edit' aria-hidden='true'></span></a> &nbsp;" +
-                                    "<a href='/value_delete/" + data[Object.keys(data)[0]] + "' class='btn-del' title='You are about to delete a record. Are you sure?'>" +
-                                    "<span style='color:red;' class='glyphicon glyphicon-trash' aria-hidden='true'></span></a>";
+                                if (Object.keys(data) == "$oid") {
+                                  return "<a href='/value_edit/" + data[Object.keys(data)[0]] + "'><span class='glyphicon glyphicon-edit' aria-hidden='true'></span></a> &nbsp;" +
+                                      "<a href='/value_delete/" + data[Object.keys(data)[0]] + "' class='btn-del' title='You are about to delete a record. Are you sure?'>" +
+                                      "<span style='color:red;' class='glyphicon glyphicon-trash' aria-hidden='true'></span></a>";
+
+                                }
+                                else{
+                                  return Object.keys(data);
+                                }
                             } else {
                                 return data;
                             }
@@ -385,6 +391,7 @@
                     data = data[0];
                 }
 
+                //this function does the pop up tables
                 if (jQuery.type(data) == "array") {
                     var column_names = [];
                     // First get all of the column names in this array
@@ -405,11 +412,17 @@
                     // now populate the remaining data rows for the repeats_table
                     $.each(data, function(i,row){
                         repeats_table += "<tr>";
-                        if (jQuery.type(row) == "object") {
+                        //for an array of objects
+                        if (jQuery.type(row) == "object"){
                            $.each(row, function(c, v){
                                 repeats_table += "<td>" + v + "</td>";
                                 //console.log("c: " + c + " v: " + v);
                            });
+                        }
+                        //for an array of values
+                        if(jQuery.type(row) == "number"|| jQuery.type(row) == "symbol" || jQuery.type(row) == "string" || jQuery.type(row) == "date"){
+                            repeats_table += "<td>" + row + "</td>";
+                               //console.log(" v: " + v);
                         }
                         repeats_table += "</tr>";
                     });
