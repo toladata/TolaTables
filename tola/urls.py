@@ -105,6 +105,6 @@ urlpatterns =[
 #add app domains and add the data types to the read_type.json
 folders = getImportApps()
 for app in folders:
-    url_construct = '^' + app + '/$'
+    url_construct = app + '/'
     url_include =  app + '.urls'
     urlpatterns.append(url(url_construct,include(url_include)))

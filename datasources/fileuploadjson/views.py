@@ -37,7 +37,7 @@ def jsonuploadfile(request,id):
                 messages.error(request,'Please select a file to upload')
             read = form.save(commit=False)
             read.save()
-            return HttpResponseRedirect("fileuploadjson/file/" + str(read.id) + "/")
+            return HttpResponseRedirect("/fileuploadjson/file/" + str(read.id) + "/")
         else:
             messages.error(request, 'Invalid Form', fail_silently=False)
 
