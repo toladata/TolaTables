@@ -186,10 +186,13 @@ def user_to_tola(backend, user, response, *args, **kwargs):
 #gets the list of apps to import data
 def getImportApps():
     folders = next(walk("datasources"))[1]
+    toRemove = []
     for i in folders:
         file_path = "datasources/"+i
         if "__init__.py" not in listdir(file_path) or i not in settings.LOCAL_APPS:
-            folders.remove(i)
+            toRemove.append(i)
+    for j in toRemove:
+        folders.remove(j)
     return folders
 
 #gets the list of apps to import data by their verbose name

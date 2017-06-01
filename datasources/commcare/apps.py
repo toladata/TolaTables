@@ -6,7 +6,7 @@ from django.apps import AppConfig
 
 class CommcareConfig(AppConfig):
     name = 'commcare'
-    verbose_name = 'CommCare'
+    verbose_name = 'CommCare reports'
     def ready(self):
         from silo.models import ReadType
         ReadType.objects.get_or_create(read_type = "CommCare")
