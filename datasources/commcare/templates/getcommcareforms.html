@@ -12,7 +12,7 @@
         <p>If you wish to instead login using your password click <a href="/commcare/passform/">here</a>. This will not save your login information for next time and prevent Tola from being able to update your table. </p>
     {% else %}
       <p>List of forms from CommCare.  Forms that have been imported are associated with a table.You can also <a href="/commcare/logout/">Logout</a> of this CommCare account. </p>
-      <table id="onaforms" class="table table-bordered table-hover table-striped">
+      <table id="commcareforms" class="table table-bordered table-hover table-striped">
           <tr>
               <th>No</th>
               <th>Title</th>
@@ -40,11 +40,8 @@
                       {% endfor %}
                   </select>
               </td>
-              <input type="hidden" value="{{usrn}}" name="asiufjoiawenowe">
-              <input type="hidden" value="{{pwd}}" name="reoihgweboqwe">
-              <input type="hidden" value="{{project}}" name="no24jrfindaibanoif">
               <td>
-                  <input type="submit" name="submit-id-save-{{forloop.counter}}" value="Import" class="btn btn-sm btn-primary">
+                  <input type="button" name="submit-id-save-{{forloop.counter}}" value="Import" class="btn btn-sm btn-primary" onclick="$(this).commcare();">
               </td>
               </form>
           </tr>
@@ -79,13 +76,17 @@
             });
 
             //seems obsolete
-             $("#commmcareforms .btn").click(function(e) {
-                 e.preventDefault();
+             $.fn.commcare = (function(e) {
+                 //e.preventDefault();
                  var id = $(this).closest('tr').find("td:nth-child(3)").text().trim();
                  var name = $(this).closest('tr').find("td:nth-child(4)").text().trim();
                  var desc = $(this).closest('tr').find("td:nth-child(5)").text().trim();
                  var data_id = $(this).closest('tr').find("td:nth-child(6)").text().trim();
                  var silo_id = $("#id_silo-"+id).val();
+                 var silo_name = $("#id_silo-"+id + " option:selected").text();
+                 var asiufjoiawenowe = '{{usrn}}';
+                 var reoihgweboqwe = '{{pwd}}';
+                 var no24jrfindaibanoif = '{{project}}';
                  if (!silo_id) {
                      alert("You must select a silo for storing data before you can import");
                      return;
@@ -96,7 +97,7 @@
 
                  //console.log("Name: " + name + " description: " + desc + " url: " + url + " silo: " + silo_id);
 
-                 $.post("/commcare/savecommcaredata/", {read_name: name, description: desc, data_id: data_id, silo_id: silo_id })
+                 $.post("/commcare/savecommcaredata/", {read_name: name, description: desc, data_id: data_id, silo_id: silo_id, silo_name: silo_name, asiufjoiawenowe:asiufjoiawenowe, reoihgweboqwe:reoihgweboqwe, no24jrfindaibanoif:no24jrfindaibanoif})
                      .success(function(data, textStatus, xhr) {
                          /*
                          console.log("status: " + xhr.status +

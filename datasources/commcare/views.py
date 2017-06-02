@@ -152,7 +152,8 @@ def saveCommCareData(request):
         pass
 
     read_type = ReadType.objects.get(read_type="CommCare")
-    name = request.POST.get('formname', None)
+    read_name = request.POST.get('read_name', None)
+    silo_name = request.POST.get('silo_name', None)
     data_id = request.POST.get('data_id', None)
     usrn = None
     pwd = None
@@ -181,6 +182,7 @@ def saveCommCareData(request):
         response = requests.get(url, auth=HTTPDigestAuth(usrn, pwd))
     if response.status_code != 200:
         messages.error(request, "A %s error has occured: %s " % (response.status_code, response.text))
+        print "fu"
         return HttpResponseRedirect(reverse_lazy('getCommCareAuth'))
 
 
@@ -198,7 +200,7 @@ def saveCommCareData(request):
          return HttpResponse("Silo ID can only be an integer")
 
     try:
-        read, read_created = Read.objects.get_or_create(read_name=name, owner=owner,
+        read, read_created = Read.objects.get_or_create(read_name=read_name, owner=owner,
             defaults={'read_url': url, 'type': read_type, 'description': description})
         if read_created: read.save()
     except Exception as e:
@@ -208,25 +210,25 @@ def saveCommCareData(request):
     new_cols = []
     show_mapping = False
 
-    silo, silo_created = Silo.objects.get_or_create(id=silo_id, defaults={"name": name, "public": False, "owner": owner})
+    silo, silo_created = Silo.objects.get_or_create(id=silo_id, defaults={"name": silo_name, "public": False, "owner": owner})
     if silo_created or read_created:
         silo.reads.add(read)
     elif read not in silo.reads.all():
         silo.reads.add(read)
 
     if len(data) == 0:
-        return HttpResponse("There is no data for the selected form, %s" % name)
+        return HttpResponse("There is no data for the selected form, %s" % read_name)
 
     # import data into this silo
     res = saveDataToSilo(silo, data)
 
     #since the data is paged get data on the future pages
-    i = 0
+    i = 1
     while metadata['next_page'] != "":
         if i:
             url = "https://www.commcarehq.org/a/"+ project+"/api/v0.5/configurablereportdata/"+ data_id+"/?format=json&offset=" + str(i*50)
             if commcare_token:
-                response = requests.get(url_user_forms, headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})
+                response = requests.get(url, headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})
             else:
                 response = requests.get(url, auth=HTTPDigestAuth(usrn, pwd))
             metadata = json.loads(response.content)
@@ -234,7 +236,7 @@ def saveCommCareData(request):
         data = metadata['data']
 
         if len(data) == 0 and i == 0:
-            return HttpResponse("There is not data for the selected form, %s" % name)
+            return HttpResponse("There is not data for the selected form, %s" % read_name)
 
         # import data into this silo
         res = saveDataToSilo(silo, data)
