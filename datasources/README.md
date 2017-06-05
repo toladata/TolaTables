@@ -26,4 +26,5 @@ YOUR_APPS_NAME add:
 to the apps.py file
 
 #to add your type
-In order for tola to read your filetype you need to add the read type to the silo_readtype database
+In order for tola to read your filetype you will somehow need to add your data source to the
+read_type database
