@@ -253,7 +253,6 @@ LOCAL_APPS = (
     'tola',
     'board',
     'commcare',
-    'fileuploadjson',
 )
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
