@@ -8,6 +8,7 @@ from sys import path
 # Absolute filesystem path to the Django project directory:
 DJANGO_ROOT = dirname(dirname(abspath(__file__)))
 
+
 # Absolute filesystem path to the top-level project folder:
 SITE_ROOT = dirname(DJANGO_ROOT)
 
@@ -243,11 +244,15 @@ THIRD_PARTY_APPS = (
     'corsheaders',
 )
 
+#to get a subdirectory to work
+path.insert(0, normpath(join(SITE_ROOT, 'datasources')))
+
 # Apps specific for this project go here.
 LOCAL_APPS = (
     'silo',
     'tola',
     'board',
+    'commcare',
 )
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps

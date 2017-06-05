@@ -893,6 +893,31 @@ def importDataFromReads(request, silo, reads):
             return msgs
             #for msg in msgs:
             #    messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
+        elif read.type.read_type == "CommCare":
+            commcare_token = None
+            try:
+                commcare_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="CommCare")
+            except Exception as e:
+                return (messages.ERROR, "You need to login to commcare using an API Key to access this functionality")
+            response = requests.get(read.read_url, headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})
+            if response.status_code == 401:
+                commcare_token.delete()
+                return(messages.ERROR, "Your usernmane or API Key are incorrect")
+            elif response.status_code != 200:
+                return(messages.ERROR, "A %s error has occured: %s " % (response.status_code, response.text))
+            metadata = json.loads(response.content)
+            data=metadata['data']
+            res = saveDataToSilo(silo, data)
+            #now if their are more pages to the data get them
+            url = read.read_url[:-1]
+            i = 1
+            while metadata['next_page'] !="":
+                response = requests.get(url+str(i*50), headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})
+                metadata = json.loads(response.content)
+                data=metadata['data']
+                res = saveDataToSilo(silo, data)
+                i+=1
+            return (messages.SUCCESS, "Update was successful")
 
 
 #Add a new column on to a silo
@@ -1221,5 +1246,3 @@ def identifyPII(request, silo_id):
         col, created = PIIColumn.objects.get_or_create(fieldname=c, defaults={'owner': request.user})
 
     return JsonResponse({"status":"success"})
-
-
