@@ -41,8 +41,6 @@ from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, ge
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
 
-from commcare.models import ThirdPartyTokensUsername
-
 logger = logging.getLogger("silo")
 db = MongoClient(settings.MONGODB_HOST).tola
 
@@ -898,7 +896,7 @@ def importDataFromReads(request, silo, reads):
         elif read.type.read_type == "CommCare":
             commcare_token = None
             try:
-                commcare_token = ThirdPartyTokensUsername.objects.get(user=silo.owner.pk, name="CommCare")
+                commcare_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="CommCare")
             except Exception as e:
                 return (messages.ERROR, "You need to login to commcare using an API Key to access this functionality")
             response = requests.get(read.read_url, headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})

@@ -17,8 +17,9 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 
 from silo.models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn
-from .models import ThirdPartyTokensUsername
+from silo.models import ThirdPartyTokens
 from .forms import CommCareAuthForm, CommCarePassForm, CommCareProjectForm
+from .util import useHeaderName
 
 @login_required
 def getCommCareAuth(request):
@@ -31,7 +32,7 @@ def getCommCareAuth(request):
     form = None
     provider = "CommCare"
     #If I can get the authorization token to work
-    auth_success = False
+    auth = 1
     commcare_token = None
     url_user_forms = "" #url to get the data contained
     url_user_forms1 = "https://www.commcarehq.org/a/"
@@ -48,12 +49,12 @@ def getCommCareAuth(request):
                 created = False
                 try:
                     if request.POST['auth_token'] != '':
-                        commcare_token, created = ThirdPartyTokensUsername.objects.get_or_create(user=request.user,name=provider,token=request.POST['auth_token'],username=request.POST['username'])
+                        commcare_token, created = ThirdPartyTokens.objects.get_or_create(user=request.user,name=provider,token=request.POST['auth_token'],username=request.POST['username'])
                         form = CommCareAuthForm(request.POST)
                         if form.is_valid():
                             pass
                 except Exception as e:
-                    commcare_token = ThirdPartyTokensUsername.objects.get(user=request.user,name=provider)
+                    commcare_token = ThirdPartyTokens.objects.get(user=request.user,name=provider)
 
                 project = request.POST['project']
                 url_user_forms = url_user_forms1 + project + url_user_forms2
@@ -61,7 +62,7 @@ def getCommCareAuth(request):
                 if response.status_code == 401:
                     messages.error(request, "Invalid username, authorization token or project.")
                     try:
-                        token = ThirdPartyTokensUsername.objects.get(user=request.user, name="CommCare")
+                        token = ThirdPartyTokens.objects.get(user=request.user, name="CommCare")
                         token.delete()
                     except Exception as e:
                         pass
@@ -80,20 +81,21 @@ def getCommCareAuth(request):
         else:
             try:
                 #look for authorization token
-                commcare_token = ThirdPartyTokensUsername.objects.get(user=request.user,name=provider)
+                commcare_token = ThirdPartyTokens.objects.get(user=request.user,name=provider)
             except Exception as e:
                 form = CommCareAuthForm(request.POST)
 
     else:
         try:
             #look for authorization token
-            commcare_token = ThirdPartyTokensUsername.objects.get(user=request.user,name=provider)
+            commcare_token = ThirdPartyTokens.objects.get(user=request.user,name=provider)
             form = CommCareProjectForm()
+            auth = 0
         except Exception as e:
             form = CommCareAuthForm()
 
     silos = Silo.objects.filter(owner=request.user)
-    return render(request, 'getcommcareforms.html', {'form': form, 'data': data, 'silos': silos, 'usrn' : None, 'pwd' : None, 'project' : project})
+    return render(request, 'getcommcareforms.html', {'form': form, 'data': data, 'silos': silos, 'usrn' : None, 'pwd' : None, 'project' : project, 'auth' : auth})
 
 @login_required
 def getCommCareFormPass(request):
@@ -133,7 +135,7 @@ def getCommCareFormPass(request):
 
 
     silos = Silo.objects.filter(owner=request.user)
-    return render(request, 'getcommcareforms.html', {'form': form, 'data': data, 'silos': silos, 'usrn' : usrn, 'pwd' : pwd, 'project' : project})
+    return render(request, 'getcommcareforms.html', {'form': form, 'data': data, 'silos': silos, 'usrn' : usrn, 'pwd' : pwd, 'project' : project, 'auth' : 2})
 
 @login_required
 def saveCommCareData(request):
@@ -147,7 +149,7 @@ def saveCommCareData(request):
     commcare_token = None
     provider = "CommCare"
     try:
-        commcare_token = ThirdPartyTokensUsername.objects.get(user=request.user,name=provider)
+        commcare_token = ThirdPartyTokens.objects.get(user=request.user,name=provider)
     except Exception as e:
         pass
 
@@ -188,6 +190,7 @@ def saveCommCareData(request):
 
 
     metadata = json.loads(response.content)
+    useHeaderName(metadata['columns'],metadata['data'])
 
     #run everything once and create new silo if needed
 
@@ -225,14 +228,13 @@ def saveCommCareData(request):
     #since the data is paged get data on the future pages
     i = 1
     while metadata['next_page'] != "":
-        if i:
-            url = "https://www.commcarehq.org/a/"+ project+"/api/v0.5/configurablereportdata/"+ data_id+"/?format=json&offset=" + str(i*50)
-            if commcare_token:
-                response = requests.get(url, headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})
-            else:
-                response = requests.get(url, auth=HTTPDigestAuth(usrn, pwd))
-            metadata = json.loads(response.content)
-
+        url = "https://www.commcarehq.org/a/"+ project+"/api/v0.5/configurablereportdata/"+ data_id+"/?format=json&offset=" + str(i*50)
+        if commcare_token:
+            response = requests.get(url, headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})
+        else:
+            response = requests.get(url, auth=HTTPDigestAuth(usrn, pwd))
+        metadata = json.loads(response.content)
+        useHeaderName(metadata['columns'],metadata['data'])
         data = metadata['data']
 
         if len(data) == 0 and i == 0:
@@ -246,7 +248,7 @@ def saveCommCareData(request):
 @login_required
 def commcareLogout(request):
     try:
-        token = ThirdPartyTokensUsername.objects.get(user=request.user, name="CommCare")
+        token = ThirdPartyTokens.objects.get(user=request.user, name="CommCare")
         token.delete()
     except Exception as e:
         pass

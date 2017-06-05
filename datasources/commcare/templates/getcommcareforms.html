@@ -9,15 +9,23 @@
         <img src="{{ STATIC_URL }}/img/commcare_logo_white.png">
         <p>Get access to your commcare data:</p>
         {% crispy form %}
-        <p>If you wish to instead login using your password click <a href="/commcare/passform/">here</a>. This will not save your login information for next time and prevent Tola from being able to update your table. </p>
+        {% if auth == 1%} <!-- link to password -->
+          <p>If you wish to instead login using your password click <a href="/commcare/passform/">here</a>. This will not save your login information for next time and prevent Tola from being able to update your table. </p>
+        {% elif auth == 2 %} <!-- link to authorization -->
+          <p>If you wish to instead login using your authorization token click <a href="/commcare/">here</a>. This will not save your login information for next time and prevent Tola from being able to update your table. </p>
+        {% else %} <!-- link to logout -->
+          <p> You can also <a href="/commcare/logout/">Logout</a> of this CommCare account. </p>
+        {% endif %}
     {% else %}
-      <p>List of forms from CommCare.  Forms that have been imported are associated with a table.You can also <a href="/commcare/logout/">Logout</a> of this CommCare account. </p>
+      <p>List of forms from CommCare.  Forms that have been imported are associated with a table. </p>
+      {% if auth != 2%}
+        <p> You can also <a href="/commcare/logout/">Logout</a> of this CommCare account. </p>
+      {% endif %}
       <table id="commcareforms" class="table table-bordered table-hover table-striped">
           <tr>
               <th>No</th>
               <th>Title</th>
               <th>Description</th>
-              <th>ID</th>
               <th>Table</th>
               <th>Action</th>
           </tr>
@@ -27,10 +35,10 @@
               <td> {{ forloop.counter }} </td>
               <td> <input type="hidden" value="{{ row.title }}" name="formname"></input>{{ row.title }} </td>
               <td> <input type="hidden" value="{{ row.description }}" name="description"></input>{{ row.description }} </td>
-              <td> <input type="hidden" value="{{ row.id }}" name="data_id"></input>{{ row.id }} </td>
-                   <input type="hidden" value="1" name="title"></input>
-                   <input type="hidden" value="1" name="type"></input>
-                   <input type="hidden" value="{{ request.user.id }}" name="owner"></input>
+              <input type="hidden" value="{{ row.id }}" name="data_id"></input>
+              <input type="hidden" value="1" name="title"></input>
+              <input type="hidden" value="1" name="type"></input>
+              <input type="hidden" value="{{ request.user.id }}" name="owner"></input>
               <td>
                   <select id="id_silo-{{forloop.counter}}" name="silo_id" class="form-control input-sm">
                       <option selected="selected" value=""></option>
@@ -81,7 +89,7 @@
                  var id = $(this).closest('tr').find("td:nth-child(3)").text().trim();
                  var name = $(this).closest('tr').find("td:nth-child(4)").text().trim();
                  var desc = $(this).closest('tr').find("td:nth-child(5)").text().trim();
-                 var data_id = $(this).closest('tr').find("td:nth-child(6)").text().trim();
+                 var data_id = $(this).closest('tr').find('input[name=data_id]').val();
                  var silo_id = $("#id_silo-"+id).val();
                  var silo_name = $("#id_silo-"+id + " option:selected").text();
                  var asiufjoiawenowe = '{{usrn}}';
