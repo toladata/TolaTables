@@ -18,9 +18,11 @@ class PublicSiloSerializer(serializers.HyperlinkedModelSerializer):
 
 class SiloSerializer(serializers.HyperlinkedModelSerializer):
     data = serializers.SerializerMethodField()
+    data_count = serializers.ReadOnlyField()
+
     class Meta:
         model = Silo
-        fields = ('owner', 'name', 'reads', 'description', 'create_date', 'id', 'data','shared','tags','public')
+        fields = ('owner', 'name', 'reads', 'description', 'create_date', 'id', 'data','shared','tags','public', 'data_count')
         depth =1
 
     def get_data(self, obj):
@@ -61,7 +63,7 @@ class SiloModelSerializer(serializers.ModelSerializer):
         depth =1
 
 class LoggedUserSerializer(serializers.ModelSerializer):
-    
+
     class Meta:
         model = LoggedUser
         fields = ('username', 'country', 'email')
