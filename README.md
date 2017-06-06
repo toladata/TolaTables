@@ -18,7 +18,7 @@ Display: Where data is viewed and edited<br>
 Ensure that the configuration files (`.secret`, `.secret.yml`) are in the `config` folder.
 
 ## To deploy changes in tables servers
-Once all your changes have been commited to the repo, and before pushing them, run: 
+Once all your changes have been commited to the repo, and before pushing them, run:
 `. travis.sh`
 
 ## To deploy locally
@@ -36,16 +36,16 @@ Run the following commands from the root of this repository:
  - docker.sh
 
 /config
- - nginx.conf 
+ - nginx.conf
  - mysql.env.secret (not public)
  - settings.secret.yml (not public)
 
 /local/settings
  - local.py
- 
+
 /silo
  - client_secrets.json (not public)
- 
+
 
 
 ## USING virtualenv
@@ -71,11 +71,19 @@ export PATH=$PATH:/usr/local/mysql/bin
 pip install -r requirements.txt
 
 ## Set up DB
-python manage.py syncdb
+python manage.py makemigrations
+python manage.py migrate
+
+##load starting data into db
+Load all the files contained within:
+python manage.py loaddata fixtures/
+with:
+python manage.py loaddata <filepath>
+
 
 # Run App
 If your using more then one settings file change manage.py to point to local or dev file first
 python manage.py runserver 0.0.0.0:8000
-GOOGLE API 
+GOOGLE API
 sudo pip install --upgrade google-api-python-client
 * 0’s let it run on any local address i.e. localhost,127.0.0.1 etc.
