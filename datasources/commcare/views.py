@@ -3,21 +3,17 @@ import requests
 import base64
 
 from requests.auth import HTTPDigestAuth
-from django.http import HttpResponseForbidden,\
-    HttpResponseRedirect, HttpResponseNotFound, HttpResponseBadRequest,\
-    HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import HttpResponseRedirect, HttpResponseBadRequest, HttpResponse
 
 
-from django.shortcuts import render
-from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames
-from django.shortcuts import render_to_response, get_object_or_404, redirect, render
+from tola.util import saveDataToSilo
+from django.shortcuts import redirect, render
 from django.core.urlresolvers import reverse, reverse_lazy
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 
-from silo.models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn
-from silo.models import ThirdPartyTokens
+from silo.models import Silo, Read, ReadType, ThirdPartyTokens
 from .forms import CommCareAuthForm, CommCarePassForm, CommCareProjectForm
 from .util import useHeaderName
 

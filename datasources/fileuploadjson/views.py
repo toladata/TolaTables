@@ -6,8 +6,7 @@ import datetime
 from django.http import HttpResponseRedirect
 
 from django.shortcuts import render
-from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames
-from django.shortcuts import render_to_response, get_object_or_404, redirect, render
+from tola.util import saveDataToSilo
 from django.core.urlresolvers import reverse, reverse_lazy
 
 from django.contrib import messages
