@@ -10,7 +10,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title">Repeats</h4>
+                <h4 class="modal-title" id="popuptitle"></h4>
             </div>
             <div class="modal-body" id="repeats_modal_body">
                 <p>One fine body&hellip;</p>
@@ -328,6 +328,8 @@
             var data = [];
             var cols = [];
 
+            $('#popuptitle').text("Detail view");
+
             // Loop through the header row and create a cols array for datatables.
             $("#data_table").find("th").each(function(i){
                 if (i == -1) {
@@ -340,6 +342,12 @@
                         // This function places the data in the table on a silo
                         "render": function(data, type, row) {
                             if (jQuery.type(data) == "array" ) {
+                                //if the data is in the form of an array of objects
+                                if (jQuery.type(data[0]) == "object") {
+                                  //this sets the title on the pop up table
+                                  return "<a href='#'>see data<a>";
+                                }
+                                //for an array of data
                                 cell_data = ''
                                 if (data.length < 4) {
                                   for (var i = 0; i < data.length-1; i++) {
@@ -354,12 +362,14 @@
                                 return cell_data + "<a href='#''>more</a>";
                             } else if(jQuery.type(data) == "object") {
                                 if (Object.keys(data) == "$oid") {
+                                  //for the update and delete information
                                   return "<a href='/value_edit/" + data[Object.keys(data)[0]] + "'><span class='glyphicon glyphicon-edit' aria-hidden='true'></span></a> &nbsp;" +
                                       "<a href='/value_delete/" + data[Object.keys(data)[0]] + "' class='btn-del' title='You are about to delete a record. Are you sure?'>" +
                                       "<span style='color:red;' class='glyphicon glyphicon-trash' aria-hidden='true'></span></a>";
 
                                 }
                                 else{
+                                  //for any other kind of object
                                   return Object.values(data);
                                 }
                             } else {
@@ -392,6 +402,7 @@
                 "stateSave": false,
             });
 
+
             var data = undefined;
             $('#data_table tbody').on( 'click', 'td', function () {
                 var cell = silo_table.cell( this );
@@ -403,7 +414,7 @@
                 }
 
                 //this function does the pop up tables
-                if (jQuery.type(data) == "array" && data.length > 4) {
+                if (jQuery.type(data) == "array" && (data.length > 3 || jQuery.type(data[0]) == "object" )) {
                     var column_names = [];
                     // First get all of the column names in this array
                     $.each(data, function(i,row){
@@ -416,7 +427,7 @@
                     // Now use the column names to populate the repeats_table's header row
                     $.each(column_names, function(i, col){
                         col = col.split("/");
-                        repeats_table += "<th>../" + col[col.length-1] + "</th>";
+                        repeats_table += "<th>" + col[col.length-1] + "</th>";
                     });
                     repeats_table += "</tr>";
 
