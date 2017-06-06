@@ -160,6 +160,7 @@ class GoogleCredentialsModel(models.Model):
 class ThirdPartyTokens(models.Model):
     user = models.ForeignKey(User, related_name="tokens")
     name = models.CharField(max_length=60)
+    username = models.CharField(max_length=60, null=True)
     token = models.CharField(max_length=255)
     create_date = models.DateTimeField(null=True, blank=True, auto_now=False, auto_now_add=True)
     edit_date = models.DateTimeField(null=True, blank=True, auto_now=True, auto_now_add=False)
@@ -327,4 +328,3 @@ class LabelValueStore(DynamicDocument):
     silo_id = IntField()
     create_date = DateTimeField(help_text='date created')
     edit_date = DateTimeField(help_text='date editted')
-

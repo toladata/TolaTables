@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block page_title %}CommCare Forms{% endblock %}
+
+{% block content %}
+
+    {% if not data %}
+        <img src="{{ STATIC_URL }}/img/commcare_logo_white.png">
+        <p>Get access to your commcare data:</p>
+        {% crispy form %}
+        {% if auth == 1%} <!-- link to password -->
+          <p>If you wish to instead login using your password click <a href="/commcare/passform/">here</a>. This will not save your login information for next time and prevent Tola from being able to update your table. </p>
+        {% elif auth == 2 %} <!-- link to authorization -->
+          <p>If you wish to instead login using your authorization token click <a href="/commcare/">here</a>. This will not save your login information for next time and prevent Tola from being able to update your table. </p>
+        {% else %} <!-- link to logout -->
+          <p> You can also <a href="/commcare/logout/">Logout</a> of this CommCare account. </p>
+        {% endif %}
+    {% else %}
+      <p>List of forms from CommCare.  Forms that have been imported are associated with a table. </p>
+      {% if auth != 2%}
+        <p> You can also <a href="/commcare/logout/">Logout</a> of this CommCare account. </p>
+      {% endif %}
+      <table id="commcareforms" class="table table-bordered table-hover table-striped">
+          <tr>
+              <th>No</th>
+              <th>Title</th>
+              <th>Description</th>
+              <th>Table</th>
+              <th>Action</th>
+          </tr>
+      {% for row in data %}
+          <tr>
+              <form action="{% url 'saveCommCareData' %}" method="POST" id = "{{ forloop.counter }}">{% csrf_token %}
+              <td> {{ forloop.counter }} </td>
+              <td> <input type="hidden" value="{{ row.title }}" name="formname"></input>{{ row.title }} </td>
+              <td> <input type="hidden" value="{{ row.description }}" name="description"></input>{{ row.description }} </td>
+              <input type="hidden" value="{{ row.id }}" name="data_id"></input>
+              <input type="hidden" value="1" name="title"></input>
+              <input type="hidden" value="1" name="type"></input>
+              <input type="hidden" value="{{ request.user.id }}" name="owner"></input>
+              <td>
+                  <select id="id_silo-{{forloop.counter}}" name="silo_id" class="form-control input-sm">
+                      <option selected="selected" value=""></option>
+                      <option value="-1">Create New Table</option>
+                      {% for silo in silos %}
+                          <option value="{{ silo.id }}"> {{ silo.name }} </option>
+                      {% endfor %}
+                  </select>
+              </td>
+              <td>
+                  <input type="button" name="submit-id-save-{{forloop.counter}}" value="Import" class="btn btn-sm btn-primary" onclick="$(this).commcare();">
+              </td>
+              </form>
+          </tr>
+      {% endfor %}
+      </table>
+    {% endif %}
+    <div class="modal fade" id="form_modal" tabindex="-1" role="dialog" aria-labelledby="form_modal_label" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" id="modal_content">
+            <!-- form will be inserted here -->
+        </div> <!-- .modal-content div collapse -->
+    </div><!-- .modal-dialog .modal-lg div collapse -->
+</div> <!-- .modal fade div collapse -->
+{% endblock content %}
+
+{% block extra_js_in_body %}
+    <script type="text/javascript">
+        $(document).ready(function() {
+
+            $("select").on("change", function() {
+                //var silo_id =  $("#" + this.id).val());
+                var select_obj = $("#" + this.id);
+                var silo_id =  select_obj.val();
+                if (silo_id < 0) {
+                    var new_silo_name = prompt("Enter the name of your name silo");
+                    if (new_silo_name) {
+                        var num_options = select_obj.children("option").length;
+                        $("#" + select_obj[0].id + " option").eq(1).after($("<option></option>").val(0).text(new_silo_name));
+                        $("#" + select_obj[0].id).val(0);
+                    }
+                }
+            });
+
+            //seems obsolete
+             $.fn.commcare = (function(e) {
+                 //e.preventDefault();
+                 var id = $(this).closest('tr').find("td:nth-child(3)").text().trim();
+                 var name = $(this).closest('tr').find("td:nth-child(4)").text().trim();
+                 var desc = $(this).closest('tr').find("td:nth-child(5)").text().trim();
+                 var data_id = $(this).closest('tr').find('input[name=data_id]').val();
+                 var silo_id = $("#id_silo-"+id).val();
+                 var silo_name = $("#id_silo-"+id + " option:selected").text();
+                 var asiufjoiawenowe = '{{usrn}}';
+                 var reoihgweboqwe = '{{pwd}}';
+                 var no24jrfindaibanoif = '{{project}}';
+                 if (!silo_id) {
+                     alert("You must select a silo for storing data before you can import");
+                     return;
+                 }
+                 if (silo_id < 0) {
+                     name = $("#id_silo-"+id).find("option:selected").text();
+                 }
+
+                 //console.log("Name: " + name + " description: " + desc + " url: " + url + " silo: " + silo_id);
+
+                 $.post("/commcare/savecommcaredata/", {read_name: name, description: desc, data_id: data_id, silo_id: silo_id, silo_name: silo_name, asiufjoiawenowe:asiufjoiawenowe, reoihgweboqwe:reoihgweboqwe, no24jrfindaibanoif:no24jrfindaibanoif})
+                     .success(function(data, textStatus, xhr) {
+                         /*
+                         console.log("status: " + xhr.status +
+                               //", data: " + data +
+                               //", this.data: " + this.data +
+                               ", responseText: " + xhr.responseText +
+                               ", textStatus: " + textStatus +
+                               ", this.usl: " + this.url +
+                               ", xhr.getResponseHeader('Content-Type')" + xhr.getResponseHeader("Content-Type")
+                         );
+                         */
+                         //addMessage(data, "success" );
+                         console.log(this.url);
+                         if (xhr.getResponseHeader('show_mapping') == "1") {
+                             $("#modal_content").html(data);
+                             $('#form_modal').modal('toggle');
+                         } else {
+                             addMessage(data, "info" );
+                         }
+                     })
+                     .fail(function(data) {
+                        // addMessage(data, "error ");
+                     })
+                     .done(function(data, xhr) {
+                         //alert(xhr.status);
+
+                     })
+                     .complete(function(data, xhr) {
+                         //show_column_mapping();
+                     });
+            });
+        });
+
+        function show_column_mapping() {
+            console.log("OK... showing column mapping.");
+            $.post("/merge_columns", {from_silo_id: "0", to_silo_id: "0"})
+                .success(function(data, textStatus, xhr) {
+                    console.log("OK");
+                });
+        }
+    </script>
+{% endblock %}

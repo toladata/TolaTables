@@ -15,6 +15,10 @@ import pymongo
 from bson.objectid import ObjectId
 from pymongo import MongoClient
 
+from os import walk, listdir
+from django.apps import apps
+
+
 def combineColumns(silo_id):
     client = MongoClient(settings.MONGODB_HOST)
     db = client.tola
@@ -177,3 +181,32 @@ def user_to_tola(backend, user, response, *args, **kwargs):
     userprofile.email = response.get('emails["value"]')
 
     userprofile.save()
+
+
+#gets the list of apps to import data
+def getImportApps():
+    folders = next(walk("datasources"))[1]
+    toRemove = []
+    for i in folders:
+        file_path = "datasources/"+i
+        if "__init__.py" not in listdir(file_path) or i not in settings.LOCAL_APPS:
+            toRemove.append(i)
+    for j in toRemove:
+        folders.remove(j)
+    return folders
+
+#gets the list of apps to import data by their verbose name
+def getImportAppsVerbose():
+    folders = getImportApps()
+    apps = [[folder,folder] for folder in folders]
+    for app in apps:
+        filepath = "datasources/" + app[0] + "/apps.py"
+        f = open(filepath,"r")
+        for i, line in enumerate(f):
+            if i > 100:
+                break
+            if 'verbose_name' in line:
+                word = line.split('\'')[1::2]
+                app[1] = word[0]
+                break
+    return apps
