@@ -428,9 +428,11 @@ def saveAndImportRead(request):
     if request.method != 'POST':
         return HttpResponseBadRequest("HTTP method, %s, is not supported" % request.method)
 
+
     read_type = ReadType.objects.get(read_type="ONA")
     name = request.POST.get('read_name', None)
     url = request.POST.get('read_url', None)
+    silo_name = request.POST.get('silo_name', None)
     owner = request.user
     description = request.POST.get('description', None)
     silo_id = None
@@ -463,9 +465,10 @@ def saveAndImportRead(request):
     new_cols = []
     show_mapping = False
 
-    silo, silo_created = Silo.objects.get_or_create(id=silo_id, defaults={"name": name,
+    silo, silo_created = Silo.objects.get_or_create(id=silo_id, defaults={"name": silo_name,
                                       "public": False,
                                       "owner": owner})
+
     if silo_created or read_created:
         silo.reads.add(read)
     elif read not in silo.reads.all():
@@ -499,7 +502,7 @@ def saveAndImportRead(request):
 
     # import data into this silo
     res = saveDataToSilo(silo, data, read.id)
-    return HttpResponse("View table data at <a href='/silo_detail/%s' target='_blank'>See your data</a>" % silo.pk)
+    #return HttpResponse("View table data at <a href='/silo_detail/%s' target='_blank'>See your data</a>" % silo.pk)
 
 @login_required
 def getOnaForms(request):
