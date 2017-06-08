@@ -52,13 +52,14 @@ def siloToDict(silo):
     return parsed_data
 
 
-def saveDataToSilo(silo, data):
+def saveDataToSilo(silo, data, read_source_id):
     """
     This saves data to the silo
 
     Keyword arguments:
     silo -- the silo object, which is meta data for its labe_value_store
     data -- a python list of dictionaries. stored in MONGODB
+    read_source_id -- the id of the read object associated with the data
     """
     unique_fields = silo.unique_fields.all()
     skipped_rows = set()
@@ -91,6 +92,7 @@ def saveDataToSilo(silo, data):
             lvs = LabelValueStore()
             lvs.silo_id = silo.pk
             lvs.create_date = timezone.now()
+            lvs.read_id = read_source_id
             #print("creating")
         except LabelValueStore.MultipleObjectsReturned as e:
             for k,v in filter_criteria.iteritems():
@@ -117,7 +119,7 @@ def saveDataToSilo(silo, data):
 
 
 #IMPORT JSON DATA
-def importJSON(read_obj, user, remote_user = None, password = None, silo_id = None, silo_name = None):
+def importJSON(read_obj, user, remote_user = None, password = None, silo_id = None, silo_name = None, return_data = False):
     # set date time stamp
     today = datetime.date.today()
     today.strftime('%Y-%m-%d')
@@ -149,9 +151,15 @@ def importJSON(read_obj, user, remote_user = None, password = None, silo_id = No
         data = json.load(json_file)
         json_file.close()
 
-        skipped_rows = saveDataToSilo(silo, data)
+        #if the caller of this function does not want to the data to go into the silo yet
+        if return_data:
+            return data
+
+        skipped_rows = saveDataToSilo(silo, data, read_obj.id)
         return (messages.SUCCESS, "Data imported successfully.", str(silo_id))
     except Exception as e:
+        if return_data:
+            return None
         return (messages.ERROR, "An error has occured: %s" % e, str(silo_id))
 
 def getSiloColumnNames(id):

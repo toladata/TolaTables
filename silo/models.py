@@ -326,5 +326,6 @@ class UniqueFields(models.Model):
 from mongoengine import *
 class LabelValueStore(DynamicDocument):
     silo_id = IntField()
+    read_id = IntField(default=-1)
     create_date = DateTimeField(help_text='date created')
     edit_date = DateTimeField(help_text='date editted')
