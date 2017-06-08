@@ -33,7 +33,7 @@
                 <td>
                     <select id="id_silo-{{forloop.counter}}" name="silo_id" class="form-control input-sm">
                         <option selected="selected" value=""></option>
-                        <option value="0">Create New Table</option>
+                        <option value="-1">Create New Table</option>
                         {% for silo in silos %}
                             <option value="{{ silo.id }}"> {{ silo.name }} </option>
                         {% endfor %}
@@ -64,7 +64,7 @@
                 //var silo_id =  $("#" + this.id).val());
                 var select_obj = $("#" + this.id);
                 var silo_id =  select_obj.val();
-                if (silo_id <= 0) {
+                if (silo_id < 0) {
                     var new_silo_name = prompt("Enter the name of your name silo");
                     if (new_silo_name) {
                         var num_options = select_obj.children("option").length;
