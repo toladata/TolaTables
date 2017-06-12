@@ -83,9 +83,7 @@
                 }
             });
 
-            //seems obsolete
              $.fn.commcare = (function(e) {
-                 //e.preventDefault();
                  var id = $(this).closest('tr').find("td:nth-child(3)").text().trim();
                  var name = $(this).closest('tr').find("td:nth-child(4)").text().trim();
                  var desc = $(this).closest('tr').find("td:nth-child(5)").text().trim();

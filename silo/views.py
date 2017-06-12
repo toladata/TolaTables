@@ -502,7 +502,7 @@ def saveAndImportRead(request):
 
     # import data into this silo
     res = saveDataToSilo(silo, data, read.id)
-    #return HttpResponse("View table data at <a href='/silo_detail/%s' target='_blank'>See your data</a>" % silo.pk)
+    return HttpResponse("View table data at <a href='/silo_detail/%s' target='_blank'>See your data</a>" % silo.pk)
 
 @login_required
 def getOnaForms(request):

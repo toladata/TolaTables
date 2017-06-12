@@ -40,7 +40,7 @@
                     </select>
                 </td>
                 <td>
-                    <input type="submit" name="submit-id-save-{{forloop.counter}}" value="Import" class="btn btn-sm btn-primary" onclick="$(this).onalog();">
+                    <input type="button" name="submit-id-save-{{forloop.counter}}" value="Import" class="btn btn-sm btn-primary" onclick="$(this).onalog();">
                 </td>
                 </form>
             </tr>
@@ -75,7 +75,6 @@
             });
 
             $.fn.onalog = (function(e) {
-                //e.preventDefault();
                 var id = $(this).closest('tr').find("td:nth-child(3)").text().trim();
                 var name = $(this).closest('tr').find("td:nth-child(4)").text().trim();
                 var desc = $(this).closest('tr').find("td:nth-child(5)").text().trim();
