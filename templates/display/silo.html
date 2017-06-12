@@ -79,6 +79,7 @@
                                 <th>Type</th>
                                 <th>Source</th>
                                 <th>Auto-pull Frequency</th>
+                                <th>Remove Source</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -90,7 +91,7 @@
                                     <td>{{ read.type.read_type}}</td>
                                     <td><a href="{{ read.read_url }}" target="_blank">link to source</a></td>
                                     <td>
-                                        {% if read.type.read_type == "CSV" %}
+                                        {% if read.type.read_type == "CSV" or read.type.read_type == "JSON" and read.read_url == "" %}
                                             NA
                                         {% else %}
                                             <select name="autopull_frequency" id="autopull_frequency" data-read-id={{read.pk}} class="form-control input-sm">
@@ -104,6 +105,7 @@
                                             </select>
                                         {% endif %}
                                     </td>
+                                    <td> <a href="/source_remove/{{ silo.pk }}/{{read.pk}}" class="btn btn-del btn-sm btn-danger" title="Are you sure you want to remove this source? Data associated with this source will remain. But you will not be able to update this data"><span class="glyphicon glyphicon-trash" title="Delete"></span> Remove Source  </a></td>
                                 </tr>
                                 {% endif %}
                             {% endfor %}

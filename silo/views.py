@@ -830,8 +830,8 @@ def siloDetail(request, silo_id):
                         #c != "_id" and
                         c != "create_date" and
                         c != "edit_date" and
-                        c != "silo_id" and
-                        c != "read_id"])
+                        c != "silo_id"]) #and
+                        #c != "read_id"])
             break
         # convert bson data to json data using json_utils.dumps from pymongo module
         data = dumps(data)
@@ -891,8 +891,6 @@ def updateSiloData(request, pk):
             if  unique_field_exist == False:
                 lvs = LabelValueStore.objects(silo_id=silo.pk,__raw__={"read_id" : { "$exists" : "true", "$in" : sources_to_delete }})
                 lvs.delete()
-
-
 
             #put in the new records
             for x in range(0,len(data[0])):
@@ -1325,3 +1323,25 @@ def identifyPII(request, silo_id):
         col, created = PIIColumn.objects.get_or_create(fieldname=c, defaults={'owner': request.user})
 
     return JsonResponse({"status":"success"})
+
+
+@login_required
+def removeSource(request, silo_id, read_id):
+    """
+    removes a sources and unasociates its data
+    """
+    silo = None
+    try:
+        silo = Silo.objects.get(pk=silo_id)
+    except Silo.DoesNotExist as e:
+        messages.error(request,"Table with id=%s does not exist." % silo_id)
+
+    try:
+        read = silo.reads.get(pk=read_id)
+        read_name = read.read_name
+        silo.reads.remove(read)
+        messages.success(request,"%s has been removed successfully" % read_name)
+    except Read.DoesNotExist as e:
+        messages.error(request,"Datasource with id=%s does not exist." % read_id)
+
+    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': silo_id},))

@@ -88,12 +88,12 @@ def saveDataToSilo(silo, data, read_source_id):
             lvs = LabelValueStore.objects.get(**filter_criteria)
             #print("updating")
             setattr(lvs, "edit_date", timezone.now())
+            lvs.read_id = read_source_id
         except LabelValueStore.DoesNotExist as e:
             lvs = LabelValueStore()
             lvs.silo_id = silo.pk
             lvs.create_date = timezone.now()
             lvs.read_id = read_source_id
-            #print("creating")
         except LabelValueStore.MultipleObjectsReturned as e:
             for k,v in filter_criteria.iteritems():
                 skipped_rows.add("%s=%s" % (k,v))
