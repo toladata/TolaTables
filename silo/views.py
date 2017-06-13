@@ -475,7 +475,7 @@ def saveAndImportRead(request):
         silo.reads.add(read)
 
     # import data into this silo
-    res = saveDataToSilo(silo, data, read)
+    res = saveDataToSilo(silo, data, read, request.user)
     return HttpResponse("View table data at <a href='/silo_detail/%s' target='_blank'>See your data</a>" % silo.pk)
 
 @login_required
@@ -804,8 +804,8 @@ def siloDetail(request, silo_id):
                         #c != "_id" and
                         c != "create_date" and
                         c != "edit_date" and
-                        c != "silo_id"]) #and
-                        #c != "read_id"])
+                        c != "silo_id" and
+                        c != "read_id"])
             break
         # convert bson data to json data using json_utils.dumps from pymongo module
         data = dumps(data)
@@ -869,7 +869,7 @@ def updateSiloData(request, pk):
             #put in the new records
             for x in range(0,len(data[0])):
                 for entry in data[1][x]:
-                    saveDataToSilo(silo,entry,data[0][x])
+                    saveDataToSilo(silo,entry,data[0][x],request.user)
             for read in reads:
                 if read.type.read_type == "GSheet Import":
                     greturn = import_from_gsheet_helper(request.user, silo.id, None, read.resource_id, None, True)
