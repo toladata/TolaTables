@@ -218,3 +218,16 @@ def getImportAppsVerbose():
                 app[1] = word[0]
                 break
     return apps
+
+def saveOnaDataToSilo(silo, data, form_metadata, read_source_id):
+    """
+    This saves data to the silo specifically for ONA.
+    ONA column type and label comes separetely so this function provides the medium layer for integration
+    Since at the moment no other data source is configured to import data types this does it specifically for ona
+
+    Keyword arguments:
+    silo -- the silo object, which is meta data for its labe_value_store
+    data -- a python list of dictionaries. stored in MONGODB
+    form_metadata -- a python dictionary from ONA storing column names labels and types
+    read_source_id -- the id of the read object associated with the data
+    """
