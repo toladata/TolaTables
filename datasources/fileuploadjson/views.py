@@ -65,7 +65,7 @@ def file(request, id):
                 silo.reads.add(read_obj)
                 silo_id = silo.id
                 data = json.load(read_obj.file_data)
-                saveDataToSilo(silo, data, read_obj.id)
+                saveDataToSilo(silo, data, read_obj)
                 return HttpResponseRedirect('/silo_detail/%s/' % silo_id)
             except Exception as e:
                 messages.error(request, "Your JSON file was formatted incorrectly")

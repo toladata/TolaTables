@@ -474,34 +474,8 @@ def saveAndImportRead(request):
     elif read not in silo.reads.all():
         silo.reads.add(read)
 
-    """
-    #
-    # THIS WILL BE ADDED LATER ONCE THE saveDataToSilo REFACTORING IS COMPLETE!
-    #
-    # Get all of the unique cols for this silo into an array
-    lvs = json.loads(LabelValueStore.objects(silo_id=silo.id).to_json())
-    for l in lvs:
-        existing_silo_cols.extend(c for c in l.keys() if c not in existing_silo_cols)
-
-    # Get all of the unique cols of the fetched data in a separate array
-    for row in data:
-        new_cols.extend(c for c in row.keys() if c not in new_cols)
-
-    # Loop through the unique cols of fetched data; if there are cols that do
-    # no exist in the existing silo, then show mapping.
-    for c in new_cols:
-        if c == "silo_id" or c == "create_date" or c == "edit_date" or c == "id": continue
-        if c not in existing_silo_cols: show_mapping = True
-        if show_mapping == True:
-            # store the newly fetched data into a temp table and then show mapping
-            params = {'getSourceFrom':existing_silo_cols, 'getSourceTo':new_cols, 'from_silo_id':0, 'to_silo_id':silo.id}
-            response = render_to_response("display/merge-column-form-inner.html", params, context_instance=RequestContext(request))
-            response['show_mapping'] = '1'
-            return response
-    """
-
     # import data into this silo
-    res = saveDataToSilo(silo, data, read.id)
+    res = saveDataToSilo(silo, data, read)
     return HttpResponse("View table data at <a href='/silo_detail/%s' target='_blank'>See your data</a>" % silo.pk)
 
 @login_required
@@ -661,7 +635,7 @@ def uploadFile(request, id):
             #data = csv.reader(read_obj.file_data)
             #reader = csv.DictReader(read_obj.file_data)
             reader = CustomDictReader(read_obj.file_data)
-            res = saveDataToSilo(silo, reader, read_obj.id)
+            res = saveDataToSilo(silo, reader, read_obj)
             return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
         else:
             messages.error(request, "There was a problem with reading the contents of your file" + form.errors)
@@ -882,7 +856,7 @@ def updateSiloData(request, pk):
                     msgs.append(import_response[2])
                 if import_response[1] == 1:
                     data[1].append(import_response[0])
-                    data[0].append(read.id)
+                    data[0].append(read)
                     sources_to_delete.append(read.id)
 
             #from ones where we got data delete those records

@@ -219,7 +219,7 @@ def saveCommCareData(request):
         return HttpResponse("There is no data for the selected form, %s" % read_name)
 
     # import data into this silo
-    res = saveDataToSilo(silo, data, read.id)
+    res = saveDataToSilo(silo, data, read)
 
     #since the data is paged get data on the future pages
     i = 1
@@ -237,7 +237,7 @@ def saveCommCareData(request):
             return HttpResponse("There is not data for the selected form, %s" % read_name)
 
         # import data into this silo
-        res = saveDataToSilo(silo, data, read.id)
+        res = saveDataToSilo(silo, data, read)
         i += 1
     return HttpResponse("View table data at <a href='/silo_detail/%s' target='_blank'>See your data</a>" % silo.pk)
 

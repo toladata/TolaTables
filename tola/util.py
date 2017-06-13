@@ -52,7 +52,7 @@ def siloToDict(silo):
     return parsed_data
 
 
-def saveDataToSilo(silo, data, read_source_id):
+def saveDataToSilo(silo, data, read):
     """
     This saves data to the silo
 
@@ -61,6 +61,8 @@ def saveDataToSilo(silo, data, read_source_id):
     data -- a python list of dictionaries. stored in MONGODB
     read_source_id -- the id of the read object associated with the data
     """
+    
+    read_source_id = read
     unique_fields = silo.unique_fields.all()
     skipped_rows = set()
     enc = "latin-1"
@@ -219,11 +221,11 @@ def getImportAppsVerbose():
                 break
     return apps
 
-def saveOnaDataToSilo(silo, data, form_metadata, read_source_id):
+def saveOnaDataToSilo(silo, data, read):
     """
     This saves data to the silo specifically for ONA.
     ONA column type and label comes separetely so this function provides the medium layer for integration
-    Since at the moment no other data source is configured to import data types this does it specifically for ona
+    This function also stores an association between a column name and a column type in the columnType database
 
     Keyword arguments:
     silo -- the silo object, which is meta data for its labe_value_store
@@ -231,3 +233,17 @@ def saveOnaDataToSilo(silo, data, form_metadata, read_source_id):
     form_metadata -- a python dictionary from ONA storing column names labels and types
     read_source_id -- the id of the read object associated with the data
     """
+    #If in the future the ONA data needs to be
+
+    ona_token = ThirdPartyTokens.objects.get(user=request.user, name=provider)
+    url = "https://api.ona.io/api/v1/forms/"+ read.url.split('/')[6] +"/form"
+    response = requests.get(url, headers={'Authorization': 'Token %s' % ona_token.token})
+    form_metadata = json.loads(response.content)
+
+
+    #if this is true than the data isn't a form so proceed to saveDataToSilo normally
+    if "detail" in form_metadata:
+        return saveDataToSilo(silo,data,read_source_id)
+    else:
+
+        return saveDataToSilo(silo,data,read_source_id)
