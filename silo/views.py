@@ -43,7 +43,7 @@ from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, ge
 
 from commcare.util import useHeaderName
 
-from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn
+from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeleteLog
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
 
 logger = logging.getLogger("silo")
@@ -541,6 +541,10 @@ def deleteSilo(request, id):
         try:
             silo_to_be_deleted = Silo.objects.get(pk=id)
             silo_name = silo_to_be_deleted.name
+            DeleteLog.objects.get_or_create(user=request.user,\
+                                            deleted_time=timezone.now(),\
+                                            silo_name_id=silo_name+" with id "+id,\
+                                            silo_description=silo_to_be_deleted.description)
             lvs = LabelValueStore.objects(silo_id=silo_to_be_deleted.id)
             num_rows_deleted = lvs.delete()
             silo_to_be_deleted.delete()
