@@ -87,3 +87,9 @@ python manage.py runserver 0.0.0.0:8000
 GOOGLE API
 sudo pip install --upgrade google-api-python-client
 * 0’s let it run on any local address i.e. localhost,127.0.0.1 etc.
+
+#Filtering data from the api endpoint
+To filter data from api/silos/#{pk}/data endpoint add a mongodb query to the modifier at the end
+of the url
+Ex. api/silo/2/data?query={"nm":"Henry"}
+More advanced query language can be found at https://docs.mongodb.com/manual/

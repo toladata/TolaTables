@@ -26,7 +26,7 @@ admin.autodiscover()
 
 #REST FRAMEWORK
 router = routers.DefaultRouter(trailing_slash=False)
-router.register(r'silo', SiloViewSet, base_name="silo")
+router.register(r'silo', SiloViewSet, base_name="silos")
 router.register(r'usersilos', SilosByUser, base_name='usersilos')
 router.register(r'public_tables', PublicSiloViewSet, base_name="public_tables")
 router.register(r'users', UserViewSet)
