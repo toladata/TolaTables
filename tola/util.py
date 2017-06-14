@@ -247,16 +247,17 @@ def ona_parse_type_group(data, form_data, parent_name, silo, read):
                     ona_parse_type_repeat(entry[parent_name + field['name']],\
                                         field['children'],\
                                         parent_name + field['name']+"/",silo,read)
-                try:
-                    entry[field['label']] = entry.pop(parent_name + field['name'])
-                except KeyError as e:
-                    continue
+                if 'label' in field:
+                    try:
+                        entry[field['label']] = entry.pop(parent_name + field['name'])
+                    except KeyError as e:
+                        pass
 
         #add an asociation between a column, label and its type to the columnType database
         name = ""
-        try:
+        if 'label' in field:
             name = field['label']
-        except KeyError as e:
+        else:
             name = field['name']
 
         try:
@@ -296,10 +297,8 @@ def ona_parse_type_repeat(data, form_data, parent_name, silo, read):
                     ona_parse_type_repeat(entry[parent_name + field['name']],\
                                         field['children'],\
                                         parent_name + field['name']+"/",silo,read)
-                try:
+                if 'label' in field:
                     entry[field['label']] = entry.pop(parent_name + field['name'])
-                except KeyError as e:
-                    continue
 
 def saveOnaDataToSilo(silo, data, read, user):
     """
