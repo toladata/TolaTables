@@ -405,24 +405,24 @@
             });
 
             $("#data_table").find("th").on("click", function(e){
-                var to_sort = this.getAttribute('aria-sort');
+                var to_sort = $(this).attr('arria-sort');
                 var col_name = $(this).text();
-                if (to_sort == "null") {
-                  to_sort = "";
-                }
-                else if (to_sort == "ascending") {
-                  to_sort = "-";
+                var retrieve_url = "/api/silo/{{silo.pk}}/data?sort=";
+                if (to_sort == "ascending") {
+                  retrieve_url += "-";
+                  to_sort = "descending";
                 }
                 else{
-                  to_sort = "";
+                  retrieve_url += "";
+                  to_sort = "ascending";
                 }
+                retrieve_url += col_name;
                 silo_table.destroy();
-                var retrive_url = "/api/silo/{{silo.pk}}/data?sort=" + to_sort+col_name;
                 silo_table = $('#data_table').DataTable({
                     "processing": true,
                     "serverSide": true,
                     "ajax": {
-                        "url": retrive_url,
+                        "url": retrieve_url,
                         "type": "GET",
                         "data": function ( d ) {
                             //console.log(d);
@@ -438,6 +438,13 @@
                     "ordering": true,
                     "stateSave": false,
                 });
+                if (to_sort=="ascending") {
+                  $(this).attr('class',"sorting_asc");
+                }
+                else{
+                  $(this).attr('class',"sorting_desc");
+                }
+                $(this).attr('arria-sort',to_sort);
             });
 
 
