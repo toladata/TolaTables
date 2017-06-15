@@ -1323,3 +1323,7 @@ def removeSource(request, silo_id, read_id):
         messages.error(request,"Datasource with id=%s does not exist." % read_id)
 
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': silo_id},))
+
+@login_required
+def newFormulaColumn(request, pk):
+    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))

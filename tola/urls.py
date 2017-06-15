@@ -80,6 +80,7 @@ urlpatterns =[
     url(r'^value_edit/(?P<id>\w+)/$', views.valueEdit, name='valueEdit'),
     url(r'^value_delete/(?P<id>\w+)/$', views.valueDelete, name='valueDelete'),
     url(r'^new_column/(?P<id>\w+)/$', views.newColumn, name='newColumn'),
+    url(r'^new_formula_column/(?P<pk>\w+)/$', views.newFormulaColumn, name='newFormulaColumn'),
     url(r'^edit_columns/(?P<id>\w+)/$', views.editColumns, name='editColumns'),
     url(r'^delete_column/(?P<id>\w+)/(?P<column>\w+)/$', views.deleteColumn, name='deleteColumn'),
 
