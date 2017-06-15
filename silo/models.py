@@ -267,11 +267,17 @@ class Silo(models.Model):
         return LabelValueStore.objects(silo_id=self.id).count()
 
 
-class DeleteLog(models.Model):
+class DeletedSilos(models.Model):
     user = models.OneToOneField(User)
     deleted_time = models.DateTimeField()
     silo_name_id = models.CharField(max_length=255)
     silo_description = models.CharField(max_length=255,blank=True,null=True)
+
+class DeletedSilosAdmin(admin.ModelAdmin):
+    list_display = ('user', 'silo_name_id', 'silo_description','deleted_time')
+    search_fields = ('user__last_name','user__first_name','silo_name_id')
+    display = 'Data Feeds'
+
 
 class SiloAdmin(admin.ModelAdmin):
     list_display = ('owner', 'name', 'description', 'public','create_date')
