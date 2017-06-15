@@ -118,6 +118,8 @@ class SiloViewSet(viewsets.ModelViewSet):
 
         if len(filter_fields) > 0:
             data = data.filter(**filter_fields)
+        sort = str(request.GET.get('sort',''))
+        data = data.order_by(sort)
         json_data = json.loads(data.to_json())
 
         return JsonResponse({"data": json_data, "draw": draw, "recordsTotal": recordsTotal, "recordsFiltered": len(json_data)}, safe=False)

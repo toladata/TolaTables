@@ -93,3 +93,5 @@ To filter data from api/silos/#{pk}/data endpoint add a mongodb query to the mod
 of the url
 Ex. api/silo/2/data?query={"nm":"Henry"}
 More advanced query language can be found at https://docs.mongodb.com/manual/
+To sort data data add onto the url sort=<column_name> for ascending or sort=-<column_name> for
+descending
