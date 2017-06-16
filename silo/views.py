@@ -1014,6 +1014,7 @@ def editColumns(request,id):
     silo = Silo.objects.get(id=id)
 
     if request.method == 'POST':
+        data = getSiloColumnNames(id)
         form = EditColumnForm(request.POST or None, extra = data)  # A form bound to the POST data
         if form.is_valid():  # All validation rules pass
             for label,value in form.cleaned_data.iteritems():
