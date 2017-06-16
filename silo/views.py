@@ -39,11 +39,11 @@ from django.db.models import Count
 from silo.custom_csv_dict_reader import CustomDictReader
 from .models import GoogleCredentialsModel
 from gviews_v4 import import_from_gsheet_helper
-from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames
+from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames, calculateFormulaColumn
 
 from commcare.util import useHeaderName
 
-from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeletedSilos
+from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeletedSilos, FormulaColumnMapping
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
 
 logger = logging.getLogger("silo")
@@ -1326,4 +1326,33 @@ def removeSource(request, silo_id, read_id):
 
 @login_required
 def newFormulaColumn(request, pk):
-    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
+    if request.method == 'POST':
+        operation = request.POST.get("math_operation")
+        cols = request.POST.getlist("columns")
+        column_name = request.POST.get("column_name")
+        silo = Silo.objects.get(pk=pk)
+
+        if column_name == "":
+            column_name = operation
+
+        #now add the resutls to the mongodb database
+        lvs = LabelValueStore.objects(silo_id=silo.pk)
+        calc_result = calculateFormulaColumn(lvs,operation,cols,column_name)
+        messages.add_message(request,calc_result[0],calc_result[1])
+
+        if calc_result[0] == messages.ERROR:
+            return HttpResponseRedirect(reverse_lazy('newFormulaColumn', kwargs={'pk': pk}))
+        #now add the formula to the mysql database
+        mapping = json.dumps(cols)
+        fcm = FormulaColumnMapping.objects.create(silo=silo,\
+                                                mapping=mapping,\
+                                                operation=operation,\
+                                                column_name=column_name)
+
+        return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
+
+    lvs = LabelValueStore.objects(silo_id=pk)
+    silo = Silo.objects.get(pk=pk)
+    cols = [col for col in lvs[0] if col not in ['id','silo_id','read_id','create_date','edit_date']]
+    cols.sort()
+    return render(request, "silo/add-formula-column.html", {'silo':silo,'cols': cols})

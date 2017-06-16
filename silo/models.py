@@ -334,11 +334,11 @@ class UniqueFields(models.Model):
     def __unicode__(self):
         return self.name
 
-class FormulaFieldMapping(models.Model):
-    silo = models.OneToOneField(Silo)
+class FormulaColumnMapping(models.Model):
+    silo = models.ForeignKey(Silo)
     mapping = models.TextField() #stores a json document for mapping
     operation = models.TextField()
-
+    column_name = models.TextField()
 
 from mongoengine import *
 class LabelValueStore(DynamicDocument):

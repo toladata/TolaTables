@@ -51,7 +51,7 @@ urlpatterns =[
     url(r'^admin/', include(admin.site.urls)),
     url(r'^$', views.index, name='index'),
 
-    url(r'^source/new/', views.showRead, kwargs={'id': 0}, name='newRead'),
+    url(r'^source/FormulaColumnF/', views.showRead, kwargs={'id': 0}, name='newRead'),
     url(r'^show_read/(?P<id>\w+)/$', views.showRead, name='showRead'),
 
     url(r'^file/(?P<id>\w+)/$', views.uploadFile, name='uploadFile'),

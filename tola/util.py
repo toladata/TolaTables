@@ -20,6 +20,23 @@ from pymongo import MongoClient
 from os import walk, listdir
 from django.apps import apps
 
+from collections import Counter
+
+def mean(lst):
+    return float(sum(lst))/len(lst)
+
+def median(lst):
+    lst = sorted(lst)
+    n = len(lst)
+    if n < 1:
+            return None
+    if n % 2 == 1:
+            return lst[n//2]
+    else:
+            return sum(lst[n//2-1:n//2+1])/2.0
+
+def mode(lst):
+    return max(set(lst), key=lst.count)
 
 def combineColumns(silo_id):
     client = MongoClient(settings.MONGODB_HOST)
@@ -325,3 +342,49 @@ def saveOnaDataToSilo(silo, data, read, user):
     else:
         ona_parse_type_group(data,form_metadata['children'],"",silo,read)
         return
+
+def calculateFormulaColumn(lvs,operation,columns,formula_column_name):
+    """
+    This function calculates the math operation for a queryset of label_value_store using defined
+    columns
+
+
+    lvs -- a queryset of label_value_store objects
+    operation -- the math operation to perform
+    columns -- a list of columns to use in the math operation
+    formula_column_name -- name of the column that holds the math done
+    """
+    if not columns or len(columns) == 0:
+        return (messages.ERROR, "No columns were selected for operation")
+
+    if operation == "sum":
+        calc = sum
+    elif operation == "mean":
+        calc = mean
+    elif operation == "median":
+        calc = median
+    elif operation == "mode":
+        calc = mode
+    elif operation == "max":
+        calc = max
+    elif operation == "min":
+        calc = min
+    else:
+        return (messages.ERROR, "Tried to perform invalid operation: %s" % operation)
+
+    calc_fails = []
+    for i, entry in enumerate(lvs):
+        try:
+            values_to_calc = []
+            for col in columns:
+                values_to_calc.append(int(entry[col]))
+            calculation = calc(values_to_calc)
+            setattr(entry,formula_column_name,calculation)
+            entry.save()
+        except ValueError as operation:
+            setattr(entry,formula_column_name,"Error")
+            entry.save()
+            calc_fails.append(i)
+    if len(calc_fails) == 0:
+        return (messages.SUCCESS, "Successfully performed operations")
+    return (messages.WARNING, "Non-numberic data detected in rows %s" % str(calc_fails))
