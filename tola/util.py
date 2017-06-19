@@ -219,11 +219,11 @@ def getSiloColumnNames(id):
     cols = []
     try:
         order = ColumnOrderMapping.objects.get(silo_id=id)
-        cols.extend(json.loads(order.ordering).values())
+        cols.extend(json.loads(order.ordering))
     except ColumnOrderMapping.DoesNotExist as e:
         pass
 
-    cols.extend([col for col in lvs[0] if col not in ['id','silo_id','read_id','create_date','edit_date']])
+    cols.extend([col for col in lvs[0] if col not in cols and col not in ['id','silo_id','read_id','create_date','edit_date']])
     return cols
 
 def user_to_tola(backend, user, response, *args, **kwargs):

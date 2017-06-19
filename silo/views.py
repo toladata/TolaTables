@@ -39,7 +39,7 @@ from django.db.models import Count
 from silo.custom_csv_dict_reader import CustomDictReader
 from .models import GoogleCredentialsModel
 from gviews_v4 import import_from_gsheet_helper
-from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames, parseMathInstruction, calculateFormulaColumn
+from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames, parseMathInstruction, calculateFormulaColumn, ColumnOrderMapping
 
 from commcare.util import useHeaderName
 
@@ -785,44 +785,8 @@ def siloDetail(request, silo_id):
     data = []
 
     if silo.owner == request.user or silo.public == True or request.user in silo.shared.all():
-        bsondata = store.find({"silo_id": silo.pk})
-        #bsondata = db.label_value_store.find({"silo_id": silo.pk})
-        for row in bsondata:
-            # Add a column that contains edit/del links for each row in the table
-            """
-            row[cols[0]]=(
-                "<a href='/value_edit/%s'>"
-                    "<span class='glyphicon glyphicon-edit' aria-hidden='true'></span>"
-                "</a>"
-                "&nbsp;"
-                "<a href='/value_delete/%s' class='btn-del' title='You are about to delete a record. Are you sure?'>"
-                    "<span style='color:red;' class='glyphicon glyphicon-trash' aria-hidden='true'></span>"
-                "</a>") % (row["_id"], row['_id'])
-            """
-            # Using OrderedDict to maintain column orders
-            #print(type(row))
-            data.append(OrderedDict(row))
-
-            cols.append('_id')
-            try:
-                order = ColumnOrderMapping.objects.get(silo_id=silo_id)
-                print json.loads(order.ordering).values()
-                cols.extend(json.loads(order.ordering).values())
-            except DoesNotExist as e:
-                pass
-            except Exception as e:
-                messages.add_message(request, messages.ERROR, "Column ordering failed, using the default ordering")
-
-            # create a distinct list of column names to be used for datatables in templates
-            cols.extend([c for c in row.keys() if c not in cols and
-                        #c != "_id" and
-                        c != "create_date" and
-                        c != "edit_date" and
-                        c != "silo_id" and
-                        c != "read_id"])
-            break
-        # convert bson data to json data using json_utils.dumps from pymongo module
-        data = dumps(data)
+        cols.append('_id')
+        cols.extend(getSiloColumnNames(silo_id))
     else:
         messages.warning(request,"You do not have permission to view this table.")
     return render(request, "display/silo.html", {"silo": silo, "cols": cols})
@@ -1372,15 +1336,30 @@ def newFormulaColumn(request, pk):
             return HttpResponseRedirect(reverse_lazy('newFormulaColumn', kwargs={'pk': pk}))
         #now add the formula to the mysql database
         mapping = json.dumps(cols)
-        fcm = FormulaColumnMapping.objects.create(silo=silo,\
+        fcm = FormulaColumnMapping.objects.get_or_create(silo=silo,\
                                                 mapping=mapping,\
                                                 operation=operation,\
                                                 column_name=column_name)
 
         return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
 
-    lvs = LabelValueStore.objects(silo_id=pk)
     silo = Silo.objects.get(pk=pk)
-    cols = [col for col in lvs[0] if col not in ['id','silo_id','read_id','create_date','edit_date']]
-    cols.sort()
+    cols = getSiloColumnNames(pk)
     return render(request, "silo/add-formula-column.html", {'silo':silo,'cols': cols})
+
+def editColumnOrder(request, pk):
+    if request.method == 'POST':
+        cols = request.POST.getlist("columns")
+        try:
+            column_order_mapping = ColumnOrderMapping.objects.get(silo_id=pk)
+            column_order_mapping.ordering = json.dumps(cols)
+            column_order_mapping.save()
+        except ColumnOrderMapping.DoesNotExist as e:
+            ColumnOrderMapping.objects.create(silo_id=pk,ordering = json.dumps(cols))
+
+
+        return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
+
+    silo = Silo.objects.get(pk=pk)
+    cols = getSiloColumnNames(pk)
+    return render(request, "display/edit-column-order.html", {'silo':silo,'cols': cols})
