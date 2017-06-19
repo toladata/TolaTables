@@ -11,7 +11,7 @@ from django.utils.encoding import smart_str, smart_unicode
 from django.conf import settings
 from django.contrib.auth.models import User
 
-from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ColumnType, ThirdPartyTokens, FormulaColumnMapping
+from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ColumnType, ThirdPartyTokens, FormulaColumnMapping, ColumnOrderMapping
 from django.contrib import messages
 import pymongo
 from bson.objectid import ObjectId
@@ -215,17 +215,16 @@ def importJSON(read_obj, user, remote_user = None, password = None, silo_id = No
         return (messages.ERROR, "An error has occured: %s" % e, str(silo_id))
 
 def getSiloColumnNames(id):
-    lvs = LabelValueStore.objects(silo_id=id).to_json()
-    data = {}
-    jsonlvs = json.loads(lvs)
-    for item in jsonlvs:
-        for k, v in item.iteritems():
-            #print("The key and value are ({}) = ({})".format(k, v))
-            if k == "_id" or k == "edit_date" or k == "create_date" or k == "silo_id":
-                continue
-            else:
-                data[k] = v
-    return data
+    lvs = LabelValueStore.objects(silo_id=id)
+    cols = []
+    try:
+        order = ColumnOrderMapping.objects.get(silo_id=id)
+        cols.extend(json.loads(order.ordering).values())
+    except ColumnOrderMapping.DoesNotExist as e:
+        pass
+
+    cols.extend([col for col in lvs[0] if col not in ['id','silo_id','read_id','create_date','edit_date']])
+    return cols
 
 def user_to_tola(backend, user, response, *args, **kwargs):
 
