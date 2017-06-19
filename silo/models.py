@@ -268,7 +268,7 @@ class Silo(models.Model):
 
 
 class DeletedSilos(models.Model):
-    user = models.OneToOneField(User)
+    user = models.ForeignKey(User)
     deleted_time = models.DateTimeField()
     silo_name_id = models.CharField(max_length=255)
     silo_description = models.CharField(max_length=255,blank=True,null=True)
