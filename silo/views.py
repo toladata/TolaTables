@@ -39,7 +39,7 @@ from django.db.models import Count
 from silo.custom_csv_dict_reader import CustomDictReader
 from .models import GoogleCredentialsModel
 from gviews_v4 import import_from_gsheet_helper
-from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames, calculateFormulaColumn
+from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames, parseMathInstruction, calculateFormulaColumn
 
 from commcare.util import useHeaderName
 
@@ -551,8 +551,8 @@ def deleteSilo(request, id):
             messages.success(request, "Silo, %s, with all of its %s rows of data deleted successfully." % (silo_name, num_rows_deleted))
         except Silo.DoesNotExist as e:
             print(e)
-        except Exception as es:
-            print(es)
+        #except Exception as es:
+            #print(es)
         return HttpResponseRedirect("/silos")
     else:
         messages.error(request, "You do not have permission to delete this silo")
@@ -1038,6 +1038,13 @@ def editColumns(request,id):
                             },
                         False
                     )
+                    column_name = label.split("_")[0]
+                    try:
+                        formula_columns = FormulaColumnMapping.objects.get(silo_id=id, column_name=column_name).delete()
+                    except Exception as e:
+                        pass
+
+
             messages.info(request, 'Updates Saved', fail_silently=False)
         else:
             messages.error(request, 'ERROR: There was a problem with your request', fail_silently=False)
@@ -1160,7 +1167,6 @@ def valueEdit(request,id):
     data = {}
     jsondoc = json.loads(doc)
     silo_id = None
-
     for item in jsondoc:
         for k, v in item.iteritems():
             #print("The key and value are ({}) = ({})".format(smart_str(k), smart_str(v)))
@@ -1187,8 +1193,19 @@ def valueEdit(request,id):
                 if lbl != "id" and lbl != "silo_id" and lbl != "csrfmiddlewaretoken":
                     setattr(lvs, lbl, val)
             lvs.edit_date = timezone.now()
+            formula_columns = FormulaColumnMapping.objects.filter(silo_id=silo_id)
+            for column in formula_columns:
+                calculation_to_do = parseMathInstruction(column.operation)
+                columns_to_calculate_from = json.loads(column.mapping)
+                numbers = []
+                try:
+                    for col in columns_to_calculate_from:
+                        numbers.append(int(lvs[col]))
+                    setattr(lvs,column.column_name,calculation_to_do(numbers))
+                except ValueError as operation:
+                    setattr(lvs,column.column_name,calculation_to_do("Error"))
             lvs.save()
-            return HttpResponseRedirect('/value_edit/' + id)
+            return HttpResponseRedirect('/silo_detail/' + str(silo_id))
         else:
             print "not valid"
     else:

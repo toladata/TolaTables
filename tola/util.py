@@ -11,7 +11,7 @@ from django.utils.encoding import smart_str, smart_unicode
 from django.conf import settings
 from django.contrib.auth.models import User
 
-from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ColumnType, ThirdPartyTokens
+from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ColumnType, ThirdPartyTokens, FormulaColumnMapping
 from django.contrib import messages
 import pymongo
 from bson.objectid import ObjectId
@@ -37,6 +37,22 @@ def median(lst):
 
 def mode(lst):
     return max(set(lst), key=lst.count)
+
+def parseMathInstruction(operation):
+    if operation == "sum":
+        return sum
+    elif operation == "mean":
+        return mean
+    elif operation == "median":
+       return median
+    elif operation == "mode":
+       return mode
+    elif operation == "max":
+       return max
+    elif operation == "min":
+       return min
+    else:
+        return (messages.ERROR, "Tried to perform invalid operation: %s" % operation)
 
 def combineColumns(silo_id):
     client = MongoClient(settings.MONGODB_HOST)
@@ -136,6 +152,17 @@ def saveDataToSilo(silo, data, read, user = None):
                 val = smart_str(val, strings_only=True)
             setattr(lvs, key.replace(".", "_").replace("$", "USD").replace(u'\u2026', ""), val)
             counter += 1
+        formula_columns = FormulaColumnMapping.objects.filter(silo_id=silo.id)
+        for column in formula_columns:
+            calculation_to_do = parseMathInstruction(column.operation)
+            columns_to_calculate_from = json.loads(column.mapping)
+            numbers = []
+            try:
+                for col in columns_to_calculate_from:
+                    numbers.append(int(lvs[col]))
+                setattr(lvs,column.column_name,calculation_to_do(numbers))
+            except ValueError as operation:
+                setattr(lvs,column.column_name,calculation_to_do("Error"))
         lvs.save()
 
     combineColumns(silo.pk)
@@ -354,23 +381,13 @@ def calculateFormulaColumn(lvs,operation,columns,formula_column_name):
     columns -- a list of columns to use in the math operation
     formula_column_name -- name of the column that holds the math done
     """
+
     if not columns or len(columns) == 0:
         return (messages.ERROR, "No columns were selected for operation")
 
-    if operation == "sum":
-        calc = sum
-    elif operation == "mean":
-        calc = mean
-    elif operation == "median":
-        calc = median
-    elif operation == "mode":
-        calc = mode
-    elif operation == "max":
-        calc = max
-    elif operation == "min":
-        calc = min
-    else:
-        return (messages.ERROR, "Tried to perform invalid operation: %s" % operation)
+    calc = parseMathInstruction(operation)
+    if type(calc) == tuple:
+        return calc
 
     calc_fails = []
     for i, entry in enumerate(lvs):
@@ -380,9 +397,11 @@ def calculateFormulaColumn(lvs,operation,columns,formula_column_name):
                 values_to_calc.append(int(entry[col]))
             calculation = calc(values_to_calc)
             setattr(entry,formula_column_name,calculation)
+            entry.edit_date = timezone.now()
             entry.save()
         except ValueError as operation:
             setattr(entry,formula_column_name,"Error")
+            entry.edit_date = timezone.now()
             entry.save()
             calc_fails.append(i)
     if len(calc_fails) == 0:
