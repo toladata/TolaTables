@@ -340,6 +340,10 @@ class FormulaColumnMapping(models.Model):
     operation = models.TextField()
     column_name = models.TextField()
 
+class ColumnOrderMapping(models.Model):
+    silo = models.ForeignKey(Silo)
+    ordering = models.TextField() #stores a json dictionary
+
 from mongoengine import *
 class LabelValueStore(DynamicDocument):
     silo_id = IntField()

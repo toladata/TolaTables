@@ -43,7 +43,7 @@ from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, ge
 
 from commcare.util import useHeaderName
 
-from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeletedSilos, FormulaColumnMapping
+from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeletedSilos, FormulaColumnMapping, ColumnOrderMapping
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
 
 logger = logging.getLogger("silo")
@@ -802,6 +802,16 @@ def siloDetail(request, silo_id):
             # Using OrderedDict to maintain column orders
             #print(type(row))
             data.append(OrderedDict(row))
+
+            cols.append('_id')
+            try:
+                order = ColumnOrderMapping.objects.get(silo_id=silo_id)
+                print json.loads(order.ordering).values()
+                cols.extend(json.loads(order.ordering).values())
+            except DoesNotExist as e:
+                pass
+            except Exception as e:
+                messages.add_message(request, messages.ERROR, "Column ordering failed, using the default ordering")
 
             # create a distinct list of column names to be used for datatables in templates
             cols.extend([c for c in row.keys() if c not in cols and
