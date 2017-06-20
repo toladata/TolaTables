@@ -51,7 +51,7 @@ urlpatterns =[
     url(r'^admin/', include(admin.site.urls)),
     url(r'^$', views.index, name='index'),
 
-    url(r'^source/new/', views.showRead, kwargs={'id': 0}, name='newRead'),
+    url(r'^source/FormulaColumnF/', views.showRead, kwargs={'id': 0}, name='newRead'),
     url(r'^show_read/(?P<id>\w+)/$', views.showRead, name='showRead'),
 
     url(r'^file/(?P<id>\w+)/$', views.uploadFile, name='uploadFile'),
@@ -80,8 +80,11 @@ urlpatterns =[
     url(r'^value_edit/(?P<id>\w+)/$', views.valueEdit, name='valueEdit'),
     url(r'^value_delete/(?P<id>\w+)/$', views.valueDelete, name='valueDelete'),
     url(r'^new_column/(?P<id>\w+)/$', views.newColumn, name='newColumn'),
+    url(r'^new_formula_column/(?P<pk>\w+)/$', views.newFormulaColumn, name='newFormulaColumn'),
     url(r'^edit_columns/(?P<id>\w+)/$', views.editColumns, name='editColumns'),
     url(r'^delete_column/(?P<id>\w+)/(?P<column>\w+)/$', views.deleteColumn, name='deleteColumn'),
+    url(r'^edit_column_order/(?P<pk>\w+)/$', views.editColumnOrder, name='editColumnOrder'),
+
 
     url(r'^export_to_activity/(?P<id>\d+)/$', tola_activity_views.export_to_tola_activity, name="acitivity_push"),
     url(r'^export/(?P<id>\w+)/$', views.export_silo, name='export_silo'),

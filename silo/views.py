@@ -39,11 +39,11 @@ from django.db.models import Count
 from silo.custom_csv_dict_reader import CustomDictReader
 from .models import GoogleCredentialsModel
 from gviews_v4 import import_from_gsheet_helper
-from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames
+from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames, parseMathInstruction, calculateFormulaColumn, ColumnOrderMapping
 
 from commcare.util import useHeaderName
 
-from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn
+from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeletedSilos, FormulaColumnMapping, ColumnOrderMapping
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
 
 logger = logging.getLogger("silo")
@@ -541,14 +541,18 @@ def deleteSilo(request, id):
         try:
             silo_to_be_deleted = Silo.objects.get(pk=id)
             silo_name = silo_to_be_deleted.name
+            DeletedSilos.objects.get_or_create(user=request.user,\
+                                            deleted_time=timezone.now(),\
+                                            silo_name_id=silo_name+" with id "+id,\
+                                            silo_description=silo_to_be_deleted.description)
             lvs = LabelValueStore.objects(silo_id=silo_to_be_deleted.id)
             num_rows_deleted = lvs.delete()
             silo_to_be_deleted.delete()
             messages.success(request, "Silo, %s, with all of its %s rows of data deleted successfully." % (silo_name, num_rows_deleted))
         except Silo.DoesNotExist as e:
             print(e)
-        except Exception as es:
-            print(es)
+        #except Exception as es:
+            #print(es)
         return HttpResponseRedirect("/silos")
     else:
         messages.error(request, "You do not have permission to delete this silo")
@@ -781,34 +785,8 @@ def siloDetail(request, silo_id):
     data = []
 
     if silo.owner == request.user or silo.public == True or request.user in silo.shared.all():
-        bsondata = store.find({"silo_id": silo.pk})
-        #bsondata = db.label_value_store.find({"silo_id": silo.pk})
-        for row in bsondata:
-            # Add a column that contains edit/del links for each row in the table
-            """
-            row[cols[0]]=(
-                "<a href='/value_edit/%s'>"
-                    "<span class='glyphicon glyphicon-edit' aria-hidden='true'></span>"
-                "</a>"
-                "&nbsp;"
-                "<a href='/value_delete/%s' class='btn-del' title='You are about to delete a record. Are you sure?'>"
-                    "<span style='color:red;' class='glyphicon glyphicon-trash' aria-hidden='true'></span>"
-                "</a>") % (row["_id"], row['_id'])
-            """
-            # Using OrderedDict to maintain column orders
-            #print(type(row))
-            data.append(OrderedDict(row))
-
-            # create a distinct list of column names to be used for datatables in templates
-            cols.extend([c for c in row.keys() if c not in cols and
-                        #c != "_id" and
-                        c != "create_date" and
-                        c != "edit_date" and
-                        c != "silo_id" and
-                        c != "read_id"])
-            break
-        # convert bson data to json data using json_utils.dumps from pymongo module
-        data = dumps(data)
+        cols.append('_id')
+        cols.extend(getSiloColumnNames(silo_id))
     else:
         messages.warning(request,"You do not have permission to view this table.")
     return render(request, "display/silo.html", {"silo": silo, "cols": cols})
@@ -1010,6 +988,7 @@ def editColumns(request,id):
     silo = Silo.objects.get(id=id)
 
     if request.method == 'POST':
+        data = getSiloColumnNames(id)
         form = EditColumnForm(request.POST or None, extra = data)  # A form bound to the POST data
         if form.is_valid():  # All validation rules pass
             for label,value in form.cleaned_data.iteritems():
@@ -1033,6 +1012,13 @@ def editColumns(request,id):
                             },
                         False
                     )
+                    column_name = label.split("_")[0]
+                    try:
+                        formula_columns = FormulaColumnMapping.objects.get(silo_id=id, column_name=column_name).delete()
+                    except Exception as e:
+                        pass
+
+
             messages.info(request, 'Updates Saved', fail_silently=False)
         else:
             messages.error(request, 'ERROR: There was a problem with your request', fail_silently=False)
@@ -1155,7 +1141,6 @@ def valueEdit(request,id):
     data = {}
     jsondoc = json.loads(doc)
     silo_id = None
-
     for item in jsondoc:
         for k, v in item.iteritems():
             #print("The key and value are ({}) = ({})".format(smart_str(k), smart_str(v)))
@@ -1182,8 +1167,19 @@ def valueEdit(request,id):
                 if lbl != "id" and lbl != "silo_id" and lbl != "csrfmiddlewaretoken":
                     setattr(lvs, lbl, val)
             lvs.edit_date = timezone.now()
+            formula_columns = FormulaColumnMapping.objects.filter(silo_id=silo_id)
+            for column in formula_columns:
+                calculation_to_do = parseMathInstruction(column.operation)
+                columns_to_calculate_from = json.loads(column.mapping)
+                numbers = []
+                try:
+                    for col in columns_to_calculate_from:
+                        numbers.append(int(lvs[col]))
+                    setattr(lvs,column.column_name,calculation_to_do(numbers))
+                except ValueError as operation:
+                    setattr(lvs,column.column_name,calculation_to_do("Error"))
             lvs.save()
-            return HttpResponseRedirect('/value_edit/' + id)
+            return HttpResponseRedirect('/silo_detail/' + str(silo_id))
         else:
             print "not valid"
     else:
@@ -1319,3 +1315,51 @@ def removeSource(request, silo_id, read_id):
         messages.error(request,"Datasource with id=%s does not exist." % read_id)
 
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': silo_id},))
+
+@login_required
+def newFormulaColumn(request, pk):
+    if request.method == 'POST':
+        operation = request.POST.get("math_operation")
+        cols = request.POST.getlist("columns")
+        column_name = request.POST.get("column_name")
+        silo = Silo.objects.get(pk=pk)
+
+        if column_name == "":
+            column_name = operation
+
+        #now add the resutls to the mongodb database
+        lvs = LabelValueStore.objects(silo_id=silo.pk)
+        calc_result = calculateFormulaColumn(lvs,operation,cols,column_name)
+        messages.add_message(request,calc_result[0],calc_result[1])
+
+        if calc_result[0] == messages.ERROR:
+            return HttpResponseRedirect(reverse_lazy('newFormulaColumn', kwargs={'pk': pk}))
+        #now add the formula to the mysql database
+        mapping = json.dumps(cols)
+        fcm = FormulaColumnMapping.objects.get_or_create(silo=silo,\
+                                                mapping=mapping,\
+                                                operation=operation,\
+                                                column_name=column_name)
+
+        return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
+
+    silo = Silo.objects.get(pk=pk)
+    cols = getSiloColumnNames(pk)
+    return render(request, "silo/add-formula-column.html", {'silo':silo,'cols': cols})
+
+def editColumnOrder(request, pk):
+    if request.method == 'POST':
+        cols = request.POST.getlist("columns")
+        try:
+            column_order_mapping = ColumnOrderMapping.objects.get(silo_id=pk)
+            column_order_mapping.ordering = json.dumps(cols)
+            column_order_mapping.save()
+        except ColumnOrderMapping.DoesNotExist as e:
+            ColumnOrderMapping.objects.create(silo_id=pk,ordering = json.dumps(cols))
+
+
+        return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
+
+    silo = Silo.objects.get(pk=pk)
+    cols = getSiloColumnNames(pk)
+    return render(request, "display/edit-column-order.html", {'silo':silo,'cols': cols})

@@ -61,6 +61,7 @@
                             <a href="{% url 'acitivity_push' silo.pk %}" id="push_to_activity_btn" class="btn btn-sm btn-primary">Send To Tola Activity</a>
 
                             <a href="/silo_delete/{{ silo.pk }}" class="btn btn-del btn-sm btn-danger" title="Are you sure you want to delete this table? All of the data stored in this table will also be deleted."><span class="glyphicon glyphicon-trash" title="Delete"></span> Delete Table</a>
+                            <a href="/edit_column_order/{{silo.pk}}" class="btn btn-primary">Edit Column Order</a>
 
                             <a href="/set_unique_columns/{{ id }}/" id="unique_cols_selection_btn" class="btn btn-primary"> Assign a Unique Column</a>
                             <span class="label label-info" id="unique_col_lbl"></span>
@@ -160,6 +161,7 @@
                         <li class="list-group-item">
                             <a href="/edit_columns/{{ silo.pk }}/" class="btn btn-primary">Edit or Delete columns</a>
                             <a href="/new_column/{{ silo.pk }}/" class="btn btn-primary">Add New Column</a>
+                            <a href="/new_formula_column/{{ silo.pk }}/" class="btn btn-primary">Add New Formula Column</a>
                         <!--
                         <a href="/anonymize_silo/{{ id }}/" class="btn btn-primary">Anonymize Table</a>
                         <a href="/identifyPII/{{ id }}/" id="identifyPIIBtn" class="btn btn-primary">Identify PIIF Columns</a>
@@ -402,6 +404,49 @@
                 "searching": false,
                 "ordering": true,
                 "stateSave": false,
+            });
+
+            $("#data_table").find("th").on("click", function(e){
+                var to_sort = $(this).attr('arria-sort');
+                var col_name = $(this).text();
+                var retrieve_url = "/api/silo/{{silo.pk}}/data?sort=";
+                if (to_sort == "ascending") {
+                  retrieve_url += "-";
+                  to_sort = "descending";
+                }
+                else{
+                  retrieve_url += "";
+                  to_sort = "ascending";
+                }
+                retrieve_url += col_name;
+                silo_table.destroy();
+                silo_table = $('#data_table').DataTable({
+                    "processing": true,
+                    "serverSide": true,
+                    "ajax": {
+                        "url": retrieve_url,
+                        "type": "GET",
+                        "data": function ( d ) {
+                            //console.log(d);
+                        }
+                    },
+                    // remove extra params from the request to avoid uri-too-large error
+                    "fnServerParams": function ( aoData ) {
+                        delete aoData.columns;
+                    },
+                    "columns": cols,
+                    "pageLength": 50,
+                    "searching": false,
+                    "ordering": true,
+                    "stateSave": false,
+                });
+                if (to_sort=="ascending") {
+                  $(this).attr('class',"sorting_asc");
+                }
+                else{
+                  $(this).attr('class',"sorting_desc");
+                }
+                $(this).attr('arria-sort',to_sort);
             });
 
 

@@ -116,7 +116,7 @@ class EditColumnForm(forms.Form):
         super(EditColumnForm, self).__init__(*args, **kwargs)
 
         for item in extra:
-            if item != "_id" and item != "silo_id" and item != "edit_date" and item != "create_date":
+            if item != "_id" and item != "silo_id" and item != "edit_date" and item != "create_date" and item != "read_id":
                 self.fields[item] = forms.CharField(label=item, initial=item, required=False,widget="")
                 self.fields[item + "_delete"] = forms.BooleanField(label="delete " + item, initial=False, required=False,widget="")
 
@@ -141,7 +141,4 @@ class MongoEditForm(forms.Form):
             if item == "edit_date" or item == "create_date":
                 self.fields[item] = forms.CharField(label = item, initial=extra[item], required=False, widget=forms.TextInput(attrs={'readonly': "readonly"}))
             elif item != "_id" and item != "silo_id":
-                print item
                 self.fields[item] = forms.CharField(label = item, initial=extra[item], required=False)
-
-

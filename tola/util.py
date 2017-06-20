@@ -11,7 +11,7 @@ from django.utils.encoding import smart_str, smart_unicode
 from django.conf import settings
 from django.contrib.auth.models import User
 
-from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ColumnType, ThirdPartyTokens
+from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ColumnType, ThirdPartyTokens, FormulaColumnMapping, ColumnOrderMapping
 from django.contrib import messages
 import pymongo
 from bson.objectid import ObjectId
@@ -20,6 +20,39 @@ from pymongo import MongoClient
 from os import walk, listdir
 from django.apps import apps
 
+from collections import Counter
+
+def mean(lst):
+    return float(sum(lst))/len(lst)
+
+def median(lst):
+    lst = sorted(lst)
+    n = len(lst)
+    if n < 1:
+            return None
+    if n % 2 == 1:
+            return lst[n//2]
+    else:
+            return sum(lst[n//2-1:n//2+1])/2.0
+
+def mode(lst):
+    return max(set(lst), key=lst.count)
+
+def parseMathInstruction(operation):
+    if operation == "sum":
+        return sum
+    elif operation == "mean":
+        return mean
+    elif operation == "median":
+       return median
+    elif operation == "mode":
+       return mode
+    elif operation == "max":
+       return max
+    elif operation == "min":
+       return min
+    else:
+        return (messages.ERROR, "Tried to perform invalid operation: %s" % operation)
 
 def combineColumns(silo_id):
     client = MongoClient(settings.MONGODB_HOST)
@@ -119,6 +152,17 @@ def saveDataToSilo(silo, data, read, user = None):
                 val = smart_str(val, strings_only=True)
             setattr(lvs, key.replace(".", "_").replace("$", "USD").replace(u'\u2026', ""), val)
             counter += 1
+        formula_columns = FormulaColumnMapping.objects.filter(silo_id=silo.id)
+        for column in formula_columns:
+            calculation_to_do = parseMathInstruction(column.operation)
+            columns_to_calculate_from = json.loads(column.mapping)
+            numbers = []
+            try:
+                for col in columns_to_calculate_from:
+                    numbers.append(int(lvs[col]))
+                setattr(lvs,column.column_name,calculation_to_do(numbers))
+            except ValueError as operation:
+                setattr(lvs,column.column_name,calculation_to_do("Error"))
         lvs.save()
 
     combineColumns(silo.pk)
@@ -171,17 +215,16 @@ def importJSON(read_obj, user, remote_user = None, password = None, silo_id = No
         return (messages.ERROR, "An error has occured: %s" % e, str(silo_id))
 
 def getSiloColumnNames(id):
-    lvs = LabelValueStore.objects(silo_id=id).to_json()
-    data = {}
-    jsonlvs = json.loads(lvs)
-    for item in jsonlvs:
-        for k, v in item.iteritems():
-            #print("The key and value are ({}) = ({})".format(k, v))
-            if k == "_id" or k == "edit_date" or k == "create_date" or k == "silo_id":
-                continue
-            else:
-                data[k] = v
-    return data
+    lvs = LabelValueStore.objects(silo_id=id)
+    cols = []
+    try:
+        order = ColumnOrderMapping.objects.get(silo_id=id)
+        cols.extend(json.loads(order.ordering))
+    except ColumnOrderMapping.DoesNotExist as e:
+        pass
+
+    cols.extend([col for col in lvs[0] if col not in cols and col not in ['id','silo_id','read_id','create_date','edit_date']])
+    return cols
 
 def user_to_tola(backend, user, response, *args, **kwargs):
 
@@ -325,3 +368,41 @@ def saveOnaDataToSilo(silo, data, read, user):
     else:
         ona_parse_type_group(data,form_metadata['children'],"",silo,read)
         return
+
+def calculateFormulaColumn(lvs,operation,columns,formula_column_name):
+    """
+    This function calculates the math operation for a queryset of label_value_store using defined
+    columns
+
+
+    lvs -- a queryset of label_value_store objects
+    operation -- the math operation to perform
+    columns -- a list of columns to use in the math operation
+    formula_column_name -- name of the column that holds the math done
+    """
+
+    if not columns or len(columns) == 0:
+        return (messages.ERROR, "No columns were selected for operation")
+
+    calc = parseMathInstruction(operation)
+    if type(calc) == tuple:
+        return calc
+
+    calc_fails = []
+    for i, entry in enumerate(lvs):
+        try:
+            values_to_calc = []
+            for col in columns:
+                values_to_calc.append(int(entry[col]))
+            calculation = calc(values_to_calc)
+            setattr(entry,formula_column_name,calculation)
+            entry.edit_date = timezone.now()
+            entry.save()
+        except ValueError as operation:
+            setattr(entry,formula_column_name,"Error")
+            entry.edit_date = timezone.now()
+            entry.save()
+            calc_fails.append(i)
+    if len(calc_fails) == 0:
+        return (messages.SUCCESS, "Successfully performed operations")
+    return (messages.WARNING, "Non-numberic data detected in rows %s" % str(calc_fails))

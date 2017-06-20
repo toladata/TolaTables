@@ -267,6 +267,18 @@ class Silo(models.Model):
         return LabelValueStore.objects(silo_id=self.id).count()
 
 
+class DeletedSilos(models.Model):
+    user = models.ForeignKey(User)
+    deleted_time = models.DateTimeField()
+    silo_name_id = models.CharField(max_length=255)
+    silo_description = models.CharField(max_length=255,blank=True,null=True)
+
+class DeletedSilosAdmin(admin.ModelAdmin):
+    list_display = ('user', 'silo_name_id', 'silo_description','deleted_time')
+    search_fields = ('user__last_name','user__first_name','silo_name_id')
+    display = 'Data Feeds'
+
+
 class SiloAdmin(admin.ModelAdmin):
     list_display = ('owner', 'name', 'description', 'public','create_date')
     search_fields = ('owner__last_name','owner__first_name','name')
@@ -322,6 +334,15 @@ class UniqueFields(models.Model):
     def __unicode__(self):
         return self.name
 
+class FormulaColumnMapping(models.Model):
+    silo = models.ForeignKey(Silo)
+    mapping = models.TextField() #stores a json document for mapping
+    operation = models.TextField()
+    column_name = models.TextField()
+
+class ColumnOrderMapping(models.Model):
+    silo = models.ForeignKey(Silo)
+    ordering = models.TextField() #stores a json dictionary
 
 from mongoengine import *
 class LabelValueStore(DynamicDocument):
