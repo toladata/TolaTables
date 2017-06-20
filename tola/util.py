@@ -222,6 +222,8 @@ def getSiloColumnNames(id):
         cols.extend(json.loads(order.ordering))
     except ColumnOrderMapping.DoesNotExist as e:
         pass
+    if len(lvs) == 0:
+        return []
 
     cols.extend([col for col in lvs[0] if col not in cols and col not in ['id','silo_id','read_id','create_date','edit_date','editted_date']])
     return cols
@@ -251,7 +253,7 @@ def getImportAppsVerbose():
     folders = getImportApps()
     apps = [[folder,folder] for folder in folders]
     for app in apps:
-        filepath = "datasources/" + app[0] + "/apps.py"
+        filepath = settings.SITE_ROOT + "/datasources/" + app[0] + "/apps.py"
         f = open(filepath,"r")
         for i, line in enumerate(f):
             if i > 100:
