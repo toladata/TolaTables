@@ -252,12 +252,14 @@ LOCAL_APPS = (
     'silo',
     'tola',
     'board',
+)
+DATASOURCE_APPS = (
     'commcare',
     'fileuploadjson',
 )
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS + DATASOURCE_APPS
 ########## END APP CONFIGURATION
 
 CORS_ORIGIN_WHITELIST = (
