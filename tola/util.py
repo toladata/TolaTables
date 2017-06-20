@@ -223,7 +223,7 @@ def getSiloColumnNames(id):
     except ColumnOrderMapping.DoesNotExist as e:
         pass
 
-    cols.extend([col for col in lvs[0] if col not in cols and col not in ['id','silo_id','read_id','create_date','edit_date']])
+    cols.extend([col for col in lvs[0] if col not in cols and col not in ['id','silo_id','read_id','create_date','edit_date','editted_date']])
     return cols
 
 def user_to_tola(backend, user, response, *args, **kwargs):
@@ -244,15 +244,7 @@ def user_to_tola(backend, user, response, *args, **kwargs):
 
 #gets the list of apps to import data
 def getImportApps():
-    folders = next(walk("datasources"))[1]
-    toRemove = []
-    for i in folders:
-        file_path = "datasources/"+i
-        if "__init__.py" not in listdir(file_path) or i not in settings.LOCAL_APPS:
-            toRemove.append(i)
-    for j in toRemove:
-        folders.remove(j)
-    return folders
+    return settings.DATASOURCE_APPS
 
 #gets the list of apps to import data by their verbose name
 def getImportAppsVerbose():
