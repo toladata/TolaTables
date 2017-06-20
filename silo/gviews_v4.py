@@ -87,7 +87,7 @@ def get_or_create_read(rtype, name, description, spreadsheet_id, user, silo):
     return gsheet_read
 
 
-def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id=None):
+def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id=None, partialcomplete = False):
     msgs = []
     read_url = get_spreadsheet_url(spreadsheet_id)
 
@@ -164,6 +164,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
 
     unique_fields = silo.unique_fields.all()
     skipped_rows = set()
+    lvss = []
     for r, row in enumerate(data):
         if r == 0: headers = row; continue;
         filter_criteria = {}
@@ -207,8 +208,12 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
             key = smart_str(key)
             setattr(lvs, key.replace(".", "_").replace("$", "USD"), val)
         lvs.silo_id = silo.id
+        lvs.read_id = gsheet_read.id
         lvs.create_date = timezone.now()
-        lvs.save()
+        if partialcomplete:
+            lvss.append(lvs)
+        else:
+            lvs.save()
 
     combineColumns(silo.pk)
 
@@ -217,6 +222,8 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
                     "msg": "Skipped updating/adding records where %s because there are already multiple records." % ",".join(str(s) for s in skipped_rows)})
 
     msgs.append({"level": messages.SUCCESS, "msg": "Operation successful"})
+    if partialcomplete:
+        return (lvss,msgs)
     return msgs
 
 @login_required
@@ -408,5 +415,3 @@ def oauth2callback(request):
     storage.put(credential)
     redirect_url = request.session['redirect_uri_after_step2']
     return HttpResponseRedirect(redirect_url)
-
-

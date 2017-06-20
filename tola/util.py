@@ -3,13 +3,15 @@ import datetime
 import urllib2
 import json
 import base64
+import requests
+
 from django.utils.encoding import smart_text
 from django.utils import timezone
 from django.utils.encoding import smart_str, smart_unicode
 from django.conf import settings
 from django.contrib.auth.models import User
 
-from silo.models import Read, Silo, LabelValueStore, TolaUser, Country
+from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ColumnType, ThirdPartyTokens
 from django.contrib import messages
 import pymongo
 from bson.objectid import ObjectId
@@ -52,14 +54,21 @@ def siloToDict(silo):
     return parsed_data
 
 
-def saveDataToSilo(silo, data):
+def saveDataToSilo(silo, data, read, user = None):
     """
     This saves data to the silo
 
     Keyword arguments:
     silo -- the silo object, which is meta data for its labe_value_store
     data -- a python list of dictionaries. stored in MONGODB
+    read -- the read object
+    user -- an optional parameter to use if its necessary to retrieve from ThirdPartyTokens
     """
+    if read.type.read_type == "ONA" and user:
+        saveOnaDataToSilo(silo,data,read,user)
+
+
+    read_source_id = read.id
     unique_fields = silo.unique_fields.all()
     skipped_rows = set()
     enc = "latin-1"
@@ -87,11 +96,12 @@ def saveDataToSilo(silo, data):
             lvs = LabelValueStore.objects.get(**filter_criteria)
             #print("updating")
             setattr(lvs, "edit_date", timezone.now())
+            lvs.read_id = read_source_id
         except LabelValueStore.DoesNotExist as e:
             lvs = LabelValueStore()
             lvs.silo_id = silo.pk
             lvs.create_date = timezone.now()
-            #print("creating")
+            lvs.read_id = read_source_id
         except LabelValueStore.MultipleObjectsReturned as e:
             for k,v in filter_criteria.iteritems():
                 skipped_rows.add("%s=%s" % (k,v))
@@ -107,7 +117,7 @@ def saveDataToSilo(silo, data):
             elif key == "create_date": key = "created_date"
             if type(val) == str or type(val) == unicode:
                 val = smart_str(val, strings_only=True)
-            setattr(lvs, key.replace(".", "_").replace("$", "USD"), val)
+            setattr(lvs, key.replace(".", "_").replace("$", "USD").replace(u'\u2026', ""), val)
             counter += 1
         lvs.save()
 
@@ -117,7 +127,7 @@ def saveDataToSilo(silo, data):
 
 
 #IMPORT JSON DATA
-def importJSON(read_obj, user, remote_user = None, password = None, silo_id = None, silo_name = None):
+def importJSON(read_obj, user, remote_user = None, password = None, silo_id = None, silo_name = None, return_data = False):
     # set date time stamp
     today = datetime.date.today()
     today.strftime('%Y-%m-%d')
@@ -149,9 +159,15 @@ def importJSON(read_obj, user, remote_user = None, password = None, silo_id = No
         data = json.load(json_file)
         json_file.close()
 
-        skipped_rows = saveDataToSilo(silo, data)
+        #if the caller of this function does not want to the data to go into the silo yet
+        if return_data:
+            return data
+
+        skipped_rows = saveDataToSilo(silo, data, read_obj.id)
         return (messages.SUCCESS, "Data imported successfully.", str(silo_id))
     except Exception as e:
+        if return_data:
+            return None
         return (messages.ERROR, "An error has occured: %s" % e, str(silo_id))
 
 def getSiloColumnNames(id):
@@ -210,3 +226,102 @@ def getImportAppsVerbose():
                 app[1] = word[0]
                 break
     return apps
+
+def ona_parse_type_group(data, form_data, parent_name, silo, read):
+    """
+    if data is a type group this replaces the compound key names with their labels
+
+    Keyword arguments:
+    data -- ona data that needs changing
+    form_data -- the children of an ONA object of type group
+    parent_name -- the name of the parent of the ona object
+    """
+    for field in form_data:
+
+
+        if field["type"] == "group":
+            ona_parse_type_group(data,field['children'],parent_name + field['name']+"/",silo,read)
+        else:
+            for entry in data:
+                if field['type'] == "repeat":
+                    ona_parse_type_repeat(entry[parent_name + field['name']],\
+                                        field['children'],\
+                                        parent_name + field['name']+"/",silo,read)
+                if 'label' in field:
+                    try:
+                        entry[field['label']] = entry.pop(parent_name + field['name'])
+                    except KeyError as e:
+                        pass
+
+        #add an asociation between a column, label and its type to the columnType database
+        name = ""
+        if 'label' in field:
+            name = field['label']
+        else:
+            name = field['name']
+
+        try:
+            ct = ColumnType.objects.get(silo_id=silo.pk,\
+                                        read_id=read.pk,\
+                                        column_name=name,\
+                                        column_source_name=field['name'],\
+                                        column_type=field['type'])
+            setattr(ct, "edit_date", timezone.now())
+        except ColumnType.DoesNotExist as e:
+            ct = ColumnType(silo_id=silo.pk,\
+                            read_id=read.pk,\
+                            create_date=timezone.now(),\
+                            column_name=name,\
+                            column_source_name=field['name'],\
+                            column_type=field['type'])
+            ct.save()
+        except ColumnType.MultipleObjectsReturned as e:
+            continue
+
+def ona_parse_type_repeat(data, form_data, parent_name, silo, read):
+    """
+    if data is of type repeat this replaces the compound key names apropriate column headers
+    This function in finding apropriate column headers also clears out any "${}" type objects
+
+    Keyword arguments:
+    data -- the subset of ona data that needs changing
+    form_data -- the children of an ONA object of type repeat
+    parent_name -- the name of the parent of the ona object
+    """
+    for field in form_data:
+        if field["type"] == "group":
+            ona_parse_type_group(data,field['children'],parent_name + field['name']+"/",silo,read)
+        else:
+            for entry in data:
+                if field['type'] == "repeat":
+                    ona_parse_type_repeat(entry[parent_name + field['name']],\
+                                        field['children'],\
+                                        parent_name + field['name']+"/",silo,read)
+                if 'label' in field:
+                    entry[field['label']] = entry.pop(parent_name + field['name'])
+
+def saveOnaDataToSilo(silo, data, read, user):
+    """
+    This saves data to the silo specifically for ONA.
+    ONA column type and label comes separetely so this function provides the medium layer for integration
+    This function also stores an association between a column name and a column type in the columnType database
+
+    Keyword arguments:
+    silo -- the silo object, which is meta data for its labe_value_store
+    data -- a python list of dictionaries. stored in MONGODB
+    form_metadata -- a python dictionary from ONA storing column names labels and types
+    read -- a read object
+    """
+    #If in the future the ONA data needs to be adjusted to remove undesirable fields it can be done here
+    ona_token = ThirdPartyTokens.objects.get(user=user, name="ONA")
+    url = "https://api.ona.io/api/v1/forms/"+ read.read_url.split('/')[6] +"/form.json"
+    response = requests.get(url, headers={'Authorization': 'Token %s' % ona_token.token})
+    form_metadata = json.loads(response.content)
+
+
+    #if this is true than the data isn't a form so proceed to saveDataToSilo normally
+    if "detail" in form_metadata:
+        return
+    else:
+        ona_parse_type_group(data,form_metadata['children'],"",silo,read)
+        return

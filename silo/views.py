@@ -9,8 +9,11 @@ from requests.auth import HTTPDigestAuth
 import logging
 from operator import and_, or_
 from collections import OrderedDict
+
 import pymongo
 from pymongo import MongoClient
+from mongoengine.queryset.visitor import Q
+
 from bson.objectid import ObjectId
 from bson import CodecOptions, SON
 from bson.json_util import dumps
@@ -37,6 +40,8 @@ from silo.custom_csv_dict_reader import CustomDictReader
 from .models import GoogleCredentialsModel
 from gviews_v4 import import_from_gsheet_helper
 from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames
+
+from commcare.util import useHeaderName
 
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
@@ -423,9 +428,11 @@ def saveAndImportRead(request):
     if request.method != 'POST':
         return HttpResponseBadRequest("HTTP method, %s, is not supported" % request.method)
 
+
     read_type = ReadType.objects.get(read_type="ONA")
     name = request.POST.get('read_name', None)
     url = request.POST.get('read_url', None)
+    silo_name = request.POST.get('silo_name', None)
     owner = request.user
     description = request.POST.get('description', None)
     silo_id = None
@@ -458,42 +465,17 @@ def saveAndImportRead(request):
     new_cols = []
     show_mapping = False
 
-    silo, silo_created = Silo.objects.get_or_create(id=silo_id, defaults={"name": name,
+    silo, silo_created = Silo.objects.get_or_create(id=silo_id, defaults={"name": silo_name,
                                       "public": False,
                                       "owner": owner})
+
     if silo_created or read_created:
         silo.reads.add(read)
     elif read not in silo.reads.all():
         silo.reads.add(read)
 
-    """
-    #
-    # THIS WILL BE ADDED LATER ONCE THE saveDataToSilo REFACTORING IS COMPLETE!
-    #
-    # Get all of the unique cols for this silo into an array
-    lvs = json.loads(LabelValueStore.objects(silo_id=silo.id).to_json())
-    for l in lvs:
-        existing_silo_cols.extend(c for c in l.keys() if c not in existing_silo_cols)
-
-    # Get all of the unique cols of the fetched data in a separate array
-    for row in data:
-        new_cols.extend(c for c in row.keys() if c not in new_cols)
-
-    # Loop through the unique cols of fetched data; if there are cols that do
-    # no exist in the existing silo, then show mapping.
-    for c in new_cols:
-        if c == "silo_id" or c == "create_date" or c == "edit_date" or c == "id": continue
-        if c not in existing_silo_cols: show_mapping = True
-        if show_mapping == True:
-            # store the newly fetched data into a temp table and then show mapping
-            params = {'getSourceFrom':existing_silo_cols, 'getSourceTo':new_cols, 'from_silo_id':0, 'to_silo_id':silo.id}
-            response = render_to_response("display/merge-column-form-inner.html", params, context_instance=RequestContext(request))
-            response['show_mapping'] = '1'
-            return response
-    """
-
     # import data into this silo
-    res = saveDataToSilo(silo, data)
+    res = saveDataToSilo(silo, data, read, request.user)
     return HttpResponse("View table data at <a href='/silo_detail/%s' target='_blank'>See your data</a>" % silo.pk)
 
 @login_required
@@ -653,7 +635,7 @@ def uploadFile(request, id):
             #data = csv.reader(read_obj.file_data)
             #reader = csv.DictReader(read_obj.file_data)
             reader = CustomDictReader(read_obj.file_data)
-            res = saveDataToSilo(silo, reader)
+            res = saveDataToSilo(silo, reader, read_obj)
             return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
         else:
             messages.error(request, "There was a problem with reading the contents of your file" + form.errors)
@@ -822,7 +804,8 @@ def siloDetail(request, silo_id):
                         #c != "_id" and
                         c != "create_date" and
                         c != "edit_date" and
-                        c != "silo_id"])
+                        c != "silo_id" and
+                        c != "read_id"])
             break
         # convert bson data to json data using json_utils.dumps from pymongo module
         data = dumps(data)
@@ -844,6 +827,7 @@ def updateSiloData(request, pk):
     if silo:
         try:
             merged_silo_mapping = MergedSilosFieldMapping.objects.get(merged_silo = silo.pk)
+            #if the data table is merged then updating means trying to remerge to get updated data
             left_table_id = merged_silo_mapping.from_silo.pk
             right_table_id = merged_silo_mapping.to_silo.pk
             merge_table_id = merged_silo_mapping.merged_silo.pk
@@ -859,65 +843,132 @@ def updateSiloData(request, pk):
             else:
                 messages.error(request, res['message'])
         except MergedSilosFieldMapping.DoesNotExist as e:
+            #get a list of reads from the silo
+            reads = silo.reads.all()
+            data = [[],[]]
+            msgs = []
+            sources_to_delete = []
+
+            #Get data from each of the reads and store it as the appropriate array
+            for read in reads:
+                import_response = importDataFromRead(request,silo,read)
+                if import_response[2]:
+                    msgs.append(import_response[2])
+                if import_response[1] == 1:
+                    data[1].append(import_response[0])
+                    data[0].append(read)
+                    sources_to_delete.append(read.id)
+
+            #from ones where we got data delete those records
             unique_field_exist = silo.unique_fields.exists()
+            #Unique field means keep the data and update as necessary (which is already implimented so its not necessary to delete anything)
             if  unique_field_exist == False:
-                lvs = LabelValueStore.objects(silo_id=silo.pk)
+                lvs = LabelValueStore.objects(silo_id=silo.pk,__raw__={"read_id" : { "$exists" : "true", "$in" : sources_to_delete }})
                 lvs.delete()
 
-            reads = silo.reads.all()
-            msgs = importDataFromReads(request, silo, reads)
-            if type(msgs) == list:
-                for msg in msgs:
-                    messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
-            else:
-                messages.add_message(request, msgs[0], msgs[1])
+            #put in the new records
+            for x in range(0,len(data[0])):
+                for entry in data[1][x]:
+                    saveDataToSilo(silo,entry,data[0][x],request.user)
+            for read in reads:
+                if read.type.read_type == "GSheet Import":
+                    greturn = import_from_gsheet_helper(request.user, silo.id, None, read.resource_id, None, True)
+                    if type(greturn) == tuple:
+                        greturn[1][:] = [d for d in greturn[1] if d.get('silo_id') == None]
+                        for ret in greturn[1]:
+                            msgs.append((ret.get('level'),ret.get('msg')))
+                        #delete data associated with old read
+                        lvs = lvs = LabelValueStore.objects(silo_id=silo.pk,__raw__={"read_id" : { "$exists" : "true", "$in" : [read.id] }})
+                        lvs.delete()
+                        #read the data
+                        for lvs in greturn[0]:
+                            lvs.save()
+                    else:
+                        greturn[:] = [d for d in greturn if d.get('silo_id') == None]
+                        for ret in greturn:
+                            if ret.get('level') == messages.SUCCESS:
+                                msgs.append((ret.get('level'),"Google spreadsheet has been successfully updated"))
+                            else:
+                                msgs.append((ret.get('level'),ret.get('msg')))
+            for msg in msgs:
+                messages.add_message(request, msg[0], msg[1])
+
+            #find any duplicate objects that do not contain a read_id and delete them
+            #legacy objects will not have a read_id
+            lvss = LabelValueStore.objects(silo_id=silo.pk,__raw__={ "$or" : [{"read_id" : {"$not" : { "$exists" : "true" }}}, {"read_id" : {"$in" : [-1,""]} } ]})
+            for lvs in lvss:
+                filter_criteria = {}
+                for key in lvs:
+                    if key !="id" and key !="read_id" and key!="create_date" and key!="edit_date":
+                        try:
+                            filter_criteria.update({key:lvs[key]})
+                        except KeyError:
+                            pass
+                        except ValueError:
+                            pass
+                try:
+                    #this will delete anything without a read_id that has a new dup
+                    dups = LabelValueStore.objects(**filter_criteria)
+                    if len(dups) == 2:
+                        try:
+                            dups = LabelValueStore.objects.get(__raw__={ "$or" : [{"read_id" : {"$not" : { "$exists" : "true" }}}, {"read_id" : {"$in" : [-1,""]} } ]},**filter_criteria)
+                            dups.delete()
+                        except Exception as e:
+                            pass
+                except Exception as e:
+                    pass
 
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
 
-def importDataFromReads(request, silo, reads):
-    for read in reads:
-        if read.type.read_type == "ONA":
-            ona_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="ONA")
-            response = requests.get(read.read_url, headers={'Authorization': 'Token %s' % ona_token.token})
-            data = json.loads(response.content)
-            res = saveDataToSilo(silo, data)
-        elif read.type.read_type == "CSV":
-            #messages.info(request, "When updating data in a table, its CSV source is ignored.")
-            return (messages.INFO, "When updating data in a table, its CSV source is ignored.")
-        elif read.type.read_type == "JSON":
-            result = importJSON(read, request.user, None, None, silo.pk, None)
+#return tuple: (list of list of dictionaries[[{}]] data, 0=falure 1=success 2=N/A, messages)
+def importDataFromRead(request, silo, read):
+    if read.type.read_type == "ONA":
+        ona_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="ONA")
+        response = requests.get(read.read_url, headers={'Authorization': 'Token %s' % ona_token.token})
+        data = json.loads(response.content)
+        return ([data], 1, (messages.SUCCESS, "ONA has been successfully updated"))
+    elif read.type.read_type == "CSV":
+        return (None,2,(messages.INFO, "When updating data in a table, its CSV source is ignored."))
+    elif read.type.read_type == "JSON":
+        if read.read_url != "":
+            data = importJSON(read, request.user, None, None, silo.pk, None, True)
             #messages.add_message(request, result[0], result[1])
-            return (result[0], result[1])
-        elif read.type.read_type == "GSheet Import":
-            msgs = import_from_gsheet_helper(request.user, silo.id, None, read.resource_id)
-            return msgs
-            #for msg in msgs:
-            #    messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
-        elif read.type.read_type == "CommCare":
-            commcare_token = None
-            try:
-                commcare_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="CommCare")
-            except Exception as e:
-                return (messages.ERROR, "You need to login to commcare using an API Key to access this functionality")
-            response = requests.get(read.read_url, headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})
-            if response.status_code == 401:
-                commcare_token.delete()
-                return(messages.ERROR, "Your usernmane or API Key are incorrect")
-            elif response.status_code != 200:
-                return(messages.ERROR, "A %s error has occured: %s " % (response.status_code, response.text))
+            if data:
+                return ([data],1,(messages.SUCCESS, "Your JSON feed has been successfully updated"))
+            return (None,0,(messages.ERROR, "Their was an error with updating yoru JSON feed data"))
+        else:
+            return (None,2,(messages.INFO, "When updating data in a table, its JSON file data is ignored."))
+    elif read.type.read_type == "GSheet Import":
+        #as the google sheet import already performs the update functionality so when its time to input the data again google spreadsheet update will be called
+        return (None,2,None)
+
+    elif read.type.read_type == "CommCare":
+        commcare_token = None
+        try:
+            commcare_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="CommCare")
+        except Exception as e:
+            return (None,0,(messages.ERROR, "You need to login to commcare using an API Key to access this functionality"))
+        response = requests.get(read.read_url, headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})
+        if response.status_code == 401:
+            commcare_token.delete()
+            return (None,0,(messages.ERROR, "Your Commcare usernmane or API Key is incorrect"))
+        elif response.status_code != 200:
+            return (None,0,(messages.ERROR, "An error importing from commcare has occured: %s %s " % (response.status_code, response.text)))
+        metadata = json.loads(response.content)
+        useHeaderName(metadata['columns'],metadata['data'])
+        data=[metadata['data']]
+        #now if their are more pages to the data get them
+        url = read.read_url[:-1]
+        i = 1
+        while metadata['next_page'] !="":
+            response = requests.get(url+str(i*50), headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})
             metadata = json.loads(response.content)
-            data=metadata['data']
-            res = saveDataToSilo(silo, data)
-            #now if their are more pages to the data get them
-            url = read.read_url[:-1]
-            i = 1
-            while metadata['next_page'] !="":
-                response = requests.get(url+str(i*50), headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})
-                metadata = json.loads(response.content)
-                data=metadata['data']
-                res = saveDataToSilo(silo, data)
-                i+=1
-            return (messages.SUCCESS, "Update was successful")
+            useHeaderName(metadata['columns'],metadata['data'])
+            data.append(metadata['data'])
+            i+=1
+        return (data,1,(messages.SUCCESS, "Your commcare data import was successful"))
+    else:
+        return (None,0,(messages.ERROR,"%s does not support update data functionality. You will have to reinport the data manually" % read.type.read_type))
 
 
 #Add a new column on to a silo
@@ -1246,3 +1297,25 @@ def identifyPII(request, silo_id):
         col, created = PIIColumn.objects.get_or_create(fieldname=c, defaults={'owner': request.user})
 
     return JsonResponse({"status":"success"})
+
+
+@login_required
+def removeSource(request, silo_id, read_id):
+    """
+    removes a sources and unasociates its data
+    """
+    silo = None
+    try:
+        silo = Silo.objects.get(pk=silo_id)
+    except Silo.DoesNotExist as e:
+        messages.error(request,"Table with id=%s does not exist." % silo_id)
+
+    try:
+        read = silo.reads.get(pk=read_id)
+        read_name = read.read_name
+        silo.reads.remove(read)
+        messages.success(request,"%s has been removed successfully" % read_name)
+    except Read.DoesNotExist as e:
+        messages.error(request,"Datasource with id=%s does not exist." % read_id)
+
+    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': silo_id},))
