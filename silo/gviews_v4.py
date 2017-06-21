@@ -326,10 +326,7 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
                     repeat_data[header].append(row[header])
                 except KeyError as e:
                     repeat_data[header] = [row[header]]
-                try:
-                    repeat_cells[header].append((x,y))
-                except KeyError as e:
-                    repeat_cells[header] = [(x,y)]
+                repeat_cells[header] = (x,y+1)
                 values.append({"userEnteredValue": {"stringValue": smart_text(header)}})
                 if header not in repeat_headers and header not in other_title:
                     repeat_headers.append(header)
@@ -392,6 +389,8 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
             'fields': 'userEnteredValue,userEnteredFormat.backgroundColor'
         }
     })
+
+
 
 
     # encapsulate the requests list into a requests object
@@ -487,13 +486,31 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
                 'fields': 'userEnteredValue,userEnteredFormat.backgroundColor'
             }
         })
-    # TO DO: add link to first sheet
+        rows = []
+        x_cord = repeat_cells.get(other_title[i],(0,0))[0]
+        y_cord = repeat_cells.get(other_title[i],(0,0))[1]
+        for j in range(0,y_cord):
+            rows.append({"values" : [ \
+                        {"userEnteredValue": { \
+                                "formulaValue": "=HYPERLINK(\"#gid=%i\",\"See Data\")" % other_sheet_id[i] \
+                        }} \
+                ]})
+        # Get hyperlink to actually work
+        if len(rows)>0:
+            requests.append({
+                'updateCells': {
+                    'start': {'sheetId': sheet_id, 'rowIndex': 1, 'columnIndex': x_cord},
+                    'rows': rows,
+                    'fields': 'userEnteredValue',
+                },
+            })
 
     #send second request
     batchUpdateRequest = {'requests': requests}
 
     try:
-        response = service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=batchUpdateRequest).execute()
+        request = service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=batchUpdateRequest)
+        response = request.execute()
     except Exception as e:
         msgs.append({"level": messages.ERROR,
                     "msg": "Failed to submit repeat data to GSheet. %s" % e})
