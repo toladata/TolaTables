@@ -308,7 +308,7 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
     if len(spreadsheet.get('sheets','')) > 0:
         for other_sheet in spreadsheet.get('sheets','')[1:]:
             other_title.append(other_sheet.get("properties", {}).get("title", ""))
-            other_sheet_id.append(other_sheet.get("properties", {}).get("sheet_id", 0))
+            other_sheet_id.append(other_sheet.get("properties", {}).get("sheetId", 0))
 
     # the first element in the array is a placeholder for column names
     rows = [{"values": []}]
@@ -316,16 +316,20 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
     silo_data = json.loads(LabelValueStore.objects(silo_id=silo_id).to_json())
     repeat_headers = []
     repeat_data = {}
+    repeat_cells = {}
 
-    for row in silo_data:
+    for y, row in enumerate(silo_data):
         values = [] # Get all of the values of a single mongodb document into this array
-        for header in headers:
-            # TO DO: add differentiation to get repeats
+        for x, header in enumerate(headers):
             if type(row[header]) == list:
                 try:
                     repeat_data[header].append(row[header])
                 except KeyError as e:
                     repeat_data[header] = [row[header]]
+                try:
+                    repeat_cells[header].append((x,y))
+                except KeyError as e:
+                    repeat_cells[header] = [(x,y)]
                 values.append({"userEnteredValue": {"stringValue": smart_text(header)}})
                 if header not in repeat_headers and header not in other_title:
                     repeat_headers.append(header)
@@ -352,8 +356,8 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
                 "properties": {
                   "title": header,
                   "gridProperties": {
-                    "rowCount": len(repeat_data[header][0]),
-                    "columnCount": len(repeat_data[header][0][0])+1
+                    "rowCount": (len(repeat_data[header][0])+1)*len(repeat_data[header]),
+                    "columnCount": len(repeat_data[header][0][0])
                   },
                   "tabColor": {
                     "red": 1.0,
@@ -400,39 +404,99 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
     except Exception as e:
         msgs.append({"level": messages.ERROR,
                     "msg": "Failed to submit data to GSheet. %s" % e})
-        response = None
+        return msgs
+
+    # if their is no repeat data we are done
+    if len(repeat_cells) == 0:
+        return msgs
 
 
     #use the response to get the sheetid for new sheets added
-    for reply in replies:
+    for reply in response['replies']:
         try:
-            other_title.append(reply.get("addSheet").get("title"))
-            other_sheet_id.append(reply.get("addSheet").get("sheetId"))
-        except KeyError as e:
+            other_title.append(reply.get("addSheet").get("properties").get("title"))
+            other_sheet_id.append(reply.get("addSheet").get("properties").get("sheetId"))
+        except (KeyError,AttributeError) as e:
             pass
-    # TO DO: add repeats data to the new sheet
     if len(other_title) != len(other_sheet_id):
         msgs.append({"level": messages.ERROR,
-                    "msg": "Failed to submit repeat data to GSheet. %s" % e})
+                    "msg": "Failed to submit repeat data to GSheet %s" % e})
+        return msgs
+
+    requests = []
+    #Add repeats data to the new sheet
+
     for i in range(0,len(other_title)): # goes through each sheet
         rows = [{"values": []}]
-        for row in repeat_data.get(other_title[0],[]):
+        for j, row_set in enumerate(repeat_data.get(other_title[i],[])):
+            headers = []
+            rows.append({"values": \
+                            [{ \
+                            "userEnteredValue": {"stringValue": "From row %i" % j}, \
+                            'userEnteredFormat': {'backgroundColor': {'red':0.75,'green':0.75, 'blue': 0.75}}
+                            }]\
+            })
+            for row in row_set:
                 values = [] # Get all of the values of a single mongodb document into this array
-                for header in headers:
-                    # TO DO: add differentiation to get repeats
-                    if type(row[header]) == list:
-                        try:
-                            repeat_data[header].append(row[header])
-                        except KeyError as e:
-                            repeat_data[header] = [row[header]]
-                        values.append({"userEnteredValue": {"stringValue": smart_text(header)}})
-                        if header not in repeat_headers and header not in other_title:
-                            repeat_headers.append(header)
-                    else:
-                        values.append({"userEnteredValue": {"stringValue": smart_text(row[header])}})
+                for index, col in enumerate(row):
+                    if col not in headers:
+                        headers.append(col)
+                    values.append({"userEnteredValue": { \
+                                        "stringValue": smart_text(row[headers[index]])} \
+                                })
                 rows.append({"values": values})
-        #TO DO: go through each repeat_data[other_title] to get the data to turn into rows
+
+
+        # prepare column names as a header row in spreadsheet
+        values = []
+        for header in headers:
+            values.append({
+                          "userEnteredValue": {"stringValue": header},
+                          'userEnteredFormat': {'backgroundColor': {'red':0.5,'green':0.5, 'blue': 0.5}}
+                          })
+        # Now update the rows array place holder with real column names
+        rows[0]["values"] = values
+
+        requests.append({
+            'updateSheetProperties': {
+                'properties': {
+                    'sheetId': other_sheet_id[i],
+                    "gridProperties": {
+                        'rowCount': len(rows),
+                        'columnCount': len(headers),
+                    }
+                },
+                "fields": "gridProperties(rowCount,columnCount)"
+            }
+        })
+
+        requests.append({
+            "updateCells": {
+                "range": {
+                  "sheetId": other_sheet_id[i],
+                },
+                "fields": "userEnteredValue,userEnteredFormat"
+              }
+            }
+        )
+
+        requests.append({
+            'updateCells': {
+                'start': {'sheetId': other_sheet_id[i], 'rowIndex': 0, 'columnIndex': 0},
+                'rows': rows,
+                'fields': 'userEnteredValue,userEnteredFormat.backgroundColor'
+            }
+        })
     # TO DO: add link to first sheet
+
+    #send second request
+    batchUpdateRequest = {'requests': requests}
+
+    try:
+        response = service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=batchUpdateRequest).execute()
+    except Exception as e:
+        msgs.append({"level": messages.ERROR,
+                    "msg": "Failed to submit repeat data to GSheet. %s" % e})
 
     return msgs
 
