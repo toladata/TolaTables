@@ -88,6 +88,10 @@ GOOGLE API
 sudo pip install --upgrade google-api-python-client
 * 0’s let it run on any local address i.e. localhost,127.0.0.1 etc.
 
+# Celery
+This app requires celery. This requires the daemonization of a celery worker in the background and
+the install of a messaging broker
+
 #Filtering data from the api endpoint
 To filter data from api/silos/#{pk}/data endpoint add a mongodb query to the modifier at the end
 of the url
