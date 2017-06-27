@@ -22,19 +22,30 @@
         <p> {{col}} </p>
       {% endfor %}
     {% endif %}
-    <div class="modal fade" id="form_modal" tabindex="-1" role="dialog" aria-labelledby="form_modal_label" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content" id="modal_content">
-            <!-- form will be inserted here -->
-        </div> <!-- .modal-content div collapse -->
-    </div><!-- .modal-dialog .modal-lg div collapse -->
-</div> <!-- .modal fade div collapse -->
+    <!-- Modal -->
+    <div id="progress_modal" class="modal fade" role="dialog">
+      <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title">Your data is being fetched. This may take a while</h4>
+          </div>
+          <div class="modal-body">
+            <div class="col-xs-12 col-sm-12 progress-container">
+                <div class="progress progress-striped active">
+                    <div class="progress-bar" style="width:0%"></div>
+                </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 {% endblock content %}
 
 {% block extra_js_in_body %}
     <script type="text/javascript">
         $(document).ready(function() {
-
+            //This jquery function controls the dropdown menu in crispy_forms
             $("select").on("change", function() {
                 //var silo_id =  $("#" + this.id).val());
                 var select_obj = $("#" + this.id);
@@ -48,6 +59,17 @@
                     }
                 }
             });
+
+            //This jquery function controls the progress bar on the import screen
+            $('form[action="/commcare/"]').submit(function(e){
+                $("#progress_modal").modal();
+                //controls the progress bar
+                $(".progress-bar").animate({
+                    width: "100%"
+                }, {{entries}}*500);
+            });
+
+
         });
     </script>
 {% endblock %}

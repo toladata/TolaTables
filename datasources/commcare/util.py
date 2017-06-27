@@ -66,7 +66,7 @@ def getCommCareCaseData(domain, auth, auth_header, total_cases, silo, read):
             columns = columns.union(data[0])
         data_store_group = group(storeCommCareData.s(data_retrieval[i][1], list(columns),silo.id, \
                             read.id) for i in range(0,len(data_retrieval)))
-        data_delay.append(data_store_group.apply_async())
+        data_store_group.apply_async()
 
     print (time.time()-start)
     return (messages.SUCCESS, "CommCare cases imported successfully")

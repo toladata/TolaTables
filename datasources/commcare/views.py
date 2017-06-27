@@ -37,6 +37,7 @@ def getCommCareAuth(request):
     project = None
     silos = Silo.objects.filter(owner=request.user)
     choices = [(0, ""), (-1, "Create new silo")]
+    total_cases = 0
     for silo in silos:
         choices.append((silo.pk, silo.name))
 
@@ -119,7 +120,7 @@ def getCommCareAuth(request):
         except Exception as e:
             form = CommCareAuthForm(choices=choices)
 
-    return render(request, 'getcommcareforms.html', {'form': form, 'data': cols, 'auth': auth})
+    return render(request, 'getcommcareforms.html', {'form': form, 'data': cols, 'auth': auth, 'entries': total_cases})
 
 @login_required
 def getCommCareFormPass(request):
@@ -161,128 +162,6 @@ def getCommCareFormPass(request):
     silos = Silo.objects.filter(owner=request.user)
     return render(request, 'getcommcareforms.html', {'form': form, 'data': data, 'silos': silos, 'usrn' : usrn, 'pwd' : pwd, 'project' : project, 'auth' : 2})
 
-
-@login_required
-def saveCommCareData(request):
-    RECORDS_PER_STORAGE = 10000
-    RECORDS_PER_REQUEST = 100
-
-    """
-    Saves CommCare read if not already in the db and then imports its data
-    """
-    if request.method != 'POST':
-        return HttpResponseBadRequest("HTTP method, %s, is not supported" % request.method)
-
-    #first check to see if their is authorization
-    commcare_token = None
-    provider = "CommCare"
-    try:
-        commcare_token = ThirdPartyTokens.objects.get(user=request.user,name=provider)
-    except Exception as e:
-        pass
-
-    read_type = ReadType.objects.get(read_type="CommCare")
-    read_name = request.POST.get('read_name', None)
-    silo_name = request.POST.get('silo_name', None)
-    data_id = request.POST.get('data_id', None)
-    usrn = None
-    pwd = None
-    if not commcare_token:
-        usrn = request.POST.get('asiufjoiawenowe', None)
-        usrn = base64.b64decode(usrn)
-        pwd = request.POST.get('reoihgweboqwe', None)
-        pwd = base64.b64decode(pwd)
-    project = request.POST.get('no24jrfindaibanoif', None)
-    project = base64.b64decode(project)
-    owner = request.user
-    description = request.POST.get('description', None)
-    silo_id = None
-    read = None
-    silo = None
-
-
-
-    # Fetch the first page of data from CommCare
-    #use usrn and pwd to get authorization
-    url = "https://www.commcarehq.org/a/"+ project+"/api/v0.5/configurablereportdata/"+ data_id+"/?format=json&offset=" + str(0)
-    response = None
-    if commcare_token:
-        response = requests.get(url, headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})
-    else:
-        response = requests.get(url, auth=HTTPDigestAuth(usrn, pwd))
-    if response.status_code != 200:
-        messages.error(request, "A %s error has occured: %s " % (response.status_code, response.text))
-        return HttpResponseRedirect(reverse_lazy('getCommCareAuth'))
-
-
-
-    metadata = json.loads(response.content)
-    useHeaderName(metadata['columns'],metadata['data'])
-
-    #run everything once and create new silo if needed
-
-    data = metadata['data']
-
-    try:
-        silo_id = int(request.POST.get("silo_id", None))
-        if silo_id == 0: silo_id = None
-    except Exception as e:
-         return HttpResponse("Silo ID can only be an integer")
-
-    try:
-        read, read_created = Read.objects.get_or_create(read_name=read_name, owner=owner,
-            defaults={'read_url': url, 'type': read_type, 'description': description})
-        if read_created: read.save()
-    except Exception as e:
-        return HttpResponse("Invalid name and/or URL")
-
-    existing_silo_cols = []
-    new_cols = []
-    show_mapping = False
-
-    silo, silo_created = Silo.objects.get_or_create(id=silo_id, defaults={"name": silo_name, "public": False, "owner": owner})
-    if silo_created or read_created:
-        silo.reads.add(read)
-    elif read not in silo.reads.all():
-        silo.reads.add(read)
-
-    if len(data) == 0:
-        return HttpResponse("There is no data for the selected form, %s" % read_name)
-
-    # import data into this silo
-    saveDataToSilo(silo, data, read)
-
-    if commcare_token:
-        auth={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}}
-        auth_header = True
-    else:
-        auth=HTTPDigestAuth(usrn, pwd)
-        auth_header = False
-
-    #since the data is paged get data on the future pages
-    # this is the parallized method
-    # do this in groups of 10,000 to not exceed RAM
-    import time
-    start = time.time()
-    if metadata['total_records'] > RECORDS_PER_REQUEST:
-        data_collects = []
-        for offset_start in xrange(RECORDS_PER_REQUEST, metadata['total_records'], RECORDS_PER_STORAGE):
-
-            if offset_start + RECORDS_PER_STORAGE < metadata['total_records']:
-                data_raw = fetchCommCareData(project,data_id,RECORDS_PER_REQUEST,auth,auth_header, offset_start + RECORDS_PER_STORAGE, offset_start)
-            else:
-                data_raw = fetchCommCareData(project,data_id,RECORDS_PER_REQUEST,auth,auth_header, metadata['total_records'], offset_start)
-            data_collects.append(data_raw.apply_async())
-        while len(data_collects) > 0:
-            data_retrieval = [v.get() for v in data_collects.pop()]
-            data = []
-            for lst in data_retrieval:
-                data.extend(lst)
-            saveDataToSilo(silo, data, read)
-    end = time.time()
-    print (start-end)
-
-    return HttpResponse("View table data at <a href='/silo_detail/%s' target='_blank'>See your data</a>" % silo.pk)
 
 @login_required
 def commcareLogout(request):
