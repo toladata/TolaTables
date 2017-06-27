@@ -38,6 +38,7 @@ class CommCarePassForm(forms.Form):
 
 
     def __init__(self, *args, **kwargs):
+        choices = kwargs.pop('choices')
         self.helper = FormHelper()
         self.helper.form_class = 'form-horizontal'
         self.helper.label_class = 'col-sm-2'
@@ -48,7 +49,7 @@ class CommCarePassForm(forms.Form):
         self.helper.add_input(Reset('rest', 'Reset', css_class='btn-warning'))
         super(CommCarePassForm, self).__init__(*args, **kwargs)
         self.fields['project'].widget = ListTextWidget(data_list=getProjects(), name='projects')
-        self.fields['silo'].choices = kwargs.get('choices')
+        self.fields['silo'].choices = choices
 
 
 class CommCareProjectForm(forms.Form):

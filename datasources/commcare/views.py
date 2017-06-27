@@ -124,20 +124,23 @@ def getCommCareAuth(request):
 
 @login_required
 def getCommCareFormPass(request):
-    data = {}
+    cols = []
     form = None
     provider = "CommCare"
 
     #this version works without the token
     url = "" #url to get the data contained
     url1 = "https://www.commcarehq.org/a/"
-    url2 = "/api/v0.5/simplereportconfiguration/?format=json"
-    usrn = None
-    pwd = None
+    url2 = "/api/v0.5/case/?format=JSON&limit=1"
     project = None
+    silos = Silo.objects.filter(owner=request.user)
+    choices = [(0, ""), (-1, "Create new silo")]
+    total_cases = 0
+    for silo in silos:
+        choices.append((silo.pk, silo.name))
 
     if request.method == 'POST':
-        form = CommCarePassForm(request.POST) #add the username and password to the request
+        form = CommCarePassForm(request.POST, choices=choices) #add the username and password to the request
         if form.is_valid(): #does the form meet requierements
             project = request.POST['project']
             url = url1 + project + url2
@@ -145,22 +148,40 @@ def getCommCareFormPass(request):
             if response.status_code == 401:
                 messages.error(request, "Invalid username, password or project.")
             elif response.status_code == 200:
-                data = json.loads(response.content) #load json into data
-                data = data['objects']
-                usrn = request.POST['username']
-                usrn = base64.b64encode(usrn)
-                pwd = request.POST['password']
-                pwd = base64.b64encode(pwd)
-                project = base64.b64encode(project)
+                response_data = json.loads(response.content)
+                total_cases = response_data.get('meta').get('total_count')
+                #add the silo and reads if necessary
+                try:
+                    silo_id = int(request.POST.get("silo", None))
+                    if silo_id == 0: silo_id = None
+                except Exception as e:
+                    return HttpResponse("Silo ID can only be an integer")
+
+                # try:
+                read, read_created = Read.objects.get_or_create(read_name="%s cases" % project, owner=request.user,
+                    defaults={'read_url': url, 'type': ReadType.objects.get(read_type=provider), 'description': ""})
+                if read_created: read.save()
+                # except Exception as e:
+                #     return HttpResponse("Invalid name and/or URL")
+
+                silo, silo_created = Silo.objects.get_or_create(id=silo_id, defaults={"name": "%s cases" % project, "public": False, "owner": request.user})
+                if silo_created or read_created:
+                    silo.reads.add(read)
+                elif read not in silo.reads.all():
+                    silo.reads.add(read)
+
+                #get the actual data
+                auth = {"u" : request.POST['username'], "p" : request.POST['password']}
+                getCommCareCaseData(project, auth, False, total_cases, silo, read)
+                cols = getSiloColumnNames(silo.id)
 
             else:
                 messages.error(request, "A %s error has occured: %s " % (response.status_code, response.text))
     else:
-        form = CommCarePassForm()
+        form = CommCarePassForm(choices=choices)
 
 
-    silos = Silo.objects.filter(owner=request.user)
-    return render(request, 'getcommcareforms.html', {'form': form, 'data': data, 'silos': silos, 'usrn' : usrn, 'pwd' : pwd, 'project' : project, 'auth' : 2})
+    return render(request, 'getcommcareforms.html', {'form': form, 'data': cols, 'auth': 2, 'entries': total_cases})
 
 
 @login_required

@@ -3,6 +3,8 @@ from __future__ import absolute_import, unicode_literals
 from celery import shared_task, group, chain
 from django.utils import timezone
 
+from requests.auth import HTTPDigestAuth
+
 from django.conf import settings
 from pymongo import MongoClient
 
@@ -40,7 +42,7 @@ def requestCommCareData(url, offset, auth, auth_header):
     if auth_header:
         response = requests.get(url, headers=auth)
     else:
-        response = requests.get(url, auth=auth)
+        response = requests.get(url, auth=HTTPDigestAuth(auth['u'],auth['p']))
     if response.status_code == 200:
         data = json.loads(response.content)
     elif response.status_code == 429:
