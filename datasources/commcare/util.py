@@ -41,7 +41,6 @@ def getCommCareCaseData(domain, auth, auth_header, total_cases, silo, read):
     """
 
 
-    RECORDS_PER_STORAGE = 10000
     RECORDS_PER_REQUEST = 100
     base_url = "https://www.commcarehq.org/a/"+ domain\
                 +"/api/v0.5/case/?format=JSON&limit="+str(RECORDS_PER_REQUEST)
@@ -50,23 +49,13 @@ def getCommCareCaseData(domain, auth, auth_header, total_cases, silo, read):
 
     import time
     start = time.time()
-    for offset_start in xrange(0, total_cases, RECORDS_PER_STORAGE):
-        if offset_start + RECORDS_PER_STORAGE < total_cases:
-            data_raw = fetchCommCareData(base_url, auth, auth_header,\
-                        offset_start, offset_start+RECORDS_PER_STORAGE, \
-                        RECORDS_PER_REQUEST)
-        else:
-            data_raw = fetchCommCareData(base_url, auth, auth_header,\
-                        offset_start, total_cases, RECORDS_PER_REQUEST)
-        data_collects = data_raw.apply_async()
-        data_retrieval = [v.get() for v in data_collects]
-        print (time.time()-start)
-        columns = set()
-        for data in data_retrieval:
-            columns = columns.union(data[0])
-        data_store_group = group(storeCommCareData.s(data_retrieval[i][1], list(columns),silo.id, \
-                            read.id) for i in range(0,len(data_retrieval)))
-        data_store_group.apply_async()
+    data_raw = fetchCommCareData(base_url, auth, auth_header,\
+                    0, total_cases, RECORDS_PER_REQUEST, silo.id, read.id)
+    data_collects = data_raw.apply_async()
+    data_retrieval = [v.get() for v in data_collects]
+    columns = set()
+    for data in data_retrieval:
+        columns = columns.union(data)
 
     print (time.time()-start)
-    return (messages.SUCCESS, "CommCare cases imported successfully")
+    return (messages.SUCCESS, "CommCare cases imported successfully", columns)

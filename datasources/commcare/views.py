@@ -95,8 +95,9 @@ def getCommCareAuth(request):
 
                     #get the actual data
                     auth = {'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}}
-                    getCommCareCaseData(project, auth, True, total_cases, silo, read)
-                    cols = getSiloColumnNames(silo.id)
+                    ret = getCommCareCaseData(project, auth, True, total_cases, silo, read)
+                    messages.add_message(request,ret[0],ret[1])
+                    cols = ret[2]
 
                 else:
                     messages.error(request, "A %s error has occured: %s " % (response.status_code, response.text))
@@ -172,8 +173,9 @@ def getCommCareFormPass(request):
 
                 #get the actual data
                 auth = {"u" : request.POST['username'], "p" : request.POST['password']}
-                getCommCareCaseData(project, auth, False, total_cases, silo, read)
-                cols = getSiloColumnNames(silo.id)
+                ret = getCommCareCaseData(project, auth, False, total_cases, silo, read)
+                messages.add_message(request,ret[0],ret[1])
+                cols = ret[2]
 
             else:
                 messages.error(request, "A %s error has occured: %s " % (response.status_code, response.text))
