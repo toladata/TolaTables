@@ -47,8 +47,6 @@ def getCommCareCaseData(domain, auth, auth_header, total_cases, silo, read):
 
     #import the cases in groups of 10000
 
-    import time
-    start = time.time()
     data_raw = fetchCommCareData(base_url, auth, auth_header,\
                     0, total_cases, RECORDS_PER_REQUEST, silo.id, read.id)
     data_collects = data_raw.apply_async()
@@ -57,5 +55,4 @@ def getCommCareCaseData(domain, auth, auth_header, total_cases, silo, read):
     for data in data_retrieval:
         columns = columns.union(data)
 
-    print (time.time()-start)
     return (messages.SUCCESS, "CommCare cases imported successfully", columns)
