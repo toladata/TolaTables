@@ -6,4 +6,4 @@ from django.apps import AppConfig
 
 class CommcareConfig(AppConfig):
     name = 'commcare'
-    verbose_name = 'CommCare reports'
+    verbose_name = 'CommCare case data'
