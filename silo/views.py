@@ -780,6 +780,7 @@ def siloDetail(request, silo_id):
     """
     Silo Detail
     """
+
     silo = Silo.objects.get(pk=silo_id)
     cols = []
     data = []

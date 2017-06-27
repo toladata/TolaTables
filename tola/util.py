@@ -215,7 +215,7 @@ def importJSON(read_obj, user, remote_user = None, password = None, silo_id = No
         return (messages.ERROR, "An error has occured: %s" % e, str(silo_id))
 
 def getSiloColumnNames(id):
-    lvs = LabelValueStore.objects(silo_id=id)
+    lvs = LabelValueStore.objects.filter(silo_id=id).first()
     cols = []
     try:
         order = ColumnOrderMapping.objects.get(silo_id=id)
@@ -225,7 +225,7 @@ def getSiloColumnNames(id):
     if len(lvs) == 0:
         return []
 
-    cols.extend([col for col in lvs[0] if col not in cols and col not in ['id','silo_id','read_id','create_date','edit_date','editted_date']])
+    cols.extend([col for col in lvs if col not in cols and col not in ['id','silo_id','read_id','create_date','edit_date','editted_date']])
     return cols
 
 def user_to_tola(backend, user, response, *args, **kwargs):
