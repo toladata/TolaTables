@@ -11,6 +11,7 @@ from django.shortcuts import redirect, render
 from django.core.urlresolvers import reverse, reverse_lazy
 
 from django.contrib import messages
+from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 
 from silo.models import Silo, Read, ReadType, ThirdPartyTokens
@@ -94,10 +95,12 @@ def getCommCareAuth(request):
                         silo.reads.add(read)
 
                     #get the actual data
-                    auth = {'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}}
-                    ret = getCommCareCaseData(project, auth, True, total_cases, silo, read)
+                    authorization = {'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}}
+                    ret = getCommCareCaseData(project, authorization, True, total_cases, silo, read)
                     messages.add_message(request,ret[0],ret[1])
+                    #need to impliment if import faluire
                     cols = ret[2]
+                    return HttpResponseRedirect(reverse_lazy("siloDetail", kwargs={'silo_id' : silo.id}))
 
                 else:
                     messages.error(request, "A %s error has occured: %s " % (response.status_code, response.text))
@@ -121,7 +124,7 @@ def getCommCareAuth(request):
         except Exception as e:
             form = CommCareAuthForm(choices=choices)
 
-    return render(request, 'getcommcareforms.html', {'form': form, 'data': cols, 'auth': auth, 'entries': total_cases})
+    return render(request, 'getcommcareforms.html', {'form': form, 'data': cols, 'auth': auth, 'entries': total_cases, 'time' : timezone.now()})
 
 @login_required
 def getCommCareFormPass(request):
@@ -174,8 +177,10 @@ def getCommCareFormPass(request):
                 #get the actual data
                 auth = {"u" : request.POST['username'], "p" : request.POST['password']}
                 ret = getCommCareCaseData(project, auth, False, total_cases, silo, read)
+                #need to impliment if import faluire
                 messages.add_message(request,ret[0],ret[1])
                 cols = ret[2]
+                return HttpResponseRedirect(reverse_lazy("siloDetail", kwargs={'silo_id' : silo.id}))
 
             else:
                 messages.error(request, "A %s error has occured: %s " % (response.status_code, response.text))

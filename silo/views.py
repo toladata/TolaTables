@@ -838,6 +838,7 @@ def updateSiloData(request, pk):
                     data[0].append(read)
                     sources_to_delete.append(read.id)
 
+
             #from ones where we got data delete those records
             unique_field_exist = silo.unique_fields.exists()
             #Unique field means keep the data and update as necessary (which is already implimented so its not necessary to delete anything)

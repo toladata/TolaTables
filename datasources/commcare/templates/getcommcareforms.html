@@ -17,6 +17,7 @@
           <p> You can also <a href="/commcare/logout/">Logout</a> of this CommCare account. </p>
         {% endif %}
     {% else %}
+      <!-- obsolete. this will be used as a basis for column operations form -->
       <p>You can also do operations on these forms. These operations will allows you to delete data if certain conditions are not met. </p>
       {% for col in data %}
         <p> {{col}} </p>
@@ -31,6 +32,7 @@
             <h4 class="modal-title">Your data is being fetched. This may take a while</h4>
           </div>
           <div class="modal-body">
+            <!-- <div id="progress_number">0/{{entries}} downloaded</div> -->
             <div class="col-xs-12 col-sm-12 progress-container">
                 <div class="progress progress-striped active">
                     <div class="progress-bar" style="width:0%"></div>
@@ -62,14 +64,63 @@
 
             //This jquery function controls the progress bar on the import screen
             $('form[action="/commcare/"]').submit(function(e){
+                // $("#progress_modal").modal();
+                $("#progress_number").text(0+"/{{entries}} downloaded");
                 $("#progress_modal").modal();
-                //controls the progress bar
+                // getSiloIdFromRead();
+                // getNumEntry();
+                // controls the progress bar
                 $(".progress-bar").animate({
                     width: "100%"
                 }, {{entries}}*500);
             });
 
+            //This jquery function controls the progress bar on the import from password screen
+            $('form[action="/commcare/passform/"]').submit(function(e){
+                // $("#progress_modal").modal();
+                $("#progress_number").text(0+"/{{entries}} downloaded");
+                $("#progress_modal").modal();
+                // getSiloIdFromRead();
+                // getNumEntry();
+                // controls the progress bar
+                $(".progress-bar").animate({
+                    width: "100%"
+                }, {{entries}}*500);
+            });
 
         });
+
+        // this does it
+        // to impliment # of imports left
+        // function getSiloIdFromRead(){
+        //     var ajaxOpts = {
+        //         type: "GET",
+        //         url: "/api/silo",
+        //         success: function(data) {
+        //           //cycle through the different silos
+        //           for (var i = 0; i < data.data.length; i++) {
+        //             // cycle through the different reads in silos
+        //             for (var j = 0; j < data.data[i].reads.length; j++) {
+        //               // if (data.data[i].reads[j].edit_date-time<3600) {
+        //                 alert(data.data[i].reads[j].edit_date-10);
+        //               // }
+        //             }
+        //           }
+        //         }
+        //     };
+        //     $.ajax(ajaxOpts);
+        // }
+        //
+        // function getNumEntry() {
+        //     var ajaxOpts = {
+        //         type: "GET",
+        //         url: "/api/silo/{{silo_id}}",
+        //         success: function(data) {
+        //             $("#progress_number").text(data.data_count+"/{{entries}} downloaded");
+        //         }
+        //     };
+        //     $.ajax(ajaxOpts);
+        //     // setTimeout('getNumEntry()',10000);
+        // }
     </script>
 {% endblock %}

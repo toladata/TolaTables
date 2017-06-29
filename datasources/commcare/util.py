@@ -8,6 +8,10 @@ from .tasks import fetchCommCareData, requestCommCareData, storeCommCareData
 
 from silo.models import LabelValueStore
 from tola.util import saveDataToSilo
+from pymongo import MongoClient
+from pymongo.operations import UpdateMany
+from django.conf import settings
+
 
 #this gets a list of projects that users have used in the past to import data from commcare
 #used in commcare/forms.py
@@ -46,13 +50,52 @@ def getCommCareCaseData(domain, auth, auth_header, total_cases, silo, read):
                 +"/api/v0.5/case/?format=JSON&limit="+str(RECORDS_PER_REQUEST)
 
     #import the cases in groups of 10000
+    import time
+    start = time.time()
+
 
     data_raw = fetchCommCareData(base_url, auth, auth_header,\
                     0, total_cases, RECORDS_PER_REQUEST, silo.id, read.id)
     data_collects = data_raw.apply_async()
     data_retrieval = [v.get() for v in data_collects]
+    print (time.time()-start)
     columns = set()
     for data in data_retrieval:
         columns = columns.union(data)
+    #correct the columns
+    try: column.pop("")
+    except KeyError as e: pass
+    try: column.pop("silo_id")
+    except KeyError as e: pass
+    try: column.pop("read_id")
+    except KeyError as e: pass
+    for column in column:
+        if "." in column:
+            column[column.replace(".", "_").replace("$", "USD")] = column.pop(column)
+        if "$" in column:
+            column[column.replace("$", "USD")] = column.pop(column)
+    try: column["user_assigned_id"] = column.pop("id")
+    except KeyError as e: pass
+    try: column["user_assigned_id"] = column.pop("_id")
+    except KeyError as e: pass
+    try: column["editted_date"] = column.pop("edit_date")
+    except KeyError as e: pass
+    try: column["created_date"] = column.pop("create_date")
+    except KeyError as e: pass
+    #now mass update all the data in the database
+    db = MongoClient(settings.MONGODB_HOST).tola
+    mongo_request = []
+    db.label_value_store.create_index('silo_id')
+    for column in columns:
+        db.label_value_store.create_index('column')
+        mongo_request.append(UpdateMany(
+            {
+                "silo_id" : silo.id,
+                column : {"$not" : {"$exists" : "true"}}\
+            }, #filter
+            {"$set" : {column : ""}} #update
+        ))
+    db.label_value_store.bulk_write(mongo_request)
+    print (time.time()-start)
 
     return (messages.SUCCESS, "CommCare cases imported successfully", columns)
