@@ -1365,3 +1365,11 @@ def editColumnOrder(request, pk):
     silo = Silo.objects.get(pk=pk)
     cols = getSiloColumnNames(pk)
     return render(request, "display/edit-column-order.html", {'silo':silo,'cols': cols})
+
+def addColumnFilter(request, pk):
+    if request.method == 'POST':
+        return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
+    silo = Silo.objects.get(pk  =pk)
+    cols = getSiloColumnNames(pk)
+    cols.sort()
+    return render(request, "display/add-column-filter.html", {'silo':silo,'cols': cols})

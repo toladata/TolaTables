@@ -207,7 +207,7 @@ def importJSON(read_obj, user, remote_user = None, password = None, silo_id = No
         if return_data:
             return data
 
-        skipped_rows = saveDataToSilo(silo, data, read_obj.id)
+        skipped_rows = saveDataToSilo(silo, data, read_obj)
         return (messages.SUCCESS, "Data imported successfully.", str(silo_id))
     except Exception as e:
         if return_data:
@@ -222,10 +222,12 @@ def getSiloColumnNames(id):
         cols.extend(json.loads(order.ordering))
     except ColumnOrderMapping.DoesNotExist as e:
         pass
-    if len(lvs) == 0:
-        return []
 
-    cols.extend([col for col in lvs if col not in cols and col not in ['id','silo_id','read_id','create_date','edit_date','editted_date']])
+
+    try:
+        cols.extend([col for col in lvs if col not in cols and col not in ['id','silo_id','read_id','create_date','edit_date','editted_date']])
+    except TypeError as e:
+        return []
     return cols
 
 def user_to_tola(backend, user, response, *args, **kwargs):

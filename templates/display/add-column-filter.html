@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block page_title %}Tables{% endblock %}
+
+
+{% block content %}
+    <form action="/edit_filter/{{silo.id}}/" method="post">{% csrf_token %}
+        <p>Show columns. This form allows you to pick which columns to hide</p>
+        <br>
+        <button id="checkall">Check All</button>
+        <button id="uncheckall">Uncheck All</button>
+        <br>
+        <table id="listcolumns" class="table table-bordered table-hover table-striped">
+          <tr>
+              <th>Column Name</th>
+              <th>Hide</th>
+          </tr>
+          {% for col in cols %}
+              <tr>
+                <td>{{col}}</td>
+                <td align = "center"><input type="checkbox" name="columns" value="{{col}}"></td>
+              <tr>
+          {% endfor %}
+        </table>
+        <p>Show columns. This form allows you to pick under what condition to show a row</p>
+        <button id="addcondition">Add Condition</button>
+        <table id="listconditions" class="table table-bordered table-hover table-striped">
+        </table>
+        <input type="submit" value="Submit" class="btn btn-sm btn-primary">
+    </form>
+
+{% endblock content %}
+
+{% block extra_js_in_body %}
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $("#addcondition").on('click', function(e){
+                e.preventDefault();
+            });
+            $("#checkall").on('click', function(e){
+                e.preventDefault();
+                $(':checkbox').each(function() {
+                    this.checked = true;
+                });
+            });
+            $("#uncheckall").on('click', function(e){
+                e.preventDefault();
+                $(':checkbox').each(function() {
+                    this.checked = false  ;
+                });
+            });
+        });
+
+    </script>
+
+
+{% endblock extra_js_in_body %}

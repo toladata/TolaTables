@@ -162,6 +162,8 @@
                             <a href="/edit_columns/{{ silo.pk }}/" class="btn btn-primary">Edit or Delete columns</a>
                             <a href="/new_column/{{ silo.pk }}/" class="btn btn-primary">Add New Column</a>
                             <a href="/new_formula_column/{{ silo.pk }}/" class="btn btn-primary">Add New Formula Column</a>
+                            <a href="/edit_filter/{{ silo.pk }}/" class="btn btn-primary">Add Filters</a>
+
                         <!--
                         <a href="/anonymize_silo/{{ id }}/" class="btn btn-primary">Anonymize Table</a>
                         <a href="/identifyPII/{{ id }}/" id="identifyPIIBtn" class="btn btn-primary">Identify PIIF Columns</a>
@@ -389,7 +391,7 @@
                 "processing": true,
                 "serverSide": true,
                 "ajax": {
-                    "url": "/api/silo/{{silo.pk}}/data",
+                    "url": '/api/silo/{{silo.pk}}/data',
                     "type": "GET",
                     "data": function ( d ) {
                         //console.log(d);
