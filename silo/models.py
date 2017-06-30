@@ -344,6 +344,14 @@ class ColumnOrderMapping(models.Model):
     silo = models.ForeignKey(Silo)
     ordering = models.TextField() #stores a json dictionary
 
+class siloHideFilter(models.Model):
+    silo = models.ForeignKey(Silo)
+    hiddenColumns = models.TextField() #stores a json list of fields to hide
+    hiddenRows = models.TextField() #stores a json list of conditions
+    #Format of hidden rows:
+    #   [{<operation>:<or, and, defineblank>, "rows": [<list of rows to apply condition>], "characters" : [<list of characters that are defined as blank>]}]
+    #   default blank characters: not exists, ""
+
 from mongoengine import *
 class LabelValueStore(DynamicDocument):
     silo_id = IntField()
