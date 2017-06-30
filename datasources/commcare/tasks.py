@@ -7,6 +7,8 @@ from requests.auth import HTTPDigestAuth
 
 from django.conf import settings
 from pymongo import MongoClient
+from pymongo.operations import UpdateMany
+
 
 import requests
 import json
@@ -98,3 +100,19 @@ def storeCommCareData(data, silo_id, read_id):
         data_refined.append(row)
     db = MongoClient(settings.MONGODB_HOST).tola
     db.label_value_store.insert(data_refined)
+
+@shared_task()
+def addExtraFields(columns, silo_id):
+    db = MongoClient(settings.MONGODB_HOST).tola
+    mongo_request = []
+    db.label_value_store.create_index('silo_id')
+    for column in columns:
+        db.label_value_store.create_index('column')
+        mongo_request.append(UpdateMany(
+            {
+                "silo_id" : silo_id,
+                column : {"$not" : {"$exists" : "true"}}\
+            }, #filter
+            {"$set" : {column : ""}} #update
+        ))
+    db.label_value_store.bulk_write(mongo_request)

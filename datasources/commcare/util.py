@@ -2,14 +2,15 @@
 from silo.models import Read, ReadType
 from django.contrib import messages
 
+import json
+
 from celery import group
 
-from .tasks import fetchCommCareData, requestCommCareData, storeCommCareData
+from .tasks import fetchCommCareData, requestCommCareData, storeCommCareData, addExtraFields
 
-from silo.models import LabelValueStore
+from silo.models import LabelValueStore, ColumnOrderMapping
 from tola.util import saveDataToSilo
 from pymongo import MongoClient
-from pymongo.operations import UpdateMany
 from django.conf import settings
 
 
@@ -30,7 +31,7 @@ def useHeaderName(columns, data):
     """
     for row in data:
         for column in columns:
-            row[column['header']] = row.pop(column['slug'])
+            row[column['header']] = row.remove(column['slug'])
 
 def getCommCareCaseData(domain, auth, auth_header, total_cases, silo, read):
     """
@@ -49,53 +50,54 @@ def getCommCareCaseData(domain, auth, auth_header, total_cases, silo, read):
     base_url = "https://www.commcarehq.org/a/"+ domain\
                 +"/api/v0.5/case/?format=JSON&limit="+str(RECORDS_PER_REQUEST)
 
-    #import the cases in groups of 10000
-    import time
-    start = time.time()
-
-
     data_raw = fetchCommCareData(base_url, auth, auth_header,\
                     0, total_cases, RECORDS_PER_REQUEST, silo.id, read.id)
     data_collects = data_raw.apply_async()
     data_retrieval = [v.get() for v in data_collects]
-    print (time.time()-start)
     columns = set()
     for data in data_retrieval:
         columns = columns.union(data)
     #correct the columns
-    try: column.pop("")
+    try: columns.remove("")
     except KeyError as e: pass
-    try: column.pop("silo_id")
+    try: columns.remove("silo_id")
     except KeyError as e: pass
-    try: column.pop("read_id")
+    try: columns.remove("read_id")
     except KeyError as e: pass
-    for column in column:
+    for column in columns:
         if "." in column:
-            column[column.replace(".", "_").replace("$", "USD")] = column.pop(column)
+            columns.remove(column)
+            columns.add(column.replace(".", "_"))
         if "$" in column:
-            column[column.replace("$", "USD")] = column.pop(column)
-    try: column["user_assigned_id"] = column.pop("id")
+            columns.remove(column)
+            columns.add(column.replace("$", "USD"))
+    try:
+        columns.remove("id")
+        columns.add("user_assigned_id")
     except KeyError as e: pass
-    try: column["user_assigned_id"] = column.pop("_id")
+    try:
+        columns.remove("_id")
+        columns.add("user_assigned_id")
     except KeyError as e: pass
-    try: column["editted_date"] = column.pop("edit_date")
+    try:
+        columns.remove("edit_date")
+        columns.add("editted_date")
     except KeyError as e: pass
-    try: column["created_date"] = column.pop("create_date")
+    try:
+        columns.remove("create_date")
+        columns.add("created_date")
     except KeyError as e: pass
     #now mass update all the data in the database
-    db = MongoClient(settings.MONGODB_HOST).tola
-    mongo_request = []
-    db.label_value_store.create_index('silo_id')
-    for column in columns:
-        db.label_value_store.create_index('column')
-        mongo_request.append(UpdateMany(
-            {
-                "silo_id" : silo.id,
-                column : {"$not" : {"$exists" : "true"}}\
-            }, #filter
-            {"$set" : {column : ""}} #update
-        ))
-    db.label_value_store.bulk_write(mongo_request)
-    print (time.time()-start)
+
+    addExtraFields.delay(list(columns), silo.id)
+    try:
+        column_order_mapping = ColumnOrderMapping.objects.get(silo_id=silo.id)
+        columns = columns.union(json.loads(column_order_mapping.ordering))
+        column_order_mapping.ordering = json.dumps(list(columns))
+        column_order_mapping.save()
+    except ColumnOrderMapping.DoesNotExist as e:
+        ColumnOrderMapping.objects.create(silo_id=silo.id,ordering = json.dumps(list(columns)))
+
+
 
     return (messages.SUCCESS, "CommCare cases imported successfully", columns)
