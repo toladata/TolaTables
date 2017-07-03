@@ -43,7 +43,7 @@ from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, ge
 
 from commcare.util import useHeaderName
 
-from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeletedSilos, FormulaColumnMapping, ColumnOrderMapping
+from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeletedSilos, FormulaColumnMapping, ColumnOrderMapping, siloHideFilter
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
 
 logger = logging.getLogger("silo")
@@ -1368,8 +1368,41 @@ def editColumnOrder(request, pk):
 
 def addColumnFilter(request, pk):
     if request.method == 'POST':
+        hide_cols = request.POST.get('hide_cols')
+        hide_rows = request.POST.get('hide_rows')
+        print hide_rows
+        hidden_fields, created = siloHideFilter.objects.get_or_create(silo_id=pk)
+        try:
+            json.loads(hide_cols)
+            hidden_fields.hiddenColumns = hide_cols
+        except Exception as e:
+            messages.error(request,"Error in hiding columns")
+        try:
+            json.loads(hide_rows)
+            hidden_fields.hiddenRows = hide_rows
+        except Exception as e:
+            messages.error(request,"Error in hiding rows")
+        hidden_fields.save()
         return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
-    silo = Silo.objects.get(pk  =pk)
+
+
+    silo = Silo.objects.get(pk=pk)
     cols = getSiloColumnNames(pk)
+    try:
+        silo_hide_filter = siloHideFilter.objects.get(silo_id=pk)
+        hidden_cols = json.loads(silo_hide_filter.hiddenColumns)
+        hidden_rows = json.loads(silo_hide_filter.hiddenRows)
+        for row in hidden_rows:
+            try:
+                row['conditional'] = json.dumps(row['conditional'])
+            except Exception as e:
+                pass
+    except siloHideFilter.DoesNotExist as e:
+        hidden_cols = []
+        hidden_rows = []
+
+    cols = set(cols)
+    cols = cols.union(hidden_cols)
+    cols = list(cols)
     cols.sort()
-    return render(request, "display/add-column-filter.html", {'silo':silo,'cols': cols})
+    return render(request, "display/add-column-filter.html", {'silo':silo,'cols': cols, 'hidden_cols': hidden_cols, 'hidden_rows': hidden_rows})

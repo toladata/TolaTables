@@ -349,7 +349,10 @@ class siloHideFilter(models.Model):
     hiddenColumns = models.TextField() #stores a json list of fields to hide
     hiddenRows = models.TextField() #stores a json list of conditions
     #Format of hidden rows:
-    #   [{<operation>:<or, and, defineblank>, "rows": [<list of rows to apply condition>], "characters" : [<list of characters that are defined as blank>]}]
+    #   [{"logic":<or, and, defineblank>,
+    #   "operation" : <empty, nempty, gt, etc>,
+    #   "conditional": [<list of rows to apply condition or the blank character>],
+    #   "number" : <number to perform operation>]}]
     #   default blank characters: not exists, ""
 
 from mongoengine import *

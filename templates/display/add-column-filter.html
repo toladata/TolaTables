@@ -3,7 +3,7 @@
 
 
 {% block content %}
-    <form action="/edit_filter/{{silo.id}}/" method="post">{% csrf_token %}
+    <form id="filterformglobal" action="/edit_filter/{{silo.id}}/" method="post">{% csrf_token %}
         <p>Show columns. This form allows you to pick which columns to hide</p>
         <br>
         <button id="checkall">Check All</button>
@@ -26,9 +26,21 @@
         <button id="addblankchar">Add Blank Character</button>
         <table id="listconditions" class="table table-bordered table-hover table-striped">
           <tr>
+              <th>Logic</th>
               <th>Operation</th>
+              <th>Number</th>
               <th>Specifics</th>
+              <th>Remove</th>
           </tr>
+          {% for row in hidden_rows %}
+              <tr>
+                <td>{{row.logic}}</td>
+                <td>{{row.operation}}</td>
+                <td>{{row.number}}</td>
+                <td>{{row.conditional}}</td>
+                <td><button class="removeRow glyphicon glyphicon-trash btn  btn-sm btn-danger"></button></td>
+              </tr>
+          {% endfor %}
         </table>
         <input type="submit" value="Submit" class="btn btn-sm btn-primary">
     </form>
@@ -49,10 +61,11 @@
                   <option value="AND">all of the following are</option>
               </select>
               <select id="math">
-                  <option value="gt">&gt;</option>
+                  <!-- Add in math eventually -->
+                  <!-- <option value="gt">&gt;</option>
                   <option value="lt">&lt;</option>
                   <option value="gte">&ge;</option>
-                  <option value="lte">&le;</option>
+                  <option value="lte">&le;</option> -->
                   <option value="empty">empty</option>
                   <option value="nempty">not empty</option>
               </select>
@@ -68,7 +81,7 @@
                 {% for col in cols %}
                     <tr>
                       <td>{{col}}</td>
-                      <td align = "center"><input type="checkbox" name="columns" value="{{col}}"></td>
+                      <td align = "center"><input type="checkbox" name="column_conditions" value="{{col}}"></td>
                     <tr>
                 {% endfor %}
               </table>
@@ -102,6 +115,49 @@
 {% block extra_js_in_body %}
     <script type="text/javascript">
         $(document).ready(function() {
+            //check columns that are already hidden
+            {% for col in hidden_cols %}
+                $("#listcolumns").find('td input[value="{{col}}"]').each(function() {
+                    this.checked = true;
+                });
+            {% endfor %}
+
+
+            var hide_rows=[];
+            var j = 0;
+            $("#listconditions").find('tr').each(function() {
+              var i = 0;
+              if (j!=0) {
+                var logic;
+                var operation;
+                var number;
+                var conditional;
+                $(this).find('td').each(function(){
+                  if(i==0){
+                    logic = $(this).text();
+                  }
+                  else if(i==1){
+                    operation = $(this).text();
+                  }
+                  else if(i==2){
+                    number = $(this).text();
+                  }
+                  else if(i==3){
+                    conditional = JSON.parse($(this).text());
+                  }
+                  i+=1;
+                });
+                row = {"logic":logic,
+                      "operation":operation,
+                      "number":number,
+                      "conditional":conditional};
+                hide_rows.push(row);
+              }
+              j+=1;
+
+            });
+
+
             $("#addcondition").on('click', function(e){
                 e.preventDefault();
                 $("#add_condition_modal").modal();
@@ -134,6 +190,45 @@
                     this.checked = false;
                 });
             });
+
+            $(".removeRow").on('click', function(e) {
+                e.preventDefault();
+                var logic;
+                var operation;
+                var number;
+                var conditional;
+                var i = 0;
+                $(this).closest('tr').find('td').each(function(){
+                  if(i==0){
+                    logic = $(this).text();
+                  }
+                  else if(i==1){
+                    operation = $(this).text();
+                  }
+                  else if(i==2){
+                    number = $(this).text();
+                  }
+                  else if(i==3){
+                    conditional = JSON.parse($(this).text());
+                  }
+                  i+=1;
+                });
+                var index = -1;
+                for (var i = 0; i < hide_rows.length; i++) {
+                    if (hide_rows[i].logic == logic &&
+                        hide_rows[i].operation == operation &&
+                        hide_rows[i].number == number &&
+                        JSON.stringify(hide_rows[i].conditional) == JSON.stringify(conditional)) {
+                        index=i;
+                        break;
+                    }
+                }
+                if (index>-1) {
+                  hide_rows.splice(index,1);
+                }
+                $(this).closest('tr').remove();
+            });
+
             $("#blankcharform").submit(function(e){
                 e.preventDefault();
                 $("#add_blankchar_modal").modal('toggle');
@@ -142,10 +237,24 @@
                 var newCell = newRow.insertCell(0);
                 var newText = document.createTextNode('Additional blank');
                 newCell.appendChild(newText);
+
                 newCell = newRow.insertCell(1);
-                newText = document.createTextNode($("#new_blank_char").val());
-                document.createTextNode($("#new_blank_char").val(""));
+                newText = document.createTextNode('');
                 newCell.appendChild(newText);
+
+                newCell = newRow.insertCell(2);
+                newText = document.createTextNode('');
+                newCell.appendChild(newText);
+
+                newCell = newRow.insertCell(3);
+                newText = document.createTextNode($("#new_blank_char").val());
+                newCell.appendChild(newText);
+
+                hide_rows.push({"logic":"BLANKCHAR","operation":"","number":"","conditional":$("#new_blank_char").val()});
+
+
+                $("#new_blank_char").val("");
+
 
             });
             $("#conditionform").submit(function(e){
@@ -153,19 +262,56 @@
                 $("#add_condition_modal").modal('toggle');
                 var table = document.getElementById('listconditions').getElementsByTagName('tbody')[0];
                 var newRow = table.insertRow(table.rows.length);
+
                 var newCell = newRow.insertCell(0);
-                var newText = document.createTextNode($("#boolean").val()+" "+$("#math").val());
+                var newText = document.createTextNode($("#boolean").val());
                 newCell.appendChild(newText);
+
                 newCell = newRow.insertCell(1);
+                newText = document.createTextNode($("#math").val());
+                newCell.appendChild(newText);
+
+                newCell = newRow.insertCell(2);
+                newText = document.createTextNode('');
+                newCell.appendChild(newText);
+
+                newCell = newRow.insertCell(3);
                 var text = "";
+                var val = [];
                 $("#listcolumns_conditions").find('td input:checkbox').each(function() {
                   if (this.checked) {
-                    text += this.value + ",";
+                    text += this.value + ", ";
+                    val.push(this.value);
                   }
                 });
+                text = text.slice(0, text.length-2);
                 newText = document.createTextNode(text);
                 newCell.appendChild(newText);
+
+                hide_rows.push({"logic":$("#boolean").val(),
+                                "operation":$("#math").val(),
+                                "number":"",
+                                "conditional":val});
+
+
+                $("#listcolumns_conditions").find('td input:checkbox').each(function() {
+                    this.checked = false;
+                });
             });
+            $("#filterformglobal").submit(function(e){
+                e.preventDefault();
+                //hide_cols is just all checked boxes for the first part as JSON string
+                var hide_cols = [];
+                $("#listcolumns").find('td input:checkbox').each(function() {
+                  if (this.checked) {
+                    hide_cols.push(this.value);
+                  }
+                });
+
+                $.post("/edit_filter/{{silo.id}}/",{hide_cols: JSON.stringify(hide_cols), hide_rows: JSON.stringify(hide_rows)})
+                // window.location.replace("/silo_detail/{{silo.id}}")
+            });
+
         });
 
     </script>
