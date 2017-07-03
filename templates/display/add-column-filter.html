@@ -309,7 +309,7 @@
                 });
 
                 $.post("/edit_filter/{{silo.id}}/",{hide_cols: JSON.stringify(hide_cols), hide_rows: JSON.stringify(hide_rows)})
-                // window.location.replace("/silo_detail/{{silo.id}}")
+                window.location.replace("/silo_detail/{{silo.id}}")
             });
 
         });

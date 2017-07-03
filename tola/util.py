@@ -11,7 +11,7 @@ from django.utils.encoding import smart_str, smart_unicode
 from django.conf import settings
 from django.contrib.auth.models import User
 
-from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ColumnType, ThirdPartyTokens, FormulaColumnMapping, ColumnOrderMapping
+from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ColumnType, ThirdPartyTokens, FormulaColumnMapping, ColumnOrderMapping, siloHideFilter
 from django.contrib import messages
 import pymongo
 from bson.objectid import ObjectId
@@ -228,6 +228,12 @@ def getSiloColumnNames(id):
         cols.extend([col for col in lvs if col not in cols and col not in ['id','silo_id','read_id','create_date','edit_date','editted_date']])
     except TypeError as e:
         return []
+    cols = set(cols)
+    try:
+        hide_columns =  siloHideFilter.objects.get(silo_id=id)
+        cols = list(cols.difference(json.loads(hide_columns.hiddenColumns)))
+    except siloHideFilter.DoesNotExist as e:
+        pass
     return cols
 
 def user_to_tola(backend, user, response, *args, **kwargs):
