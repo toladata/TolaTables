@@ -39,7 +39,7 @@ from django.db.models import Count
 from silo.custom_csv_dict_reader import CustomDictReader
 from .models import GoogleCredentialsModel
 from gviews_v4 import import_from_gsheet_helper
-from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames, parseMathInstruction, calculateFormulaColumn, ColumnOrderMapping
+from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames, parseMathInstruction, calculateFormulaColumn, ColumnOrderMapping, makeQueryForHiddenRow
 
 from commcare.util import useHeaderName
 
@@ -784,13 +784,23 @@ def siloDetail(request, silo_id):
     silo = Silo.objects.get(pk=silo_id)
     cols = []
     data = []
+    query = "\{\}"
+    try:
+        hidden_rows = siloHideFilter.objects.get(silo_id=silo_id)
+        query = makeQueryForHiddenRow(json.loads(hidden_rows.hiddenRows))
+    except siloHideFilter.DoesNotExist as e:
+        #working as indended
+        pass
+    except Exception as e:
+        #error
+        pass
 
     if silo.owner == request.user or silo.public == True or request.user in silo.shared.all():
         cols.append('_id')
         cols.extend(getSiloColumnNames(silo_id))
     else:
         messages.warning(request,"You do not have permission to view this table.")
-    return render(request, "display/silo.html", {"silo": silo, "cols": cols})
+    return render(request, "display/silo.html", {"silo": silo, "cols": cols, "query": query})
 
 
 @login_required

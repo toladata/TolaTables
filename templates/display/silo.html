@@ -391,7 +391,7 @@
                 "processing": true,
                 "serverSide": true,
                 "ajax": {
-                      "url": '/api/silo/{{silo.pk}}/data',
+                      "url": '/api/silo/{{silo.pk}}/data?query={{query|safe}}',
                     "type": "GET",
                     "data": function ( d ) {
                         //console.log(d);
@@ -411,7 +411,7 @@
             $("#data_table").find("th").on("click", function(e){
                 var to_sort = $(this).attr('arria-sort');
                 var col_name = $(this).text();
-                var retrieve_url = "/api/silo/{{silo.pk}}/data?sort=";
+                var retrieve_url = '/api/silo/{{silo.pk}}/data?query={{query|safe}}&sort=';
                 if (to_sort == "ascending") {
                   retrieve_url += "-";
                   to_sort = "descending";

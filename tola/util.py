@@ -225,13 +225,13 @@ def getSiloColumnNames(id):
 
 
     try:
-        cols.extend([col for col in lvs if col not in cols and col not in ['id','silo_id','read_id','create_date','edit_date','editted_date']])
+        cols.extend([col for col in lvs if col not in cols and col not in {'id','silo_id','read_id','create_date','edit_date','editted_date'}])
     except TypeError as e:
         return []
-    cols = set(cols)
     try:
         hide_columns =  siloHideFilter.objects.get(silo_id=id)
-        cols = list(cols.difference(json.loads(hide_columns.hiddenColumns)))
+        hide_columns = set(json.loads(hide_columns.hiddenColumns))
+        cols = [col for col in cols if col not in hide_columns]
     except siloHideFilter.DoesNotExist as e:
         pass
     return cols
@@ -408,3 +408,63 @@ def calculateFormulaColumn(lvs,operation,columns,formula_column_name):
     if len(calc_fails) == 0:
         return (messages.SUCCESS, "Successfully performed operations")
     return (messages.WARNING, "Non-numberic data detected in rows %s" % str(calc_fails))
+
+def makeQueryForHiddenRow(row_filter):
+    """
+    This function takes a JSON object in the format generated from when a row filter is added and
+    returns a JSON formatted query to be able to plugged into the json format
+    """
+    query = {}
+    empty = [""]
+    #find and add any extra empty characters
+    for condition in row_filter:
+        if condition.get("logic","") == "BLANKCHAR":
+            empty.append(condition.get("conditional", ""))
+    #now add to the query
+    for condition in row_filter:
+        #specify the part of the dictionary to add to
+        if condition.get("logic","") == "AND":
+            to_add = query
+        elif condition.get("logic","") == "OR":
+            try:
+                to_add = query["$or"]
+            except KeyError as e:
+                query["$or"] = {}
+                to_add = query["$or"]
+        for column in condition.get("conditional",[]):
+            if condition.get("operation","") == "empty":
+                try:
+                    to_add[column]["$not"]["$exists"] = "true"
+                except KeyError as e:
+                    to_add[column] = {}
+                    try:
+                        to_add[column]["$not"]["$exists"] = "true"
+                    except KeyError as e:
+                        to_add[column]["$not"] = {}
+                        to_add[column]["$not"]["$exists"] = "true"
+                try:
+                    to_add[column]["$not"]["$not"]["$in"] = empty
+                except KeyError as e:
+                    to_add[column]["$not"]["$not"] = {}
+                    to_add[column]["$not"]["$not"]["$in"] = empty
+            elif condition.get("operation","") == "nempty":
+                try:
+                    to_add[column]["$exists"] = "true"
+                except KeyError as e:
+                    to_add[column] = {}
+                    to_add[column]["$exists"] = "true"
+                try:
+                    to_add[column]["$not"]["$in"] = empty
+                except KeyError as e:
+                    to_add[column]["$not"] = {}
+                    to_add[column]["$not"]["$in"] = empty
+
+    #conver the $or area to be properly formatted for a query
+    or_items = query.get("$or", {})
+    if len(or_items) > 0:
+        query["$or"] = []
+        for k, v in or_items.iteritems():
+            query["$or"].append({k:v})
+
+    query = json.dumps(query)
+    return query
