@@ -61,14 +61,17 @@
                   <option value="AND">all of the following are</option>
               </select>
               <select id="math">
-                  <option value="empty">empty</option>
-                  <option value="nempty">not empty</option>
-                  <option value="gt">&gt;</option>
+                  <!--  add these later when the database actually stores types-->
+                  <!-- <option value="gt">&gt;</option>
                   <option value="lt">&lt;</option>
                   <option value="gte">&ge;</option>
-                  <option value="lte">&le;</option>
+                  <option value="lte">&le;</option> -->
                   <option value="eq">=</option>
+                  <option value="neq">&ne;</option>
+                  <option value="empty">empty</option>
+                  <option value="nempty">not empty</option>
               </select>
+              <input id="number" type="text"></input>
               <br>
               <button id="checkall_condition">Check All</button>
               <button id="uncheckall_condition">Uncheck All</button>
@@ -190,6 +193,19 @@
                     this.checked = false;
                 });
             });
+            $("#math").on("change", function(e){
+              if (this.value == "gt" ||
+                  this.value == "lt" ||
+                  this.value == "gte" ||
+                  this.value == "lte" ||
+                  this.value == "eq" ||
+                  this.value == "neq") {
+                    $("#number").show();
+              }
+              else{
+                $("#number").hide();
+              }
+            });
 
             $(".removeRow").on('click', function(e) {
                 e.preventDefault();
@@ -272,7 +288,7 @@
                 newCell.appendChild(newText);
 
                 newCell = newRow.insertCell(2);
-                newText = document.createTextNode('');
+                newText = document.createTextNode($("#number").val());
                 newCell.appendChild(newText);
 
                 newCell = newRow.insertCell(3);
@@ -290,9 +306,10 @@
 
                 hide_rows.push({"logic":$("#boolean").val(),
                                 "operation":$("#math").val(),
-                                "number":"",
+                                "number":$("#number").val(),
                                 "conditional":val});
 
+                $("#number").val("")
 
                 $("#listcolumns_conditions").find('td input:checkbox').each(function() {
                     this.checked = false;

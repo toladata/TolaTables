@@ -422,6 +422,8 @@ def makeQueryForHiddenRow(row_filter):
             empty.append(condition.get("conditional", ""))
     #now add to the query
     for condition in row_filter:
+        #this does string comparisons
+        num_to_compare = condition.get("number","")
         #specify the part of the dictionary to add to
         if condition.get("logic","") == "AND":
             to_add = query
@@ -432,6 +434,7 @@ def makeQueryForHiddenRow(row_filter):
                 query["$or"] = {}
                 to_add = query["$or"]
         for column in condition.get("conditional",[]):
+            print condition.get("operation")
             if condition.get("operation","") == "empty":
                 try:
                     to_add[column]["$not"]["$exists"] = "true"
@@ -458,6 +461,18 @@ def makeQueryForHiddenRow(row_filter):
                 except KeyError as e:
                     to_add[column]["$not"] = {}
                     to_add[column]["$not"]["$in"] = empty
+            elif condition.get("operation","") in {"gt", "lt", "gte", "lte", "eq"}:
+                try:
+                    to_add[column]['$' + condition.get("operation")] = num_to_compare
+                except KeyError as e:
+                    to_add[column] = {}
+                    to_add[column]['$' + condition.get("operation")] = num_to_compare
+            elif condition.get("operation","") == "neq":
+                try:
+                    to_add[column]['$ne'] = num_to_compare
+                except KeyError as e:
+                    to_add[column] = {}
+                    to_add[column]['$ne'] = num_to_compare
 
     #conver the $or area to be properly formatted for a query
     or_items = query.get("$or", {})
@@ -467,4 +482,5 @@ def makeQueryForHiddenRow(row_filter):
             query["$or"].append({k:v})
 
     query = json.dumps(query)
+    print query
     return query
