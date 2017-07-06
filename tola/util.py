@@ -87,7 +87,7 @@ def siloToDict(silo):
     return parsed_data
 
 
-def saveDataToSilo(silo, data, read, user = None):
+def saveDataToSilo(silo, data, read = -1, user = None):
     """
     This saves data to the silo
 
