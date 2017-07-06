@@ -943,7 +943,6 @@ def importDataFromRead(request, silo, read):
             return (None,0,(messages.ERROR, "You need to login to commcare using an API Key to access this functionality"))
         last_data_retrieved = str(getNewestDataDate(silo.id))[:10]
         url = "/".join(read.read_url.split("/")[:8]) + "?date_modified_start=" + last_data_retrieved + "&" + "limit="
-        print url
         response = requests.get(url+ str(1), headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})
         if response.status_code == 401:
             commcare_token.delete()
