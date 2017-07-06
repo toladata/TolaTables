@@ -482,5 +482,13 @@ def makeQueryForHiddenRow(row_filter):
             query["$or"].append({k:v})
 
     query = json.dumps(query)
-    print query
     return query
+
+def getNewestDataDate(silo_id):
+    """
+    finds the newest date of data in a silo
+    """
+    db = MongoClient(settings.MONGODB_HOST).tola
+    newest_record = db.label_value_store.find({'silo_id' : silo_id}).sort([("create_date", -1)]).limit(1)
+
+    return newest_record[0]['create_date']

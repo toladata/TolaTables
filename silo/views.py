@@ -31,6 +31,8 @@ from django.views.decorators.csrf import csrf_protect
 from django.template import RequestContext, Context
 from django.conf import settings
 
+from celery import Celery
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -39,9 +41,10 @@ from django.db.models import Count
 from silo.custom_csv_dict_reader import CustomDictReader
 from .models import GoogleCredentialsModel
 from gviews_v4 import import_from_gsheet_helper
-from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames, parseMathInstruction, calculateFormulaColumn, ColumnOrderMapping, makeQueryForHiddenRow
+from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames, parseMathInstruction, calculateFormulaColumn, ColumnOrderMapping, makeQueryForHiddenRow, getNewestDataDate
 
 from commcare.util import useHeaderName
+from commcare.tasks import fetchCommCareData, addExtraFields
 
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeletedSilos, FormulaColumnMapping, ColumnOrderMapping, siloHideFilter
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
@@ -938,25 +941,77 @@ def importDataFromRead(request, silo, read):
             commcare_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="CommCare")
         except Exception as e:
             return (None,0,(messages.ERROR, "You need to login to commcare using an API Key to access this functionality"))
-        response = requests.get(read.read_url, headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})
+        last_data_retrieved = str(getNewestDataDate(silo.id))[:10]
+        url = "/".join(read.read_url.split("/")[:8]) + "?date_modified_start=" + last_data_retrieved + "&" + "limit="
+        print url
+        response = requests.get(url+ str(1), headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})
         if response.status_code == 401:
             commcare_token.delete()
             return (None,0,(messages.ERROR, "Your Commcare usernmane or API Key is incorrect"))
         elif response.status_code != 200:
             return (None,0,(messages.ERROR, "An error importing from commcare has occured: %s %s " % (response.status_code, response.text)))
         metadata = json.loads(response.content)
-        useHeaderName(metadata['columns'],metadata['data'])
-        data=[metadata['data']]
-        #now if their are more pages to the data get them
-        url = read.read_url[:-1]
-        i = 1
-        while metadata['next_page'] !="":
-            response = requests.get(url+str(i*50), headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})
-            metadata = json.loads(response.content)
-            useHeaderName(metadata['columns'],metadata['data'])
-            data.append(metadata['data'])
-            i+=1
-        return (data,1,(messages.SUCCESS, "Your commcare data import was successful"))
+        if metadata['meta']['total_count'] == 0:
+            return (None, 2, (messages.SUCCESS, "Your commcare data was already up to date"))
+        #Now call the update data function in commcare tasks
+        auth = {'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}}
+        url += "50"
+        data_raw = fetchCommCareData(url, auth, True, 0, metadata['meta']['total_count'], 50, silo.id, read.id, True)
+        data_collects = data_raw.apply_async()
+        data_retrieval = [v.get() for v in data_collects]
+        columns = set()
+        for data in data_retrieval:
+            columns = columns.union(data)
+        #correct the columns
+        try: columns.remove("")
+        except KeyError as e: pass
+        try: columns.remove("silo_id")
+        except KeyError as e: pass
+        try: columns.remove("read_id")
+        except KeyError as e: pass
+        for column in columns:
+            if "." in column:
+                columns.remove(column)
+                columns.add(column.replace(".", "_"))
+            if "$" in column:
+                columns.remove(column)
+                columns.add(column.replace("$", "USD"))
+        try:
+            columns.remove("id")
+            columns.add("user_assigned_id")
+        except KeyError as e: pass
+        try:
+            columns.remove("_id")
+            columns.add("user_assigned_id")
+        except KeyError as e: pass
+        try:
+            columns.remove("edit_date")
+            columns.add("editted_date")
+        except KeyError as e: pass
+        try:
+            columns.remove("create_date")
+            columns.add("created_date")
+        except KeyError as e: pass
+        #now mass update all the data in the database
+
+        addExtraFields.delay(list(columns), silo.id)
+        try:
+            column_order_mapping = ColumnOrderMapping.objects.get(silo_id=silo.id)
+            columns = columns.union(json.loads(column_order_mapping.ordering))
+            column_order_mapping.ordering = json.dumps(list(columns))
+            column_order_mapping.save()
+        except ColumnOrderMapping.DoesNotExist as e:
+            ColumnOrderMapping.objects.create(silo_id=silo.id,ordering = json.dumps(list(columns)))
+        try:
+            silo_hide_filter = siloHideFilter.objects.get(silo_id=silo.id)
+            hidden_cols = set(json.loads(silo_hide_filter.hiddenColumns))
+            hidden_cols = hidden_cols.add("case_id")
+            silo_hide_filter.hiddenColumns = json.dumps(list(hidden_cols))
+            siloHideFilter.save()
+        except siloHideFilter.DoesNotExist as e:
+            siloHideFilter.objects.create(silo_id=silo.id, hiddenColumns=json.dumps(["case_id"]), hiddenRows="[]")
+
+        return (None,2,(messages.SUCCESS, "%i commcare records were successfully updated" % metadata['meta']['total_count']))
     else:
         return (None,0,(messages.ERROR,"%s does not support update data functionality. You will have to reinport the data manually" % read.type.read_type))
 

@@ -8,7 +8,7 @@ from celery import group
 
 from .tasks import fetchCommCareData, requestCommCareData, storeCommCareData, addExtraFields
 
-from silo.models import LabelValueStore, ColumnOrderMapping
+from silo.models import LabelValueStore, ColumnOrderMapping, siloHideFilter
 from tola.util import saveDataToSilo
 from pymongo import MongoClient
 from django.conf import settings
@@ -97,7 +97,14 @@ def getCommCareCaseData(domain, auth, auth_header, total_cases, silo, read):
         column_order_mapping.save()
     except ColumnOrderMapping.DoesNotExist as e:
         ColumnOrderMapping.objects.create(silo_id=silo.id,ordering = json.dumps(list(columns)))
-
+    try:
+        silo_hide_filter = siloHideFilter.objects.get(silo_id=silo.id)
+        hidden_cols = set(json.loads(silo_hide_filter.hiddenColumns))
+        hidden_cols = hidden_cols.add("case_id")
+        silo_hide_filter.hiddenColumns = json.dumps(list(hidden_cols))
+        siloHideFilter.save()
+    except siloHideFilter.DoesNotExist as e:
+        siloHideFilter.objects.create(silo_id=silo.id, hiddenColumns=json.dumps(["case_id"]), hiddenRows="[]")
 
 
     return (messages.SUCCESS, "CommCare cases imported successfully", columns)

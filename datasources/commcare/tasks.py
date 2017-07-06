@@ -15,7 +15,7 @@ import json
 import time
 
 @shared_task(trail=True)
-def fetchCommCareData(url, auth, auth_header, start, end, step, silo_id, read_id) :
+def fetchCommCareData(url, auth, auth_header, start, end, step, silo_id, read_id, update=False) :
     """
     This function will call the appointed functions to retrieve the commcare data
 
@@ -25,12 +25,13 @@ def fetchCommCareData(url, auth, auth_header, start, end, step, silo_id, read_id
     start -- What record to start at
     end -- what record to end at
     step -- # of records to get in one request
+    update -- if true use the update functioality instead of the regular store furnctionality
     """
-    return group(requestCommCareData.s(url, offset, auth, auth_header, silo_id, read_id) \
+    return group(requestCommCareData.s(url, offset, auth, auth_header, silo_id, read_id, update) \
             for offset in xrange(start,end,step))
 
 @shared_task(trail=True)
-def requestCommCareData(url, offset, auth, auth_header, silo_id, read_id):
+def requestCommCareData(url, offset, auth, auth_header, silo_id, read_id, update):
     """
     This function will retrieve the appointed page of commcare data and return the data in an array
 
@@ -48,29 +49,34 @@ def requestCommCareData(url, offset, auth, auth_header, silo_id, read_id):
         data = json.loads(response.content)
     elif response.status_code == 429:
         time.sleep(1)
-        return requestCommCareData(url, offset, auth, auth_header, silo_id, read_id)
+        return requestCommCareData(url, offset, auth, auth_header, silo_id, read_id, update)
+    elif response.status_code == 404:
+        raise URLNotFoundError(url)
     else:
         #add something to this future error code stopping everything with throw exception
         time.sleep(1)
-        return requestCommCareData(url, offset, auth, auth_header, silo_id, read_id)
+        return requestCommCareData(url, offset, auth, auth_header, silo_id, read_id, update)
 
     #now get the properties of each data
-    return parseCommCareData(data['objects'], silo_id, read_id)
+    return parseCommCareData(data['objects'], silo_id, read_id, update)
 
 
 
 @shared_task()
-def parseCommCareData(data, silo_id, read_id):
+def parseCommCareData(data, silo_id, read_id, update):
     data_properties = []
     data_columns = set()
     for entry in data:
         data_properties.append(entry['properties'])
+        try: data_properties[-1]["user_case_id"] = data_properties[-1].pop('case_id')
+        except KeyError as e: pass
+        data_properties[-1]["case_id"] = entry['case_id']
         data_columns.update(entry['properties'].keys())
-    storeCommCareData(data_properties, silo_id, read_id)
+    storeCommCareData(data_properties, silo_id, read_id, update)
     return list(data_columns)
 
 @shared_task()
-def storeCommCareData(data, silo_id, read_id):
+def storeCommCareData(data, silo_id, read_id, update):
 
     data_refined = []
     for row in data:
@@ -99,7 +105,16 @@ def storeCommCareData(data, silo_id, read_id):
 
         data_refined.append(row)
     db = MongoClient(settings.MONGODB_HOST).tola
-    db.label_value_store.insert(data_refined)
+    if not update:
+        db.label_value_store.insert(data_refined)
+    else:
+        for row in data_refined:
+            db.label_value_store.update(
+                {'silo_id' : silo_id,
+                'case_id' : row['case_id']},
+                row,
+                upsert=True
+            )
 
 @shared_task()
 def addExtraFields(columns, silo_id):
