@@ -1083,6 +1083,17 @@ def editColumns(request,id):
                         formula_columns = FormulaColumnMapping.objects.get(silo_id=id, column_name=column_name).delete()
                     except Exception as e:
                         pass
+                    try:
+                        com = ColumnOrderMapping.objects.get(silo_id=id)
+                        cols = json.loads(com.ordering)
+                        try:
+                            cols.remove(column)
+                            com.ordering = json.dumps(cols)
+                            com.save()
+                        except ValueError as e:
+                            pass
+                    except ColumnOrderMapping.DoesNotExist as e:
+                        pass
 
 
             messages.info(request, 'Updates Saved', fail_silently=False)
@@ -1101,6 +1112,18 @@ def deleteColumn(request,id,column):
     DELETE A COLUMN FROM A SILO
     """
     silo = Silo.objects.get(id=id)
+    try:
+        com = ColumnOrderMapping.objects.get(silo_id=id)
+        cols = json.loads(com.ordering)
+        try:
+            cols.remove(column)
+            com.ordering = json.dumps(cols)
+            com.save()
+        except ValueError as e:
+            pass
+    except ColumnOrderMapping.DoesNotExist as e:
+        pass
+
 
     #delete a column from the existing table silo
     db.label_value_store.update_many(

@@ -395,9 +395,9 @@ def calculateFormulaColumn(lvs,operation,columns,formula_column_name):
         try:
             values_to_calc = []
             for col in columns:
-                values_to_calc.append(int(entry[col]))
+                values_to_calc.append(float(entry[col]))
             calculation = calc(values_to_calc)
-            setattr(entry,formula_column_name,calculation)
+            setattr(entry,formula_column_name,round(calculation,4))
             entry.edit_date = timezone.now()
             entry.save()
         except ValueError as operation:
