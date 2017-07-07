@@ -906,6 +906,10 @@ def updateSiloData(request, pk):
                         try:
                             dups = LabelValueStore.objects.get(__raw__={ "$or" : [{"read_id" : {"$not" : { "$exists" : "true" }}}, {"read_id" : {"$in" : [-1,""]} } ]},**filter_criteria)
                             dups.delete()
+                        except LabelValueStore.MultipleObjectsReturned as e:
+                            print dups
+                            # dups = LabelValueStore.objects.filter(__raw__={ "$or" : [{"read_id" : {"$not" : { "$exists" : "true" }}}, {"read_id" : {"$in" : [-1,""]} } ]},**filter_criteria).first()
+                            dups.first().delete()
                         except Exception as e:
                             pass
                 except Exception as e:
