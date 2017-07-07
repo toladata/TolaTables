@@ -160,9 +160,9 @@ def saveDataToSilo(silo, data, read = -1, user = None):
             try:
                 for col in columns_to_calculate_from:
                     numbers.append(int(lvs[col]))
-                setattr(lvs,column.column_name,calculation_to_do(numbers))
+                setattr(lvs,column.column_name,round(calculation_to_do(numbers),4))
             except ValueError as operation:
-                setattr(lvs,column.column_name,calculation_to_do("Error"))
+                setattr(lvs,column.column_name,"Error")
         lvs.save()
 
     combineColumns(silo.pk)
