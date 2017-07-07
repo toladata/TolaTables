@@ -31,6 +31,8 @@ from django.views.decorators.csrf import csrf_protect
 from django.template import RequestContext, Context
 from django.conf import settings
 
+from celery import Celery
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -39,11 +41,12 @@ from django.db.models import Count
 from silo.custom_csv_dict_reader import CustomDictReader
 from .models import GoogleCredentialsModel
 from gviews_v4 import import_from_gsheet_helper
-from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames, parseMathInstruction, calculateFormulaColumn, ColumnOrderMapping
+from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames, parseMathInstruction, calculateFormulaColumn, ColumnOrderMapping, makeQueryForHiddenRow, getNewestDataDate
 
 from commcare.util import useHeaderName
+from commcare.tasks import fetchCommCareData, addExtraFields
 
-from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeletedSilos, FormulaColumnMapping, ColumnOrderMapping
+from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeletedSilos, FormulaColumnMapping, ColumnOrderMapping, siloHideFilter
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
 
 logger = logging.getLogger("silo")
@@ -780,16 +783,27 @@ def siloDetail(request, silo_id):
     """
     Silo Detail
     """
+
     silo = Silo.objects.get(pk=silo_id)
     cols = []
     data = []
+    query = "\{\}"
+    try:
+        hidden_rows = siloHideFilter.objects.get(silo_id=silo_id)
+        query = makeQueryForHiddenRow(json.loads(hidden_rows.hiddenRows))
+    except siloHideFilter.DoesNotExist as e:
+        #working as indended
+        pass
+    except Exception as e:
+        #error
+        pass
 
     if silo.owner == request.user or silo.public == True or request.user in silo.shared.all():
         cols.append('_id')
         cols.extend(getSiloColumnNames(silo_id))
     else:
         messages.warning(request,"You do not have permission to view this table.")
-    return render(request, "display/silo.html", {"silo": silo, "cols": cols})
+    return render(request, "display/silo.html", {"silo": silo, "cols": cols, "query": query})
 
 
 @login_required
@@ -836,6 +850,7 @@ def updateSiloData(request, pk):
                     data[1].append(import_response[0])
                     data[0].append(read)
                     sources_to_delete.append(read.id)
+
 
             #from ones where we got data delete those records
             unique_field_exist = silo.unique_fields.exists()
@@ -891,6 +906,9 @@ def updateSiloData(request, pk):
                         try:
                             dups = LabelValueStore.objects.get(__raw__={ "$or" : [{"read_id" : {"$not" : { "$exists" : "true" }}}, {"read_id" : {"$in" : [-1,""]} } ]},**filter_criteria)
                             dups.delete()
+                        except LabelValueStore.MultipleObjectsReturned as e:
+                            dups = LabelValueStore.objects.filter(__raw__={ "$or" : [{"read_id" : {"$not" : { "$exists" : "true" }}}, {"read_id" : {"$in" : [-1,""]} } ]},**filter_criteria).first()
+                            dups.first().delete()
                         except Exception as e:
                             pass
                 except Exception as e:
@@ -926,25 +944,76 @@ def importDataFromRead(request, silo, read):
             commcare_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="CommCare")
         except Exception as e:
             return (None,0,(messages.ERROR, "You need to login to commcare using an API Key to access this functionality"))
-        response = requests.get(read.read_url, headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})
+        last_data_retrieved = str(getNewestDataDate(silo.id))[:10]
+        url = "/".join(read.read_url.split("/")[:8]) + "?date_modified_start=" + last_data_retrieved + "&" + "limit="
+        response = requests.get(url+ str(1), headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})
         if response.status_code == 401:
             commcare_token.delete()
             return (None,0,(messages.ERROR, "Your Commcare usernmane or API Key is incorrect"))
         elif response.status_code != 200:
             return (None,0,(messages.ERROR, "An error importing from commcare has occured: %s %s " % (response.status_code, response.text)))
         metadata = json.loads(response.content)
-        useHeaderName(metadata['columns'],metadata['data'])
-        data=[metadata['data']]
-        #now if their are more pages to the data get them
-        url = read.read_url[:-1]
-        i = 1
-        while metadata['next_page'] !="":
-            response = requests.get(url+str(i*50), headers={'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}})
-            metadata = json.loads(response.content)
-            useHeaderName(metadata['columns'],metadata['data'])
-            data.append(metadata['data'])
-            i+=1
-        return (data,1,(messages.SUCCESS, "Your commcare data import was successful"))
+        if metadata['meta']['total_count'] == 0:
+            return (None, 2, (messages.SUCCESS, "Your commcare data was already up to date"))
+        #Now call the update data function in commcare tasks
+        auth = {'Authorization': 'ApiKey %(u)s:%(a)s' % {'u' : commcare_token.username, 'a' : commcare_token.token}}
+        url += "50"
+        data_raw = fetchCommCareData(url, auth, True, 0, metadata['meta']['total_count'], 50, silo.id, read.id, True)
+        data_collects = data_raw.apply_async()
+        data_retrieval = [v.get() for v in data_collects]
+        columns = set()
+        for data in data_retrieval:
+            columns = columns.union(data)
+        #correct the columns
+        try: columns.remove("")
+        except KeyError as e: pass
+        try: columns.remove("silo_id")
+        except KeyError as e: pass
+        try: columns.remove("read_id")
+        except KeyError as e: pass
+        for column in columns:
+            if "." in column:
+                columns.remove(column)
+                columns.add(column.replace(".", "_"))
+            if "$" in column:
+                columns.remove(column)
+                columns.add(column.replace("$", "USD"))
+        try:
+            columns.remove("id")
+            columns.add("user_assigned_id")
+        except KeyError as e: pass
+        try:
+            columns.remove("_id")
+            columns.add("user_assigned_id")
+        except KeyError as e: pass
+        try:
+            columns.remove("edit_date")
+            columns.add("editted_date")
+        except KeyError as e: pass
+        try:
+            columns.remove("create_date")
+            columns.add("created_date")
+        except KeyError as e: pass
+        #now mass update all the data in the database
+
+        addExtraFields.delay(list(columns), silo.id)
+        try:
+            column_order_mapping = ColumnOrderMapping.objects.get(silo_id=silo.id)
+            columns = columns.union(json.loads(column_order_mapping.ordering))
+            column_order_mapping.ordering = json.dumps(list(columns))
+            column_order_mapping.save()
+        except ColumnOrderMapping.DoesNotExist as e:
+            ColumnOrderMapping.objects.create(silo_id=silo.id,ordering = json.dumps(list(columns)))
+        try:
+            silo_hide_filter = siloHideFilter.objects.get(silo_id=silo.id)
+            hidden_cols = set(json.loads(silo_hide_filter.hiddenColumns))
+            hidden_cols = hidden_cols.add("case_id")
+            silo_hide_filter.hiddenColumns = json.dumps(list(hidden_cols))
+            siloHideFilter.save()
+        except siloHideFilter.DoesNotExist as e:
+            siloHideFilter.objects.create(silo_id=silo.id, hiddenColumns=json.dumps(["case_id"]), hiddenRows="[]")
+
+        return (None,2,(messages.SUCCESS, "%i commcare records were successfully updated" % metadata['meta']['total_count']))
     else:
         return (None,0,(messages.ERROR,"%s does not support update data functionality. You will have to reinport the data manually" % read.type.read_type))
 
@@ -1017,6 +1086,17 @@ def editColumns(request,id):
                         formula_columns = FormulaColumnMapping.objects.get(silo_id=id, column_name=column_name).delete()
                     except Exception as e:
                         pass
+                    try:
+                        com = ColumnOrderMapping.objects.get(silo_id=id)
+                        cols = json.loads(com.ordering)
+                        try:
+                            cols.remove(column)
+                            com.ordering = json.dumps(cols)
+                            com.save()
+                        except ValueError as e:
+                            pass
+                    except ColumnOrderMapping.DoesNotExist as e:
+                        pass
 
 
             messages.info(request, 'Updates Saved', fail_silently=False)
@@ -1035,6 +1115,18 @@ def deleteColumn(request,id,column):
     DELETE A COLUMN FROM A SILO
     """
     silo = Silo.objects.get(id=id)
+    try:
+        com = ColumnOrderMapping.objects.get(silo_id=id)
+        cols = json.loads(com.ordering)
+        try:
+            cols.remove(column)
+            com.ordering = json.dumps(cols)
+            com.save()
+        except ValueError as e:
+            pass
+    except ColumnOrderMapping.DoesNotExist as e:
+        pass
+
 
     #delete a column from the existing table silo
     db.label_value_store.update_many(
@@ -1363,3 +1455,44 @@ def editColumnOrder(request, pk):
     silo = Silo.objects.get(pk=pk)
     cols = getSiloColumnNames(pk)
     return render(request, "display/edit-column-order.html", {'silo':silo,'cols': cols})
+
+def addColumnFilter(request, pk):
+    if request.method == 'POST':
+        hide_cols = request.POST.get('hide_cols')
+        hide_rows = request.POST.get('hide_rows')
+        print hide_rows
+        hidden_fields, created = siloHideFilter.objects.get_or_create(silo_id=pk)
+        try:
+            json.loads(hide_cols)
+            hidden_fields.hiddenColumns = hide_cols
+        except Exception as e:
+            messages.error(request,"Error in hiding columns")
+        try:
+            json.loads(hide_rows)
+            hidden_fields.hiddenRows = hide_rows
+        except Exception as e:
+            messages.error(request,"Error in hiding rows")
+        hidden_fields.save()
+        return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
+
+
+    silo = Silo.objects.get(pk=pk)
+    cols = getSiloColumnNames(pk)
+    try:
+        silo_hide_filter = siloHideFilter.objects.get(silo_id=pk)
+        hidden_cols = json.loads(silo_hide_filter.hiddenColumns)
+        hidden_rows = json.loads(silo_hide_filter.hiddenRows)
+        for row in hidden_rows:
+            try:
+                row['conditional'] = json.dumps(row['conditional'])
+            except Exception as e:
+                pass
+    except siloHideFilter.DoesNotExist as e:
+        hidden_cols = []
+        hidden_rows = []
+
+    cols = set(cols)
+    cols = cols.union(hidden_cols)
+    cols = list(cols)
+    cols.sort()
+    return render(request, "display/add-column-filter.html", {'silo':silo,'cols': cols, 'hidden_cols': hidden_cols, 'hidden_rows': hidden_rows})

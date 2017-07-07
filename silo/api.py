@@ -98,11 +98,12 @@ class SiloViewSet(viewsets.ModelViewSet):
         draw = int(request.GET.get("draw", 1))
         offset = int(request.GET.get('start', -1))
         length = int(request.GET.get('length', 10))
-        recordsTotal = LabelValueStore.objects(silo_id=id).count()
-
         #filtering syntax is the mongodb syntax
         query = request.GET.get('query',"{}")
         filter_fields = json.loads(query)
+
+        recordsTotal = LabelValueStore.objects(silo_id=id, **filter_fields).count()
+
 
         #print("offset=%s length=%s" % (offset, length))
         #page_size = 100
@@ -112,17 +113,15 @@ class SiloViewSet(viewsets.ModelViewSet):
         # workaround until the problem of javascript not increasing the value of length is fixed
         if offset >= 0:
             length = offset + length
-            data = LabelValueStore.objects(silo_id=id).exclude('create_date', 'edit_date', 'silo_id','read_id').skip(offset).limit(length)
+            data = LabelValueStore.objects(silo_id=id, **filter_fields).exclude('create_date', 'edit_date', 'silo_id','read_id').skip(offset).limit(length)
         else:
-            data = LabelValueStore.objects(silo_id=id).exclude('create_date', 'edit_date', 'silo_id','read_id')
+            data = LabelValueStore.objects(silo_id=id, **filter_fields).exclude('create_date', 'edit_date', 'silo_id','read_id')
 
-        if len(filter_fields) > 0:
-            data = data.filter(**filter_fields)
         sort = str(request.GET.get('sort',''))
         data = data.order_by(sort)
         json_data = json.loads(data.to_json())
 
-        return JsonResponse({"data": json_data, "draw": draw, "recordsTotal": recordsTotal, "recordsFiltered": len(json_data)}, safe=False)
+        return JsonResponse({"data": json_data, "draw": draw, "recordsTotal": recordsTotal, "recordsFiltered": recordsTotal}, safe=False)
 
 
 class TagViewSet(viewsets.ModelViewSet):

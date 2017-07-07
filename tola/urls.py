@@ -81,6 +81,7 @@ urlpatterns =[
     url(r'^value_delete/(?P<id>\w+)/$', views.valueDelete, name='valueDelete'),
     url(r'^new_column/(?P<id>\w+)/$', views.newColumn, name='newColumn'),
     url(r'^new_formula_column/(?P<pk>\w+)/$', views.newFormulaColumn, name='newFormulaColumn'),
+    url(r'^edit_filter/(?P<pk>\w+)/$', views.addColumnFilter, name='editColumnFilter'),
     url(r'^edit_columns/(?P<id>\w+)/$', views.editColumns, name='editColumns'),
     url(r'^delete_column/(?P<id>\w+)/(?P<column>\w+)/$', views.deleteColumn, name='deleteColumn'),
     url(r'^edit_column_order/(?P<pk>\w+)/$', views.editColumnOrder, name='editColumnOrder'),

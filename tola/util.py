@@ -11,7 +11,7 @@ from django.utils.encoding import smart_str, smart_unicode
 from django.conf import settings
 from django.contrib.auth.models import User
 
-from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ColumnType, ThirdPartyTokens, FormulaColumnMapping, ColumnOrderMapping
+from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ColumnType, ThirdPartyTokens, FormulaColumnMapping, ColumnOrderMapping, siloHideFilter
 from django.contrib import messages
 import pymongo
 from bson.objectid import ObjectId
@@ -87,7 +87,7 @@ def siloToDict(silo):
     return parsed_data
 
 
-def saveDataToSilo(silo, data, read, user = None):
+def saveDataToSilo(silo, data, read = -1, user = None):
     """
     This saves data to the silo
 
@@ -160,9 +160,9 @@ def saveDataToSilo(silo, data, read, user = None):
             try:
                 for col in columns_to_calculate_from:
                     numbers.append(int(lvs[col]))
-                setattr(lvs,column.column_name,calculation_to_do(numbers))
+                setattr(lvs,column.column_name,round(calculation_to_do(numbers),4))
             except ValueError as operation:
-                setattr(lvs,column.column_name,calculation_to_do("Error"))
+                setattr(lvs,column.column_name,"Error")
         lvs.save()
 
     combineColumns(silo.pk)
@@ -207,7 +207,7 @@ def importJSON(read_obj, user, remote_user = None, password = None, silo_id = No
         if return_data:
             return data
 
-        skipped_rows = saveDataToSilo(silo, data, read_obj.id)
+        skipped_rows = saveDataToSilo(silo, data, read_obj)
         return (messages.SUCCESS, "Data imported successfully.", str(silo_id))
     except Exception as e:
         if return_data:
@@ -215,7 +215,7 @@ def importJSON(read_obj, user, remote_user = None, password = None, silo_id = No
         return (messages.ERROR, "An error has occured: %s" % e, str(silo_id))
 
 def getSiloColumnNames(id):
-    lvs = LabelValueStore.objects(silo_id=id)
+    lvs = LabelValueStore.objects.filter(silo_id=id).first()
     cols = []
     try:
         order = ColumnOrderMapping.objects.get(silo_id=id)
@@ -223,7 +223,17 @@ def getSiloColumnNames(id):
     except ColumnOrderMapping.DoesNotExist as e:
         pass
 
-    cols.extend([col for col in lvs[0] if col not in cols and col not in ['id','silo_id','read_id','create_date','edit_date','editted_date']])
+
+    try:
+        cols.extend([col for col in lvs if col not in cols and col not in {'id','silo_id','read_id','create_date','edit_date','editted_date'}])
+    except TypeError as e:
+        return []
+    try:
+        hide_columns =  siloHideFilter.objects.get(silo_id=id)
+        hide_columns = set(json.loads(hide_columns.hiddenColumns))
+        cols = [col for col in cols if col not in hide_columns]
+    except siloHideFilter.DoesNotExist as e:
+        pass
     return cols
 
 def user_to_tola(backend, user, response, *args, **kwargs):
@@ -251,7 +261,7 @@ def getImportAppsVerbose():
     folders = getImportApps()
     apps = [[folder,folder] for folder in folders]
     for app in apps:
-        filepath = "datasources/" + app[0] + "/apps.py"
+        filepath = settings.SITE_ROOT + "/datasources/" + app[0] + "/apps.py"
         f = open(filepath,"r")
         for i, line in enumerate(f):
             if i > 100:
@@ -385,9 +395,9 @@ def calculateFormulaColumn(lvs,operation,columns,formula_column_name):
         try:
             values_to_calc = []
             for col in columns:
-                values_to_calc.append(int(entry[col]))
+                values_to_calc.append(float(entry[col]))
             calculation = calc(values_to_calc)
-            setattr(entry,formula_column_name,calculation)
+            setattr(entry,formula_column_name,round(calculation,4))
             entry.edit_date = timezone.now()
             entry.save()
         except ValueError as operation:
@@ -398,3 +408,87 @@ def calculateFormulaColumn(lvs,operation,columns,formula_column_name):
     if len(calc_fails) == 0:
         return (messages.SUCCESS, "Successfully performed operations")
     return (messages.WARNING, "Non-numberic data detected in rows %s" % str(calc_fails))
+
+def makeQueryForHiddenRow(row_filter):
+    """
+    This function takes a JSON object in the format generated from when a row filter is added and
+    returns a JSON formatted query to be able to plugged into the json format
+    """
+    query = {}
+    empty = [""]
+    #find and add any extra empty characters
+    for condition in row_filter:
+        if condition.get("logic","") == "BLANKCHAR":
+            empty.append(condition.get("conditional", ""))
+    #now add to the query
+    for condition in row_filter:
+        #this does string comparisons
+        num_to_compare = condition.get("number","")
+        #specify the part of the dictionary to add to
+        if condition.get("logic","") == "AND":
+            to_add = query
+        elif condition.get("logic","") == "OR":
+            try:
+                to_add = query["$or"]
+            except KeyError as e:
+                query["$or"] = {}
+                to_add = query["$or"]
+        for column in condition.get("conditional",[]):
+            print condition.get("operation")
+            if condition.get("operation","") == "empty":
+                try:
+                    to_add[column]["$not"]["$exists"] = "true"
+                except KeyError as e:
+                    to_add[column] = {}
+                    try:
+                        to_add[column]["$not"]["$exists"] = "true"
+                    except KeyError as e:
+                        to_add[column]["$not"] = {}
+                        to_add[column]["$not"]["$exists"] = "true"
+                try:
+                    to_add[column]["$not"]["$not"]["$in"] = empty
+                except KeyError as e:
+                    to_add[column]["$not"]["$not"] = {}
+                    to_add[column]["$not"]["$not"]["$in"] = empty
+            elif condition.get("operation","") == "nempty":
+                try:
+                    to_add[column]["$exists"] = "true"
+                except KeyError as e:
+                    to_add[column] = {}
+                    to_add[column]["$exists"] = "true"
+                try:
+                    to_add[column]["$not"]["$in"] = empty
+                except KeyError as e:
+                    to_add[column]["$not"] = {}
+                    to_add[column]["$not"]["$in"] = empty
+            elif condition.get("operation","") in {"gt", "lt", "gte", "lte", "eq"}:
+                try:
+                    to_add[column]['$' + condition.get("operation")] = num_to_compare
+                except KeyError as e:
+                    to_add[column] = {}
+                    to_add[column]['$' + condition.get("operation")] = num_to_compare
+            elif condition.get("operation","") == "neq":
+                try:
+                    to_add[column]['$ne'] = num_to_compare
+                except KeyError as e:
+                    to_add[column] = {}
+                    to_add[column]['$ne'] = num_to_compare
+
+    #conver the $or area to be properly formatted for a query
+    or_items = query.get("$or", {})
+    if len(or_items) > 0:
+        query["$or"] = []
+        for k, v in or_items.iteritems():
+            query["$or"].append({k:v})
+
+    query = json.dumps(query)
+    return query
+
+def getNewestDataDate(silo_id):
+    """
+    finds the newest date of data in a silo
+    """
+    db = MongoClient(settings.MONGODB_HOST).tola
+    newest_record = db.label_value_store.find({'silo_id' : silo_id}).sort([("create_date", -1)]).limit(1)
+
+    return newest_record[0]['create_date']

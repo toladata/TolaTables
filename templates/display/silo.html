@@ -162,6 +162,8 @@
                             <a href="/edit_columns/{{ silo.pk }}/" class="btn btn-primary">Edit or Delete columns</a>
                             <a href="/new_column/{{ silo.pk }}/" class="btn btn-primary">Add New Column</a>
                             <a href="/new_formula_column/{{ silo.pk }}/" class="btn btn-primary">Add New Formula Column</a>
+                            <a href="/edit_filter/{{ silo.pk }}/" class="btn btn-primary">Add Filters</a>
+
                         <!--
                         <a href="/anonymize_silo/{{ id }}/" class="btn btn-primary">Anonymize Table</a>
                         <a href="/identifyPII/{{ id }}/" id="identifyPIIBtn" class="btn btn-primary">Identify PIIF Columns</a>
@@ -389,7 +391,7 @@
                 "processing": true,
                 "serverSide": true,
                 "ajax": {
-                    "url": "/api/silo/{{silo.pk}}/data",
+                      "url": '/api/silo/{{silo.pk}}/data?query={{query|safe}}',
                     "type": "GET",
                     "data": function ( d ) {
                         //console.log(d);
@@ -409,7 +411,7 @@
             $("#data_table").find("th").on("click", function(e){
                 var to_sort = $(this).attr('arria-sort');
                 var col_name = $(this).text();
-                var retrieve_url = "/api/silo/{{silo.pk}}/data?sort=";
+                var retrieve_url = '/api/silo/{{silo.pk}}/data?query={{query|safe}}&sort=';
                 if (to_sort == "ascending") {
                   retrieve_url += "-";
                   to_sort = "descending";

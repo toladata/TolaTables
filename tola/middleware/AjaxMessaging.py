@@ -22,6 +22,9 @@ class AjaxMessaging(object):
                         "extra_tags": message.tags,
                     })
 
+                #workaround for list type data
+                if type(content) == list:
+                    content = {"data" : content}
                 content['django_messages'] = django_messages
 
                 response.content = json.dumps(content)

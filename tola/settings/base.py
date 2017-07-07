@@ -242,6 +242,7 @@ THIRD_PARTY_APPS = (
     'crispy_forms',
     'django_extensions',
     'corsheaders',
+    'django_celery_results',
 )
 
 #to get a subdirectory to work
@@ -394,3 +395,7 @@ MESSAGE_TAGS = {message.DEBUG: 'debug',
 
 
 GOOGLE_REDIRECT_URL = 'http://localhost:8000/oauth2callback/'
+
+########## Celery CONFIGURATION
+CELERY_RESULT_BACKEND = 'amqp'
+CELERY_CACHE_BACKEND = 'django-cache'

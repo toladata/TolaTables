@@ -30,5 +30,5 @@ class Command(BaseCommand):
                 ona_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="ONA")
                 response = requests.get(read.read_url, headers={'Authorization': 'Token %s' % ona_token.token})
                 data = json.loads(response.content)
-                saveDataToSilo(silo, data)
+                saveDataToSilo(silo, data, read, silo.owner.pk)
                 self.stdout.write('Successfully fetched the READ_ID, "%s", from ONA' % read.pk)

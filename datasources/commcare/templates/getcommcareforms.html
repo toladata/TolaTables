@@ -17,58 +17,37 @@
           <p> You can also <a href="/commcare/logout/">Logout</a> of this CommCare account. </p>
         {% endif %}
     {% else %}
-      <p>List of forms from CommCare.  Forms that have been imported are associated with a table. </p>
-      {% if auth != 2%}
-        <p> You can also <a href="/commcare/logout/">Logout</a> of this CommCare account. </p>
-      {% endif %}
-      <table id="commcareforms" class="table table-bordered table-hover table-striped">
-          <tr>
-              <th>No</th>
-              <th>Title</th>
-              <th>Description</th>
-              <th>Table</th>
-              <th>Action</th>
-          </tr>
-      {% for row in data %}
-          <tr>
-              <form action="{% url 'saveCommCareData' %}" method="POST" id = "{{ forloop.counter }}">{% csrf_token %}
-              <td> {{ forloop.counter }} </td>
-              <td> <input type="hidden" value="{{ row.title }}" name="formname"></input>{{ row.title }} </td>
-              <td> <input type="hidden" value="{{ row.description }}" name="description"></input>{{ row.description }} </td>
-              <input type="hidden" value="{{ row.id }}" name="data_id"></input>
-              <input type="hidden" value="1" name="title"></input>
-              <input type="hidden" value="1" name="type"></input>
-              <input type="hidden" value="{{ request.user.id }}" name="owner"></input>
-              <td>
-                  <select id="id_silo-{{forloop.counter}}" name="silo_id" class="form-control input-sm">
-                      <option selected="selected" value=""></option>
-                      <option value="-1">Create New Table</option>
-                      {% for silo in silos %}
-                          <option value="{{ silo.id }}"> {{ silo.name }} </option>
-                      {% endfor %}
-                  </select>
-              </td>
-              <td>
-                  <input type="button" name="submit-id-save-{{forloop.counter}}" value="Import" class="btn btn-sm btn-primary" onclick="$(this).commcare();">
-              </td>
-              </form>
-          </tr>
+      <!-- obsolete. this will be used as a basis for column operations form -->
+      <p>You can also do operations on these forms. These operations will allows you to delete data if certain conditions are not met. </p>
+      {% for col in data %}
+        <p> {{col}} </p>
       {% endfor %}
-      </table>
     {% endif %}
-    <div class="modal fade" id="form_modal" tabindex="-1" role="dialog" aria-labelledby="form_modal_label" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content" id="modal_content">
-            <!-- form will be inserted here -->
-        </div> <!-- .modal-content div collapse -->
-    </div><!-- .modal-dialog .modal-lg div collapse -->
-</div> <!-- .modal fade div collapse -->
+    <!-- Modal -->
+    <div id="progress_modal" class="modal fade" role="dialog">
+      <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title">Your data is being fetched. This may take a while</h4>
+          </div>
+          <div class="modal-body">
+            <!-- <div id="progress_number">0/{{entries}} downloaded</div> -->
+            <div class="col-xs-12 col-sm-12 progress-container">
+                <div class="progress progress-striped active">
+                    <div class="progress-bar" style="width:0%"></div>
+                </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 {% endblock content %}
 
 {% block extra_js_in_body %}
     <script type="text/javascript">
         $(document).ready(function() {
-
+            //This jquery function controls the dropdown menu in crispy_forms
             $("select").on("change", function() {
                 //var silo_id =  $("#" + this.id).val());
                 var select_obj = $("#" + this.id);
@@ -76,73 +55,72 @@
                 if (silo_id < 0) {
                     var new_silo_name = prompt("Enter the name of your name silo");
                     if (new_silo_name) {
-                        var num_options = select_obj.children("option").length;
-                        $("#" + select_obj[0].id + " option").eq(1).after($("<option></option>").val(0).text(new_silo_name));
-                        $("#" + select_obj[0].id).val(0);
+                      var num_options = select_obj.children("option").length;
+                      $("#" + select_obj[0].id + " option").val(0).text(new_silo_name);
+                      $("#" + select_obj[0].id).val(0);
                     }
                 }
             });
 
-             $.fn.commcare = (function(e) {
-                 var id = $(this).closest('tr').find("td:nth-child(3)").text().trim();
-                 var name = $(this).closest('tr').find("td:nth-child(4)").text().trim();
-                 var desc = $(this).closest('tr').find("td:nth-child(5)").text().trim();
-                 var data_id = $(this).closest('tr').find('input[name=data_id]').val();
-                 var silo_id = $("#id_silo-"+id).val();
-                 var silo_name = $("#id_silo-"+id + " option:selected").text();
-                 var asiufjoiawenowe = '{{usrn}}';
-                 var reoihgweboqwe = '{{pwd}}';
-                 var no24jrfindaibanoif = '{{project}}';
-                 if (!silo_id) {
-                     alert("You must select a silo for storing data before you can import");
-                     return;
-                 }
-                 if (silo_id < 0) {
-                     name = $("#id_silo-"+id).find("option:selected").text();
-                 }
-
-                 //console.log("Name: " + name + " description: " + desc + " url: " + url + " silo: " + silo_id);
-
-                 $.post("/commcare/savecommcaredata/", {read_name: name, description: desc, data_id: data_id, silo_id: silo_id, silo_name: silo_name, asiufjoiawenowe:asiufjoiawenowe, reoihgweboqwe:reoihgweboqwe, no24jrfindaibanoif:no24jrfindaibanoif})
-                     .success(function(data, textStatus, xhr) {
-                         /*
-                         console.log("status: " + xhr.status +
-                               //", data: " + data +
-                               //", this.data: " + this.data +
-                               ", responseText: " + xhr.responseText +
-                               ", textStatus: " + textStatus +
-                               ", this.usl: " + this.url +
-                               ", xhr.getResponseHeader('Content-Type')" + xhr.getResponseHeader("Content-Type")
-                         );
-                         */
-                         //addMessage(data, "success" );
-                         //console.log(this.url);
-                         if (xhr.getResponseHeader('show_mapping') == "1") {
-                             $("#modal_content").html(data);
-                             $('#form_modal').modal('toggle');
-                         } else {
-                             addMessage(data, "info" );
-                         }
-                     })
-                     .fail(function(data) {
-                        // addMessage(data, "error ");
-                     })
-                     .done(function(data, xhr) {
-                         //alert(xhr.status);
-
-                     })
-                     .complete(function(data, xhr) {
-                         //show_column_mapping();
-                     });
+            //This jquery function controls the progress bar on the import screen
+            $('form[action="/commcare/"]').submit(function(e){
+                // $("#progress_modal").modal();
+                $("#progress_number").text(0+"/{{entries}} downloaded");
+                $("#progress_modal").modal();
+                // getSiloIdFromRead();
+                // getNumEntry();
+                // controls the progress bar
+                $(".progress-bar").animate({
+                    width: "100%"
+                }, {{entries}}*500);
             });
+
+            //This jquery function controls the progress bar on the import from password screen
+            $('form[action="/commcare/passform/"]').submit(function(e){
+                // $("#progress_modal").modal();
+                $("#progress_number").text(0+"/{{entries}} downloaded");
+                $("#progress_modal").modal();
+                // getSiloIdFromRead();
+                // getNumEntry();
+                // controls the progress bar
+                $(".progress-bar").animate({
+                    width: "100%"
+                }, {{entries}}*500);
+            });
+
         });
 
-        function show_column_mapping() {
-            console.log("OK... showing column mapping.");
-            $.post("/merge_columns", {from_silo_id: "0", to_silo_id: "0"})
-                .success(function(data, textStatus, xhr) {
-                    console.log("OK");
-                });
-        }
+        // this does it
+        // to impliment # of imports left
+        // function getSiloIdFromRead(){
+        //     var ajaxOpts = {
+        //         type: "GET",
+        //         url: "/api/silo",
+        //         success: function(data) {
+        //           //cycle through the different silos
+        //           for (var i = 0; i < data.data.length; i++) {
+        //             // cycle through the different reads in silos
+        //             for (var j = 0; j < data.data[i].reads.length; j++) {
+        //               // if (data.data[i].reads[j].edit_date-time<3600) {
+        //                 alert(data.data[i].reads[j].edit_date-10);
+        //               // }
+        //             }
+        //           }
+        //         }
+        //     };
+        //     $.ajax(ajaxOpts);
+        // }
+        //
+        // function getNumEntry() {
+        //     var ajaxOpts = {
+        //         type: "GET",
+        //         url: "/api/silo/{{silo_id}}",
+        //         success: function(data) {
+        //             $("#progress_number").text(data.data_count+"/{{entries}} downloaded");
+        //         }
+        //     };
+        //     $.ajax(ajaxOpts);
+        //     // setTimeout('getNumEntry()',10000);
+        // }
     </script>
 {% endblock %}

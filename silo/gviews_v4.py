@@ -31,7 +31,7 @@ from oauth2client.contrib import xsrfutil
 
 from .models import GoogleCredentialsModel
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag
-from tola.util import siloToDict, combineColumns
+from tola.util import siloToDict, combineColumns, getSiloColumnNames, FormulaColumnMapping, parseMathInstruction
 logger = logging.getLogger("silo")
 
 
@@ -210,6 +210,17 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
         lvs.silo_id = silo.id
         lvs.read_id = gsheet_read.id
         lvs.create_date = timezone.now()
+        formula_columns = FormulaColumnMapping.objects.filter(silo_id=silo.id)
+        for column in formula_columns:
+            calculation_to_do = parseMathInstruction(column.operation)
+            columns_to_calculate_from = json.loads(column.mapping)
+            numbers = []
+            try:
+                for col in columns_to_calculate_from:
+                    numbers.append(float(lvs[col]))
+                setattr(lvs,column.column_name,round(calculation_to_do(numbers),4))
+            except ValueError as operation:
+                setattr(lvs,column.column_name,"Error")
         if partialcomplete:
             lvss.append(lvs)
         else:
@@ -301,22 +312,37 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
                                      user,
                                      silo)
 
+
+    #get the meta-data from other sheets
+    other_title = []
+    other_sheet_id = []
+    if len(spreadsheet.get('sheets','')) > 0:
+        for other_sheet in spreadsheet.get('sheets','')[1:]:
+            other_title.append(other_sheet.get("properties", {}).get("title", ""))
+            other_sheet_id.append(other_sheet.get("properties", {}).get("sheetId", 0))
+
     # the first element in the array is a placeholder for column names
     rows = [{"values": []}]
-    headers = []
+    headers = getSiloColumnNames(silo_id)
     silo_data = json.loads(LabelValueStore.objects(silo_id=silo_id).to_json())
+    repeat_headers = []
+    repeat_data = {}
+    repeat_cells = {}
 
-    for row in silo_data:
+    for y, row in enumerate(silo_data):
         values = [] # Get all of the values of a single mongodb document into this array
-        index = 0
-        for i, col in enumerate(row):
-            if col == "id" or col == "_id" or col == "silo_id" or col == "created_date" or col == "create_date" or col == "edit_date" or col == "editted_date":
-                continue
-            if col not in headers:
-                headers.append(col)
-
-            values.append({"userEnteredValue": {"stringValue": smart_text(row[headers[index]])}})
-            index += 1
+        for x, header in enumerate(headers):
+            if type(row[header]) == list:
+                try:
+                    repeat_data[header].append(row[header])
+                except KeyError as e:
+                    repeat_data[header] = [row[header]]
+                repeat_cells[header] = (x,y+1)
+                values.append({"userEnteredValue": {"stringValue": smart_text(header)}})
+                if header not in repeat_headers and header not in other_title:
+                    repeat_headers.append(header)
+            else:
+                values.append({"userEnteredValue": {"stringValue": smart_text(row[header])}})
         rows.append({"values": values})
 
     # prepare column names as a header row in spreadsheet
@@ -330,6 +356,25 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
     rows[0]["values"] = values
     #batch all of remote api calls into the requests array
     requests = []
+
+    # Add extra sheets for repeats
+    for header in repeat_headers:
+        requests.append({
+            "addSheet" : {
+                "properties": {
+                  "title": header,
+                  "gridProperties": {
+                    "rowCount": (len(repeat_data[header][0])+1)*len(repeat_data[header]),
+                    "columnCount": len(repeat_data[header][0][0])
+                  },
+                  "tabColor": {
+                    "red": 1.0,
+                    "green": 0.3,
+                    "blue": 0.4
+                  }
+                }
+            }
+        })
 
     # prepare the request to resize the sheet to make sure it fits the data;
     # otherwise, errors out for datasets with more than 26 column or 1000 rows.
@@ -356,16 +401,130 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
         }
     })
 
+
+
+
     # encapsulate the requests list into a requests object
     batchUpdateRequest = {'requests': requests}
 
     try:
-        service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=batchUpdateRequest).execute()
+        response = service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=batchUpdateRequest).execute()
         msgs.append({"level": messages.SUCCESS,
                     "msg": "Your exported data is available at <a href=" + gsheet_read.read_url + " target='_blank'>Google Spreadsheet</a>"})
     except Exception as e:
         msgs.append({"level": messages.ERROR,
                     "msg": "Failed to submit data to GSheet. %s" % e})
+        return msgs
+
+    # if their is no repeat data we are done
+    if len(repeat_cells) == 0:
+        return msgs
+
+
+    #use the response to get the sheetid for new sheets added
+    for reply in response['replies']:
+        try:
+            other_title.append(reply.get("addSheet").get("properties").get("title"))
+            other_sheet_id.append(reply.get("addSheet").get("properties").get("sheetId"))
+        except (KeyError,AttributeError) as e:
+            pass
+    if len(other_title) != len(other_sheet_id):
+        msgs.append({"level": messages.ERROR,
+                    "msg": "Failed to submit repeat data to GSheet %s" % e})
+        return msgs
+
+    requests = []
+    #Add repeats data to the new sheet
+
+    for i in range(0,len(other_title)): # goes through each sheet
+        rows = [{"values": []}]
+        for j, row_set in enumerate(repeat_data.get(other_title[i],[])):
+            headers = []
+            rows.append({"values": \
+                            [{ \
+                            "userEnteredValue": {"stringValue": "From row %i" % j}, \
+                            'userEnteredFormat': {'backgroundColor': {'red':0.75,'green':0.75, 'blue': 0.75}}
+                            }]\
+            })
+            for row in row_set:
+                values = [] # Get all of the values of a single mongodb document into this array
+                for index, col in enumerate(row):
+                    if col not in headers:
+                        headers.append(col)
+                    values.append({"userEnteredValue": { \
+                                        "stringValue": smart_text(row[headers[index]])} \
+                                })
+                rows.append({"values": values})
+
+
+        # prepare column names as a header row in spreadsheet
+        values = []
+        for header in headers:
+            values.append({
+                          "userEnteredValue": {"stringValue": header},
+                          'userEnteredFormat': {'backgroundColor': {'red':0.5,'green':0.5, 'blue': 0.5}}
+                          })
+        # Now update the rows array place holder with real column names
+        rows[0]["values"] = values
+
+        requests.append({
+            'updateSheetProperties': {
+                'properties': {
+                    'sheetId': other_sheet_id[i],
+                    "gridProperties": {
+                        'rowCount': len(rows),
+                        'columnCount': len(headers),
+                    }
+                },
+                "fields": "gridProperties(rowCount,columnCount)"
+            }
+        })
+
+        requests.append({
+            "updateCells": {
+                "range": {
+                  "sheetId": other_sheet_id[i],
+                },
+                "fields": "userEnteredValue,userEnteredFormat"
+              }
+            }
+        )
+
+        requests.append({
+            'updateCells': {
+                'start': {'sheetId': other_sheet_id[i], 'rowIndex': 0, 'columnIndex': 0},
+                'rows': rows,
+                'fields': 'userEnteredValue,userEnteredFormat.backgroundColor'
+            }
+        })
+        rows = []
+        x_cord = repeat_cells.get(other_title[i],(0,0))[0]
+        y_cord = repeat_cells.get(other_title[i],(0,0))[1]
+        for j in range(0,y_cord):
+            rows.append({"values" : [ \
+                        {"userEnteredValue": { \
+                                "formulaValue": "=HYPERLINK(\"#gid=%i\",\"See Data\")" % other_sheet_id[i] \
+                        }} \
+                ]})
+        # Get hyperlink to actually work
+        if len(rows)>0:
+            requests.append({
+                'updateCells': {
+                    'start': {'sheetId': sheet_id, 'rowIndex': 1, 'columnIndex': x_cord},
+                    'rows': rows,
+                    'fields': 'userEnteredValue',
+                },
+            })
+
+    #send second request
+    batchUpdateRequest = {'requests': requests}
+
+    try:
+        request = service.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body=batchUpdateRequest)
+        response = request.execute()
+    except Exception as e:
+        msgs.append({"level": messages.ERROR,
+                    "msg": "Failed to submit repeat data to GSheet. %s" % e})
 
     return msgs
 
