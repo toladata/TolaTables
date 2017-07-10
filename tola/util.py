@@ -289,7 +289,7 @@ def ona_parse_type_group(data, form_data, parent_name, silo, read):
         else:
             for entry in data:
                 if field['type'] == "repeat":
-                    ona_parse_type_repeat(entry[parent_name + field['name']],\
+                    ona_parse_type_repeat(entry.get(parent_name + field['name'], []),\
                                         field['children'],\
                                         parent_name + field['name']+"/",silo,read)
                 if 'label' in field:
@@ -339,11 +339,14 @@ def ona_parse_type_repeat(data, form_data, parent_name, silo, read):
         else:
             for entry in data:
                 if field['type'] == "repeat":
-                    ona_parse_type_repeat(entry[parent_name + field['name']],\
+                    ona_parse_type_repeat(entry.get(parent_name + field['name'],[]),\
                                         field['children'],\
                                         parent_name + field['name']+"/",silo,read)
                 if 'label' in field:
-                    entry[field['label']] = entry.pop(parent_name + field['name'])
+                    try:
+                        entry[field['label']] = entry.pop(parent_name + field['name'])
+                    except KeyError as e:
+                        pass
 
 def saveOnaDataToSilo(silo, data, read, user):
     """
