@@ -94,7 +94,7 @@ def saveDataToSilo(silo, data, read = -1, user = None):
     Keyword arguments:
     silo -- the silo object, which is meta data for its labe_value_store
     data -- a python list of dictionaries. stored in MONGODB
-    read -- the read object
+    read -- the read object, optional only for backwards compatability
     user -- an optional parameter to use if its necessary to retrieve from ThirdPartyTokens
     """
     if read.type.read_type == "ONA" and user:
