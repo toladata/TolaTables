@@ -9,7 +9,7 @@ from django.test import TestCase
 from django.test import Client
 from django.test import RequestFactory
 
-from tola.util import ona_parse_type_group
+from tola.util import *
 from silo.models import *
 
 class onaParserTest(TestCase):
@@ -388,3 +388,104 @@ class onaParserTest(TestCase):
         ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="rep",column_source_name="rep",column_type="repeat").delete()
         ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="bb",column_source_name="b",column_type="text").delete()
         ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="c",column_source_name="c",column_type="text").delete()
+
+
+class columnManipulation(TestCase):
+    """
+    this tests the function to add a column to silo
+    """
+    def setUp(self):
+        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
+        self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
+    def test_manipulating_columns(self):
+        columns = ["b", "a", "x", "4"]
+        addColsToSilo(self.silo,columns)
+        self.assertEqual(["b", "a", "x", "4"], getSiloColumnNames(self.silo.id))
+        columns = ["c", "q", "3", "8"]
+        addColsToSilo(self.silo,columns)
+        self.assertEqual(["b", "a", "x", "4", "c", "q", "3", "8"], getSiloColumnNames(self.silo.id))
+        columns = ["a", "r", "c", "e"]
+        addColsToSilo(self.silo,columns)
+        self.assertEqual(["b", "a", "x", "4", "c", "q", "3", "8", "r", "e"], getSiloColumnNames(self.silo.id))
+        self.assertEqual(getSiloColumnNames(self.silo.id), getCompleteSiloColumnNames(self.silo.id))
+        deleteSiloColumns(self.silo, ["a", "4", "3", "r", "e"])
+        self.assertEqual(["b", "x", "c", "q", "8"], getSiloColumnNames(self.silo.id))
+        self.assertEqual(getSiloColumnNames(self.silo.id), getCompleteSiloColumnNames(self.silo.id))
+        hideSiloColumns(self.silo, ["b", "c"])
+        self.assertEqual(["x", "q", "8"], getSiloColumnNames(self.silo.id))
+        self.assertEqual(["b", "x", "c", "q", "8"], getCompleteSiloColumnNames(self.silo.id))
+
+
+class formulaOperations(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
+        self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
+        formulaColumn = FormulaColumn.objects.create(mapping=json.dumps(["a", "b", "c"]), operation="sum", column_name="sum")
+        self.silo.formulacolumns.add(formulaColumn)
+        formulaColumn = FormulaColumn.objects.create(mapping=json.dumps(["a", "b", "c"]), operation="mean", column_name="mean")
+        self.silo.formulacolumns.add(formulaColumn)
+        formulaColumn = FormulaColumn.objects.create(mapping=json.dumps(["a", "b", "c"]), operation="median", column_name="median")
+        self.silo.formulacolumns.add(formulaColumn)
+        formulaColumn = FormulaColumn.objects.create(mapping=json.dumps(["a", "b", "c"]), operation="mode", column_name="mode")
+        self.silo.formulacolumns.add(formulaColumn)
+        formulaColumn = FormulaColumn.objects.create(mapping=json.dumps(["a", "b", "c"]), operation="max", column_name="max")
+        self.silo.formulacolumns.add(formulaColumn)
+        formulaColumn = FormulaColumn.objects.create(mapping=json.dumps(["a", "b", "c"]), operation="min", column_name="min")
+        self.silo.formulacolumns.add(formulaColumn)
+    def test_str_nums(self):
+        lvs = LabelValueStore()
+        lvs.a = "1"
+        lvs.b = "1.5"
+        lvs.c = "1"
+        calculateFormulaCell(lvs, self.silo)
+        self.assertEqual(lvs['sum'], 3.5)
+        self.assertEqual(lvs['mean'], 1.1667)
+        self.assertEqual(lvs['median'], 1)
+        self.assertEqual(lvs['mode'], 1)
+        self.assertEqual(lvs['max'], 1.5)
+        self.assertEqual(lvs['min'], 1)
+    def test_float_nums(self):
+        lvs = LabelValueStore()
+        lvs.a = 3.1
+        lvs.b = 3.1
+        lvs.c = 4
+        calculateFormulaCell(lvs, self.silo)
+        self.assertEqual(lvs['sum'], 10.2)
+        self.assertEqual(lvs['mean'], 3.4)
+        self.assertEqual(lvs['median'], 3.1)
+        self.assertEqual(lvs['mode'], 3.1)
+        self.assertEqual(lvs['max'], 4)
+        self.assertEqual(lvs['min'], 3.1)
+    def test_int_nums(self):
+        lvs = LabelValueStore()
+        lvs.a = 1
+        lvs.b = 3
+        lvs.c = 5
+        calculateFormulaCell(lvs, self.silo)
+        self.assertEqual(lvs['sum'], 9)
+        self.assertEqual(lvs['mean'], 3)
+        self.assertEqual(lvs['median'], 3)
+        self.assertEqual(lvs['mode'], 1)
+        self.assertEqual(lvs['max'], 5)
+        self.assertEqual(lvs['min'], 1)
+    def test_empty(self):
+        lvs = LabelValueStore()
+        calculateFormulaCell(lvs, self.silo)
+        self.assertEqual(lvs['sum'], "Error")
+        self.assertEqual(lvs['mean'], "Error")
+        self.assertEqual(lvs['median'], "Error")
+        self.assertEqual(lvs['mode'], "Error")
+        self.assertEqual(lvs['max'], "Error")
+        self.assertEqual(lvs['min'], "Error")
+    def test_sts(self):
+        lvs = LabelValueStore()
+        lvs.a = "a"
+        lvs.b = "b"
+        lvs.c = "c"
+        calculateFormulaCell(lvs, self.silo)
+        self.assertEqual(lvs['sum'], "Error")
+        self.assertEqual(lvs['mean'], "Error")
+        self.assertEqual(lvs['median'], "Error")
+        self.assertEqual(lvs['mode'], "Error")
+        self.assertEqual(lvs['max'], "Error")
+        self.assertEqual(lvs['min'], "Error")

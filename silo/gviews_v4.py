@@ -31,9 +31,8 @@ from oauth2client.contrib import xsrfutil
 
 from .models import GoogleCredentialsModel
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag
-from tola.util import siloToDict, combineColumns, getSiloColumnNames, FormulaColumnMapping, parseMathInstruction
+from tola.util import siloToDict, combineColumns, getSiloColumnNames, parseMathInstruction, calculateFormulaCell
 logger = logging.getLogger("silo")
-
 
 CLIENT_SECRETS = os.path.join(os.path.dirname(__file__), 'client_secrets.json')
 SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
@@ -210,17 +209,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
         lvs.silo_id = silo.id
         lvs.read_id = gsheet_read.id
         lvs.create_date = timezone.now()
-        formula_columns = FormulaColumnMapping.objects.filter(silo_id=silo.id)
-        for column in formula_columns:
-            calculation_to_do = parseMathInstruction(column.operation)
-            columns_to_calculate_from = json.loads(column.mapping)
-            numbers = []
-            try:
-                for col in columns_to_calculate_from:
-                    numbers.append(float(lvs[col]))
-                setattr(lvs,column.column_name,round(calculation_to_do(numbers),4))
-            except ValueError as operation:
-                setattr(lvs,column.column_name,"Error")
+        lvs = calculateFormulaCell(lvs,silo)
         if partialcomplete:
             lvss.append(lvs)
         else:

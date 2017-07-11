@@ -235,6 +235,10 @@ class Tag(models.Model):
     def __unicode__(self):
         return self.name
 
+class FormulaColumn(models.Model):
+    mapping = models.TextField() #stores a json document for mapping
+    operation = models.TextField()
+    column_name = models.TextField()
 
 # Create your models here.
 class Silo(models.Model):
@@ -249,6 +253,18 @@ class Silo(models.Model):
     program = models.CharField(max_length=255, blank=True, null=True)
     public = models.BooleanField()
     create_date = models.DateTimeField(null=True, blank=True)
+
+    formulacolumns = models.ManyToManyField(FormulaColumn, related_name='silos', blank=True)
+    columns = models.TextField(default = "[]") #stores a json string
+    hidden_columns = models.TextField(default = "[]") #stores a Json string
+    rows_to_hide = models.TextField(default = "[]")
+    #Format of hidden rows:
+    #   [{"logic":<or, and, defineblank>,
+    #   "operation" : <empty, nempty, gt, etc>,
+    #   "conditional": [<list of rows to apply condition or the blank character>],
+    #   "number" : <number to perform operation>]}]
+    #   default blank characters: not exists, ""
+
     class Meta:
         ordering = ('create_date',)
 
@@ -334,26 +350,6 @@ class UniqueFields(models.Model):
     def __unicode__(self):
         return self.name
 
-class FormulaColumnMapping(models.Model):
-    silo = models.ForeignKey(Silo)
-    mapping = models.TextField() #stores a json document for mapping
-    operation = models.TextField()
-    column_name = models.TextField()
-
-class ColumnOrderMapping(models.Model):
-    silo = models.ForeignKey(Silo)
-    ordering = models.TextField() #stores a json dictionary
-
-class siloHideFilter(models.Model):
-    silo = models.ForeignKey(Silo)
-    hiddenColumns = models.TextField() #stores a json list of fields to hide
-    hiddenRows = models.TextField() #stores a json list of conditions
-    #Format of hidden rows:
-    #   [{"logic":<or, and, defineblank>,
-    #   "operation" : <empty, nempty, gt, etc>,
-    #   "conditional": [<list of rows to apply condition or the blank character>],
-    #   "number" : <number to perform operation>]}]
-    #   default blank characters: not exists, ""
 
 from mongoengine import *
 class LabelValueStore(DynamicDocument):

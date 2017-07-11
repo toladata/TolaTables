@@ -11,7 +11,7 @@ from django.utils.encoding import smart_str, smart_unicode
 from django.conf import settings
 from django.contrib.auth.models import User
 
-from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ColumnType, ThirdPartyTokens, FormulaColumnMapping, ColumnOrderMapping, siloHideFilter
+from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ColumnType, ThirdPartyTokens
 from django.contrib import messages
 import pymongo
 from bson.objectid import ObjectId
@@ -20,7 +20,7 @@ from pymongo import MongoClient
 from os import walk, listdir
 from django.apps import apps
 
-from collections import Counter
+from collections import Counter, deque
 
 def mean(lst):
     return float(sum(lst))/len(lst)
@@ -152,17 +152,7 @@ def saveDataToSilo(silo, data, read = -1, user = None):
                 val = smart_str(val, strings_only=True)
             setattr(lvs, key.replace(".", "_").replace("$", "USD").replace(u'\u2026', ""), val)
             counter += 1
-        formula_columns = FormulaColumnMapping.objects.filter(silo_id=silo.id)
-        for column in formula_columns:
-            calculation_to_do = parseMathInstruction(column.operation)
-            columns_to_calculate_from = json.loads(column.mapping)
-            numbers = []
-            try:
-                for col in columns_to_calculate_from:
-                    numbers.append(int(lvs[col]))
-                setattr(lvs,column.column_name,round(calculation_to_do(numbers),4))
-            except ValueError as operation:
-                setattr(lvs,column.column_name,"Error")
+        lvs = calculateFormulaCell(lvs,silo)
         lvs.save()
 
     combineColumns(silo.pk)
@@ -215,26 +205,83 @@ def importJSON(read_obj, user, remote_user = None, password = None, silo_id = No
         return (messages.ERROR, "An error has occured: %s" % e, str(silo_id))
 
 def getSiloColumnNames(id):
-    lvs = LabelValueStore.objects.filter(silo_id=id).first()
-    cols = []
+    """
+    takes silo_id and returns the shown columns in order in O(n)
+    """
     try:
-        order = ColumnOrderMapping.objects.get(silo_id=id)
-        cols.extend(json.loads(order.ordering))
-    except ColumnOrderMapping.DoesNotExist as e:
-        pass
-
-
-    try:
-        cols.extend([col for col in lvs if col not in cols and col not in {'id','silo_id','read_id','create_date','edit_date','editted_date'}])
-    except TypeError as e:
+        silo = Silo.objects.get(pk=id)
+        cols_raw = json.loads(silo.columns)
+        hidden_cols = set(json.loads(silo.hidden_columns))
+        hidden_cols = hidden_cols.union(['id', 'silo_id', 'read_id', 'create_date', 'edit_date', 'editted_date'])
+    except Silo.DoesNotExist as e:
         return []
+
+    cols_final = deque()
+    for col in cols_raw:
+        if col not in hidden_cols:
+            cols_final.append(col)
+
+    return list(cols_final)
+
+def getCompleteSiloColumnNames(id):
+    """
+    This gets all the column names including the hidden ones in order
+
+    id -- silo_id
+    """
     try:
-        hide_columns =  siloHideFilter.objects.get(silo_id=id)
-        hide_columns = set(json.loads(hide_columns.hiddenColumns))
-        cols = [col for col in cols if col not in hide_columns]
-    except siloHideFilter.DoesNotExist as e:
-        pass
-    return cols
+        silo = Silo.objects.get(pk=id)
+        return json.loads(silo.columns)
+    except Silo.DoesNotExist as e:
+        return []
+
+def addColsToSilo(silo, columns):
+    """
+    This adds columns to a silo object while preserving order in O(n)
+
+    silo -- a silo object
+    columns -- an iterable containing columns to add
+    """
+    silo_cols = json.loads(silo.columns)
+    silo_cols_set = set(silo_cols) #this is done to decrease lookup time from n to 1
+    silo_cols.extend([x for x in columns if x not in silo_cols_set])
+    silo.columns = json.dumps(list(silo_cols))
+    silo.save()
+
+def deleteSiloColumns(silo, columns):
+    """
+    delete a list of columns from a silos column list in O(n)
+    """
+    cols_old = json.loads(silo.columns)
+    columns = set(columns)
+
+    cols_final = deque()
+    for col in cols_old:
+        if col not in columns:
+            cols_final.append(col)
+
+    silo.columns = json.dumps(list(cols_final))
+    unhideSiloColumns(silo, columns)
+    silo.save()
+
+
+def hideSiloColumns(silo, cols):
+    """
+    take a list of columns and add it to be hidden
+    """
+    hidden_cols = set(json.loads(silo.hidden_columns))
+    hidden_cols = hidden_cols.union(cols)
+    silo.hidden_columns = json.dumps(list(hidden_cols))
+    silo.save()
+
+def unhideSiloColumns(silo, cols):
+    """
+    take a list of columns and unhides it
+    """
+    hidden_cols = set(json.loads(silo.hidden_columns))
+    hidden_cols = hidden_cols.difference(cols)
+    silo.hidden_columns = json.dumps(list(hidden_cols))
+    silo.save()
 
 def user_to_tola(backend, user, response, *args, **kwargs):
 
@@ -395,22 +442,55 @@ def calculateFormulaColumn(lvs,operation,columns,formula_column_name):
 
     calc_fails = []
     for i, entry in enumerate(lvs):
-        try:
-            values_to_calc = []
-            for col in columns:
-                values_to_calc.append(float(entry[col]))
-            calculation = calc(values_to_calc)
-            setattr(entry,formula_column_name,round(calculation,4))
-            entry.edit_date = timezone.now()
-            entry.save()
-        except ValueError as operation:
-            setattr(entry,formula_column_name,"Error")
-            entry.edit_date = timezone.now()
-            entry.save()
+        entry = calculateFormula(entry, calc, columns, formula_column_name)
+        if(entry[1]):
+            entry[0].save()
+        else:
+            entry[0].save()
             calc_fails.append(i)
     if len(calc_fails) == 0:
         return (messages.SUCCESS, "Successfully performed operations")
-    return (messages.WARNING, "Non-numberic data detected in rows %s" % str(calc_fails))
+    return (messages.WARNING, "Non-numeric data detected in rows %s" % str(calc_fails))
+
+def calculateFormula(entry, calc, columns, formula_column_name):
+    """
+    This function calculates a math operation for a single query
+
+    entry -- a query of label_value_store objects
+    calc -- a function pointer to the math operation to perform
+    columns -- a list of columns to use in the math operation
+    formula_column_name -- name of the column that holds the math done
+    """
+    try:
+        values_to_calc = []
+        for col in columns:
+            values_to_calc.append(float(entry[col]))
+        calculation = calc(values_to_calc)
+        setattr(entry,formula_column_name,round(calculation,4))
+        entry.edit_date = timezone.now()
+        success = True
+    except (ValueError, KeyError) as operation:
+        setattr(entry,formula_column_name,"Error")
+        entry.edit_date = timezone.now()
+        success = False
+    return (entry, success)
+
+def calculateFormulaCell(entry, silo):
+    """
+    calculates all the formula for a given entry
+
+    entry -- a query of label_value_store objects
+    silo -- a silo object
+
+    returns entry
+    """
+    formula_columns = silo.formulacolumns.all()
+    calc_fail = []
+    for column in formula_columns:
+        calculation_to_do = parseMathInstruction(column.operation)
+        entry = calculateFormula(entry,calculation_to_do,json.loads(column.mapping),column.column_name)
+        entry = entry[0]
+    return entry
 
 def makeQueryForHiddenRow(row_filter):
     """

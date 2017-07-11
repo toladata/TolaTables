@@ -41,13 +41,20 @@ from django.db.models import Count
 from silo.custom_csv_dict_reader import CustomDictReader
 from .models import GoogleCredentialsModel
 from gviews_v4 import import_from_gsheet_helper
-from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames, parseMathInstruction, calculateFormulaColumn, ColumnOrderMapping, makeQueryForHiddenRow, getNewestDataDate
+from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames,\
+                        parseMathInstruction, calculateFormulaColumn, makeQueryForHiddenRow,\
+                        getNewestDataDate, addColsToSilo, deleteSiloColumns, hideSiloColumns, \
+                        getCompleteSiloColumnNames
+
 
 from commcare.util import useHeaderName
 from commcare.tasks import fetchCommCareData, addExtraFields
 
-from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeletedSilos, FormulaColumnMapping, ColumnOrderMapping, siloHideFilter
+from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeletedSilos
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
+
+#to delete soon
+# from .models import siloHideFilter
 
 logger = logging.getLogger("silo")
 db = MongoClient(settings.MONGODB_HOST).tola
@@ -787,16 +794,7 @@ def siloDetail(request, silo_id):
     silo = Silo.objects.get(pk=silo_id)
     cols = []
     data = []
-    query = "\{\}"
-    try:
-        hidden_rows = siloHideFilter.objects.get(silo_id=silo_id)
-        query = makeQueryForHiddenRow(json.loads(hidden_rows.hiddenRows))
-    except siloHideFilter.DoesNotExist as e:
-        #working as indended
-        pass
-    except Exception as e:
-        #error
-        pass
+    query = makeQueryForHiddenRow(json.loads(silo.rows_to_hide))
 
     if silo.owner == request.user or silo.public == True or request.user in silo.shared.all():
         cols.append('_id')
@@ -996,22 +994,10 @@ def importDataFromRead(request, silo, read):
         except KeyError as e: pass
         #now mass update all the data in the database
 
-        addExtraFields.delay(list(columns), silo.id)
-        try:
-            column_order_mapping = ColumnOrderMapping.objects.get(silo_id=silo.id)
-            columns = columns.union(json.loads(column_order_mapping.ordering))
-            column_order_mapping.ordering = json.dumps(list(columns))
-            column_order_mapping.save()
-        except ColumnOrderMapping.DoesNotExist as e:
-            ColumnOrderMapping.objects.create(silo_id=silo.id,ordering = json.dumps(list(columns)))
-        try:
-            silo_hide_filter = siloHideFilter.objects.get(silo_id=silo.id)
-            hidden_cols = set(json.loads(silo_hide_filter.hiddenColumns))
-            hidden_cols = hidden_cols.add("case_id")
-            silo_hide_filter.hiddenColumns = json.dumps(list(hidden_cols))
-            siloHideFilter.save()
-        except siloHideFilter.DoesNotExist as e:
-            siloHideFilter.objects.create(silo_id=silo.id, hiddenColumns=json.dumps(["case_id"]), hiddenRows="[]")
+        columns = list(columns)
+        addExtraFields.delay(columns, silo.id)
+        addColsToSilo(silo, columns)
+        hideSiloColumns(silo, columns)
 
         return (None,2,(messages.SUCCESS, "%i commcare records were successfully updated" % metadata['meta']['total_count']))
     else:
@@ -1055,6 +1041,7 @@ def editColumns(request,id):
     FORM TO CREATE A NEW COLUMN FOR A SILO
     """
     silo = Silo.objects.get(id=id)
+    to_delete = []
 
     if request.method == 'POST':
         data = getSiloColumnNames(id)
@@ -1083,22 +1070,13 @@ def editColumns(request,id):
                     )
                     column_name = label.split("_")[0]
                     try:
-                        formula_columns = FormulaColumnMapping.objects.get(silo_id=id, column_name=column_name).delete()
+                        formula_columns = silo.formulacolumns.all().delete()
                     except Exception as e:
                         pass
-                    try:
-                        com = ColumnOrderMapping.objects.get(silo_id=id)
-                        cols = json.loads(com.ordering)
-                        try:
-                            cols.remove(column)
-                            com.ordering = json.dumps(cols)
-                            com.save()
-                        except ValueError as e:
-                            pass
-                    except ColumnOrderMapping.DoesNotExist as e:
-                        pass
 
+                    to_delete.append(silo)
 
+            deleteSiloColumns(silo, to_delete)
             messages.info(request, 'Updates Saved', fail_silently=False)
         else:
             messages.error(request, 'ERROR: There was a problem with your request', fail_silently=False)
@@ -1115,17 +1093,7 @@ def deleteColumn(request,id,column):
     DELETE A COLUMN FROM A SILO
     """
     silo = Silo.objects.get(id=id)
-    try:
-        com = ColumnOrderMapping.objects.get(silo_id=id)
-        cols = json.loads(com.ordering)
-        try:
-            cols.remove(column)
-            com.ordering = json.dumps(cols)
-            com.save()
-        except ValueError as e:
-            pass
-    except ColumnOrderMapping.DoesNotExist as e:
-        pass
+    deleteSiloColumns(silo, [column])
 
 
     #delete a column from the existing table silo
@@ -1259,7 +1227,7 @@ def valueEdit(request,id):
                 if lbl != "id" and lbl != "silo_id" and lbl != "csrfmiddlewaretoken":
                     setattr(lvs, lbl, val)
             lvs.edit_date = timezone.now()
-            formula_columns = FormulaColumnMapping.objects.filter(silo_id=silo_id)
+            formula_columns = silo.formulacolumns.all()
             for column in formula_columns:
                 calculation_to_do = parseMathInstruction(column.operation)
                 columns_to_calculate_from = json.loads(column.mapping)
@@ -1428,10 +1396,11 @@ def newFormulaColumn(request, pk):
             return HttpResponseRedirect(reverse_lazy('newFormulaColumn', kwargs={'pk': pk}))
         #now add the formula to the mysql database
         mapping = json.dumps(cols)
-        fcm = FormulaColumnMapping.objects.get_or_create(silo=silo,\
-                                                mapping=mapping,\
+        fcm = FormulaColumn.objects.get_or_create(mapping=mapping,\
                                                 operation=operation,\
                                                 column_name=column_name)
+        silo.formulacolumns.add(fcm)
+
 
         return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
 
@@ -1441,13 +1410,18 @@ def newFormulaColumn(request, pk):
 
 def editColumnOrder(request, pk):
     if request.method == 'POST':
-        cols = request.POST.getlist("columns")
         try:
-            column_order_mapping = ColumnOrderMapping.objects.get(silo_id=pk)
-            column_order_mapping.ordering = json.dumps(cols)
-            column_order_mapping.save()
-        except ColumnOrderMapping.DoesNotExist as e:
-            ColumnOrderMapping.objects.create(silo_id=pk,ordering = json.dumps(cols))
+            #this is not done using utility functions to keep it O(n)
+            silo = Silo.objects.get(pk=pk)
+            cols_list = request.POST.getlist("columns")
+            visible_cols_set = set(cols_list)
+            cols_list.extend([x for x in json.loads(silo.hidden_columns) if x not in visible_cols_set])
+            silo.columns = json.dumps(cols_list)
+            silo.save()
+
+        except Silo.DoesNotExist as e:
+            messages.error(request, "silo not found")
+            return HttpResponseRedirect(reverse_lazy('silos'))
 
 
         return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
@@ -1460,39 +1434,27 @@ def addColumnFilter(request, pk):
     if request.method == 'POST':
         hide_cols = request.POST.get('hide_cols')
         hide_rows = request.POST.get('hide_rows')
-        print hide_rows
-        hidden_fields, created = siloHideFilter.objects.get_or_create(silo_id=pk)
-        try:
-            json.loads(hide_cols)
-            hidden_fields.hiddenColumns = hide_cols
-        except Exception as e:
-            messages.error(request,"Error in hiding columns")
-        try:
-            json.loads(hide_rows)
-            hidden_fields.hiddenRows = hide_rows
-        except Exception as e:
-            messages.error(request,"Error in hiding rows")
-        hidden_fields.save()
+        silo = Silo.objects.get(pk=pk)
+
+        silo.hidden_columns = hide_cols
+
+        silo.rows_to_hide = hide_rows
+
+        silo.save()
         return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
 
 
     silo = Silo.objects.get(pk=pk)
-    cols = getSiloColumnNames(pk)
-    try:
-        silo_hide_filter = siloHideFilter.objects.get(silo_id=pk)
-        hidden_cols = json.loads(silo_hide_filter.hiddenColumns)
-        hidden_rows = json.loads(silo_hide_filter.hiddenRows)
-        for row in hidden_rows:
-            try:
-                row['conditional'] = json.dumps(row['conditional'])
-            except Exception as e:
-                pass
-    except siloHideFilter.DoesNotExist as e:
-        hidden_cols = []
-        hidden_rows = []
+    cols = getCompleteSiloColumnNames(pk)
 
-    cols = set(cols)
-    cols = cols.union(hidden_cols)
-    cols = list(cols)
+    silo_hide_filter = siloHideFilter.objects.get(silo_id=pk)
+    hidden_cols = json.loads(silo.hidden_columns)
+    hidden_rows = json.loads(silo.rows_to_hide)
+    for row in hidden_rows:
+        try:
+            row['conditional'] = json.dumps(row['conditional'])
+        except Exception as e:
+            pass
+
     cols.sort()
     return render(request, "display/add-column-filter.html", {'silo':silo,'cols': cols, 'hidden_cols': hidden_cols, 'hidden_rows': hidden_rows})

@@ -8,11 +8,10 @@ from celery import group
 
 from .tasks import fetchCommCareData, requestCommCareData, storeCommCareData, addExtraFields
 
-from silo.models import LabelValueStore, ColumnOrderMapping, siloHideFilter
-from tola.util import saveDataToSilo
+from silo.models import LabelValueStore
+from tola.util import saveDataToSilo, addColsToSilo
 from pymongo import MongoClient
 from django.conf import settings
-
 
 #this gets a list of projects that users have used in the past to import data from commcare
 #used in commcare/forms.py
@@ -90,21 +89,15 @@ def getCommCareCaseData(domain, auth, auth_header, total_cases, silo, read):
     #now mass update all the data in the database
 
     addExtraFields.delay(list(columns), silo.id)
-    try:
-        column_order_mapping = ColumnOrderMapping.objects.get(silo_id=silo.id)
-        columns = columns.union(json.loads(column_order_mapping.ordering))
-        column_order_mapping.ordering = json.dumps(list(columns))
-        column_order_mapping.save()
-    except ColumnOrderMapping.DoesNotExist as e:
-        ColumnOrderMapping.objects.create(silo_id=silo.id,ordering = json.dumps(list(columns)))
-    try:
-        silo_hide_filter = siloHideFilter.objects.get(silo_id=silo.id)
-        hidden_cols = set(json.loads(silo_hide_filter.hiddenColumns))
-        hidden_cols = hidden_cols.add("case_id")
-        silo_hide_filter.hiddenColumns = json.dumps(list(hidden_cols))
-        siloHideFilter.save()
-    except siloHideFilter.DoesNotExist as e:
-        siloHideFilter.objects.create(silo_id=silo.id, hiddenColumns=json.dumps(["case_id"]), hiddenRows="[]")
 
+    #add new columns to the list of current columns this is slower because
+    #order has to be maintained (2n instead of n)
+    addColsToSilo(silo, columns)
+
+    #add case_id to hidden columns
+    hidden_columns = json.loads(silo.hidden_columns)
+    if "case_id" not in hidden_columns: hidden_columns.append("case_id")
+    silo.hidden_columns = json.dumps(hidden_columns)
+    silo.save()
 
     return (messages.SUCCESS, "CommCare cases imported successfully", columns)
