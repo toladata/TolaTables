@@ -118,6 +118,10 @@ def storeCommCareData(data, silo_id, read_id, update):
 
 @shared_task()
 def addExtraFields(columns, silo_id):
+    """
+    This function makes sure all mongodb entries of a particular silo share a columns
+    This function is no longer in use, but might be useful in the future and as an example
+    """
     db = MongoClient(settings.MONGODB_HOST).tola
     mongo_request = []
     db.label_value_store.create_index('silo_id')

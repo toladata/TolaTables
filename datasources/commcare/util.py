@@ -86,18 +86,10 @@ def getCommCareCaseData(domain, auth, auth_header, total_cases, silo, read):
         columns.remove("create_date")
         columns.add("created_date")
     except KeyError as e: pass
-    #now mass update all the data in the database
-
-    addExtraFields.delay(list(columns), silo.id)
 
     #add new columns to the list of current columns this is slower because
     #order has to be maintained (2n instead of n)
     addColsToSilo(silo, columns)
-
-    #add case_id to hidden columns
-    hidden_columns = json.loads(silo.hidden_columns)
-    if "case_id" not in hidden_columns: hidden_columns.append("case_id")
-    silo.hidden_columns = json.dumps(hidden_columns)
-    silo.save()
+    hideSiloColumns(silo, ["case_id"])
 
     return (messages.SUCCESS, "CommCare cases imported successfully", columns)

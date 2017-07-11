@@ -105,6 +105,7 @@ def saveDataToSilo(silo, data, read = -1, user = None):
     unique_fields = silo.unique_fields.all()
     skipped_rows = set()
     enc = "latin-1"
+    keys = set()
     for counter, row in enumerate(data):
         # reseting filter_criteria for each row
         filter_criteria = {}
@@ -150,11 +151,14 @@ def saveDataToSilo(silo, data, read = -1, user = None):
             elif key == "create_date": key = "created_date"
             if type(val) == str or type(val) == unicode:
                 val = smart_str(val, strings_only=True)
-            setattr(lvs, key.replace(".", "_").replace("$", "USD").replace(u'\u2026', ""), val)
+            key = key.replace(".", "_").replace("$", "USD").replace(u'\u2026', "")
+            keys.add(key)
+            setattr(lvs, key, val)
             counter += 1
         lvs = calculateFormulaCell(lvs,silo)
         lvs.save()
-
+    
+    addColsToSilo(silo, keys)
     combineColumns(silo.pk)
     res = {"skipped_rows": skipped_rows, "num_rows": counter}
     return res
