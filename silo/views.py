@@ -41,7 +41,7 @@ from django.db.models import Count
 from silo.custom_csv_dict_reader import CustomDictReader
 from .models import GoogleCredentialsModel
 from gviews_v4 import import_from_gsheet_helper
-from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, getSiloColumnNames,\
+from tola.util import siloToDict, importJSON, saveDataToSilo, getSiloColumnNames,\
                         parseMathInstruction, calculateFormulaColumn, makeQueryForHiddenRow,\
                         getNewestDataDate, addColsToSilo, deleteSiloColumns, hideSiloColumns, \
                         getCompleteSiloColumnNames
@@ -63,7 +63,7 @@ db = MongoClient(settings.MONGODB_HOST).tola
 opts = CodecOptions(document_class=SON)
 store = db.label_value_store.with_options(codec_options=opts)
 
-
+#TO DO: fix now that not all mongo rows need to have the same column
 def mergeTwoSilos(mapping_data, lsid, rsid, msid):
     """
     @params
@@ -252,10 +252,9 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
         # Now update or insert a row if there is no matching record available
         res = db.label_value_store.update_one(filter_criteria, {"$set": merged_row}, upsert=True)
 
-        # Make sure all rows have the same cols in the merged_silo
-    combineColumns(msid)
     return {'status': "success",  'message': "Merged data successfully"}
 
+#TO DO: fix now that not all mongo rows need to have the same column
 def appendTwoSilos(mapping_data, lsid, rsid, msid):
     """
     @params
@@ -384,7 +383,6 @@ def appendTwoSilos(mapping_data, lsid, rsid, msid):
         merged_row["create_date"] = timezone.now()
 
         db.label_value_store.insert_one(merged_row)
-    combineColumns(msid)
     return {'status': "success",  'message': "Appended data successfully"}
 
 

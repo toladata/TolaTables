@@ -31,7 +31,7 @@ from oauth2client.contrib import xsrfutil
 
 from .models import GoogleCredentialsModel
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag
-from tola.util import siloToDict, combineColumns, getSiloColumnNames, parseMathInstruction, calculateFormulaCell
+from tola.util import siloToDict, getSiloColumnNames, parseMathInstruction, calculateFormulaCell
 logger = logging.getLogger("silo")
 
 CLIENT_SECRETS = os.path.join(os.path.dirname(__file__), 'client_secrets.json')
@@ -214,8 +214,6 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
             lvss.append(lvs)
         else:
             lvs.save()
-
-    combineColumns(silo.pk)
 
     if skipped_rows:
         msgs.append({"level": messages.WARNING,

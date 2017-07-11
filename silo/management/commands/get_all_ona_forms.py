@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 
 from silo.models import LabelValueStore, Read, ReadType, Silo, ThirdPartyTokens
-from tola.util import siloToDict, combineColumns, saveDataToSilo
+from tola.util import siloToDict, saveDataToSilo
 
 class Command(BaseCommand):
     """

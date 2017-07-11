@@ -54,23 +54,24 @@ def parseMathInstruction(operation):
     else:
         return (messages.ERROR, "Tried to perform invalid operation: %s" % operation)
 
-def combineColumns(silo_id):
-    client = MongoClient(settings.MONGODB_HOST)
-    db = client.tola
-    lvs = json.loads(LabelValueStore.objects(silo_id = silo_id).to_json())
-    cols = []
-    for l in lvs:
-        cols.extend([k for k in l.keys() if k not in cols])
-
-    for l in lvs:
-        for c in cols:
-            if c not in l.keys():
-                db.label_value_store.update_one(
-                    {"_id": ObjectId(l['_id']['$oid'])},
-                    {"$set": {c: ''}},
-                    False
-                )
-    return True
+# Obsolete used for making sure every row in mongodb has the same columns
+# def combineColumns(silo_id):
+#     client = MongoClient(settings.MONGODB_HOST)
+#     db = client.tola
+#     lvs = json.loads(LabelValueStore.objects(silo_id = silo_id).to_json())
+#     cols = []
+#     for l in lvs:
+#         cols.extend([k for k in l.keys() if k not in cols])
+#
+#     for l in lvs:
+#         for c in cols:
+#             if c not in l.keys():
+#                 db.label_value_store.update_one(
+#                     {"_id": ObjectId(l['_id']['$oid'])},
+#                     {"$set": {c: ''}},
+#                     False
+#                 )
+#     return True
 
 #CREATE NEW DATA DICTIONARY OBJECT
 def siloToDict(silo):
@@ -157,9 +158,8 @@ def saveDataToSilo(silo, data, read = -1, user = None):
             counter += 1
         lvs = calculateFormulaCell(lvs,silo)
         lvs.save()
-    
+
     addColsToSilo(silo, keys)
-    combineColumns(silo.pk)
     res = {"skipped_rows": skipped_rows, "num_rows": counter}
     return res
 
