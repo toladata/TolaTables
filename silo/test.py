@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 This file demonstrates writing tests using the unittest module. These will pass
 when you run "manage.py test".
@@ -126,6 +128,11 @@ class SiloTest(TestCase):
         response = siloDetail(request, silo.pk)
         self.assertEqual(response.status_code, 200)
 
+        #now delete that silo data cause this uses the custom database
+        LabelValueStore.objects.filter(First_Name="Bob", Last_Name="Smith", silo_id="1", read_id="1").delete()
+        LabelValueStore.objects.filter(First_Name="John", Last_Name="Doe", silo_id="1", read_id="1").delete()
+        LabelValueStore.objects.filter(First_Name="Joe", Last_Name="Schmoe", silo_id="1", read_id="1").delete()
+        LabelValueStore.objects.filter(First_Name="جان", Last_Name="ډو", silo_id="1", read_id="1").delete()
 
     def test_root_url_resolves_to_home_page(self):
         found = resolve('/')
@@ -150,17 +157,76 @@ class SiloTest(TestCase):
         form = get_read_form(excluded_fields)(params, file_dict)
         self.assertTrue(form.is_valid())
 
-    def test_delete_data_from_silodata(self):
-        pass
+    # def test_delete_data_from_silodata(self):
+    #     pass
+    #
+    # def test_update_data_in_silodata(self):
+    #     pass
+    #
+    # def test_read_data_from_silodata(self):
+    #     pass
+    #
+    # def test_delete_silodata(self):
+    #     pass
+    #
+    # def test_delete_silo(self):
+    #     pass
 
-    def test_update_data_in_silodata(self):
-        pass
+class FormulaColumn(TestCase):
+    new_formula_columh_url = "/new_formula_column/"
 
-    def test_read_data_from_silodata(self):
-        pass
+    def setUp(self):
+        self.client = Client()
+        self.factory = RequestFactory()
+        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
+        self.silo = self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
+        self.client.login(username='joe', password='tola123')
+    def test_getNewFormulaColumn(self):
+        request = self.factory.get(self.new_formula_columh_url)
+        request.user = self.user
+        request._dont_enforce_csrf_checks = True
+        response = newFormulaColumn(request, self.silo.pk)
+    def test_postNewFormulaColumn(self):
+        lvs = LabelValueStore()
+        lvs.a = "1"
+        lvs.b = "2"
+        lvs.c = "3"
+        lvs.silo_id = self.silo.pk
+        lvs.save()
 
-    def test_delete_silodata(self):
-        pass
+        lvs = LabelValueStore()
+        lvs.a = "2"
+        lvs.b = "2"
+        lvs.c = "3.3"
+        lvs.silo_id = self.silo.pk
+        lvs.save()
 
-    def test_delete_silo(self):
-        pass
+        lvs = LabelValueStore()
+        lvs.a = "3"
+        lvs.b = "2"
+        lvs.c = "hi"
+        lvs.silo_id = self.silo.pk
+        lvs.save()
+
+
+        response = self.client.post('/new_formula_column/%s/' % str(self.silo.pk), data={'math_operation' : 'sum', 'column_name' : '', 'columns' : ['a', 'b', 'c']})
+        formula_column = self.silo.formulacolumns.get(column_name='sum')
+        self.assertEqual(formula_column.operation,'sum')
+        self.assertEqual(formula_column.mapping,'["a", "b", "c"]')
+        self.assertEqual(formula_column.column_name,'sum')
+        self.assertEqual(getSiloColumnNames(self.silo.pk),["sum"])
+        try:
+            lvs = LabelValueStore.objects.get(a="1", b="2", c="3", sum=6.0, read_id=-1, silo_id = self.silo.pk)
+            lvs.delete()
+        except LabelValueStore.DoesNotExist as e:
+            self.assert_(False)
+        try:
+            lvs = LabelValueStore.objects.get(a="2", b="2", c="3.3", sum=7.3, read_id=-1, silo_id = self.silo.pk)
+            lvs.delete()
+        except LabelValueStore.DoesNotExist as e:
+            self.assert_(False)
+        try:
+            lvs = LabelValueStore.objects.get(a="3", b="2", c="hi", sum="Error", read_id=-1, silo_id = self.silo.pk)
+            lvs.delete()
+        except LabelValueStore.DoesNotExist as e:
+            self.assert_(False)

@@ -5,6 +5,10 @@ when you run "manage.py test".
 Replace this with more appropriate tests for your application.
 """
 
+from django.utils import timezone
+from datetime import datetime
+from datetime import timedelta
+
 from django.test import TestCase
 from django.test import Client
 from django.test import RequestFactory
@@ -227,7 +231,90 @@ class onaParserTest(TestCase):
         ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="bb",column_source_name="b",column_type="text").delete()
         ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="c",column_source_name="c",column_type="text").delete()
         ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="d",column_source_name="d",column_type="repeat").delete()
-    def test_onaParserTwoLayer(self):
+    def test_onaParserThreeLayerByGroup(self):
+        label_file_data = [
+            {
+                "type":"group",
+                "name":"a",
+                "label":"aa",
+                "children": [
+                    {
+                        "type":"group",
+                        "name":"b",
+                        "children" : [
+                            {
+                                "type":"text",
+                                "name":"c",
+                                "label":"cc"
+                            },
+                            {
+                                "type":"text",
+                                "name":"d"
+                            }
+                        ]
+                    },
+                    {
+                        "type":"text",
+                        "name":"e",
+                        "label":"ee"
+                    }
+                ]
+            }
+        ]
+        data = [
+            {
+                "a/b/c":"1",
+                "a/b/d":"2",
+                "a/e":"3"
+            },
+            {
+                "a/b/c":"1",
+            },
+            {
+                "a/b/d":"2",
+            },
+            {
+            },
+        ]
+        data_final = [
+            {
+                "cc":"1",
+                "a/b/d":"2",
+                "ee":"3"
+            },
+            {
+                "cc":"1",
+            },
+            {
+                "a/b/d":"2",
+            },
+            {
+            },
+        ]
+        ona_parse_type_group(data, label_file_data, "", self.silo, self.read)
+        try: ColumnType.objects.get(silo_id=self.silo.pk,read_id=self.read.pk,column_name="aa",column_source_name="a",column_type="group")
+        except ColumnType.DoesNotExist as e:
+            self.assert_(False)
+        try: ColumnType.objects.get(silo_id=self.silo.pk,read_id=self.read.pk,column_name="b",column_source_name="b",column_type="group")
+        except ColumnType.DoesNotExist as e:
+            self.assert_(False)
+        try: ColumnType.objects.get(silo_id=self.silo.pk,read_id=self.read.pk,column_name="cc",column_source_name="c",column_type="text")
+        except ColumnType.DoesNotExist as e:
+            self.assert_(False)
+        try: ColumnType.objects.get(silo_id=self.silo.pk,read_id=self.read.pk,column_name="d",column_source_name="d",column_type="text")
+        except ColumnType.DoesNotExist as e:
+            self.assert_(False)
+        try: ColumnType.objects.get(silo_id=self.silo.pk,read_id=self.read.pk,column_name="ee",column_source_name="e",column_type="text")
+        except ColumnType.DoesNotExist as e:
+            self.assert_(False)
+        self.assertEqual(data,data_final)
+        #since the unit_test doesn't automatically delete entries in the mongodb database do it now
+        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="aa",column_source_name="a",column_type="group").delete()
+        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="b",column_source_name="b",column_type="group").delete()
+        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="cc",column_source_name="c",column_type="text").delete()
+        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="d",column_source_name="d",column_type="text").delete()
+        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="ee",column_source_name="e",column_type="text").delete()
+    def test_onaParserThreeLayer(self):
         label_file_data = [
             {
                 "type":"repeat",
@@ -489,3 +576,187 @@ class formulaOperations(TestCase):
         self.assertEqual(lvs['mode'], "Error")
         self.assertEqual(lvs['max'], "Error")
         self.assertEqual(lvs['min'], "Error")
+    def test_median(self):
+        self.assertEqual(median([]), None)
+        self.assertEqual(median([1,2]), 1.5)
+    def test_mathParser(self):
+        try:
+            parseMathInstruction("a")
+            self.assertTrue(False)
+        except TypeError as e:
+            a = str(e)
+            self.assertEqual(a,'a')
+
+class QueryMaker(TestCase):
+    def test_blankQuery(self):
+        self.assertEqual(makeQueryForHiddenRow([]),"{}")
+    def test_queryEmpty(self):
+        row_filter = [
+            {
+                "logic" : "BLANKCHAR",
+                "operation": "",
+                "number":"",
+                "conditional": "---",
+            },
+            {
+                "logic" : "AND",
+                "operation": "empty",
+                "number":"",
+                "conditional": ["a","b"],
+            },
+            {
+                "logic" : "OR",
+                "operation": "empty",
+                "number":"",
+                "conditional": ["c","d"],
+            }
+        ]
+        query = '{"a": {"$not": {"$exists": "true", "$not": {"$in": ["", "---"]}}}, "$or": [{"c": {"$not": {"$exists": "true", "$not": {"$in": ["", "---"]}}}}, {"d": {"$not": {"$exists": "true", "$not": {"$in": ["", "---"]}}}}], "b": {"$not": {"$exists": "true", "$not": {"$in": ["", "---"]}}}}'
+        self.assertEqual(makeQueryForHiddenRow(row_filter),query)
+
+    def test_queryNempty(self):
+        row_filter = [
+            {
+                "logic" : "BLANKCHAR",
+                "operation": "",
+                "number":"",
+                "conditional": "---",
+            },
+            {
+                "logic" : "AND",
+                "operation": "nempty",
+                "number":"",
+                "conditional": ["a","b"],
+            },
+            {
+                "logic" : "OR",
+                "operation": "nempty",
+                "number":"",
+                "conditional": ["c","d"],
+            }
+        ]
+        # print makeQueryForHiddenRow(row_filter)
+        query = '{"a": {"$exists": "true", "$not": {"$in": ["", "---"]}}, "$or": [{"c": {"$exists": "true", "$not": {"$in": ["", "---"]}}}, {"d": {"$exists": "true", "$not": {"$in": ["", "---"]}}}], "b": {"$exists": "true", "$not": {"$in": ["", "---"]}}}'
+        self.assertEqual(makeQueryForHiddenRow(row_filter),query)
+    def test_queryEqual(self):
+        row_filter = [
+            {
+                "logic" : "BLANKCHAR",
+                "operation": "",
+                "number":"",
+                "conditional": "---",
+            },
+            {
+                "logic" : "AND",
+                "operation": "eq",
+                "number":"1",
+                "conditional": ["a","b"],
+            },
+            {
+                "logic" : "OR",
+                "operation": "eq",
+                "number":"1",
+                "conditional": ["c","d"],
+            }
+        ]
+        # print makeQueryForHiddenRow(row_filter)
+        query = '{"a": {"$eq": "1"}, "$or": [{"c": {"$eq": "1"}}, {"d": {"$eq": "1"}}], "b": {"$eq": "1"}}'
+        self.assertEqual(makeQueryForHiddenRow(row_filter),query)
+    def test_queryEqual(self):
+        row_filter = [
+            {
+                "logic" : "BLANKCHAR",
+                "operation": "",
+                "number":"",
+                "conditional": "---",
+            },
+            {
+                "logic" : "AND",
+                "operation": "eq",
+                "number":"0",
+                "conditional": ["a","b"],
+            },
+            {
+                "logic" : "OR",
+                "operation": "eq",
+                "number":"0",
+                "conditional": ["c","d"],
+            }
+        ]
+        # print makeQueryForHiddenRow(row_filter)
+        query = '{"a": {"$in": ["0"]}, "$or": [{"c": {"$in": ["0"]}}, {"d": {"$in": ["0"]}}], "b": {"$in": ["0"]}}'
+        self.assertEqual(makeQueryForHiddenRow(row_filter),query)
+    def test_queryNotEqual(self):
+        row_filter = [
+            {
+                "logic" : "BLANKCHAR",
+                "operation": "",
+                "number":"",
+                "conditional": "---",
+            },
+            {
+                "logic" : "AND",
+                "operation": "neq",
+                "number":"-1",
+                "conditional": ["a","b"],
+            },
+            {
+                "logic" : "OR",
+                "operation": "neq",
+                "number":"15",
+                "conditional": ["c","d"],
+            }
+        ]
+        # print makeQueryForHiddenRow(row_filter)
+        query = '{"a": {"$nin": ["-1"]}, "$or": [{"c": {"$nin": ["15"]}}, {"d": {"$nin": ["15"]}}], "b": {"$nin": ["-1"]}}'
+        self.assertEqual(makeQueryForHiddenRow(row_filter),query)
+    def test_queryColumnMultiple(self):
+        row_filter = [
+            {
+                "logic" : "AND",
+                "operation": "neq",
+                "number":"0",
+                "conditional": ["b"],
+            },
+            {
+                "logic" : "AND",
+                "operation": "neq",
+                "number":"1",
+                "conditional": ["b"],
+            },
+            {
+                "logic" : "OR",
+                "operation": "neq",
+                "number":"2",
+                "conditional": ["b"],
+            },
+            {
+                "logic" : "OR",
+                "operation": "neq",
+                "number":"3",
+                "conditional": ["b"],
+            }
+        ]
+        # print makeQueryForHiddenRow(row_filter)
+        query = '{"$or": [{"b": {"$nin": ["2", "3"]}}], "b": {"$nin": ["0", "1"]}}'
+        self.assertEqual(makeQueryForHiddenRow(row_filter),query)
+
+class testDateNewest(TestCase):
+    def test_newestDate(self):
+        lvs = LabelValueStore()
+        now = datetime.today()
+        lvs.create_date = now
+        lvs.silo_id = "-100"
+        lvs.save()
+
+        lvs = LabelValueStore()
+        lvs.create_date = now + timedelta(days=1)
+        lvs.silo_id = "-100"
+        lvs.save()
+
+        lvs = LabelValueStore()
+        lvs.create_date = now + timedelta(days=-1)
+        lvs.silo_id = "-100"
+        lvs.save()
+        self.assertEqual(getNewestDataDate(-100).date(), now.date() + timedelta(days=1))
+        LabelValueStore.objects.filter(silo_id="-100").delete()

@@ -8,7 +8,6 @@ from operator import and_, or_
 from django.utils import timezone
 
 from silo.models import Silo, Read, ReadType
-from tola.util import siloToDict
 from silo.gviews_v4 import export_to_gsheet_helper
 logger = logging.getLogger("silo")
 

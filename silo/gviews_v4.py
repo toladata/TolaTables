@@ -31,7 +31,7 @@ from oauth2client.contrib import xsrfutil
 
 from .models import GoogleCredentialsModel
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag
-from tola.util import siloToDict, getSiloColumnNames, parseMathInstruction, calculateFormulaCell
+from tola.util import  getSiloColumnNames, parseMathInstruction, calculateFormulaCell
 logger = logging.getLogger("silo")
 
 CLIENT_SECRETS = os.path.join(os.path.dirname(__file__), 'client_secrets.json')

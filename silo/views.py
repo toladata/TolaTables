@@ -41,7 +41,7 @@ from django.db.models import Count
 from silo.custom_csv_dict_reader import CustomDictReader
 from .models import GoogleCredentialsModel
 from gviews_v4 import import_from_gsheet_helper
-from tola.util import siloToDict, importJSON, saveDataToSilo, getSiloColumnNames,\
+from tola.util import importJSON, saveDataToSilo, getSiloColumnNames,\
                         parseMathInstruction, calculateFormulaColumn, makeQueryForHiddenRow,\
                         getNewestDataDate, addColsToSilo, deleteSiloColumns, hideSiloColumns, \
                         getCompleteSiloColumnNames
@@ -50,7 +50,7 @@ from tola.util import siloToDict, importJSON, saveDataToSilo, getSiloColumnNames
 from commcare.util import useHeaderName
 from commcare.tasks import fetchCommCareData, addExtraFields
 
-from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeletedSilos
+from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeletedSilos, FormulaColumn
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
 
 #to delete soon
@@ -63,7 +63,7 @@ db = MongoClient(settings.MONGODB_HOST).tola
 opts = CodecOptions(document_class=SON)
 store = db.label_value_store.with_options(codec_options=opts)
 
-#TO DO: fix now that not all mongo rows need to have the same column
+# fix now that not all mongo rows need to have the same column
 def mergeTwoSilos(mapping_data, lsid, rsid, msid):
     """
     @params
@@ -72,6 +72,7 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
     rsid: Right Silo ID
     msid: Merge Silo ID
     """
+    print mapping_data
     mappings = json.loads(mapping_data)
 
     l_unmapped_cols = mappings.pop('left_unmapped_cols')
@@ -116,6 +117,8 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
     # retrieve the merged silo
     try:
         msilo = Silo.objects.get(pk=msid)
+        merged_cols.sort()
+        addColsToSilo(msilo, merged_cols)
     except Silo.DoesNotExist as e:
         msg = "Merged Table does not exist: table_id=%s" % msid
         logger.error(msg)
@@ -254,7 +257,7 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
 
     return {'status': "success",  'message': "Merged data successfully"}
 
-#TO DO: fix now that not all mongo rows need to have the same column
+# fix now that not all mongo rows need to have the same column
 def appendTwoSilos(mapping_data, lsid, rsid, msid):
     """
     @params
@@ -307,6 +310,8 @@ def appendTwoSilos(mapping_data, lsid, rsid, msid):
     # retrieve the merged silo
     try:
         msilo = Silo.objects.get(pk=msid)
+        merged_cols.sort()
+        addColsToSilo(msilo, merged_cols)
     except Silo.DoesNotExist as e:
         msg = "Merged Table does not exist: table_id=%s" % msid
         logger.error(msg)
@@ -1068,7 +1073,7 @@ def editColumns(request,id):
                     )
                     column_name = label.split("_")[0]
                     try:
-                        formula_columns = silo.formulacolumns.all().delete()
+                        formula_columns = silo.formulacolumns.filter(column_name).delete()
                     except Exception as e:
                         pass
 
@@ -1126,14 +1131,8 @@ def mergeColumns(request):
     from_silo_id = request.POST["from_silo_id"]
     to_silo_id = request.POST["to_silo_id"]
 
-    lvs = json.loads(LabelValueStore.objects(silo_id__in = [from_silo_id, to_silo_id]).to_json())
-    getSourceFrom = []
-    getSourceTo = []
-    for l in lvs:
-        if from_silo_id == str(l['silo_id']):
-            getSourceFrom.extend([k for k in l.keys() if k not in getSourceFrom])
-        else:
-            getSourceTo.extend([k for k in l.keys() if k not in getSourceTo])
+    getSourceFrom = getSiloColumnNames(from_silo_id)
+    getSourceTo = getSiloColumnNames(to_silo_id)
 
     return render(request, "display/merge-column-form.html", {'getSourceFrom':getSourceFrom, 'getSourceTo':getSourceTo, 'from_silo_id':from_silo_id, 'to_silo_id':to_silo_id})
 
@@ -1386,19 +1385,24 @@ def newFormulaColumn(request, pk):
             column_name = operation
 
         #now add the resutls to the mongodb database
-        lvs = LabelValueStore.objects(silo_id=silo.pk)
-        calc_result = calculateFormulaColumn(lvs,operation,cols,column_name)
-        messages.add_message(request,calc_result[0],calc_result[1])
+        try:
+            lvs = LabelValueStore.objects(silo_id=silo.pk)
+            calc_result = calculateFormulaColumn(lvs,operation,cols,column_name)
+            messages.add_message(request,calc_result[0],calc_result[1])
 
-        if calc_result[0] == messages.ERROR:
-            return HttpResponseRedirect(reverse_lazy('newFormulaColumn', kwargs={'pk': pk}))
+            if calc_result[0] == messages.ERROR:
+                return HttpResponseRedirect(reverse_lazy('newFormulaColumn', kwargs={'pk': pk}))
+        except LabelValueStore.DoesNotExist as e:
+            pass
         #now add the formula to the mysql database
         mapping = json.dumps(cols)
-        fcm = FormulaColumn.objects.get_or_create(mapping=mapping,\
+        (fcm, created) = FormulaColumn.objects.get_or_create(mapping=mapping,\
                                                 operation=operation,\
                                                 column_name=column_name)
+        fcm.save()
         silo.formulacolumns.add(fcm)
-
+        addColsToSilo(silo,[column_name])
+        silo.save()
 
         return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
 
@@ -1406,6 +1410,7 @@ def newFormulaColumn(request, pk):
     cols = getSiloColumnNames(pk)
     return render(request, "silo/add-formula-column.html", {'silo':silo,'cols': cols})
 
+@login_required
 def editColumnOrder(request, pk):
     if request.method == 'POST':
         try:
@@ -1428,6 +1433,7 @@ def editColumnOrder(request, pk):
     cols = getSiloColumnNames(pk)
     return render(request, "display/edit-column-order.html", {'silo':silo,'cols': cols})
 
+@login_required
 def addColumnFilter(request, pk):
     if request.method == 'POST':
         hide_cols = request.POST.get('hide_cols')

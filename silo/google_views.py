@@ -18,7 +18,6 @@ from apiclient.discovery import build
 #import gdata.spreadsheets.client
 
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag
-from tola.util import siloToDict
 
 
 ########################################################################################

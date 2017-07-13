@@ -52,7 +52,7 @@ def parseMathInstruction(operation):
     elif operation == "min":
        return min
     else:
-        return (messages.ERROR, "Tried to perform invalid operation: %s" % operation)
+        raise TypeError(operation)
 
 # Obsolete used for making sure every row in mongodb has the same columns
 # def combineColumns(silo_id):
@@ -73,19 +73,19 @@ def parseMathInstruction(operation):
 #                 )
 #     return True
 
-#CREATE NEW DATA DICTIONARY OBJECT
-def siloToDict(silo):
-    parsed_data = {}
-    key_value = 1
-    for d in silo:
-        label = unicodedata.normalize('NFKD', d.field.name).encode('ascii','ignore')
-        value = unicodedata.normalize('NFKD', d.char_store).encode('ascii','ignore')
-        row = unicodedata.normalize('NFKD', d.row_number).encode('ascii','ignore')
-        parsed_data[key_value] = {label : value}
-
-        key_value += 1
-
-    return parsed_data
+#obslolete and not used anywhere
+# def siloToDict(silo):
+#     parsed_data = {}
+#     key_value = 1
+#     for d in silo:
+#         label = unicodedata.normalize('NFKD', d.field.name).encode('ascii','ignore')
+#         value = unicodedata.normalize('NFKD', d.char_store).encode('ascii','ignore')
+#         row = unicodedata.normalize('NFKD', d.row_number).encode('ascii','ignore')
+#         parsed_data[key_value] = {label : value}
+#
+#         key_value += 1
+#
+#     return parsed_data
 
 
 def saveDataToSilo(silo, data, read = -1, user = None):
@@ -212,13 +212,10 @@ def getSiloColumnNames(id):
     """
     takes silo_id and returns the shown columns in order in O(n)
     """
-    try:
-        silo = Silo.objects.get(pk=id)
-        cols_raw = json.loads(silo.columns)
-        hidden_cols = set(json.loads(silo.hidden_columns))
-        hidden_cols = hidden_cols.union(['id', 'silo_id', 'read_id', 'create_date', 'edit_date', 'editted_date'])
-    except Silo.DoesNotExist as e:
-        return []
+    silo = Silo.objects.get(pk=id)
+    cols_raw = json.loads(silo.columns)
+    hidden_cols = set(json.loads(silo.hidden_columns))
+    hidden_cols = hidden_cols.union(['id', 'silo_id', 'read_id', 'create_date', 'edit_date', 'editted_date'])
 
     cols_final = deque()
     for col in cols_raw:
@@ -233,11 +230,8 @@ def getCompleteSiloColumnNames(id):
 
     id -- silo_id
     """
-    try:
-        silo = Silo.objects.get(pk=id)
-        return json.loads(silo.columns)
-    except Silo.DoesNotExist as e:
-        return []
+    silo = Silo.objects.get(pk=id)
+    return json.loads(silo.columns)
 
 def addColsToSilo(silo, columns):
     """
@@ -371,8 +365,6 @@ def ona_parse_type_group(data, form_data, parent_name, silo, read):
                             column_source_name=field['name'],\
                             column_type=field['type'])
             ct.save()
-        except ColumnType.MultipleObjectsReturned as e:
-            continue
 
 def ona_parse_type_repeat(data, form_data, parent_name, silo, read):
     """
@@ -498,7 +490,8 @@ def calculateFormulaCell(entry, silo):
 
 def makeQueryForHiddenRow(row_filter):
     """
-    This function takes a JSON object in the format generated from when a row filter is added and
+    This function takes arrays of dictionaries in the format generated from when a row filter is
+    added and
     returns a JSON formatted query to be able to plugged into the json format
     """
     query = {}
@@ -521,7 +514,6 @@ def makeQueryForHiddenRow(row_filter):
                 query["$or"] = {}
                 to_add = query["$or"]
         for column in condition.get("conditional",[]):
-            print condition.get("operation")
             if condition.get("operation","") == "empty":
                 try:
                     to_add[column]["$not"]["$exists"] = "true"
@@ -548,18 +540,25 @@ def makeQueryForHiddenRow(row_filter):
                 except KeyError as e:
                     to_add[column]["$not"] = {}
                     to_add[column]["$not"]["$in"] = empty
-            elif condition.get("operation","") in {"gt", "lt", "gte", "lte", "eq"}:
+            elif condition.get("operation","") == "eq":
                 try:
-                    to_add[column]['$' + condition.get("operation")] = num_to_compare
+                    to_add[column]['$in'].append(num_to_compare)
                 except KeyError as e:
                     to_add[column] = {}
-                    to_add[column]['$' + condition.get("operation")] = num_to_compare
+                    try:
+                        to_add[column]['$in'].append(num_to_compare)
+                    except KeyError as e:
+                        to_add[column]['$in'] = [num_to_compare]
             elif condition.get("operation","") == "neq":
                 try:
-                    to_add[column]['$ne'] = num_to_compare
+                    to_add[column]['$nin'].append(num_to_compare)
                 except KeyError as e:
                     to_add[column] = {}
-                    to_add[column]['$ne'] = num_to_compare
+                    try:
+                        to_add[column]['$nin'].append(num_to_compare)
+                    except KeyError as e:
+                        to_add[column]['$nin'] = [num_to_compare]
+            #for lt, gt, lte, gte need to take the most exclusive condition
 
     #conver the $or area to be properly formatted for a query
     or_items = query.get("$or", {})
