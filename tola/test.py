@@ -612,7 +612,7 @@ class QueryMaker(TestCase):
             }
         ]
         query = '{"a": {"$not": {"$exists": "true", "$not": {"$in": ["", "---"]}}}, "$or": [{"c": {"$not": {"$exists": "true", "$not": {"$in": ["", "---"]}}}}, {"d": {"$not": {"$exists": "true", "$not": {"$in": ["", "---"]}}}}], "b": {"$not": {"$exists": "true", "$not": {"$in": ["", "---"]}}}}'
-        self.assertEqual(makeQueryForHiddenRow(row_filter),query)
+        self.assertEqual(json.loads(makeQueryForHiddenRow(row_filter)), json.loads(query))
 
     def test_queryNempty(self):
         row_filter = [
@@ -637,7 +637,7 @@ class QueryMaker(TestCase):
         ]
         # print makeQueryForHiddenRow(row_filter)
         query = '{"a": {"$exists": "true", "$not": {"$in": ["", "---"]}}, "$or": [{"c": {"$exists": "true", "$not": {"$in": ["", "---"]}}}, {"d": {"$exists": "true", "$not": {"$in": ["", "---"]}}}], "b": {"$exists": "true", "$not": {"$in": ["", "---"]}}}'
-        self.assertEqual(makeQueryForHiddenRow(row_filter),query)
+        self.assertEqual(json.loads(makeQueryForHiddenRow(row_filter)), json.loads(query))
     def test_queryEqual(self):
         row_filter = [
             {
@@ -661,7 +661,7 @@ class QueryMaker(TestCase):
         ]
         # print makeQueryForHiddenRow(row_filter)
         query = '{"a": {"$eq": "1"}, "$or": [{"c": {"$eq": "1"}}, {"d": {"$eq": "1"}}], "b": {"$eq": "1"}}'
-        self.assertEqual(makeQueryForHiddenRow(row_filter),query)
+        self.assertEqual(json.loads(makeQueryForHiddenRow(row_filter)), json.loads(query))
     def test_queryEqual(self):
         row_filter = [
             {
@@ -685,7 +685,7 @@ class QueryMaker(TestCase):
         ]
         # print makeQueryForHiddenRow(row_filter)
         query = '{"a": {"$in": ["0"]}, "$or": [{"c": {"$in": ["0"]}}, {"d": {"$in": ["0"]}}], "b": {"$in": ["0"]}}'
-        self.assertEqual(makeQueryForHiddenRow(row_filter),query)
+        self.assertEqual(json.loads(makeQueryForHiddenRow(row_filter)), json.loads(query))
     def test_queryNotEqual(self):
         row_filter = [
             {
@@ -709,7 +709,7 @@ class QueryMaker(TestCase):
         ]
         # print makeQueryForHiddenRow(row_filter)
         query = '{"a": {"$nin": ["-1"]}, "$or": [{"c": {"$nin": ["15"]}}, {"d": {"$nin": ["15"]}}], "b": {"$nin": ["-1"]}}'
-        self.assertEqual(makeQueryForHiddenRow(row_filter),query)
+        self.assertEqual(json.loads(makeQueryForHiddenRow(row_filter)), json.loads(query))
     def test_queryColumnMultiple(self):
         row_filter = [
             {
@@ -739,7 +739,7 @@ class QueryMaker(TestCase):
         ]
         # print makeQueryForHiddenRow(row_filter)
         query = '{"$or": [{"b": {"$nin": ["2", "3"]}}], "b": {"$nin": ["0", "1"]}}'
-        self.assertEqual(makeQueryForHiddenRow(row_filter),query)
+        self.assertEqual(json.loads(makeQueryForHiddenRow(row_filter)), json.loads(query))
 
 class testDateNewest(TestCase):
     def test_newestDate(self):

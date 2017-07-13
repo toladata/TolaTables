@@ -80,17 +80,17 @@ def storeCommCareData(data, silo_id, read_id, update):
 
     data_refined = []
     for row in data:
+        for column in row:
+            if "." in column:
+                row[column.replace(".", "_").replace("$", "USD")] = row.pop(column)
+            if "$" in column:
+                row[column.replace("$", "USD")] = row.pop(column)
         try: row.pop("")
         except KeyError as e: pass
         try: row.pop("silo_id")
         except KeyError as e: pass
         try: row.pop("read_id")
         except KeyError as e: pass
-        for column in row:
-            if "." in column:
-                row[column.replace(".", "_").replace("$", "USD")] = row.pop(column)
-            if "$" in column:
-                row[column.replace("$", "USD")] = row.pop(column)
         try: row["user_assigned_id"] = row.pop("id")
         except KeyError as e: pass
         try: row["user_assigned_id"] = row.pop("_id")
@@ -109,6 +109,7 @@ def storeCommCareData(data, silo_id, read_id, update):
         db.label_value_store.insert(data_refined)
     else:
         for row in data_refined:
+            row['edit_date'] = timezone.now()
             db.label_value_store.update(
                 {'silo_id' : silo_id,
                 'case_id' : row['case_id']},
@@ -116,22 +117,22 @@ def storeCommCareData(data, silo_id, read_id, update):
                 upsert=True
             )
 
-@shared_task()
-def addExtraFields(columns, silo_id):
-    """
-    This function makes sure all mongodb entries of a particular silo share a columns
-    This function is no longer in use, but might be useful in the future and as an example
-    """
-    db = MongoClient(settings.MONGODB_HOST).tola
-    mongo_request = []
-    db.label_value_store.create_index('silo_id')
-    for column in columns:
-        db.label_value_store.create_index('column')
-        mongo_request.append(UpdateMany(
-            {
-                "silo_id" : silo_id,
-                column : {"$not" : {"$exists" : "true"}}\
-            }, #filter
-            {"$set" : {column : ""}} #update
-        ))
-    db.label_value_store.bulk_write(mongo_request)
+# @shared_task()
+# def addExtraFields(columns, silo_id):
+#     """
+#     This function makes sure all mongodb entries of a particular silo share a columns
+#     This function is no longer in use, but might be useful in the future and as an example
+#     """
+#     db = MongoClient(settings.MONGODB_HOST).tola
+#     mongo_request = []
+#     db.label_value_store.create_index('silo_id')
+#     for column in columns:
+#         db.label_value_store.create_index('column')
+#         mongo_request.append(UpdateMany(
+#             {
+#                 "silo_id" : silo_id,
+#                 column : {"$not" : {"$exists" : "true"}}\
+#             }, #filter
+#             {"$set" : {column : ""}} #update
+#         ))
+#     db.label_value_store.bulk_write(mongo_request)

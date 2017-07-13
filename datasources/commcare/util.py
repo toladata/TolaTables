@@ -6,7 +6,7 @@ import json
 
 from celery import group
 
-from .tasks import fetchCommCareData, requestCommCareData, storeCommCareData, addExtraFields
+from .tasks import fetchCommCareData, requestCommCareData, storeCommCareData
 
 from silo.models import LabelValueStore
 from tola.util import saveDataToSilo, addColsToSilo
@@ -15,22 +15,12 @@ from django.conf import settings
 
 #this gets a list of projects that users have used in the past to import data from commcare
 #used in commcare/forms.py
-def getProjects():
-    reads = Read.objects.filter(type__read_type='CommCare')
+def getProjects(user_id):
+    reads = Read.objects.filter(type__read_type='CommCare', owner_id=user_id)
     projects = []
     for read in reads:
         projects.append(read.read_url.split('/')[4])
     return list(set(projects))
-
-def useHeaderName(columns, data):
-    """
-    since the commcare dictionary does not use the proper column names and instead uses column
-    idnetifiers this funciton changes the dictionary to use the proper column names
-    used in commcoare/views.py for saveCommCareData
-    """
-    for row in data:
-        for column in columns:
-            row[column['header']] = row.remove(column['slug'])
 
 def getCommCareCaseData(domain, auth, auth_header, total_cases, silo, read):
     """
@@ -57,12 +47,6 @@ def getCommCareCaseData(domain, auth, auth_header, total_cases, silo, read):
     for data in data_retrieval:
         columns = columns.union(data)
     #correct the columns
-    try: columns.remove("")
-    except KeyError as e: pass
-    try: columns.remove("silo_id")
-    except KeyError as e: pass
-    try: columns.remove("read_id")
-    except KeyError as e: pass
     for column in columns:
         if "." in column:
             columns.remove(column)
@@ -70,6 +54,12 @@ def getCommCareCaseData(domain, auth, auth_header, total_cases, silo, read):
         if "$" in column:
             columns.remove(column)
             columns.add(column.replace("$", "USD"))
+    try: columns.remove("")
+    except KeyError as e: pass
+    try: columns.remove("silo_id")
+    except KeyError as e: pass
+    try: columns.remove("read_id")
+    except KeyError as e: pass
     try:
         columns.remove("id")
         columns.add("user_assigned_id")

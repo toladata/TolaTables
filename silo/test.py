@@ -186,7 +186,11 @@ class FormulaColumn(TestCase):
         request.user = self.user
         request._dont_enforce_csrf_checks = True
         response = newFormulaColumn(request, self.silo.pk)
+        self.assertEqual(response.status_code, 200)
     def test_postNewFormulaColumn(self):
+        response = self.client.post('/new_formula_column/%s/' % str(self.silo.pk), data={'math_operation' : 'sum', 'column_name' : '', 'columns' : []})
+        self.assertEqual(response.status_code, 302)
+
         lvs = LabelValueStore()
         lvs.a = "1"
         lvs.b = "2"
@@ -210,6 +214,7 @@ class FormulaColumn(TestCase):
 
 
         response = self.client.post('/new_formula_column/%s/' % str(self.silo.pk), data={'math_operation' : 'sum', 'column_name' : '', 'columns' : ['a', 'b', 'c']})
+        self.assertEqual(response.status_code, 302)
         formula_column = self.silo.formulacolumns.get(column_name='sum')
         self.assertEqual(formula_column.operation,'sum')
         self.assertEqual(formula_column.mapping,'["a", "b", "c"]')
@@ -230,3 +235,124 @@ class FormulaColumn(TestCase):
             lvs.delete()
         except LabelValueStore.DoesNotExist as e:
             self.assert_(False)
+
+class ColumnOrder(TestCase):
+    url = "/edit_column_order/"
+
+    def setUp(self):
+        self.client = Client()
+        self.factory = RequestFactory()
+        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
+        self.silo = self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
+        self.client.login(username='joe', password='tola123')
+    def test_get_editColumnOrder(self):
+        request = self.factory.get(self.url)
+        request.user = self.user
+        request._dont_enforce_csrf_checks = True
+        response = editColumnOrder(request, self.silo.pk)
+        self.assertEqual(response.status_code, 200)
+
+    def test_post_editColumnOrder(self):
+        addColsToSilo(self.silo, ['a','b','c','d','e','f'])
+        hideSiloColumns(self.silo, ['b','e'])
+        cols_ordered = ['c','f','a','d']
+        response = self.client.post('/edit_column_order/%s/' % str(self.silo.pk), data={'columns' : cols_ordered})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(getSiloColumnNames(self.silo.pk), ['c','f','a','d'] )
+        response = self.client.post('/edit_column_order/0/', data={'columns' : cols_ordered})
+        self.assertEqual(response.status_code, 302)
+
+class ColumnFilter(TestCase):
+    url = "/edit_filter/"
+    def setUp(self):
+        self.client = Client()
+        self.factory = RequestFactory()
+        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
+        self.silo = self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
+        self.client.login(username='joe', password='tola123')
+    def test_get_editColumnOrder(self):
+        addColsToSilo(self.silo, ['a','b','c','d','e','f'])
+        hideSiloColumns(self.silo, ['b','e'])
+        self.silo.rows_to_hide = json.dumps([
+            {
+                "logic" : "BLANKCHAR",
+                "operation": "",
+                "number":"",
+                "conditional": "---",
+            },
+            {
+                "logic" : "AND",
+                "operation": "empty",
+                "number":"",
+                "conditional": ["a","b"],
+            },
+            {
+                "logic" : "OR",
+                "operation": "empty",
+                "number":"",
+                "conditional": ["c","d"],
+            }
+        ])
+        self.silo.save()
+        request = self.factory.get(self.url)
+        request.user = self.user
+        request._dont_enforce_csrf_checks = True
+        response = addColumnFilter(request, self.silo.pk)
+        self.assertEqual(response.status_code, 200)
+
+    def test_post_editColumnOrder(self):
+        rows_to_hide = [
+            {
+                "logic" : "BLANKCHAR",
+                "operation": "",
+                "number":"",
+                "conditional": "---",
+            },
+            {
+                "logic" : "AND",
+                "operation": "empty",
+                "number":"",
+                "conditional": ["a","b"],
+            },
+            {
+                "logic" : "OR",
+                "operation": "empty",
+                "number":"",
+                "conditional": ["c","d"],
+            }
+        ]
+        cols_to_hide = ['a','b','c']
+        response = self.client.post('/edit_filter/%s/' % str(self.silo.pk), data={'hide_rows' : json.dumps(rows_to_hide), 'hide_cols' : json.dumps(cols_to_hide)})
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(self.silo.hidden_columns, json.dumps(cols_to_hide))
+        self.assertTrue(self.silo.rows_to_hide, json.dumps(rows_to_hide))
+
+
+class removeSourceTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
+        self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
+        self.read_type = ReadType.objects.create(read_type="Ona")
+        self.read = Read.objects.create(read_name="test_read1", owner = self.user, type=self.read_type)
+        self.silo.reads.add(self.read)
+        self.client.login(username='joe', password='tola123')
+
+    def test_removeRead(self):
+        self.assertEqual(self.silo.reads.count(),1)
+
+        response = self.client.get("/source_remove/%s/%s/" % (0, self.read.pk))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.silo.reads.all().count(),1)
+
+        response = self.client.get("/source_remove/%s/%s/" % (self.silo.pk, 0))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.silo.reads.all().count(),1)
+
+        response = self.client.get("/source_remove/%s/%s/" % (self.silo.pk, self.read.pk))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.silo.reads.all().count(),0)
+
+        response = self.client.get("/source_remove/%s/%s/" % (self.silo.pk, self.read.pk))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.silo.reads.all().count(),0)

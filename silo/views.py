@@ -47,8 +47,7 @@ from tola.util import importJSON, saveDataToSilo, getSiloColumnNames,\
                         getCompleteSiloColumnNames
 
 
-from commcare.util import useHeaderName
-from commcare.tasks import fetchCommCareData, addExtraFields
+from commcare.tasks import fetchCommCareData
 
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeletedSilos, FormulaColumn
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
@@ -1362,6 +1361,7 @@ def removeSource(request, silo_id, read_id):
         silo = Silo.objects.get(pk=silo_id)
     except Silo.DoesNotExist as e:
         messages.error(request,"Table with id=%s does not exist." % silo_id)
+        return HttpResponseRedirect(reverse_lazy('listSilos'))
 
     try:
         read = silo.reads.get(pk=read_id)
@@ -1385,15 +1385,12 @@ def newFormulaColumn(request, pk):
             column_name = operation
 
         #now add the resutls to the mongodb database
-        try:
-            lvs = LabelValueStore.objects(silo_id=silo.pk)
-            calc_result = calculateFormulaColumn(lvs,operation,cols,column_name)
-            messages.add_message(request,calc_result[0],calc_result[1])
+        lvs = LabelValueStore.objects(silo_id=silo.pk)
+        calc_result = calculateFormulaColumn(lvs,operation,cols,column_name)
+        messages.add_message(request,calc_result[0],calc_result[1])
 
-            if calc_result[0] == messages.ERROR:
-                return HttpResponseRedirect(reverse_lazy('newFormulaColumn', kwargs={'pk': pk}))
-        except LabelValueStore.DoesNotExist as e:
-            pass
+        if calc_result[0] == messages.ERROR:
+            return HttpResponseRedirect(reverse_lazy('newFormulaColumn', kwargs={'pk': pk}))
         #now add the formula to the mysql database
         mapping = json.dumps(cols)
         (fcm, created) = FormulaColumn.objects.get_or_create(mapping=mapping,\
@@ -1414,17 +1411,17 @@ def newFormulaColumn(request, pk):
 def editColumnOrder(request, pk):
     if request.method == 'POST':
         try:
-            #this is not done using utility functions to keep it O(n)
+            #this is not done using utility functions since it is a comlete replacement
             silo = Silo.objects.get(pk=pk)
             cols_list = request.POST.getlist("columns")
             visible_cols_set = set(cols_list)
-            cols_list.extend([x for x in json.loads(silo.hidden_columns) if x not in visible_cols_set])
+            cols_list.extend([x for x in json.loads(silo.columns) if x not in visible_cols_set])
             silo.columns = json.dumps(cols_list)
             silo.save()
 
         except Silo.DoesNotExist as e:
             messages.error(request, "silo not found")
-            return HttpResponseRedirect(reverse_lazy('silos'))
+            return HttpResponseRedirect(reverse_lazy('listSilos'))
 
 
         return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
@@ -1451,14 +1448,10 @@ def addColumnFilter(request, pk):
     silo = Silo.objects.get(pk=pk)
     cols = getCompleteSiloColumnNames(pk)
 
-    silo_hide_filter = siloHideFilter.objects.get(silo_id=pk)
     hidden_cols = json.loads(silo.hidden_columns)
     hidden_rows = json.loads(silo.rows_to_hide)
     for row in hidden_rows:
-        try:
-            row['conditional'] = json.dumps(row['conditional'])
-        except Exception as e:
-            pass
+        row['conditional'] = json.dumps(row['conditional'])
 
     cols.sort()
     return render(request, "display/add-column-filter.html", {'silo':silo,'cols': cols, 'hidden_cols': hidden_cols, 'hidden_rows': hidden_rows})

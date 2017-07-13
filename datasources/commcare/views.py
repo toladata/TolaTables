@@ -38,13 +38,14 @@ def getCommCareAuth(request):
     project = None
     silos = Silo.objects.filter(owner=request.user)
     choices = [(0, ""), (-1, "Create new silo")]
+    user_id = request.user.id
     total_cases = 0
     for silo in silos:
         choices.append((silo.pk, silo.name))
 
     if request.method == 'POST':
         #their exists a project and authorization so get the data
-        form = CommCareProjectForm(request.POST, choices=choices)
+        form = CommCareProjectForm(request.POST, choices=choices, user_id=user_id)
 
         if form.is_valid():
             try:
@@ -53,7 +54,7 @@ def getCommCareAuth(request):
                 try:
                     if request.POST['auth_token'] != '':
                         commcare_token, created = ThirdPartyTokens.objects.get_or_create(user=request.user,name=provider,token=request.POST['auth_token'],username=request.POST['username'])
-                        form = CommCareAuthForm(request.POST, choices=choices)
+                        form = CommCareAuthForm(request.POST, choices=choices, user_id=user_id)
                         if form.is_valid():
                             pass
                 except Exception as e:
@@ -69,7 +70,7 @@ def getCommCareAuth(request):
                         token.delete()
                     except Exception as e:
                         pass
-                    form = CommCareAuthForm(choices=choices)
+                    form = CommCareAuthForm(choices=choices, user_id=user_id)
                 elif response.status_code == 200:
                     response_data = json.loads(response.content)
                     total_cases = response_data.get('meta').get('total_count')
@@ -104,25 +105,25 @@ def getCommCareAuth(request):
 
                 else:
                     messages.error(request, "A %s error has occured: %s " % (response.status_code, response.text))
-                    form = CommCareAuthForm(choices=choices)
+                    form = CommCareAuthForm(choices=choices, user_id=user_id)
             except KeyboardInterrupt as e:
-                form = CommCareAuthForm(request.POST, choices=choices)
+                form = CommCareAuthForm(request.POST, choices=choices, user_id=user_id)
                 form.is_valid()
         else:
             try:
                 #look for authorization token
                 commcare_token = ThirdPartyTokens.objects.get(user=request.user,name=provider)
             except Exception as e:
-                form = CommCareAuthForm(request.POST, choices=choices)
+                form = CommCareAuthForm(request.POST, choices=choices, user_id=user_id)
 
     else:
         try:
             #look for authorization token
             commcare_token = ThirdPartyTokens.objects.get(user=request.user,name=provider)
-            form = CommCareProjectForm(choices=choices)
+            form = CommCareProjectForm(choices=choices, user_id=user_id)
             auth = 0
         except Exception as e:
-            form = CommCareAuthForm(choices=choices)
+            form = CommCareAuthForm(choices=choices, user_id=user_id)
 
     return render(request, 'getcommcareforms.html', {'form': form, 'data': cols, 'auth': auth, 'entries': total_cases, 'time' : timezone.now()})
 
@@ -144,7 +145,7 @@ def getCommCareFormPass(request):
         choices.append((silo.pk, silo.name))
 
     if request.method == 'POST':
-        form = CommCarePassForm(request.POST, choices=choices) #add the username and password to the request
+        form = CommCarePassForm(request.POST, choices=choices, user_id=user_id) #add the username and password to the request
         if form.is_valid(): #does the form meet requierements
             project = request.POST['project']
             url = url1 + project + url2
@@ -185,7 +186,7 @@ def getCommCareFormPass(request):
             else:
                 messages.error(request, "A %s error has occured: %s " % (response.status_code, response.text))
     else:
-        form = CommCarePassForm(choices=choices)
+        form = CommCarePassForm(choices=choices, user_id=user_id)
 
 
     return render(request, 'getcommcareforms.html', {'form': form, 'data': cols, 'auth': 2, 'entries': total_cases})
