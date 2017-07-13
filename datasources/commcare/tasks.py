@@ -101,11 +101,13 @@ def storeCommCareData(data, silo_id, read_id, update):
         except KeyError as e: pass
         row["silo_id"] = silo_id
         row["read_id"] = read_id
-        row["create_date"] = timezone.now()
+
 
         data_refined.append(row)
     db = MongoClient(settings.MONGODB_HOST).tola
     if not update:
+        for row in data_refined:
+            row["create_date"] = timezone.now()
         db.label_value_store.insert(data_refined)
     else:
         for row in data_refined:
@@ -113,7 +115,7 @@ def storeCommCareData(data, silo_id, read_id, update):
             db.label_value_store.update(
                 {'silo_id' : silo_id,
                 'case_id' : row['case_id']},
-                row,
+                {"$set" : row},
                 upsert=True
             )
 
