@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 This file demonstrates writing tests using the unittest module. These will pass
 when you run "manage.py test".
@@ -18,6 +20,11 @@ from django.test import RequestFactory
 from silo.views import *
 from silo.models import *
 from silo.forms import *
+
+from commcare.util import *
+from commcare.views import *
+from commcare.tasks import *
+
 
 class ReadTest(TestCase):
     fixtures = ['../fixtures/read_types.json']
@@ -126,6 +133,11 @@ class SiloTest(TestCase):
         response = siloDetail(request, silo.pk)
         self.assertEqual(response.status_code, 200)
 
+        #now delete that silo data cause this uses the custom database
+        LabelValueStore.objects.filter(First_Name="Bob", Last_Name="Smith", silo_id="1", read_id="1").delete()
+        LabelValueStore.objects.filter(First_Name="John", Last_Name="Doe", silo_id="1", read_id="1").delete()
+        LabelValueStore.objects.filter(First_Name="Joe", Last_Name="Schmoe", silo_id="1", read_id="1").delete()
+        LabelValueStore.objects.filter(First_Name="جان", Last_Name="ډو", silo_id="1", read_id="1").delete()
 
     def test_root_url_resolves_to_home_page(self):
         found = resolve('/')
@@ -150,17 +162,341 @@ class SiloTest(TestCase):
         form = get_read_form(excluded_fields)(params, file_dict)
         self.assertTrue(form.is_valid())
 
-    def test_delete_data_from_silodata(self):
-        pass
+    # def test_delete_data_from_silodata(self):
+    #     pass
+    #
+    # def test_update_data_in_silodata(self):
+    #     pass
+    #
+    # def test_read_data_from_silodata(self):
+    #     pass
+    #
+    # def test_delete_silodata(self):
+    #     pass
+    #
+    # def test_delete_silo(self):
+    #     pass
 
-    def test_update_data_in_silodata(self):
-        pass
+class FormulaColumn(TestCase):
+    new_formula_columh_url = "/new_formula_column/"
 
-    def test_read_data_from_silodata(self):
-        pass
+    def setUp(self):
+        self.client = Client()
+        self.factory = RequestFactory()
+        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
+        self.silo = self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
+        self.client.login(username='joe', password='tola123')
+    def test_getNewFormulaColumn(self):
+        request = self.factory.get(self.new_formula_columh_url)
+        request.user = self.user
+        request._dont_enforce_csrf_checks = True
+        response = newFormulaColumn(request, self.silo.pk)
+        self.assertEqual(response.status_code, 200)
+    def test_postNewFormulaColumn(self):
+        response = self.client.post('/new_formula_column/%s/' % str(self.silo.pk), data={'math_operation' : 'sum', 'column_name' : '', 'columns' : []})
+        self.assertEqual(response.status_code, 302)
 
-    def test_delete_silodata(self):
-        pass
+        lvs = LabelValueStore()
+        lvs.a = "1"
+        lvs.b = "2"
+        lvs.c = "3"
+        lvs.silo_id = self.silo.pk
+        lvs.save()
 
-    def test_delete_silo(self):
-        pass
+        lvs = LabelValueStore()
+        lvs.a = "2"
+        lvs.b = "2"
+        lvs.c = "3.3"
+        lvs.silo_id = self.silo.pk
+        lvs.save()
+
+        lvs = LabelValueStore()
+        lvs.a = "3"
+        lvs.b = "2"
+        lvs.c = "hi"
+        lvs.silo_id = self.silo.pk
+        lvs.save()
+
+
+        response = self.client.post('/new_formula_column/%s/' % str(self.silo.pk), data={'math_operation' : 'sum', 'column_name' : '', 'columns' : ['a', 'b', 'c']})
+        self.assertEqual(response.status_code, 302)
+        formula_column = self.silo.formulacolumns.get(column_name='sum')
+        self.assertEqual(formula_column.operation,'sum')
+        self.assertEqual(formula_column.mapping,'["a", "b", "c"]')
+        self.assertEqual(formula_column.column_name,'sum')
+        self.assertEqual(getSiloColumnNames(self.silo.pk),["sum"])
+        try:
+            lvs = LabelValueStore.objects.get(a="1", b="2", c="3", sum=6.0, read_id=-1, silo_id = self.silo.pk)
+            lvs.delete()
+        except LabelValueStore.DoesNotExist as e:
+            self.assert_(False)
+        try:
+            lvs = LabelValueStore.objects.get(a="2", b="2", c="3.3", sum=7.3, read_id=-1, silo_id = self.silo.pk)
+            lvs.delete()
+        except LabelValueStore.DoesNotExist as e:
+            self.assert_(False)
+        try:
+            lvs = LabelValueStore.objects.get(a="3", b="2", c="hi", sum="Error", read_id=-1, silo_id = self.silo.pk)
+            lvs.delete()
+        except LabelValueStore.DoesNotExist as e:
+            self.assert_(False)
+
+class ColumnOrder(TestCase):
+    url = "/edit_column_order/"
+
+    def setUp(self):
+        self.client = Client()
+        self.factory = RequestFactory()
+        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
+        self.silo = self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
+        self.client.login(username='joe', password='tola123')
+    def test_get_editColumnOrder(self):
+        request = self.factory.get(self.url)
+        request.user = self.user
+        request._dont_enforce_csrf_checks = True
+        response = editColumnOrder(request, self.silo.pk)
+        self.assertEqual(response.status_code, 200)
+
+    def test_post_editColumnOrder(self):
+        addColsToSilo(self.silo, ['a','b','c','d','e','f'])
+        hideSiloColumns(self.silo, ['b','e'])
+        cols_ordered = ['c','f','a','d']
+        response = self.client.post('/edit_column_order/%s/' % str(self.silo.pk), data={'columns' : cols_ordered})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(getSiloColumnNames(self.silo.pk), ['c','f','a','d'] )
+        response = self.client.post('/edit_column_order/0/', data={'columns' : cols_ordered})
+        self.assertEqual(response.status_code, 302)
+
+class ColumnFilter(TestCase):
+    url = "/edit_filter/"
+    def setUp(self):
+        self.client = Client()
+        self.factory = RequestFactory()
+        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
+        self.silo = self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
+        self.client.login(username='joe', password='tola123')
+    def test_get_editColumnOrder(self):
+        addColsToSilo(self.silo, ['a','b','c','d','e','f'])
+        hideSiloColumns(self.silo, ['b','e'])
+        self.silo.rows_to_hide = json.dumps([
+            {
+                "logic" : "BLANKCHAR",
+                "operation": "",
+                "number":"",
+                "conditional": "---",
+            },
+            {
+                "logic" : "AND",
+                "operation": "empty",
+                "number":"",
+                "conditional": ["a","b"],
+            },
+            {
+                "logic" : "OR",
+                "operation": "empty",
+                "number":"",
+                "conditional": ["c","d"],
+            }
+        ])
+        self.silo.save()
+        request = self.factory.get(self.url)
+        request.user = self.user
+        request._dont_enforce_csrf_checks = True
+        response = addColumnFilter(request, self.silo.pk)
+        self.assertEqual(response.status_code, 200)
+
+    def test_post_editColumnOrder(self):
+        rows_to_hide = [
+            {
+                "logic" : "BLANKCHAR",
+                "operation": "",
+                "number":"",
+                "conditional": "---",
+            },
+            {
+                "logic" : "AND",
+                "operation": "empty",
+                "number":"",
+                "conditional": ["a","b"],
+            },
+            {
+                "logic" : "OR",
+                "operation": "empty",
+                "number":"",
+                "conditional": ["c","d"],
+            }
+        ]
+        cols_to_hide = ['a','b','c']
+        response = self.client.post('/edit_filter/%s/' % str(self.silo.pk), data={'hide_rows' : json.dumps(rows_to_hide), 'hide_cols' : json.dumps(cols_to_hide)})
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(self.silo.hidden_columns, json.dumps(cols_to_hide))
+        self.assertTrue(self.silo.rows_to_hide, json.dumps(rows_to_hide))
+
+
+class removeSourceTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
+        self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
+        self.read_type = ReadType.objects.create(read_type="Ona")
+        self.read = Read.objects.create(read_name="test_read1", owner = self.user, type=self.read_type)
+        self.silo.reads.add(self.read)
+        self.client.login(username='joe', password='tola123')
+
+    def test_removeRead(self):
+        self.assertEqual(self.silo.reads.count(),1)
+
+        response = self.client.get("/source_remove/%s/%s/" % (0, self.read.pk))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.silo.reads.all().count(),1)
+
+        response = self.client.get("/source_remove/%s/%s/" % (self.silo.pk, 0))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.silo.reads.all().count(),1)
+
+        response = self.client.get("/source_remove/%s/%s/" % (self.silo.pk, self.read.pk))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.silo.reads.all().count(),0)
+
+        response = self.client.get("/source_remove/%s/%s/" % (self.silo.pk, self.read.pk))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.silo.reads.all().count(),0)
+
+class getCommCareProjectsTest(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
+        self.user2 = User.objects.create_user(username="joe2", email="joe@email.com", password="tola123")
+        self.read_type = ReadType.objects.create(read_type="CommCare")
+
+    def test_onaParserOneLayer(self):
+        self.assertEqual(getProjects(self.user.id), [])
+        self.read = Read.objects.create(read_name="test_read1", owner = self.user, type=self.read_type, read_url="https://www.commcarehq.org/a/a/")
+        self.assertEqual(getProjects(self.user.id), ['a'])
+        self.read = Read.objects.create(read_name="test_read2", owner = self.user, type=self.read_type, read_url="https://www.commcarehq.org/a/b/")
+        self.assertEqual(getProjects(self.user.id), ['a','b'])
+        self.read = Read.objects.create(read_name="test_read3", owner = self.user, type=self.read_type, read_url="https://www.commcarehq.org/a/b/")
+        self.assertEqual(getProjects(self.user.id), ['a','b'])
+        self.read = Read.objects.create(read_name="test_read4", owner = self.user2, type=self.read_type, read_url="https://www.commcarehq.org/a/c/")
+        self.assertEqual(getProjects(self.user.id), ['a','b'])
+
+class parseCommCareDataTest(TestCase):
+    def test_commcaredataparser(self):
+        data = [
+            {
+                'case_id' : 1,
+                'properties' : {
+                    'a' : 1,
+                    'b' : 2,
+                    'c' : 3
+                }
+            },
+            {
+                'case_id' : 2,
+                'properties' : {
+                    'd' : 1,
+                    'b' : 2,
+                    'c' : 3
+                }
+            },
+            {
+                'case_id' : 3,
+                'properties' : {
+                    'd' : 1,
+                    'e' : 2,
+                    'c' : 3
+                }
+            },
+            {
+                'case_id' : 4,
+                'properties' : {
+                    'f.' : 1,
+                    '' : 2,
+                    'silo_id' : 3,
+                    'read_id' : 4,
+                    '_id' : 5,
+                    'id' : 6,
+                    'edit_date' : 7,
+                    'create_date' : 8,
+                    'case_id' : 9
+                }
+            },
+        ]
+        parseCommCareData(data, -87, -97, False)
+        try:
+            try:
+                lvs = LabelValueStore.objects.get(a=1, b=2, c=3, case_id=1, read_id=-97, silo_id = -87)
+            except LabelValueStore.DoesNotExist as e:
+                self.assert_(False)
+            try:
+                lvs = LabelValueStore.objects.get(d=1, b=2, c=3, case_id=2, read_id=-97, silo_id = -87)
+            except LabelValueStore.DoesNotExist as e:
+                self.assert_(False)
+            try:
+                lvs = LabelValueStore.objects.get(d=1, e=2, c=3, case_id=3, read_id=-97, silo_id = -87)
+            except LabelValueStore.DoesNotExist as e:
+                self.assert_(False)
+            try:
+                lvs = LabelValueStore.objects.get(f_=1, user_assigned_id=5, editted_date=7, created_date=8, user_case_id=9, case_id=4, read_id=-97, silo_id = -87)
+            except LabelValueStore.DoesNotExist as e:
+                self.assert_(False)
+        except LabelValueStore.MultipleObjectsReturned as e:
+            LabelValueStore.objects.filter(read_id=-97, silo_id = -87).delete()
+            #if this happens run the test again and it should work
+            self.assert_(False)
+
+        #now lets test the updating functionality
+
+        data = [
+            {
+                'case_id' : 1,
+                'properties' : {
+                    'a' : 2,
+                    'b' : 2,
+                    'c' : 3,
+                    'd' : 4
+                }
+            },
+            {
+                'case_id' : 2,
+                'properties' : {
+                    'd' : 1,
+                    'b' : 3
+                }
+            },
+            {
+                'case_id' : 5,
+                'properties' : {
+                    'e' : 2,
+                    'f' : 3
+                }
+            }
+        ]
+        parseCommCareData(data, -87, -97, True)
+        try:
+            try:
+                lvs = LabelValueStore.objects.get(a=2, b=2, c=3, d=4, case_id=1, read_id=-97, silo_id = -87)
+            except LabelValueStore.DoesNotExist as e:
+                self.assert_(False)
+            try:
+                lvs = LabelValueStore.objects.get(d=1, b=3, c=3, case_id=2, read_id=-97, silo_id = -87)
+            except LabelValueStore.DoesNotExist as e:
+                self.assert_(False)
+            try:
+                lvs = LabelValueStore.objects.get(d=1, e=2, c=3, case_id=3, read_id=-97, silo_id = -87)
+            except LabelValueStore.DoesNotExist as e:
+                self.assert_(False)
+            try:
+                lvs = LabelValueStore.objects.get(e=2, f=3, case_id=5, read_id=-97, silo_id = -87)
+            except LabelValueStore.DoesNotExist as e:
+                self.assert_(False)
+            try:
+                lvs = LabelValueStore.objects.get(f_=1, user_assigned_id=5, editted_date=7, created_date=8, user_case_id=9, case_id=4, read_id=-97, silo_id = -87)
+
+            except LabelValueStore.DoesNotExist as e:
+                self.assert_(False)
+            LabelValueStore.objects.filter(read_id=-97, silo_id = -87).delete()
+        except LabelValueStore.MultipleObjectsReturned as e:
+            LabelValueStore.objects.filter(read_id=-97, silo_id = -87).delete()
+            #if this happens run the test again and it should work
+            self.assert_(False)

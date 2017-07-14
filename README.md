@@ -88,6 +88,10 @@ GOOGLE API
 sudo pip install --upgrade google-api-python-client
 * 0’s let it run on any local address i.e. localhost,127.0.0.1 etc.
 
+# Celery
+This app requires celery. This requires the daemonization of a celery worker in the background and
+the install of a messaging broker
+
 #Filtering data from the api endpoint
 To filter data from api/silos/#{pk}/data endpoint add a mongodb query to the modifier at the end
 of the url
@@ -95,3 +99,9 @@ Ex. api/silo/2/data?query={"nm":"Henry"}
 More advanced query language can be found at https://docs.mongodb.com/manual/
 To sort data data add onto the url sort=<column_name> for ascending or sort=-<column_name> for
 descending
+
+# new column management system
+Tolatables is no longer using the model where each data entry has to contain all of the columns.
+This gave problems with datasets using lots of columns
+In order to migrate over run the collect_silo_columns command. This will update mysql database with
+correct column names

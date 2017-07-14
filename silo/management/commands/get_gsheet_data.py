@@ -7,7 +7,6 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 
 from silo.models import *
-from tola.util import siloToDict, combineColumns
 from silo.gviews_v4 import *
 logger = logging.getLogger("silo")
 

@@ -11,7 +11,7 @@ from django.utils.encoding import smart_str, smart_unicode
 from django.conf import settings
 from django.contrib.auth.models import User
 
-from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ColumnType, ThirdPartyTokens, FormulaColumnMapping, ColumnOrderMapping
+from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ColumnType, ThirdPartyTokens
 from django.contrib import messages
 import pymongo
 from bson.objectid import ObjectId
@@ -20,7 +20,7 @@ from pymongo import MongoClient
 from os import walk, listdir
 from django.apps import apps
 
-from collections import Counter
+from collections import Counter, deque
 
 def mean(lst):
     return float(sum(lst))/len(lst)
@@ -52,49 +52,50 @@ def parseMathInstruction(operation):
     elif operation == "min":
        return min
     else:
-        return (messages.ERROR, "Tried to perform invalid operation: %s" % operation)
+        raise TypeError(operation)
 
-def combineColumns(silo_id):
-    client = MongoClient(settings.MONGODB_HOST)
-    db = client.tola
-    lvs = json.loads(LabelValueStore.objects(silo_id = silo_id).to_json())
-    cols = []
-    for l in lvs:
-        cols.extend([k for k in l.keys() if k not in cols])
+# Obsolete used for making sure every row in mongodb has the same columns
+# def combineColumns(silo_id):
+#     client = MongoClient(settings.MONGODB_HOST)
+#     db = client.tola
+#     lvs = json.loads(LabelValueStore.objects(silo_id = silo_id).to_json())
+#     cols = []
+#     for l in lvs:
+#         cols.extend([k for k in l.keys() if k not in cols])
+#
+#     for l in lvs:
+#         for c in cols:
+#             if c not in l.keys():
+#                 db.label_value_store.update_one(
+#                     {"_id": ObjectId(l['_id']['$oid'])},
+#                     {"$set": {c: ''}},
+#                     False
+#                 )
+#     return True
 
-    for l in lvs:
-        for c in cols:
-            if c not in l.keys():
-                db.label_value_store.update_one(
-                    {"_id": ObjectId(l['_id']['$oid'])},
-                    {"$set": {c: ''}},
-                    False
-                )
-    return True
-
-#CREATE NEW DATA DICTIONARY OBJECT
-def siloToDict(silo):
-    parsed_data = {}
-    key_value = 1
-    for d in silo:
-        label = unicodedata.normalize('NFKD', d.field.name).encode('ascii','ignore')
-        value = unicodedata.normalize('NFKD', d.char_store).encode('ascii','ignore')
-        row = unicodedata.normalize('NFKD', d.row_number).encode('ascii','ignore')
-        parsed_data[key_value] = {label : value}
-
-        key_value += 1
-
-    return parsed_data
+#obslolete and not used anywhere
+# def siloToDict(silo):
+#     parsed_data = {}
+#     key_value = 1
+#     for d in silo:
+#         label = unicodedata.normalize('NFKD', d.field.name).encode('ascii','ignore')
+#         value = unicodedata.normalize('NFKD', d.char_store).encode('ascii','ignore')
+#         row = unicodedata.normalize('NFKD', d.row_number).encode('ascii','ignore')
+#         parsed_data[key_value] = {label : value}
+#
+#         key_value += 1
+#
+#     return parsed_data
 
 
-def saveDataToSilo(silo, data, read, user = None):
+def saveDataToSilo(silo, data, read = -1, user = None):
     """
     This saves data to the silo
 
     Keyword arguments:
     silo -- the silo object, which is meta data for its labe_value_store
     data -- a python list of dictionaries. stored in MONGODB
-    read -- the read object
+    read -- the read object, optional only for backwards compatability
     user -- an optional parameter to use if its necessary to retrieve from ThirdPartyTokens
     """
     if read.type.read_type == "ONA" and user:
@@ -105,6 +106,7 @@ def saveDataToSilo(silo, data, read, user = None):
     unique_fields = silo.unique_fields.all()
     skipped_rows = set()
     enc = "latin-1"
+    keys = set()
     for counter, row in enumerate(data):
         # reseting filter_criteria for each row
         filter_criteria = {}
@@ -150,22 +152,14 @@ def saveDataToSilo(silo, data, read, user = None):
             elif key == "create_date": key = "created_date"
             if type(val) == str or type(val) == unicode:
                 val = smart_str(val, strings_only=True)
-            setattr(lvs, key.replace(".", "_").replace("$", "USD").replace(u'\u2026', ""), val)
+            key = key.replace(".", "_").replace("$", "USD").replace(u'\u2026', "")
+            keys.add(key)
+            setattr(lvs, key, val)
             counter += 1
-        formula_columns = FormulaColumnMapping.objects.filter(silo_id=silo.id)
-        for column in formula_columns:
-            calculation_to_do = parseMathInstruction(column.operation)
-            columns_to_calculate_from = json.loads(column.mapping)
-            numbers = []
-            try:
-                for col in columns_to_calculate_from:
-                    numbers.append(int(lvs[col]))
-                setattr(lvs,column.column_name,calculation_to_do(numbers))
-            except ValueError as operation:
-                setattr(lvs,column.column_name,calculation_to_do("Error"))
+        lvs = calculateFormulaCell(lvs,silo)
         lvs.save()
 
-    combineColumns(silo.pk)
+    addColsToSilo(silo, keys)
     res = {"skipped_rows": skipped_rows, "num_rows": counter}
     return res
 
@@ -207,7 +201,7 @@ def importJSON(read_obj, user, remote_user = None, password = None, silo_id = No
         if return_data:
             return data
 
-        skipped_rows = saveDataToSilo(silo, data, read_obj.id)
+        skipped_rows = saveDataToSilo(silo, data, read_obj)
         return (messages.SUCCESS, "Data imported successfully.", str(silo_id))
     except Exception as e:
         if return_data:
@@ -215,16 +209,77 @@ def importJSON(read_obj, user, remote_user = None, password = None, silo_id = No
         return (messages.ERROR, "An error has occured: %s" % e, str(silo_id))
 
 def getSiloColumnNames(id):
-    lvs = LabelValueStore.objects(silo_id=id)
-    cols = []
-    try:
-        order = ColumnOrderMapping.objects.get(silo_id=id)
-        cols.extend(json.loads(order.ordering))
-    except ColumnOrderMapping.DoesNotExist as e:
-        pass
+    """
+    takes silo_id and returns the shown columns in order in O(n)
+    """
+    silo = Silo.objects.get(pk=id)
+    cols_raw = json.loads(silo.columns)
+    hidden_cols = set(json.loads(silo.hidden_columns))
+    hidden_cols = hidden_cols.union(['id', 'silo_id', 'read_id', 'create_date', 'edit_date', 'editted_date'])
 
-    cols.extend([col for col in lvs[0] if col not in cols and col not in ['id','silo_id','read_id','create_date','edit_date','editted_date']])
-    return cols
+    cols_final = deque()
+    for col in cols_raw:
+        if col not in hidden_cols:
+            cols_final.append(col)
+
+    return list(cols_final)
+
+def getCompleteSiloColumnNames(id):
+    """
+    This gets all the column names including the hidden ones in order
+
+    id -- silo_id
+    """
+    silo = Silo.objects.get(pk=id)
+    return json.loads(silo.columns)
+
+def addColsToSilo(silo, columns):
+    """
+    This adds columns to a silo object while preserving order in O(n)
+
+    silo -- a silo object
+    columns -- an iterable containing columns to add
+    """
+    silo_cols = json.loads(silo.columns)
+    silo_cols_set = set(silo_cols) #this is done to decrease lookup time from n to 1
+    silo_cols.extend([x for x in columns if x not in silo_cols_set])
+    silo.columns = json.dumps(list(silo_cols))
+    silo.save()
+
+def deleteSiloColumns(silo, columns):
+    """
+    delete a list of columns from a silos column list in O(n)
+    """
+    cols_old = json.loads(silo.columns)
+    columns = set(columns)
+
+    cols_final = deque()
+    for col in cols_old:
+        if col not in columns:
+            cols_final.append(col)
+
+    silo.columns = json.dumps(list(cols_final))
+    unhideSiloColumns(silo, columns)
+    silo.save()
+
+
+def hideSiloColumns(silo, cols):
+    """
+    take a list of columns and add it to be hidden
+    """
+    hidden_cols = set(json.loads(silo.hidden_columns))
+    hidden_cols = hidden_cols.union(cols)
+    silo.hidden_columns = json.dumps(list(hidden_cols))
+    silo.save()
+
+def unhideSiloColumns(silo, cols):
+    """
+    take a list of columns and unhides it
+    """
+    hidden_cols = set(json.loads(silo.hidden_columns))
+    hidden_cols = hidden_cols.difference(cols)
+    silo.hidden_columns = json.dumps(list(hidden_cols))
+    silo.save()
 
 def user_to_tola(backend, user, response, *args, **kwargs):
 
@@ -251,7 +306,7 @@ def getImportAppsVerbose():
     folders = getImportApps()
     apps = [[folder,folder] for folder in folders]
     for app in apps:
-        filepath = "datasources/" + app[0] + "/apps.py"
+        filepath = settings.SITE_ROOT + "/datasources/" + app[0] + "/apps.py"
         f = open(filepath,"r")
         for i, line in enumerate(f):
             if i > 100:
@@ -279,7 +334,7 @@ def ona_parse_type_group(data, form_data, parent_name, silo, read):
         else:
             for entry in data:
                 if field['type'] == "repeat":
-                    ona_parse_type_repeat(entry[parent_name + field['name']],\
+                    ona_parse_type_repeat(entry.get(parent_name + field['name'], []),\
                                         field['children'],\
                                         parent_name + field['name']+"/",silo,read)
                 if 'label' in field:
@@ -310,8 +365,6 @@ def ona_parse_type_group(data, form_data, parent_name, silo, read):
                             column_source_name=field['name'],\
                             column_type=field['type'])
             ct.save()
-        except ColumnType.MultipleObjectsReturned as e:
-            continue
 
 def ona_parse_type_repeat(data, form_data, parent_name, silo, read):
     """
@@ -329,11 +382,14 @@ def ona_parse_type_repeat(data, form_data, parent_name, silo, read):
         else:
             for entry in data:
                 if field['type'] == "repeat":
-                    ona_parse_type_repeat(entry[parent_name + field['name']],\
+                    ona_parse_type_repeat(entry.get(parent_name + field['name'],[]),\
                                         field['children'],\
                                         parent_name + field['name']+"/",silo,read)
                 if 'label' in field:
-                    entry[field['label']] = entry.pop(parent_name + field['name'])
+                    try:
+                        entry[field['label']] = entry.pop(parent_name + field['name'])
+                    except KeyError as e:
+                        pass
 
 def saveOnaDataToSilo(silo, data, read, user):
     """
@@ -382,19 +438,143 @@ def calculateFormulaColumn(lvs,operation,columns,formula_column_name):
 
     calc_fails = []
     for i, entry in enumerate(lvs):
-        try:
-            values_to_calc = []
-            for col in columns:
-                values_to_calc.append(int(entry[col]))
-            calculation = calc(values_to_calc)
-            setattr(entry,formula_column_name,calculation)
-            entry.edit_date = timezone.now()
-            entry.save()
-        except ValueError as operation:
-            setattr(entry,formula_column_name,"Error")
-            entry.edit_date = timezone.now()
-            entry.save()
+        entry = calculateFormula(entry, calc, columns, formula_column_name)
+        if(entry[1]):
+            entry[0].save()
+        else:
+            entry[0].save()
             calc_fails.append(i)
     if len(calc_fails) == 0:
         return (messages.SUCCESS, "Successfully performed operations")
-    return (messages.WARNING, "Non-numberic data detected in rows %s" % str(calc_fails))
+    return (messages.WARNING, "Non-numeric data detected in rows %s" % str(calc_fails))
+
+def calculateFormula(entry, calc, columns, formula_column_name):
+    """
+    This function calculates a math operation for a single query
+
+    entry -- a query of label_value_store objects
+    calc -- a function pointer to the math operation to perform
+    columns -- a list of columns to use in the math operation
+    formula_column_name -- name of the column that holds the math done
+    """
+    try:
+        values_to_calc = []
+        for col in columns:
+            values_to_calc.append(float(entry[col]))
+        calculation = calc(values_to_calc)
+        setattr(entry,formula_column_name,round(calculation,4))
+        entry.edit_date = timezone.now()
+        success = True
+    except (ValueError, KeyError) as operation:
+        setattr(entry,formula_column_name,"Error")
+        entry.edit_date = timezone.now()
+        success = False
+    return (entry, success)
+
+def calculateFormulaCell(entry, silo):
+    """
+    calculates all the formula for a given entry
+
+    entry -- a query of label_value_store objects
+    silo -- a silo object
+
+    returns entry
+    """
+    formula_columns = silo.formulacolumns.all()
+    calc_fail = []
+    for column in formula_columns:
+        calculation_to_do = parseMathInstruction(column.operation)
+        entry = calculateFormula(entry,calculation_to_do,json.loads(column.mapping),column.column_name)
+        entry = entry[0]
+    return entry
+
+def makeQueryForHiddenRow(row_filter):
+    """
+    This function takes arrays of dictionaries in the format generated from when a row filter is
+    added and
+    returns a JSON formatted query to be able to plugged into the json format
+    """
+    query = {}
+    empty = [""]
+    #find and add any extra empty characters
+    for condition in row_filter:
+        if condition.get("logic","") == "BLANKCHAR":
+            empty.append(condition.get("conditional", ""))
+    #now add to the query
+    for condition in row_filter:
+        #this does string comparisons
+        num_to_compare = condition.get("number","")
+        #specify the part of the dictionary to add to
+        if condition.get("logic","") == "AND":
+            to_add = query
+        elif condition.get("logic","") == "OR":
+            try:
+                to_add = query["$or"]
+            except KeyError as e:
+                query["$or"] = {}
+                to_add = query["$or"]
+        for column in condition.get("conditional",[]):
+            if condition.get("operation","") == "empty":
+                try:
+                    to_add[column]["$not"]["$exists"] = "true"
+                except KeyError as e:
+                    to_add[column] = {}
+                    try:
+                        to_add[column]["$not"]["$exists"] = "true"
+                    except KeyError as e:
+                        to_add[column]["$not"] = {}
+                        to_add[column]["$not"]["$exists"] = "true"
+                try:
+                    to_add[column]["$not"]["$not"]["$in"] = empty
+                except KeyError as e:
+                    to_add[column]["$not"]["$not"] = {}
+                    to_add[column]["$not"]["$not"]["$in"] = empty
+            elif condition.get("operation","") == "nempty":
+                try:
+                    to_add[column]["$exists"] = "true"
+                except KeyError as e:
+                    to_add[column] = {}
+                    to_add[column]["$exists"] = "true"
+                try:
+                    to_add[column]["$not"]["$in"] = empty
+                except KeyError as e:
+                    to_add[column]["$not"] = {}
+                    to_add[column]["$not"]["$in"] = empty
+            elif condition.get("operation","") == "eq":
+                try:
+                    to_add[column]['$in'].append(num_to_compare)
+                except KeyError as e:
+                    to_add[column] = {}
+                    try:
+                        to_add[column]['$in'].append(num_to_compare)
+                    except KeyError as e:
+                        to_add[column]['$in'] = [num_to_compare]
+            elif condition.get("operation","") == "neq":
+                try:
+                    to_add[column]['$nin'].append(num_to_compare)
+                except KeyError as e:
+                    to_add[column] = {}
+                    try:
+                        to_add[column]['$nin'].append(num_to_compare)
+                    except KeyError as e:
+                        to_add[column]['$nin'] = [num_to_compare]
+            #for lt, gt, lte, gte need to take the most exclusive condition
+
+    #conver the $or area to be properly formatted for a query
+    or_items = query.get("$or", {})
+    if len(or_items) > 0:
+        query["$or"] = []
+        for k, v in or_items.iteritems():
+            query["$or"].append({k:v})
+
+    query = json.dumps(query)
+    return query
+
+def getNewestDataDate(silo_id):
+    """
+    finds the newest date of data in a silo
+    """
+    db = MongoClient(settings.MONGODB_HOST).tola
+    newest_record = db.label_value_store.find({'silo_id' : silo_id}).sort([("create_date", -1)]).limit(1)
+
+    return newest_record[0]['create_date']

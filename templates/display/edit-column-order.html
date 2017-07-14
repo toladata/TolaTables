@@ -3,6 +3,7 @@
 
 
 {% block content %}
+    <p> Drag and drop elements to establish a column order </p>
     <form action="/edit_column_order/{{silo.id}}/" method="post">{% csrf_token %}
       <br><br>
       <table id="listcolumns" class="table table-bordered table-hover table-striped">

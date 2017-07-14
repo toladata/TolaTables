@@ -31,11 +31,15 @@ class ListTextWidget(forms.TextInput):
 
 
 class CommCarePassForm(forms.Form):
-    project = forms.CharField(required=True, help_text=mark_safe("This is the name of the project you are importing from. Press the down arrow to see the name of past projects you have imported from. To see the name of your CommCare projects go to CommCare <a href='https://www.commcarehq.org/account/projects/#'>settings then click my projects</a>"))
     username = forms.CharField(max_length=60, required=True)
     password = forms.CharField(required=True, widget=forms.PasswordInput())
+    project = forms.CharField(required=True, help_text=mark_safe("This is the name of the project you are importing from. Press the down arrow to see the name of past projects you have imported from. To see the name of your CommCare projects go to CommCare <a href='https://www.commcarehq.org/account/projects/#'>settings then click my projects</a>"))
+    silo = forms.ChoiceField(required=True)
+
 
     def __init__(self, *args, **kwargs):
+        choices = kwargs.pop('choices')
+        user_id = kwargs.pop('user_id')
         self.helper = FormHelper()
         self.helper.form_class = 'form-horizontal'
         self.helper.label_class = 'col-sm-2'
@@ -45,13 +49,18 @@ class CommCarePassForm(forms.Form):
         self.helper.add_input(Submit('submit', 'Submit'))
         self.helper.add_input(Reset('rest', 'Reset', css_class='btn-warning'))
         super(CommCarePassForm, self).__init__(*args, **kwargs)
-        self.fields['project'].widget = ListTextWidget(data_list=getProjects(), name='projects')
+        self.fields['project'].widget = ListTextWidget(data_list=getProjects(user_id), name='projects')
+        self.fields['silo'].choices = choices
 
 
 class CommCareProjectForm(forms.Form):
     project = forms.CharField(required=True, help_text=mark_safe("This is the name of the project you are importing from. Press the down arrow to see the name of past projects you have imported from. The projects your account has access to are listed in your CommCare <a href='https://www.commcarehq.org/account/projects/' target='_blank'>settings</a> under my projects.<br/>If you are not getting access it could be because your project has a different name then what you as a user can see. To see your projects true name go to CommCare <a href='https://www.commcarehq.org/account/projects/' target='_blank'>settings</a>"))
+    silo = forms.ChoiceField(required=True)
+
 
     def __init__(self, *args, **kwargs):
+        choices = kwargs.pop('choices')
+        user_id = kwargs.pop('user_id')
         self.helper = FormHelper()
         self.helper.form_class = 'form-horizontal'
         self.helper.label_class = 'col-sm-2'
@@ -61,7 +70,9 @@ class CommCareProjectForm(forms.Form):
         self.helper.add_input(Submit('submit', 'Submit'))
         self.helper.add_input(Reset('rest', 'Reset', css_class='btn-warning'))
         super(CommCareProjectForm, self).__init__(*args, **kwargs)
-        self.fields['project'].widget = ListTextWidget(data_list=getProjects(), name='projects')
+        self.fields['project'].widget = ListTextWidget(data_list=getProjects(user_id), name='projects')
+        self.fields['silo'].choices = choices
+
 
 
 class CommCareAuthForm(CommCareProjectForm):
@@ -70,4 +81,9 @@ class CommCareAuthForm(CommCareProjectForm):
 
     def __init__(self, *args, **kwargs):
         super(CommCareAuthForm, self).__init__(*args, **kwargs)
+        self.fields.keyOrder = [
+            'username',
+            'auth_token',
+            'project',
+            'silo']
         self.fields['auth_token'].label = 'API Key'
