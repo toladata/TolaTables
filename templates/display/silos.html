@@ -16,7 +16,7 @@
                             <th class="tableNameCol" data-step="1" data-intro="Click'n a table name takes you to its meta-data page.">Table Name</th>
                             <th class="tableSourcesCol" data-step="2" data-intro="Sources indicates where data comes from in a table." data-position='right' >Table Source(s)</th>
                             <th class="tableOpsCol" data-step="3" data-intro="These are the things you could do to a table." style="width:130px;">Table Operations</th>
-                            <th class="tableShareCol" data-step="4" data-intro="Export the data out to multiple destinations">Share</th>
+                            <th class="tableShareCol" data-step="4" data-intro="Export the data out to multiple destinations">Export</th>
                             <th class="tablePublicCol" data-step="5" data-intro="Let everyone see this table!">Public</th>
                         </tr>
                     </thead>
@@ -43,17 +43,18 @@
                                 </td>
                                 <td class="tableShareCol">
                                     <div style="width: 100%; " class="input-group-btn">
-                                        <button type="button" class="btn btn-xs btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">Share <span class="caret"></span></button>
+                                        <a href="/export_silo_form/{{ silo.id }}" class="btn btn-xs btn-default">Export</a>
+                                        <!-- <button type="button" class="btn btn-xs btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">Export </button>
                                         <ul class="dropdown-menu" role="menu">
                                             <li><a href="/api/silo/{{ silo.id }}" target="_new">REST API</a></li>
-                                            <li><a href="/api/public_tables/{{ silo.id }}/data/" target="_new">JSON FEED</a></li>
+                                            <li><a href="/api/public_tables/{{ silo.id }}/data" target="_new">JSON FEED</a></li>
                                             <li><a href="/export/{{ silo.id }}"><span class="glyphicon glyphicon-file"></span> Export as CSV </a></li>
                                             <li class="divider"></li>
                                             <li><a href="/export_to_gsheet/{{ silo.id }}/"><span class="glyphicon glyphicon-cloud-upload"></span> New Google SHEET</a></li>
                                             <li>
                                                 <a href="#" onclick="onAuthApiLoad({{ silo.id }});">
                                                 <span class="glyphicon glyphicon-cloud"></span> Export Existing GSHEET</a>
-                                            </li>
+                                            </li> -->
                                         </ul>
                                     </div><!-- /btn-group -->
                                     <!-- <div id="silo_id" style="display: none;"> {{ silo.id }} </div> -->

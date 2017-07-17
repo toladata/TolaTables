@@ -1271,40 +1271,40 @@ def export_silo(request, id):
     response['Content-Disposition'] = 'attachment; filename="%s.csv"' % silo_name
     writer = csv.writer(response)
 
+    #get the query and the columns to export
+    query = json.loads(request.GET.get('query',"{}"))
+    cols = json.loads(request.GET.get('shown_cols',json.dumps(getSiloColumnNames(id))))
+
     # Loads the bson objects from mongo
-    bsondata = store.find({"silo_id": int(id)})
+    query["silo_id"] = int(id)
+    bsondata = store.find(query)
     # Now convert bson to json string using OrderedDict to main fields order
     json_string = dumps(bsondata)
     # Now decode the json string into python object
-    silo_data = json.loads(json_string, object_pairs_hook=OrderedDict)
+    silo_data = json.loads(json_string)
     data = []
-    num_cols = 0
-    cols = OrderedDict()
+    num_cols = len(cols)
     if silo_data:
         num_rows = len(silo_data)
 
-        for row in silo_data:
-            for i, col in enumerate(row):
-                if col not in cols.keys():
-                    num_cols += 1
-                    col = col.decode("latin-1").encode("utf8")
-                    cols[col] = num_cols
-
         # Convert OrderedDict to Python list so that it can be written to CSV writer.
-        cols = list(cols)
-        writer.writerow(list(cols))
+        writer.writerow(cols)
 
         # Populate a 2x2 list structure that corresponds to the number of rows and cols in silo_data
         for i in xrange(num_rows): data += [[0]*num_cols]
 
         for r, row in enumerate(silo_data):
-            for col in row:
+            for col in cols:
                 # Map values to column names and place them in the correct position in the data array
-                val = row[col]
-                if isinstance(val, OrderedDict): val  = val.popitem()
-                if isinstance(val, tuple):
-                    if val[0] == "$date": val = smart_text(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(val[1]/1000)))
-                    if val[0] == "$oid": val = smart_text(val[1])
+                val = row.get(col, '')
+                if isinstance(val, dict):
+                    try:
+                        val = smart_text(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(val['$date']/1000)))
+                    except KeyError as e:
+                        try:
+                            val = smart_text(val['$oid'])
+                        except KeyError as e:
+                            val  = val.popitem()
                 #val = val.decode("latin-1").encode("utf8")
                 val = smart_text(val).decode("latin-1").encode("utf8")
                 data[r][cols.index(col)] = val
@@ -1455,3 +1455,22 @@ def addColumnFilter(request, pk):
 
     cols.sort()
     return render(request, "display/add-column-filter.html", {'silo':silo,'cols': cols, 'hidden_cols': hidden_cols, 'hidden_rows': hidden_rows})
+
+@login_required
+def export_silo_form(request, id):
+
+    if request.method == 'POST':
+        query = makeQueryForHiddenRow(json.loads(request.POST.get('query')))
+        shown_cols = request.POST.get('shown_cols')
+        return HttpResponseRedirect(request.POST.get('url') +"?query=%s&shown_cols=%s" % (query, shown_cols))
+
+
+    silo = Silo.objects.get(pk=id)
+    cols = getCompleteSiloColumnNames(id)
+    shown_cols = getSiloColumnNames(id)
+    hidden_rows = json.loads(silo.rows_to_hide)
+    for row in hidden_rows:
+        row['conditional'] = json.dumps(row['conditional'])
+
+    cols.sort()
+    return render(request, "display/export_form.html", {'silo':silo,'cols': cols, 'shown_cols': shown_cols, 'hidden_rows': hidden_rows})
