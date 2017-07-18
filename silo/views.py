@@ -886,33 +886,8 @@ def updateSiloData(request, pk):
             for msg in msgs:
                 messages.add_message(request, msg[0], msg[1])
 
-            #find any duplicate objects that do not contain a read_id and delete them
-            #legacy objects will not have a read_id
+            #delete legacy objects
             lvss = LabelValueStore.objects(silo_id=silo.pk,__raw__={ "$or" : [{"read_id" : {"$not" : { "$exists" : "true" }}}, {"read_id" : {"$in" : [-1,""]} } ]})
-            for lvs in lvss:
-                filter_criteria = {}
-                for key in lvs:
-                    if key !="id" and key !="read_id" and key!="create_date" and key!="edit_date":
-                        try:
-                            filter_criteria.update({key:lvs[key]})
-                        except KeyError:
-                            pass
-                        except ValueError:
-                            pass
-                try:
-                    #this will delete anything without a read_id that has a new dup
-                    dups = LabelValueStore.objects(**filter_criteria)
-                    if len(dups) == 2:
-                        try:
-                            dups = LabelValueStore.objects.get(__raw__={ "$or" : [{"read_id" : {"$not" : { "$exists" : "true" }}}, {"read_id" : {"$in" : [-1,""]} } ]},**filter_criteria)
-                            dups.delete()
-                        except LabelValueStore.MultipleObjectsReturned as e:
-                            dups = LabelValueStore.objects.filter(__raw__={ "$or" : [{"read_id" : {"$not" : { "$exists" : "true" }}}, {"read_id" : {"$in" : [-1,""]} } ]},**filter_criteria).first()
-                            dups.first().delete()
-                        except Exception as e:
-                            pass
-                except Exception as e:
-                    pass
 
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
 
