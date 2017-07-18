@@ -46,7 +46,7 @@ DATABASES = {
         'USER': os.getenv('TOLA_DB_USER'),
         'PASSWORD': os.getenv('TOLA_DB_PASS'),
         'HOST': os.getenv('TOLA_DB_HOST'),
-        'PORT': os.getenv('TOLA_DB_PORT'),
+        'PORT': int(os.getenv('TOLA_DB_PORT')),
     }
 }
 
@@ -60,7 +60,7 @@ mongoengine.connect(
     username=os.getenv('TOLA_MONGODB_USER'),
     password=os.getenv('TOLA_MONGODB_PASS'),
     host=os.getenv('TOLA_MONGODB_HOST'),
-    port=os.getenv('TOLA_MONGODB_PORT'),
+    port=int(os.getenv('TOLA_MONGODB_PORT')),
     alias='default'
 )
 ################ END OF MONGO DB #######################
