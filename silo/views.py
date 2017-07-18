@@ -1223,17 +1223,21 @@ def valueEdit(request,id):
                 if lbl != "id" and lbl != "silo_id" and lbl != "csrfmiddlewaretoken":
                     setattr(lvs, lbl, val)
             lvs.edit_date = timezone.now()
-            formula_columns = silo.formulacolumns.all()
-            for column in formula_columns:
-                calculation_to_do = parseMathInstruction(column.operation)
-                columns_to_calculate_from = json.loads(column.mapping)
-                numbers = []
-                try:
-                    for col in columns_to_calculate_from:
-                        numbers.append(int(lvs[col]))
-                    setattr(lvs,column.column_name,calculation_to_do(numbers))
-                except ValueError as operation:
-                    setattr(lvs,column.column_name,calculation_to_do("Error"))
+            try:
+                silo = Silo.objects.get(pk=silo_id)
+                formula_columns = silo.formulacolumns.all()
+                for column in formula_columns:
+                    calculation_to_do = parseMathInstruction(column.operation)
+                    columns_to_calculate_from = json.loads(column.mapping)
+                    numbers = []
+                    try:
+                        for col in columns_to_calculate_from:
+                            numbers.append(int(lvs[col]))
+                        setattr(lvs,column.column_name,calculation_to_do(numbers))
+                    except ValueError as operation:
+                        setattr(lvs,column.column_name,calculation_to_do("Error"))
+            except Exception as e:
+                messages.warning(request, "Data format error prevented tola tables from applying formula column to your data")
             lvs.save()
             return HttpResponseRedirect('/silo_detail/' + str(silo_id))
         else:

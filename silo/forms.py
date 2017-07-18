@@ -7,6 +7,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Div, Submit, Reset, HTML, Button, Row, Field, Hidden
 from crispy_forms.bootstrap import FormActions
 from django.forms.formsets import formset_factory
+from collections import OrderedDict
 
 class OnaLoginForm(forms.Form):
     username = forms.CharField(max_length=60, required=True)
@@ -105,6 +106,7 @@ class EditColumnForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         extra = kwargs.pop("extra")
+        extra = OrderedDict
         self.helper = FormHelper()
         self.helper.form_class = 'form-horizontal'
         self.helper.label_class = 'col-sm-5'
@@ -136,6 +138,8 @@ class MongoEditForm(forms.Form):
         self.helper.html5_required = True
         self.helper.form_tag = False
         super(MongoEditForm, self).__init__(*args, **kwargs)
+
+        extra = OrderedDict(sorted(extra.iteritems()))
 
         for item in extra:
             if item == "edit_date" or item == "create_date":
