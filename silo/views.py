@@ -40,10 +40,10 @@ from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, ge
 
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
-import requests
+import requests, os
 
 logger = logging.getLogger("silo")
-db = MongoClient(settings.MONGODB_HOST).tola
+db = MongoClient(os.getenv('TOLA_MONGODB_NAME')).tola
 
 # To preserve fields order when reading BSON from MONGO
 opts = CodecOptions(document_class=SON)
