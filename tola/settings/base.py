@@ -52,6 +52,17 @@ DATABASES = {
 }
 ########## END DATABASE CONFIGURATION
 
+############ MONGO DB #####################
+import mongoengine
+from mongoengine import register_connection
+register_connection(alias='default',name='tola')
+
+MONGODB_HOST = 'mongodb://localhost/tola'
+MONGODB_NAME = 'tola'
+
+mongoengine.connect(MONGODB_NAME, host = MONGODB_HOST, alias='default')
+################ END OF MONGO DB #######################
+
 
 ########## GENERAL CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#time-zone
@@ -220,7 +231,8 @@ DJANGO_APPS = (
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     'django.contrib.admindocs',
-    'social_django',
+    'social.apps.django_app.default',
+
 )
 
 THIRD_PARTY_APPS = (
@@ -250,24 +262,22 @@ CORS_ORIGIN_WHITELIST = (
 
 ####### AUTHENTICATION BAKEND CONFIG ##################
 # https://github.com/django/django/blob/master/django/contrib/auth/backends.py
-
 AUTHENTICATION_BACKENDS = (
-    'social_core.backends.azuread.AzureADOAuth2',
-    'social_core.backends.google.GoogleOAuth2',
-    'social_core.backends.microsoft.MicrosoftOAuth2',
+    'social.backends.google.GoogleOAuth2',
     'django.contrib.auth.backends.ModelBackend',
 )
 
 SOCIAL_AUTH_PIPELINE = (
-    'social_core.pipeline.social_auth.social_details',
-    'social_core.pipeline.social_auth.social_uid',
-    'social_core.pipeline.social_auth.social_user',
-    'social_core.pipeline.user.get_username',
-    'social_core.pipeline.user.create_user',
-    'social_core.pipeline.social_auth.associate_user',
-    'social_core.pipeline.social_auth.load_extra_data',
-    'social_core.pipeline.user.user_details',
-    'social_core.pipeline.social_auth.associate_by_email',
+    'social.pipeline.social_auth.social_details',
+    'social.pipeline.social_auth.social_uid',
+    'social.pipeline.social_auth.auth_allowed',
+    'social.pipeline.social_auth.social_user',
+    'social.pipeline.social_auth.associate_by_email',
+    'social.pipeline.user.get_username',
+    'social.pipeline.user.create_user',
+    'social.pipeline.social_auth.associate_user',
+    'social.pipeline.social_auth.load_extra_data',
+    'social.pipeline.user.user_details',
     'tola.util.user_to_tola',
 )
 
@@ -373,3 +383,6 @@ MESSAGE_TAGS = {message.DEBUG: 'debug',
                 message.SUCCESS: 'success',
                 message.WARNING: 'warning',
                 message.ERROR: 'danger',}
+
+
+GOOGLE_REDIRECT_URL = 'http://localhost:8000/oauth2callback/'

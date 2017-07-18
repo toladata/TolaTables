@@ -164,37 +164,3 @@ class SiloTest(TestCase):
 
     def test_delete_silo(self):
         pass
-
-from django.test import Client
-from django.conf import settings
-
-class Microsoft(TestCase):
-
-    def test_social_auth(self):
-        """
-        Test social auth login with Microsoft online
-        :return: 
-        """
-        driver = Client()
-        response = driver.get('/login/microsoft', follow=True)
-        #print(response.redirect_chain, response.status_code)
-
-        # check http redirect
-        steps = response.redirect_chain
-        self.assertEqual(steps[0][1], 301)
-
-        redir_target, redir_options = steps[1][0].split('?')
-        redir_options = dict(map(lambda x: x.split('='), redir_options.split('&')))
-
-        # check redirect target
-        self.assertEqual(redir_target, 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize')
-
-        # check parameters
-        self.assertEqual(redir_options['scope'], 'User.Read')
-        self.assertTrue('/complete/microsoft' in redir_options['redirect_uri'])
-        self.assertEqual(redir_options['client_id'], getattr(settings, 'SOCIAL_AUTH_MICROSOFT_OAUTH2_KEY', None))
-        self.assertTrue('state' in redir_options)
-        self.assertTrue('response_type' in redir_options)
-
-
-

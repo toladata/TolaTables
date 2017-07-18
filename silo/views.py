@@ -40,7 +40,6 @@ from tola.util import siloToDict, combineColumns, importJSON, saveDataToSilo, ge
 
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
-import requests
 
 logger = logging.getLogger("silo")
 db = MongoClient(settings.MONGODB_HOST).tola
@@ -573,8 +572,6 @@ def deleteSilo(request, id):
         messages.error(request, "You do not have permission to delete this silo")
         return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
-from django.contrib.auth import logout
-from django.shortcuts import redirect
 
 @login_required
 def showRead(request, id):
@@ -583,8 +580,6 @@ def showRead(request, id):
     """
     excluded_fields = ['gsheet_id', 'resource_id', 'token', 'create_date', 'edit_date', 'token']
     initial = {'owner': request.user}
-    data = None
-    access_token = None
 
     try:
         read_instance = Read.objects.get(pk=id)
@@ -594,6 +589,7 @@ def showRead(request, id):
         read_type = request.GET.get("type", "CSV")
         initial['type'] = ReadType.objects.get(read_type=read_type)
 
+
     if read_type == "GSheet Import" or read_type == "ONA":
         excluded_fields = excluded_fields + ['username', 'password', 'file_data','autopush_frequency']
     elif read_type == "JSON":
@@ -602,31 +598,6 @@ def showRead(request, id):
         excluded_fields = excluded_fields + ['username', 'password', 'file_data', 'autopull_frequency']
     elif read_type == "CSV":
         excluded_fields = excluded_fields + ['username', 'password', 'autopush_frequency', 'autopull_frequency', 'read_url']
-    elif read_type == "OneDrive":
-        user = User.objects.get(username__exact=request.user)
-        social = user.social_auth.get(provider='microsoft')
-        access_token = social.extra_data['access_token']
-
-        """
-        # Todo catch expired token
-        response = requests.get(
-            'https://graph.microsoft.com/v1.0/me/drive/root/children',
-            headers={
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json',
-                'Authorization': 'Bearer ' + social.extra_data['access_token']
-            }
-        )
-        data = response.json()
-        print(response.status_code)
-        if response.status_code == 401:
-            logout(request)
-            redirect('/')
-        
-        print(data)
-        """
-        excluded_fields = excluded_fields + ['username', 'password', 'file_data','autopush_frequency']
-        excluded_fields = excluded_fields + ['autopull_frequency', 'read_url']
 
     if request.method == 'POST':
         form = get_read_form(excluded_fields)(request.POST, request.FILES, instance=read_instance)
@@ -641,8 +612,6 @@ def showRead(request, id):
                 return HttpResponseRedirect("/file/" + str(read.id) + "/")
             elif form.instance.type.read_type == "JSON":
                 return HttpResponseRedirect(reverse_lazy("getJSON")+ "?read_id=%s" % read.id)
-            if form.instance.type.read_type == "OneDrive":
-                return HttpResponseRedirect("/import_onedrive/" + str(read.id) + "/")
 
             if form.instance.autopull_frequency or form.instance.autopush_frequency:
                 messages.info(request, "Your table must have a unique column set for Autopull/Autopush to work.")
@@ -651,77 +620,9 @@ def showRead(request, id):
             messages.error(request, 'Invalid Form', fail_silently=False)
     else:
         form = get_read_form(excluded_fields)(instance=read_instance, initial=initial)
-
     return render(request, 'read/read.html', {
-        'form': form,
-        'read_id': id,
-        'data': data,
-        'access_token': access_token
+        'form': form, 'read_id': id,
     })
-
-import tempfile
-from django.core import files
-
-@login_required
-def oneDriveImport(request, id):
-    """
-    Get the forms owned or shared with the logged in user
-    :param request:
-    :return: list of Ona forms paired with action buttons
-    """
-    read_obj = Read.objects.get(pk=id)
-
-    print(read_obj.onedrive_file)
-    user = User.objects.get(username__exact=request.user)
-    social = user.social_auth.get(provider='microsoft')
-    access_token = social.extra_data['access_token']
-
-    request_meta = requests.get(
-        'https://graph.microsoft.com/v1.0/me/drive/items/' + read_obj.onedrive_file + '',
-        headers={
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Accept': 'application/json',
-            'Authorization': 'Bearer ' + access_token
-        }
-    )
-    if request_meta.status_code == 401:
-        logout(request)
-        return redirect('/')
-
-    request_content = requests.get(
-        'https://graph.microsoft.com/v1.0/me/drive/items/'+read_obj.onedrive_file+'/content',
-        headers={
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Accept': 'application/json',
-            'Authorization': 'Bearer ' + access_token
-        }
-    )
-    file_content = request_content.content
-    file_meta = request_meta.json()
-    tmp = tempfile.NamedTemporaryFile()
-    tmp.write(file_content)
-
-    read_obj.file_data = files.File(tmp, name=file_meta["name"])
-    read_obj.save()
-
-    print(file_meta["name"])
-    return HttpResponseRedirect("/file/" + str(id) + "/")
-
-    #read_obj.file_data
-
-    return render(request, 'silo/onedrive.html', {
-    })
-
-@login_required
-def oneDrive(request):
-    """
-    Get the forms owned or shared with the logged in user
-    :param request:
-    :return: list of Ona forms paired with action buttons
-    """
-    return render(request, 'silo/onedrive.html', {
-    })
-
 
 @login_required
 def uploadFile(request, id):
@@ -762,7 +663,7 @@ def uploadFile(request, id):
     # get all of the silo info to pass to the form
     get_silo = Silo.objects.filter(owner=user)
 
-    # display the form for user to choose a table or enter a new table name to import data into
+    # display the form for user to choose a table or ener a new table name to import data into
     return render(request, 'read/file.html', {
         'read_id': id, 'form_action': reverse_lazy("uploadFile", kwargs={"id": id}), 'get_silo': get_silo,
     })
@@ -796,9 +697,6 @@ def getJSON(request):
             'form_action': reverse_lazy("getJSON"), 'get_silo': silos
         })
 #display
-
-
-
 #INDEX
 def index(request):
     #if request.COOKIES.get('auth_token', None):
@@ -806,7 +704,6 @@ def index(request):
     # get all of the table(silo) info for logged in user and public data
     if request.user.is_authenticated():
         user = User.objects.get(username__exact=request.user)
-
         get_silos = Silo.objects.filter(owner=user)
         # count all public and private data sets
         count_all = Silo.objects.filter(owner=user).count()
