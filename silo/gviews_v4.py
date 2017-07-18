@@ -166,8 +166,9 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
     lvss = []
     for r, row in enumerate(data):
         if r == 0:
-            headers = row
+            headers = [" ".join(x.split()) for x in row]
             addColsToSilo(silo, headers)
+            continue
         filter_criteria = {}
 
         # build filter_criteria if unique field(s) have been setup for this silo
@@ -207,6 +208,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
             elif key == "create_date": key = "created_date"
             val = smart_str(row[c], strings_only=True)
             key = smart_str(key)
+            key = " ".join(key.split())
             setattr(lvs, key.replace(".", "_").replace("$", "USD"), val)
         lvs.silo_id = silo.id
         lvs.read_id = gsheet_read.id

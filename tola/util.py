@@ -153,6 +153,7 @@ def saveDataToSilo(silo, data, read = -1, user = None):
             if type(val) == str or type(val) == unicode:
                 val = smart_str(val, strings_only=True)
             key = key.replace(".", "_").replace("$", "USD").replace(u'\u2026', "")
+            key = " ".join(key.split())
             keys.add(key)
             setattr(lvs, key, val)
             counter += 1

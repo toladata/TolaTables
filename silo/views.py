@@ -912,7 +912,9 @@ def importDataFromRead(request, silo, read):
     elif read.type.read_type == "GSheet Import":
         #as the google sheet import already performs the update functionality so when its time to input the data again google spreadsheet update will be called
         return (None,2,None)
-
+    elif read.type.read_type == "Google Spreadsheet":
+        #as the google sheet import already performs the update functionality so when its time to input the data again google spreadsheet update will be called
+        return (None,2,None)
     elif read.type.read_type == "CommCare":
         commcare_token = None
         try:
