@@ -49,6 +49,9 @@ urlpatterns =[
     url(r'^$', views.index, name='index'),
 
     url(r'^source/new/', views.showRead, kwargs={'id': 0}, name='newRead'),
+    url(r'^onedrive', views.oneDrive, name='oneDriveRedirect'),
+    url(r'^import_onedrive/(?P<id>\d+)/$', views.oneDriveImport, name='import_onedrive'),
+
     url(r'^show_read/(?P<id>\w+)/$', views.showRead, name='showRead'),
 
     url(r'^file/(?P<id>\w+)/$', views.uploadFile, name='uploadFile'),
@@ -95,7 +98,7 @@ urlpatterns =[
 
     #Auth backend URL's
     url('', include('django.contrib.auth.urls', namespace='auth')),
-    url('', include('social.apps.django_app.urls', namespace='social')),
+    url('', include('social_django.urls', namespace='social'))
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
