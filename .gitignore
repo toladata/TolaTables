@@ -31,7 +31,7 @@ venv-tt/
 conf/awstats.conf
 conf/
 djangocosign/
-local.py
+local-dev.py
 
 #Misc.
 .idea/
@@ -43,3 +43,4 @@ client_secrets.json
 error.log
 *.secret
 *.secret.yml
+src/
