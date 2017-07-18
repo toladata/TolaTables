@@ -287,56 +287,24 @@ path.append(PROJECT_PATH)
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': "[%(asctime)s] %(levelname)s [%(name)s:%(lineno)s] %(message)s",
-            'datefmt': "%d/%b/%Y %H:%M:%S"
-        },
-        'simple': {
-            'format': '%(levelname)s %(message)s'
-        },
-    },
     'handlers': {
         'file': {
-            'level': 'WARNING',
+            'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(PROJECT_PATH, 'error.log'),
-            'formatter': 'verbose'
+            'filename': 'error.log',
         },
-        'console':{
-            'level': 'INFO',
+        'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'simple'
-        },
-        'mail_admins': {
-            'class': 'django.utils.log.AdminEmailHandler',
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['file'],
+            'handlers': ['file', 'console'],
             'level': 'INFO',
             'propagate': True,
         },
-        'django.db.backends': {
-            'handlers': ['console'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
-        'silo': {
-            'handlers': ['file'],
-            'level': 'WARNING',
-            'propagate': True,
-        },
-        'silo_mail': {
-            'handlers': ['file', 'mail_admins',],
-            'level': 'ERROR',
-            'propagate': True,
-            'include_html': True,
-        },
-    }
+    },
 }
-
 
 ########## END LOGGING CONFIGURATION
 
