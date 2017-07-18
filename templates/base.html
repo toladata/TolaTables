@@ -333,10 +333,26 @@
                                 $("#select_gsheet_modal").modal("show");
                             });
                     } else {
-                        $(location).attr('href', '/export_to_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + spreadsheet_id);
+                        url = url + "&resource_id=" + spreadsheet_id + "&query=" + query;
+                        if (shown_cols != "") {
+                            url += "&shown_cols=" + shown_cols;
+                        }
+                        $(location).attr('href', '/export_to_gsheet/' + silo_id + "/?link=" + url);
                     }
                 }
             }
+
+            var query = {};
+            var shown_cols = "";
+
+            function setDatabaseQuery(query_new){
+                query = query_new;
+            }
+
+            function setShownCols(shown_cols_new){
+                shown_cols = shown_cols_new;
+            }
+
 
             $("#select_gsheet_modal").on("click", "#select_gsheet_btn", function(e) {
                 e.preventDefault();

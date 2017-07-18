@@ -401,9 +401,40 @@
             });
             $("#ENGS").on('click', function(e){
                 e.preventDefault();
+                var shown_cols = [];
+                $("#listcolumns").find('td input:checkbox').each(function() {
+                  if (this.checked) {
+                    shown_cols.push(this.value);
+                  }
+                });
+
+                var query = $("<input>").attr("type", "hidden").attr("name", "query").val(JSON.stringify(hide_rows));
+                $('#filterformglobal').append($(query));
+
+                var shown_cols = $("<input>").attr("type", "hidden").attr("name", "shown_cols").val(JSON.stringify(shown_cols));
+                $('#filterformglobal').append($(shown_cols));
+
+                var url = $("<input>").attr("type", "hidden").attr("name", "url").val("/export_to_gsheet/{{ silo.id}}");
+                $('#filterformglobal').append($(url));
+
+                $("#filterformglobal").submit()
             });
             $("#EEGS").on('click', function(e){
                 e.preventDefault();
+                var shown_cols = [];
+                $("#listcolumns").find('td input:checkbox').each(function() {
+                  if (this.checked) {
+                    shown_cols.push(this.value);
+                  }
+                });
+
+                hide_rows = JSON.stringify(hide_rows);
+                shown_cols = JSON.stringify(shown_cols);
+
+                setDatabaseQuery(hide_rows);
+                setShownCols(shown_cols);
+
+                onAuthApiLoad({{silo.id}});
             });
 
         });

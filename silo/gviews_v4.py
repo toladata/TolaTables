@@ -31,7 +31,7 @@ from oauth2client.contrib import xsrfutil
 
 from .models import GoogleCredentialsModel
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag
-from tola.util import  getSiloColumnNames, parseMathInstruction, calculateFormulaCell
+from tola.util import  getSiloColumnNames, parseMathInstruction, calculateFormulaCell, makeQueryForHiddenRow
 logger = logging.getLogger("silo")
 
 CLIENT_SECRETS = os.path.join(os.path.dirname(__file__), 'client_secrets.json')
@@ -249,7 +249,7 @@ def import_from_gsheet(request, id):
 
 
 
-def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
+def export_to_gsheet_helper(user, spreadsheet_id, silo_id, query, headers):
     msgs = []
     credential_obj = get_credential_object(user)
     if not isinstance(credential_obj, OAuth2Credentials):
@@ -310,8 +310,7 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
 
     # the first element in the array is a placeholder for column names
     rows = [{"values": []}]
-    headers = getSiloColumnNames(silo_id)
-    silo_data = json.loads(LabelValueStore.objects(silo_id=silo_id).to_json())
+    silo_data = json.loads(LabelValueStore.objects(silo_id=silo_id, **query).to_json())
     repeat_headers = []
     repeat_data = {}
     repeat_cells = {}
@@ -518,7 +517,12 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id):
 @login_required
 def export_to_gsheet(request, id):
     spreadsheet_id = request.GET.get("resource_id", None)
-    msgs = export_to_gsheet_helper(request.user, spreadsheet_id, id)
+    query = json.loads(request.GET.get('query',"{}"))
+    if type(query) == list:
+        query = json.loads(makeQueryForHiddenRow(query))
+    cols_to_export = json.loads(request.GET.get('shown_cols',json.dumps(getSiloColumnNames(id))))
+
+    msgs = export_to_gsheet_helper(request.user, spreadsheet_id, id, query, cols_to_export)
 
     google_auth_redirect = "export_to_gsheet/%s/" % id
 
