@@ -559,8 +559,16 @@ def deleteSilo(request, id):
                                             silo_description=silo_to_be_deleted.description)
             lvs = LabelValueStore.objects(silo_id=silo_to_be_deleted.id)
             num_rows_deleted = lvs.delete()
+
+            #look through each of the reads and delete them if this was their only silo
+            reads = silo_to_be_deleted.reads.all()
+            for read in reads:
+                if Silo.objects.filter(reads__pk=read.id).count() == 1:
+                    read.delete()
+
             silo_to_be_deleted.delete()
             messages.success(request, "Silo, %s, with all of its %s rows of data deleted successfully." % (silo_name, num_rows_deleted))
+
         except Silo.DoesNotExist as e:
             print(e)
         #except Exception as es:

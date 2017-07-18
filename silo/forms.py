@@ -106,7 +106,6 @@ class EditColumnForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         extra = kwargs.pop("extra")
-        extra = OrderedDict
         self.helper = FormHelper()
         self.helper.form_class = 'form-horizontal'
         self.helper.label_class = 'col-sm-5'
