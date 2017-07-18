@@ -90,9 +90,15 @@ sudo pip install --upgrade google-api-python-client
 
 # Celery
 This app requires celery. This requires the daemonization of a celery worker in the background and
-the install of a messaging broker
+the install of a messaging broker. You can start celery worker using: "celery -A tola  worker -l info"
+For more information check out its <a href="http://docs.celeryproject.org/en/latest/django/first-steps-with-django.html#using-celery-with-django"> documentation </a>.
 
-#Filtering data from the api endpoint
+# Install Messaging broker (RabbitMQ) for Mac
+* Follow the <a href="http://docs.celeryproject.org/en/latest/getting-started/brokers/rabbitmq.html#setting-up-rabbitmq">RabbitMQ Installation</a> guide.
+* Once RabbitMQ is installed you could start it as "sudo rabbitmq-server"
+* To stop it "sudo rabbitmqctl stop"
+
+# Filtering data from the api endpoint
 To filter data from api/silos/#{pk}/data endpoint add a mongodb query to the modifier at the end
 of the url
 Ex. api/silo/2/data?query={"nm":"Henry"}
