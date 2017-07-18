@@ -1,8 +1,7 @@
 FROM python:2.7
 
+COPY . /code
 WORKDIR /code
-
-COPY ./requirements.txt requirements.txt
 
 RUN pip install -r requirements.txt
 
