@@ -140,6 +140,7 @@ def getCommCareFormPass(request):
     project = None
     silos = Silo.objects.filter(owner=request.user)
     choices = [(0, ""), (-1, "Create new silo")]
+    user_id = request.user.id
     total_cases = 0
     for silo in silos:
         choices.append((silo.pk, silo.name))
