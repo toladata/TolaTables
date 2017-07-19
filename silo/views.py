@@ -1469,3 +1469,18 @@ def export_silo_form(request, id):
 
     cols.sort()
     return render(request, "display/export_form.html", {'silo':silo,'cols': cols, 'shown_cols': shown_cols, 'hidden_rows': hidden_rows})
+@login_required
+def renewAutoJobs(request, read_pk, operation):
+    read = Read.objects.get(pk=read_pk)
+    if request.user != read.owner:
+        #return not owner of import page
+        return render(request, "display/read_renew.html", {'message' : 'You must be the owner of the import to renew it'})
+
+    # when go to this url change the read expiration date to 170 days from now
+    if operation == "pull":
+        read.autopull_expiration = datetime.datetime.now() + datetime.timedelta(days=170)
+    else:
+        read.autopush_expiration = datetime.datetime.now() + datetime.timedelta(days=170)
+    read.save()
+
+    return render(request, "display/renew_read.html", {'message' : 'Success, your renewal of %s auto%s was successful' % (read.read_name, operation)})
