@@ -613,6 +613,11 @@ def showRead(request, id):
                 basic_auth = base64.encodestring('%s:%s' % (read.username, read.password))[:-1]
                 read.token = basic_auth
                 read.password = None
+            if form.instance.autopull_frequency:
+                read.autopull_expiration = datetime.datetime.now() + datetime.timedelta(days=170)
+            if form.instance.autopush_frequency:
+                read.autopush_expiration = datetime.datetime.now() + datetime.timedelta(days=170)
+
             read.save()
             if form.instance.type.read_type == "CSV":
                 return HttpResponseRedirect("/file/" + str(read.id) + "/")
