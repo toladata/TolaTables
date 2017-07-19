@@ -535,6 +535,9 @@
             $(".tab-content").on("change", "#autopull_frequency, #autopush_frequency", function(e){
                 var data = {};
                 data[$(this).attr('name')] = this.value;
+                var expiration_date = new Date();
+                expiration_date.setMonth(expiration_date.getMonth() + 6);
+                data[$(this).attr('name').substring(0, 9) + "expiration"] = expiration_date.toISOString();
                 var api_url = '/api/read/' + $(this).data("readId");
                 $.ajax({
                     url: api_url,
