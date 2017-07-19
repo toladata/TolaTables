@@ -770,6 +770,7 @@ def addUniqueFiledsToSilo(request):
             for col in unique_cols:
                 unique_field = UniqueFields(name=col, silo=silo)
                 unique_field.save()
+                db.label_value_store.create_index(col, partialFilterExpression = {'silo_id' : silo.id})
             if not unique_cols:
                 silo.unique_fields.all().delete()
             return HttpResponse("Unique Fields saved")
