@@ -1477,10 +1477,12 @@ def renewAutoJobs(request, read_pk, operation):
         return render(request, "display/read_renew.html", {'message' : 'You must be the owner of the import to renew it'})
 
     # when go to this url change the read expiration date to 170 days from now
-    if operation == "pull":
+    if operation == "pull" and read.autopull_frequency and (read.autopull_frequency == 'weekly' or read.autopull_frequency == 'daily'):
         read.autopull_expiration = datetime.datetime.now() + datetime.timedelta(days=170)
-    else:
+    elif operation == "push" and read.autopush_frequency and (read.autopush_frequency == 'weekly' or read.autopush_frequency == 'daily'):
         read.autopush_expiration = datetime.datetime.now() + datetime.timedelta(days=170)
+    else:
+        return render(request, "display/renew_read.html", {'message' : 'Error, auto%s renewal of %s is not a valid operation' % (operation, read.read_name)})
     read.save()
 
     return render(request, "display/renew_read.html", {'message' : 'Success, your renewal of %s auto%s was successful' % (read.read_name, operation)})
