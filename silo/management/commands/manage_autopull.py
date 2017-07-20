@@ -13,6 +13,7 @@ from django.core.mail import send_mail
 from django.contrib.sites.shortcuts import get_current_site
 
 from django.core.urlresolvers import reverse
+from django.conf import settings
 
 import requests
 
@@ -37,7 +38,7 @@ class Command(BaseCommand):
                 message = "Your autopull for your import %s is about to expire. Go to this url to renew it %s." % (read.read_name, url)
                 send_mail(subject,
                             message,
-                            'systems@mercycorps.org',
+                            settings.EMAIL_HOST_USER,
                             [read.owner.email])
             except BadHeaderError:
                 return HttpResponse('Invalid header found.')
