@@ -257,7 +257,9 @@ class Silo(models.Model):
     create_date = models.DateTimeField(null=True, blank=True)
 
     formulacolumns = models.ManyToManyField(FormulaColumn, related_name='silos', blank=True)
-    columns = models.TextField(default = "[]") #stores a json string
+    columns = models.TextField(default = "[]") #stores a json string of json objects
+    # json objects stores in the format of  {'name' : <col_name>, 'type' : <col_type>}
+
     hidden_columns = models.TextField(default = "[]") #stores a Json string
     rows_to_hide = models.TextField(default = "[]")
     #Format of hidden rows:

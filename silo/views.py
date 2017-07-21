@@ -1404,12 +1404,15 @@ def newFormulaColumn(request, pk):
 def editColumnOrder(request, pk):
     if request.method == 'POST':
         try:
-            #this is not done using utility functions since it is a comlete replacement
+            #this is not done using utility functions since it is a complete replacement
             silo = Silo.objects.get(pk=pk)
+            cols = []
             cols_list = request.POST.getlist("columns")
+            for col in cols_list:
+                cols.append({'name' : col, 'type': 'string'})
             visible_cols_set = set(cols_list)
-            cols_list.extend([x for x in json.loads(silo.columns) if x not in visible_cols_set])
-            silo.columns = json.dumps(cols_list)
+            cols.extend([x for x in json.loads(silo.columns) if x['name'] not in visible_cols_set])
+            silo.columns = json.dumps(cols)
             silo.save()
 
         except Silo.DoesNotExist as e:
