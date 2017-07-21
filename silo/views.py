@@ -71,7 +71,6 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
     rsid: Right Silo ID
     msid: Merge Silo ID
     """
-    print mapping_data
     mappings = json.loads(mapping_data)
 
     l_unmapped_cols = mappings.pop('left_unmapped_cols')
@@ -988,7 +987,6 @@ def importDataFromRead(request, silo, read):
         #now mass update all the data in the database
 
         columns = list(columns)
-        addExtraFields.delay(columns, silo.id)
         addColsToSilo(silo, columns)
         hideSiloColumns(silo, columns)
 

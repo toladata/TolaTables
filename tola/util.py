@@ -98,11 +98,14 @@ def saveDataToSilo(silo, data, read = -1, user = None):
     read -- the read object, optional only for backwards compatability
     user -- an optional parameter to use if its necessary to retrieve from ThirdPartyTokens
     """
-    if read.type.read_type == "ONA" and user:
-        saveOnaDataToSilo(silo,data,read,user)
 
+    try:
+        if read.type.read_type == "ONA" and user:
+            saveOnaDataToSilo(silo,data,read,user)
+        read_source_id = read.id
+    except AttributeError as e:
+        read_source_id = read
 
-    read_source_id = read.id
     unique_fields = silo.unique_fields.all()
     skipped_rows = set()
     enc = "latin-1"
@@ -201,6 +204,7 @@ def importJSON(read_obj, user, remote_user = None, password = None, silo_id = No
         #if the caller of this function does not want to the data to go into the silo yet
         if return_data:
             return data
+
 
         skipped_rows = saveDataToSilo(silo, data, read_obj)
         return (messages.SUCCESS, "Data imported successfully.", str(silo_id))
