@@ -1,4 +1,6 @@
 {% load staticfiles %}
+{% load topbartags %}
+
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -62,7 +64,10 @@
                                 <li><a href="{% url 'newRead' %}?type=CSV"><span class="glyphicon glyphicon-list-alt"></span> Import From CSV</a></li>
                                 <li><a href="{% url 'newRead' %}?type=OneDrive"><span class="glyphicon glyphicon-list-alt"></span> Import From OneDrive</a></li>
                                 <li><a href="#" onclick="select_silo_for_importing_gsheet();"><span class="glyphicon glyphicon-list-alt"></span> Import from Google Spreadsheet</a></li>
-
+                                {%getDataImports as apps%}
+                                {%for app in apps%}
+                                  <li><a href=/{{app.0}}><span class="glyphicon glyphicon-list-alt"></span> Import from {{app.1}}</a></li>
+                                {% endfor %}
                             </ul>
                         </li>
                          <li class="dropdown">
@@ -329,10 +334,26 @@
                                 $("#select_gsheet_modal").modal("show");
                             });
                     } else {
-                        $(location).attr('href', '/export_to_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + spreadsheet_id);
+                        url = url + "&resource_id=" + spreadsheet_id + "&query=" + query;
+                        if (shown_cols != "") {
+                            url += "&shown_cols=" + shown_cols;
+                        }
+                        $(location).attr('href', '/export_to_gsheet/' + silo_id + "/?link=" + url);
                     }
                 }
             }
+
+            var query = {};
+            var shown_cols = "";
+
+            function setDatabaseQuery(query_new){
+                query = query_new;
+            }
+
+            function setShownCols(shown_cols_new){
+                shown_cols = shown_cols_new;
+            }
+
 
             $("#select_gsheet_modal").on("click", "#select_gsheet_btn", function(e) {
                 e.preventDefault();
@@ -357,4 +378,3 @@
 
     </body>
 </html>
-

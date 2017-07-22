@@ -90,4 +90,3 @@ class BoardView(LoginRequiredMixin, TemplateView):
         if self.request.user.is_authenticated():
             response.set_cookie(key='token', value=self.request.user.auth_token)
         return response
-

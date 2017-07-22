@@ -10,7 +10,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title">Repeats</h4>
+                <h4 class="modal-title" id="popuptitle"></h4>
             </div>
             <div class="modal-body" id="repeats_modal_body">
                 <p>One fine body&hellip;</p>
@@ -61,6 +61,7 @@
                             <a href="{% url 'acitivity_push' silo.pk %}" id="push_to_activity_btn" class="btn btn-sm btn-primary">Send To Tola Activity</a>
 
                             <a href="/silo_delete/{{ silo.pk }}" class="btn btn-del btn-sm btn-danger" title="Are you sure you want to delete this table? All of the data stored in this table will also be deleted."><span class="glyphicon glyphicon-trash" title="Delete"></span> Delete Table</a>
+                            <a href="/edit_column_order/{{silo.pk}}" class="btn btn-primary">Edit Column Order</a>
 
                             <a href="/set_unique_columns/{{ id }}/" id="unique_cols_selection_btn" class="btn btn-primary"> Assign a Unique Column</a>
                             <span class="label label-info" id="unique_col_lbl"></span>
@@ -79,6 +80,7 @@
                                 <th>Type</th>
                                 <th>Source</th>
                                 <th>Auto-pull Frequency</th>
+                                <th>Remove Source</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -90,7 +92,7 @@
                                     <td>{{ read.type.read_type}}</td>
                                     <td><a href="{{ read.read_url }}" target="_blank">link to source</a></td>
                                     <td>
-                                        {% if read.type.read_type == "CSV" %}
+                                        {% if read.type.read_type == "CSV" or read.type.read_type == "JSON" and read.read_url == "" %}
                                             NA
                                         {% else %}
                                             <select name="autopull_frequency" id="autopull_frequency" data-read-id={{read.pk}} class="form-control input-sm">
@@ -104,6 +106,7 @@
                                             </select>
                                         {% endif %}
                                     </td>
+                                    <td> <a href="/source_remove/{{ silo.pk }}/{{read.pk}}" class="btn btn-del btn-sm btn-danger" title="Are you sure you want to remove this source? Data associated with this source will remain. But you will not be able to update this data"><span class="glyphicon glyphicon-trash" title="Delete"></span> Remove Source  </a></td>
                                 </tr>
                                 {% endif %}
                             {% endfor %}
@@ -158,6 +161,9 @@
                         <li class="list-group-item">
                             <a href="/edit_columns/{{ silo.pk }}/" class="btn btn-primary">Edit or Delete columns</a>
                             <a href="/new_column/{{ silo.pk }}/" class="btn btn-primary">Add New Column</a>
+                            <a href="/new_formula_column/{{ silo.pk }}/" class="btn btn-primary">Add New Formula Column</a>
+                            <a href="/edit_filter/{{ silo.pk }}/" class="btn btn-primary">Add Filters</a>
+
                         <!--
                         <a href="/anonymize_silo/{{ id }}/" class="btn btn-primary">Anonymize Table</a>
                         <a href="/identifyPII/{{ id }}/" id="identifyPIIBtn" class="btn btn-primary">Identify PIIF Columns</a>
@@ -328,6 +334,8 @@
             var data = [];
             var cols = [];
 
+            $('#popuptitle').text("Detail view");
+
             // Loop through the header row and create a cols array for datatables.
             $("#data_table").find("th").each(function(i){
                 if (i == -1) {
@@ -337,14 +345,39 @@
                     cols.push({
                         "data": $(this).text(),
                         // Use the cell render function to return "repeats if the value is an array"
-
+                        // This function places the data in the table on a silo
                         "render": function(data, type, row) {
                             if (jQuery.type(data) == "array" ) {
-                                return "<a href='#''>repeats</a>";
+                                //if the data is in the form of an array of objects
+                                if (jQuery.type(data[0]) == "object") {
+                                  //this sets the title on the pop up table
+                                  return "<a href='#'>see data<a>";
+                                }
+                                //for an array of data
+                                cell_data = ''
+                                if (data.length < 4) {
+                                  for (var i = 0; i < data.length-1; i++) {
+                                    cell_data += data[i] + ', ';
+                                  }
+                                  cell_data += data[i]
+                                  return cell_data;
+                                }
+                                for (var i = 0; i < 2; i++) {
+                                  cell_data += data[i] + ', ';
+                                }
+                                return cell_data + "<a href='#''>more</a>";
                             } else if(jQuery.type(data) == "object") {
-                                return "<a href='/value_edit/" + data[Object.keys(data)[0]] + "'><span class='glyphicon glyphicon-edit' aria-hidden='true'></span></a> &nbsp;" +
-                                    "<a href='/value_delete/" + data[Object.keys(data)[0]] + "' class='btn-del' title='You are about to delete a record. Are you sure?'>" +
-                                    "<span style='color:red;' class='glyphicon glyphicon-trash' aria-hidden='true'></span></a>";
+                                if (Object.keys(data) == "$oid") {
+                                  //for the update and delete information
+                                  return "<a href='/value_edit/" + data[Object.keys(data)[0]] + "'><span class='glyphicon glyphicon-edit' aria-hidden='true'></span></a> &nbsp;" +
+                                      "<a href='/value_delete/" + data[Object.keys(data)[0]] + "' class='btn-del' title='You are about to delete a record. Are you sure?'>" +
+                                      "<span style='color:red;' class='glyphicon glyphicon-trash' aria-hidden='true'></span></a>";
+
+                                }
+                                else{
+                                  //for any other kind of object
+                                  return Object.values(data);
+                                }
                             } else {
                                 return data;
                             }
@@ -358,7 +391,7 @@
                 "processing": true,
                 "serverSide": true,
                 "ajax": {
-                    "url": "/api/silo/{{silo.pk}}/data",
+                      "url": '/api/silo/{{silo.pk}}/data?query={{query|safe}}',
                     "type": "GET",
                     "data": function ( d ) {
                         //console.log(d);
@@ -375,6 +408,50 @@
                 "stateSave": false,
             });
 
+            $("#data_table").find("th").on("click", function(e){
+                var to_sort = $(this).attr('arria-sort');
+                var col_name = $(this).text();
+                var retrieve_url = '/api/silo/{{silo.pk}}/data?query={{query|safe}}&sort=';
+                if (to_sort == "ascending") {
+                  retrieve_url += "-";
+                  to_sort = "descending";
+                }
+                else{
+                  retrieve_url += "";
+                  to_sort = "ascending";
+                }
+                retrieve_url += col_name;
+                silo_table.destroy();
+                silo_table = $('#data_table').DataTable({
+                    "processing": true,
+                    "serverSide": true,
+                    "ajax": {
+                        "url": retrieve_url,
+                        "type": "GET",
+                        "data": function ( d ) {
+                            //console.log(d);
+                        }
+                    },
+                    // remove extra params from the request to avoid uri-too-large error
+                    "fnServerParams": function ( aoData ) {
+                        delete aoData.columns;
+                    },
+                    "columns": cols,
+                    "pageLength": 50,
+                    "searching": false,
+                    "ordering": true,
+                    "stateSave": false,
+                });
+                if (to_sort=="ascending") {
+                  $(this).attr('class',"sorting_asc");
+                }
+                else{
+                  $(this).attr('class',"sorting_desc");
+                }
+                $(this).attr('arria-sort',to_sort);
+            });
+
+
             var data = undefined;
             $('#data_table tbody').on( 'click', 'td', function () {
                 var cell = silo_table.cell( this );
@@ -385,7 +462,8 @@
                     data = data[0];
                 }
 
-                if (jQuery.type(data) == "array") {
+                //this function does the pop up tables
+                if (jQuery.type(data) == "array" && (data.length > 3 || jQuery.type(data[0]) == "object" )) {
                     var column_names = [];
                     // First get all of the column names in this array
                     $.each(data, function(i,row){
@@ -398,18 +476,24 @@
                     // Now use the column names to populate the repeats_table's header row
                     $.each(column_names, function(i, col){
                         col = col.split("/");
-                        repeats_table += "<th>../" + col[col.length-1] + "</th>";
+                        repeats_table += "<th>" + col[col.length-1] + "</th>";
                     });
                     repeats_table += "</tr>";
 
                     // now populate the remaining data rows for the repeats_table
                     $.each(data, function(i,row){
                         repeats_table += "<tr>";
-                        if (jQuery.type(row) == "object") {
+                        //for an array of objects
+                        if (jQuery.type(row) == "object"){
                            $.each(row, function(c, v){
                                 repeats_table += "<td>" + v + "</td>";
                                 //console.log("c: " + c + " v: " + v);
                            });
+                        }
+                        //for an array of values
+                        if(jQuery.type(row) == "number"|| jQuery.type(row) == "symbol" || jQuery.type(row) == "string" || jQuery.type(row) == "date"){
+                            repeats_table += "<td>" + row + "</td>";
+                               //console.log(" v: " + v);
                         }
                         repeats_table += "</tr>";
                     });

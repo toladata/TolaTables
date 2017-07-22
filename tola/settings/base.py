@@ -8,6 +8,7 @@ from sys import path
 # Absolute filesystem path to the Django project directory:
 DJANGO_ROOT = dirname(dirname(abspath(__file__)))
 
+
 # Absolute filesystem path to the top-level project folder:
 SITE_ROOT = dirname(DJANGO_ROOT)
 
@@ -229,7 +230,11 @@ THIRD_PARTY_APPS = (
     'crispy_forms',
     'django_extensions',
     'corsheaders',
+    'django_celery_results',
 )
+
+#to get a subdirectory to work
+path.insert(0, normpath(join(SITE_ROOT, 'datasources')))
 
 # Apps specific for this project go here.
 LOCAL_APPS = (
@@ -237,9 +242,13 @@ LOCAL_APPS = (
     'tola',
     'board',
 )
+DATASOURCE_APPS = (
+    'commcare',
+    'fileuploadjson',
+)
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS + DATASOURCE_APPS
 ########## END APP CONFIGURATION
 
 CORS_ORIGIN_WHITELIST = (
@@ -341,3 +350,11 @@ MESSAGE_TAGS = {message.DEBUG: 'debug',
                 message.SUCCESS: 'success',
                 message.WARNING: 'warning',
                 message.ERROR: 'danger',}
+
+
+GOOGLE_REDIRECT_URL = 'http://localhost:8000/oauth2callback/'
+
+########## Celery CONFIGURATION
+CELERY_RESULT_BACKEND = 'amqp'
+CELERY_CACHE_BACKEND = 'django-cache'
+

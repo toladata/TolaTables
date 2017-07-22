@@ -48,5 +48,15 @@
         "create_date": "2016-06-08T12:11:16Z",
         "edit_date": null
     }
+},
+{
+    "model": "silo.readtype",
+    "pk": 6,
+    "fields": {
+        "read_type": "CommCare",
+        "description": "",
+        "create_date": "2017-06-06T8:40:12Z",
+        "edit_date": null
+    }
 }
 ]

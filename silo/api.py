@@ -15,6 +15,8 @@ from rest_framework.views import APIView
 from rest_framework_json_api.parsers import JSONParser
 from rest_framework_json_api.renderers import JSONRenderer
 
+from tola.util import getSiloColumnNames, getCompleteSiloColumnNames
+
 
 import django_filters
 
@@ -49,8 +51,30 @@ class PublicSiloViewSet(viewsets.ReadOnlyModelViewSet):
         silo = Silo.objects.get(pk=id)
         if silo.public == False:
             return HttpResponse("This table is not public. You must use the private API.")
-        data = LabelValueStore.objects(silo_id=id).to_json()
-        json_data = json.loads(data)
+        query = request.GET.get('query',"{}")
+        filter_fields = json.loads(query)
+
+        shown_cols = set(json.loads(request.GET.get('shown_cols',json.dumps(getSiloColumnNames(id)))))
+
+
+        recordsTotal = LabelValueStore.objects(silo_id=id, **filter_fields).count()
+
+
+        #print("offset=%s length=%s" % (offset, length))
+        #page_size = 100
+        #page = int(request.GET.get('page', 1))
+        #offset = (page - 1) * page_size
+        #if page > 0:
+        # workaround until the problem of javascript not increasing the value of length is fixed
+        data = LabelValueStore.objects(silo_id=id, **filter_fields).exclude('create_date', 'edit_date', 'silo_id','read_id')
+
+        for col in getCompleteSiloColumnNames(id):
+            if col not in shown_cols:
+                data = data.exclude(col)
+
+        sort = str(request.GET.get('sort',''))
+        data = data.order_by(sort)
+        json_data = json.loads(data.to_json())
         return JsonResponse(json_data, safe=False)
 
 class SilosByUser(viewsets.ReadOnlyModelViewSet):
@@ -98,7 +122,12 @@ class SiloViewSet(viewsets.ModelViewSet):
         draw = int(request.GET.get("draw", 1))
         offset = int(request.GET.get('start', -1))
         length = int(request.GET.get('length', 10))
-        recordsTotal = LabelValueStore.objects(silo_id=id).count()
+        #filtering syntax is the mongodb syntax
+        query = request.GET.get('query',"{}")
+        filter_fields = json.loads(query)
+
+        recordsTotal = LabelValueStore.objects(silo_id=id, **filter_fields).count()
+
 
         #print("offset=%s length=%s" % (offset, length))
         #page_size = 100
@@ -108,10 +137,13 @@ class SiloViewSet(viewsets.ModelViewSet):
         # workaround until the problem of javascript not increasing the value of length is fixed
         if offset >= 0:
             length = offset + length
-            data = LabelValueStore.objects(silo_id=id).exclude('create_date', 'edit_date', 'silo_id').skip(offset).limit(length).to_json()
+            data = LabelValueStore.objects(silo_id=id, **filter_fields).exclude('create_date', 'edit_date', 'silo_id','read_id').skip(offset).limit(length)
         else:
-            data = LabelValueStore.objects(silo_id=id).exclude('create_date', 'edit_date', 'silo_id').to_json()
-        json_data = json.loads(data)
+            data = LabelValueStore.objects(silo_id=id, **filter_fields).exclude('create_date', 'edit_date', 'silo_id','read_id')
+
+        sort = str(request.GET.get('sort',''))
+        data = data.order_by(sort)
+        json_data = json.loads(data.to_json())
 
         return JsonResponse({"data": json_data, "draw": draw, "recordsTotal": recordsTotal, "recordsFiltered": recordsTotal}, safe=False)
 

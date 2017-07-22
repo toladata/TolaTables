@@ -160,6 +160,7 @@ class GoogleCredentialsModel(models.Model):
 class ThirdPartyTokens(models.Model):
     user = models.ForeignKey(User, related_name="tokens")
     name = models.CharField(max_length=60)
+    username = models.CharField(max_length=60, null=True)
     token = models.CharField(max_length=255)
     create_date = models.DateTimeField(null=True, blank=True, auto_now=False, auto_now_add=True)
     edit_date = models.DateTimeField(null=True, blank=True, auto_now=True, auto_now_add=False)
@@ -235,6 +236,10 @@ class Tag(models.Model):
     def __unicode__(self):
         return self.name
 
+class FormulaColumn(models.Model):
+    mapping = models.TextField() #stores a json document for mapping
+    operation = models.TextField()
+    column_name = models.TextField()
 
 # Create your models here.
 class Silo(models.Model):
@@ -249,6 +254,18 @@ class Silo(models.Model):
     program = models.CharField(max_length=255, blank=True, null=True)
     public = models.BooleanField()
     create_date = models.DateTimeField(null=True, blank=True)
+
+    formulacolumns = models.ManyToManyField(FormulaColumn, related_name='silos', blank=True)
+    columns = models.TextField(default = "[]") #stores a json string
+    hidden_columns = models.TextField(default = "[]") #stores a Json string
+    rows_to_hide = models.TextField(default = "[]")
+    #Format of hidden rows:
+    #   [{"logic":<or, and, defineblank>,
+    #   "operation" : <empty, nempty, gt, etc>,
+    #   "conditional": [<list of rows to apply condition or the blank character>],
+    #   "number" : <number to perform operation>]}]
+    #   default blank characters: not exists, ""
+
     class Meta:
         ordering = ('create_date',)
 
@@ -261,6 +278,22 @@ class Silo(models.Model):
     @property
     def tag_list(self):
         return ', '.join([x.name for x in self.tags.all()])
+
+    @property
+    def data_count(self):
+        return LabelValueStore.objects(silo_id=self.id).count()
+
+
+class DeletedSilos(models.Model):
+    user = models.ForeignKey(User)
+    deleted_time = models.DateTimeField()
+    silo_name_id = models.CharField(max_length=255)
+    silo_description = models.CharField(max_length=255,blank=True,null=True)
+
+class DeletedSilosAdmin(admin.ModelAdmin):
+    list_display = ('user', 'silo_name_id', 'silo_description','deleted_time')
+    search_fields = ('user__last_name','user__first_name','silo_name_id')
+    display = 'Data Feeds'
 
 
 class SiloAdmin(admin.ModelAdmin):
@@ -322,6 +355,15 @@ class UniqueFields(models.Model):
 from mongoengine import *
 class LabelValueStore(DynamicDocument):
     silo_id = IntField()
+    read_id = IntField(default=-1)
     create_date = DateTimeField(help_text='date created')
     edit_date = DateTimeField(help_text='date editted')
 
+class ColumnType(Document):
+    silo_id = IntField(required = True)
+    read_id = IntField(required = True)
+    create_date = DateTimeField(help_text='date created', required = True)
+    edit_date = DateTimeField(help_text='date editted')
+    column_name = StringField(required = True)
+    column_source_name = StringField(required = True)
+    column_type = StringField(required = True)

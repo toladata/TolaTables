@@ -18,13 +18,16 @@ from django.contrib.auth.views import login, logout
 from silo.api import *
 from board.api import *
 
+from util import getImportApps
+import json
+
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
 admin.autodiscover()
 
 #REST FRAMEWORK
 router = routers.DefaultRouter(trailing_slash=False)
-router.register(r'silo', SiloViewSet, base_name="silo")
+router.register(r'silo', SiloViewSet, base_name="silos")
 router.register(r'usersilos', SilosByUser, base_name='usersilos')
 router.register(r'public_tables', PublicSiloViewSet, base_name="public_tables")
 router.register(r'users', UserViewSet)
@@ -49,9 +52,11 @@ urlpatterns =[
     url(r'^admin/', include(admin.site.urls)),
     url(r'^$', views.index, name='index'),
 
+
     url(r'^source/new/', views.showRead, kwargs={'id': 0}, name='newRead'),
     url(r'^onedrive', views.oneDrive, name='oneDriveRedirect'),
     url(r'^import_onedrive/(?P<id>\d+)/$', views.oneDriveImport, name='import_onedrive'),
+    url(r'^source/FormulaColumnF/', views.showRead, kwargs={'id': 0}, name='newRead'),
 
     url(r'^show_read/(?P<id>\w+)/$', views.showRead, name='showRead'),
 
@@ -70,6 +75,7 @@ urlpatterns =[
     url(r'^add_unique_fields', views.addUniqueFiledsToSilo, name='add_unique_fields_to_silo'),
     url(r'^anonymize_silo/(?P<id>\w+)/$', views.anonymizeTable, name='anonymize_table'),
     url(r'^identifyPII/(?P<silo_id>\w+)/$', views.identifyPII, name='identifyPII'),
+    url(r'^source_remove/(?P<silo_id>\w+)/(?P<read_id>\w+)/$', views.removeSource, name='removeSource'),
 
     url(r'^merge/(?P<id>\w+)/$', views.mergeForm, name='mergeForm'),
     url(r'^merge_columns', views.mergeColumns, name='mergeColumns'),
@@ -80,10 +86,15 @@ urlpatterns =[
     url(r'^value_edit/(?P<id>\w+)/$', views.valueEdit, name='valueEdit'),
     url(r'^value_delete/(?P<id>\w+)/$', views.valueDelete, name='valueDelete'),
     url(r'^new_column/(?P<id>\w+)/$', views.newColumn, name='newColumn'),
+    url(r'^new_formula_column/(?P<pk>\w+)/$', views.newFormulaColumn, name='newFormulaColumn'),
+    url(r'^edit_filter/(?P<pk>\w+)/$', views.addColumnFilter, name='editColumnFilter'),
     url(r'^edit_columns/(?P<id>\w+)/$', views.editColumns, name='editColumns'),
     url(r'^delete_column/(?P<id>\w+)/(?P<column>\w+)/$', views.deleteColumn, name='deleteColumn'),
+    url(r'^edit_column_order/(?P<pk>\w+)/$', views.editColumnOrder, name='editColumnOrder'),
+
 
     url(r'^export_to_activity/(?P<id>\d+)/$', tola_activity_views.export_to_tola_activity, name="acitivity_push"),
+    url(r'^export_silo_form/(?P<id>\w+)/$', views.export_silo_form, name='export_silo_form'),
     url(r'^export/(?P<id>\w+)/$', views.export_silo, name='export_silo'),
 
     #url(r'^export_to_gsheet/(?P<id>\d+)/$', gviews_v4.export_to_gsheet, name='export_new_gsheet'),
@@ -104,4 +115,9 @@ urlpatterns =[
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
-
+#add app domains and add the data types to the read_type.json
+folders = getImportApps()
+for app in folders:
+    url_construct = app + '/'
+    url_include =  app + '.urls'
+    urlpatterns.append(url(url_construct,include(url_include)))

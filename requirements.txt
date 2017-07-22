@@ -35,3 +35,5 @@ selenium==2.48.0
 simplejson==3.9.0
 six==1.10.0
 uritemplate==3.0.0
+celery==4.0.2
+django-celery-results==1.0.1

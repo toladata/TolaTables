@@ -18,7 +18,6 @@ from apiclient.discovery import build
 #import gdata.spreadsheets.client
 
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag
-from tola.util import siloToDict, combineColumns
 
 
 ########################################################################################
@@ -262,8 +261,6 @@ def import_from_google_spreadsheet(credential_json, silo, spreadsheet_key):
         lvs.create_date = timezone.now()
         lvs.save()
         lvs = LabelValueStore()
-
-    combineColumns(silo.id)
 
     return True
 

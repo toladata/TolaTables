@@ -9,6 +9,8 @@ admin.site.register(MergedSilosFieldMapping)
 admin.site.register(ThirdPartyTokens)
 admin.site.register(Tag)
 
+
+admin.site.register(DeletedSilos, DeletedSilosAdmin)
 admin.site.register(Silo, SiloAdmin)
 admin.site.register(TolaUser, TolaUserAdmin)
 admin.site.register(TolaSites, TolaSitesAdmin)
