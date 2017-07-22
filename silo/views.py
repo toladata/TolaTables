@@ -827,9 +827,9 @@ def index(request):
     site = TolaSites.objects.get(site_id=1)
     response = render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_shared':count_shared, 'count_public': count_public, 'get_reads': get_reads, 'get_tags': get_tags, 'site': site})
 
-    if  request.COOKIES.get('auth_token', None) is None and request.user.is_authenticated():
+    if request.COOKIES.get('auth_token', None) is None and request.user.is_authenticated():
         response.set_cookie('auth_token', user.auth_token)
-    return  response
+    return response
 
 
 def toggle_silo_publicity(request):

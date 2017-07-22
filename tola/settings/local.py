@@ -41,12 +41,12 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#databases
 DATABASES = {
     'default': {
-        'ENGINE': os.getenv('TOLA_DB_ENGINE'),
-        'NAME': os.getenv('TOLA_DB_NAME'),
-        'USER': os.getenv('TOLA_DB_USER'),
-        'PASSWORD': os.getenv('TOLA_DB_PASS'),
-        'HOST': os.getenv('TOLA_DB_HOST'),
-        'PORT': int(os.getenv('TOLA_DB_PORT')),
+        'ENGINE': os.getenv('TOLATABLES_DB_ENGINE'),
+        'NAME': os.getenv('TOLATABLES_DB_NAME'),
+        'USER': os.getenv('TOLATABLES_DB_USER'),
+        'PASSWORD': os.getenv('TOLATABLES_DB_PASS'),
+        'HOST': os.getenv('TOLATABLES_DB_HOST'),
+        'PORT': int(os.getenv('TOLATABLES_DB_PORT')),
     }
 }
 

@@ -6,7 +6,7 @@ from silo import views
 from silo import tola_activity_views
 
 from django.contrib import auth
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, url
 from django.views.generic import TemplateView
 from django.contrib.auth.models import User
 from rest_framework.routers import DefaultRouter
