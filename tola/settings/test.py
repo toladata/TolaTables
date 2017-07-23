@@ -91,7 +91,7 @@ mongoengine.connect(
     username="",
     password="",
     host="",
-    port="27017",
+    port=27017,
     alias='default'
 )
 
