@@ -81,6 +81,19 @@ CACHES = {
 }
 ########## END CACHE CONFIGURATION
 
+############ MONGO DB #####################
+import mongoengine
+from mongoengine import register_connection
+register_connection(alias='default', name='tola')
+
+mongoengine.connect(
+    os.getenv('TOLA_MONGODB_NAME'),
+    username=os.getenv('TOLA_MONGODB_USER'),
+    password=os.getenv('TOLA_MONGODB_PASS'),
+    host=os.getenv('TOLA_MONGODB_HOST'),
+    port=int(os.getenv('TOLA_MONGODB_PORT')),
+    alias='default'
+)
 
 
 
