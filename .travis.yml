@@ -8,5 +8,4 @@ services:
 - mongodb
 script: python manage.py test
 before_install:
-- openssl aes-256-cbc -K $encrypted_9c54a9d514aa_key -iv $encrypted_9c54a9d514aa_iv
-  -in client_secrets.json.enc -out silo/client_secrets.json -d
+- openssl aes-256-cbc -K $encrypted_9c54a9d514aa_key -in client_secrets.json.enc -out silo/client_secrets.json -d
