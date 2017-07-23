@@ -87,11 +87,11 @@ from mongoengine import register_connection
 register_connection(alias='default', name='tola')
 
 mongoengine.connect(
-    os.getenv('TOLA_MONGODB_NAME'),
-    username=os.getenv('TOLA_MONGODB_USER'),
-    password=os.getenv('TOLA_MONGODB_PASS'),
-    host=os.getenv('TOLA_MONGODB_HOST'),
-    port=int(os.getenv('TOLA_MONGODB_PORT')),
+    "tola",
+    username="",
+    password="",
+    host="",
+    port="27017",
     alias='default'
 )
 
