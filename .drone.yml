@@ -4,7 +4,7 @@ pipeline:
     image: python:${PYTHON_VERSION}
     commands:
       - pip install -r requirements.txt
-      - openssl aes-256-cbc -K $encrypted_9c54a9d514aa_key -iv $encrypted_9c54a9d514aa_iv -in client_secrets.json.enc -out silo/client_secrets.json -d
+      - openssl aes-256-cbc -K $encrypted_9c54a9d514aa_key -in client_secrets.json.enc -out silo/client_secrets.json -d
       - python manage.py test
     when:
       event: [push, pull_request, tag]
