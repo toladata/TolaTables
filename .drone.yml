@@ -2,9 +2,10 @@
 pipeline:
   build:
     image: python:${PYTHON_VERSION}
+    secrets: [SECRET_PASS]
     commands:
       - pip install -r requirements.txt
-      - openssl aes-256-cbc -d -a -in client_secrets.json.enc -out silo/client_secrets.json -k [SECRET_PASS]
+      - openssl aes-256-cbc -d -a -in client_secrets.json.enc -out silo/client_secrets.json -k ${SECRET_PASS}
       - python manage.py test
     when:
       event: [push, pull_request, tag]
