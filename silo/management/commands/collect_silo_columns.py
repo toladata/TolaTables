@@ -24,13 +24,20 @@ class Command(BaseCommand):
             keys_collect = db.label_value_store.map_reduce(
                     "function() {for (var key in this) { emit(key, null); }}",\
                     "function(key, value) {return null;}",\
-                    "keys", \
+                    {'inline': 1 }, \
                     query = {"silo_id" : silo.id}, \
                     )
-            for key in keys_collect.find():
+            for key in keys_collect['results']:
                 keys.add(key['_id'])
             keys = keys.difference(['id', 'silo_id', 'read_id', 'create_date', 'edit_date', 'editted_date', '_id'])
             keys = list(keys)
             keys.sort()
             silo.columns = json.dumps(keys)
             silo.save()
+            for key in keys:
+                results = db.label_value_store.find({key : {"$regex" : '^\s+|\s+$'}})
+                for result in results:
+                    db.label_value_store.update_many(
+                            result,
+                            {"$set" : {key: result[key].strip()}}
+                            )
