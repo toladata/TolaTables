@@ -44,7 +44,7 @@ from gviews_v4 import import_from_gsheet_helper
 from tola.util import importJSON, saveDataToSilo, getSiloColumnNames,\
                         parseMathInstruction, calculateFormulaColumn, makeQueryForHiddenRow,\
                         getNewestDataDate, addColsToSilo, deleteSiloColumns, hideSiloColumns, \
-                        getCompleteSiloColumnNames
+                        getCompleteSiloColumnNames, setSiloColumnType
 
 
 from commcare.tasks import fetchCommCareData
@@ -1484,3 +1484,18 @@ def renewAutoJobs(request, read_pk, operation):
     read.save()
 
     return render(request, "display/renew_read.html", {'message' : 'Success, your renewal of %s auto%s was successful' % (read.read_name, operation)})
+
+@login_required
+def setColumnType(request, pk):
+    #should only deal with post request since this will operate with a modal
+    if request.method != 'POST':
+        messages.error(request, '%s request is invalid' % request.method)
+        return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk}))
+
+    silo = Silo.objects.get(pk=pk)
+    column = request.POST.get('column')
+    col_type = request.POST.get('column_type')
+
+    res = setSiloColumnType(pk, column, col_type)
+
+    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))

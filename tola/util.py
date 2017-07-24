@@ -583,3 +583,32 @@ def getNewestDataDate(silo_id):
     newest_record = db.label_value_store.find({'silo_id' : silo_id}).sort([("create_date", -1)]).limit(1)
 
     return newest_record[0]['create_date']
+
+def setSiloColumnType(silo_pk, column, column_type):
+    # TO DO: check for acceptable column type
+    if column_type not in ['int']:
+        raise TypeError(column_type)
+    # TO DO: change in the mysql database the type column
+    # silo = silo.objects.get(pk=silo_pk)
+
+
+    db = MongoClient(settings.MONGODB_HOST).tola
+    bulk = db.label_value_store.initialize_ordered_bulk_op()
+    counter = 0;
+    for data in db.label_value_store.find({'silo_id' : silo_pk}):
+        updoc = {
+            "$set": {}
+        }
+        updoc["$set"][column] = int(data[column]);
+        # queue the update
+        bulk.find({'_id': data[_id]}).update(updoc)
+        counter+=1
+        # Drain and re-initialize every 1000 update statements
+        if (counter % 1000 == 0):
+            bulk.execute();
+            bulk = db.label_value_store.initialize_ordered_bulk_op();
+
+
+    # // Add the rest in the queue
+    if (counter % 1000 != 0):
+        bulk.execute();

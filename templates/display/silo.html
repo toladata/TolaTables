@@ -276,6 +276,38 @@
     </div>
 </div>
 
+<div class="modal fade" id="column_type_modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+
+            <div class="modal-header">
+                Give a column a type
+            </div>
+
+            <div class="modal-body">
+              <form id="column_type_form" action="/set_column_type/{{silo.pk}}/" method="post">
+                Column:
+                <select id="column_for_type">
+                  {% for col in cols %}
+                      <option value="{{col}}">{{col}}</option>
+                  {% ender for %}
+                </select>
+                Column:
+                <select id="column_type">
+                    <option value="int">integer</option>
+                </select>
+              </form>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">No, cancel</button>
+                <a class="btn btn-danger btn-del-import">Yes, erase and re-import data</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock content %}
 
 
