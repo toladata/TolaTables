@@ -1,8 +1,13 @@
 from django.core.management.base import BaseCommand, CommandError
-from silo.models import Silo
+from silo.models import Silo, UniqueFields, Read
+
+from django.db.models import Q
 
 from pymongo import MongoClient
 from django.conf import settings
+
+from datetime import timedelta
+from datetime import datetime
 
 from collections import deque
 
@@ -10,13 +15,15 @@ import json
 
 class Command(BaseCommand):
     """
-    Usage: python manage.py collect_silo_columns
+    Usage: python manage.py update_to_0-9-2
     """
-    help = 'Adds every column that exists in mongodb to the list of columns in the mysql database per silo'
 
     def handle(self, *args, **options):
         #get every column for each silo
         db = MongoClient(settings.MONGODB_HOST).tola
+        #index by silo
+        db.label_value_store.create_index('silo_id')
+
         silos = Silo.objects.all()
 
         for silo in silos:
@@ -41,3 +48,25 @@ class Command(BaseCommand):
                             result,
                             {"$set" : {key: result[key].strip()}}
                             )
+            #add indexes to unique columns
+            for column in UniqueFields.objects.filter(silo_id=silo.pk):
+                db.label_value_store.create_index(column.name, partialFilterExpression = {'silo_id' : silo.id})
+
+
+        #delete all reads that are no longer associated with a silo
+        reads = Read.objects.all()
+        for read in reads:
+            if Silo.objects.filter(reads__pk=read.id).count() == 0:
+                read.delete()
+
+        #set expiration dates for current autopulls
+        reads = Read.objects.filter(Q(autopull_frequency="weekly") | Q(autopull_frequency="daily"))
+        for read in reads:
+            read.autopull_expiration = datetime.now() + timedelta(days=150)
+            read.save()
+
+        #set expiration dates for current autopush
+        reads = Read.objects.filter(Q(autopush_frequency="weekly") | Q(autopush_frequency="daily"))
+        for read in reads:
+            read.autopush_expiration = datetime.now() + timedelta(days=150)
+            read.save()

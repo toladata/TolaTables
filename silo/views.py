@@ -584,7 +584,7 @@ def showRead(request, id):
     """
     Show a read data source and allow user to edit it
     """
-    excluded_fields = ['gsheet_id', 'resource_id', 'token', 'create_date', 'edit_date', 'token']
+    excluded_fields = ['gsheet_id', 'resource_id', 'token', 'create_date', 'edit_date', 'token', 'autopush_expiration', 'autopull_expiration']
     initial = {'owner': request.user}
 
     try:
@@ -613,6 +613,11 @@ def showRead(request, id):
                 basic_auth = base64.encodestring('%s:%s' % (read.username, read.password))[:-1]
                 read.token = basic_auth
                 read.password = None
+            if form.instance.autopull_frequency:
+                read.autopull_expiration = datetime.datetime.now() + datetime.timedelta(days=170)
+            if form.instance.autopush_frequency:
+                read.autopush_expiration = datetime.datetime.now() + datetime.timedelta(days=170)
+
             read.save()
             if form.instance.type.read_type == "CSV":
                 return HttpResponseRedirect("/file/" + str(read.id) + "/")
@@ -1464,3 +1469,20 @@ def export_silo_form(request, id):
 
     cols.sort()
     return render(request, "display/export_form.html", {'silo':silo,'cols': cols, 'shown_cols': shown_cols, 'hidden_rows': hidden_rows})
+@login_required
+def renewAutoJobs(request, read_pk, operation):
+    read = Read.objects.get(pk=read_pk)
+    if request.user != read.owner:
+        #return not owner of import page
+        return render(request, "display/read_renew.html", {'message' : 'You must be the owner of the import to renew it'})
+
+    # when go to this url change the read expiration date to 170 days from now
+    if operation == "pull" and read.autopull_frequency and (read.autopull_frequency == 'weekly' or read.autopull_frequency == 'daily'):
+        read.autopull_expiration = datetime.datetime.now() + datetime.timedelta(days=170)
+    elif operation == "push" and read.autopush_frequency and (read.autopush_frequency == 'weekly' or read.autopush_frequency == 'daily'):
+        read.autopush_expiration = datetime.datetime.now() + datetime.timedelta(days=170)
+    else:
+        return render(request, "display/renew_read.html", {'message' : 'Error, auto%s renewal of %s is not a valid operation' % (operation, read.read_name)})
+    read.save()
+
+    return render(request, "display/renew_read.html", {'message' : 'Success, your renewal of %s auto%s was successful' % (read.read_name, operation)})

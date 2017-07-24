@@ -102,6 +102,8 @@ urlpatterns =[
     url(r'^accounts/profile/$', tola_views.profile, name='profile'),
     url(r'^board/$', tola_views.BoardView.as_view(), name='board'),
 
+    url(r'^renew_auto/(?P<read_pk>\d+)/(?P<operation>(pull|push))/$', views.renewAutoJobs, name='renewsAutoJobs'),
+
     #Auth backend URL's
     url('', include('django.contrib.auth.urls', namespace='auth')),
     url('', include('social.apps.django_app.urls', namespace='social')),
