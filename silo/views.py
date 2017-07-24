@@ -559,8 +559,16 @@ def deleteSilo(request, id):
                                             silo_description=silo_to_be_deleted.description)
             lvs = LabelValueStore.objects(silo_id=silo_to_be_deleted.id)
             num_rows_deleted = lvs.delete()
+
+            #look through each of the reads and delete them if this was their only silo
+            reads = silo_to_be_deleted.reads.all()
+            for read in reads:
+                if Silo.objects.filter(reads__pk=read.id).count() == 1:
+                    read.delete()
+
             silo_to_be_deleted.delete()
             messages.success(request, "Silo, %s, with all of its %s rows of data deleted successfully." % (silo_name, num_rows_deleted))
+
         except Silo.DoesNotExist as e:
             print(e)
         #except Exception as es:
@@ -886,33 +894,8 @@ def updateSiloData(request, pk):
             for msg in msgs:
                 messages.add_message(request, msg[0], msg[1])
 
-            #find any duplicate objects that do not contain a read_id and delete them
-            #legacy objects will not have a read_id
+            #delete legacy objects
             lvss = LabelValueStore.objects(silo_id=silo.pk,__raw__={ "$or" : [{"read_id" : {"$not" : { "$exists" : "true" }}}, {"read_id" : {"$in" : [-1,""]} } ]})
-            for lvs in lvss:
-                filter_criteria = {}
-                for key in lvs:
-                    if key !="id" and key !="read_id" and key!="create_date" and key!="edit_date":
-                        try:
-                            filter_criteria.update({key:lvs[key]})
-                        except KeyError:
-                            pass
-                        except ValueError:
-                            pass
-                try:
-                    #this will delete anything without a read_id that has a new dup
-                    dups = LabelValueStore.objects(**filter_criteria)
-                    if len(dups) == 2:
-                        try:
-                            dups = LabelValueStore.objects.get(__raw__={ "$or" : [{"read_id" : {"$not" : { "$exists" : "true" }}}, {"read_id" : {"$in" : [-1,""]} } ]},**filter_criteria)
-                            dups.delete()
-                        except LabelValueStore.MultipleObjectsReturned as e:
-                            dups = LabelValueStore.objects.filter(__raw__={ "$or" : [{"read_id" : {"$not" : { "$exists" : "true" }}}, {"read_id" : {"$in" : [-1,""]} } ]},**filter_criteria).first()
-                            dups.first().delete()
-                        except Exception as e:
-                            pass
-                except Exception as e:
-                    pass
 
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
 
@@ -937,7 +920,9 @@ def importDataFromRead(request, silo, read):
     elif read.type.read_type == "GSheet Import":
         #as the google sheet import already performs the update functionality so when its time to input the data again google spreadsheet update will be called
         return (None,2,None)
-
+    elif read.type.read_type == "Google Spreadsheet":
+        #as the google sheet import already performs the update functionality so when its time to input the data again google spreadsheet update will be called
+        return (None,2,None)
     elif read.type.read_type == "CommCare":
         commcare_token = None
         try:
@@ -1223,17 +1208,21 @@ def valueEdit(request,id):
                 if lbl != "id" and lbl != "silo_id" and lbl != "csrfmiddlewaretoken":
                     setattr(lvs, lbl, val)
             lvs.edit_date = timezone.now()
-            formula_columns = silo.formulacolumns.all()
-            for column in formula_columns:
-                calculation_to_do = parseMathInstruction(column.operation)
-                columns_to_calculate_from = json.loads(column.mapping)
-                numbers = []
-                try:
-                    for col in columns_to_calculate_from:
-                        numbers.append(int(lvs[col]))
-                    setattr(lvs,column.column_name,calculation_to_do(numbers))
-                except ValueError as operation:
-                    setattr(lvs,column.column_name,calculation_to_do("Error"))
+            try:
+                silo = Silo.objects.get(pk=silo_id)
+                formula_columns = silo.formulacolumns.all()
+                for column in formula_columns:
+                    calculation_to_do = parseMathInstruction(column.operation)
+                    columns_to_calculate_from = json.loads(column.mapping)
+                    numbers = []
+                    try:
+                        for col in columns_to_calculate_from:
+                            numbers.append(int(lvs[col]))
+                        setattr(lvs,column.column_name,calculation_to_do(numbers))
+                    except ValueError as operation:
+                        setattr(lvs,column.column_name,calculation_to_do("Error"))
+            except Exception as e:
+                messages.warning(request, "Data format error prevented tola tables from applying formula column to your data")
             lvs.save()
             return HttpResponseRedirect('/silo_detail/' + str(silo_id))
         else:
