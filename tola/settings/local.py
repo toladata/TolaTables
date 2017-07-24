@@ -56,11 +56,11 @@ from mongoengine import register_connection
 register_connection(alias='default', name='tola')
 
 mongoengine.connect(
-    os.getenv('TOLA_MONGODB_NAME'),
-    username=os.getenv('TOLA_MONGODB_USER'),
-    password=os.getenv('TOLA_MONGODB_PASS'),
-    host=os.getenv('TOLA_MONGODB_HOST'),
-    port=int(os.getenv('TOLA_MONGODB_PORT')),
+    os.getenv('TOLATABLES_MONGODB_NAME'),
+    username=os.getenv('TOLATABLES_MONGODB_USER'),
+    password=os.getenv('TOLATABLES_MONGODB_PASS'),
+    host=os.getenv('TOLATABLES_MONGODB_HOST'),
+    port=int(os.getenv('TOLATABLES_MONGODB_PORT')),
     alias='default'
 )
 ################ END OF MONGO DB #######################
