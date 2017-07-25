@@ -8,6 +8,7 @@ from crispy_forms.layout import Layout, Div, Submit, Reset, HTML, Button, Row, F
 from crispy_forms.bootstrap import FormActions
 from django.forms.formsets import formset_factory
 
+
 class OnaLoginForm(forms.Form):
     username = forms.CharField(max_length=60, required=True)
     password = forms.CharField(required=True, widget=forms.PasswordInput())

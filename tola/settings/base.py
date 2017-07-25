@@ -172,6 +172,10 @@ TEMPLATES = [
                 'django.contrib.staticfiles.templatetags.staticfiles',
                 'silo.templatetags.underscoretags',
             ],
+            'loaders': [
+                'django.template.loaders.filesystem.Loader',
+                'django.template.loaders.app_directories.Loader',
+            ]
         },
     },
 ]
@@ -356,4 +360,6 @@ GOOGLE_REDIRECT_URL = 'http://localhost:8000/oauth2callback/'
 ########## Celery CONFIGURATION
 CELERY_RESULT_BACKEND = 'amqp'
 CELERY_CACHE_BACKEND = 'django-cache'
+
+
 
