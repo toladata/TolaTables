@@ -5,9 +5,13 @@ html {
     position: relative;
     min-height: 100%;
 }
-
+body {
+    /* Margin bottom by footer height */
+    height: 100%;
+    margin-bottom: 60px;
+}
 #footer {
-    position: fixed;
+    position: absolute;
     bottom: 0px;
     width: 100%;
     /* Set the fixed height of the footer here */
@@ -61,7 +65,8 @@ button:focus,
 /* Not required for template or sticky footer method. */
 
 body > .container {
-    padding-bottom: 80px;
+    height: 100%;
+    margin-top: 40px;
 }
 
 .alert{
@@ -69,6 +74,9 @@ body > .container {
     margin-bottom: -20px;
 }
 
+#footer > .container {
+    padding: 10px;
+}
 
 .btn-frozen {
     color: #fff;
@@ -179,4 +187,71 @@ body > .container {
     overflow-y:auto;
     overflow-x:auto;
     font-family:monospace;
+}
+
+
+/* Chart.js legends */
+.chart-legend {
+  list-style: none;
+  position: relative;
+  right: 8px;
+  top: 0;
+}
+
+.chart-legend ul {
+  columns: 2;
+  -webkit-columns: 2;
+  -moz-columns: 2;
+}
+.chart-legend li {
+  display: block;
+  padding-left: 30px;
+  position: relative;
+  margin-bottom: 4px;
+  border-radius: 5px;
+  padding: 2px 8px 2px 28px;
+  font-size: 14px;
+  cursor: default;
+  -webkit-transition: background-color 200ms ease-in-out;
+  -moz-transition: background-color 200ms ease-in-out;
+  -o-transition: background-color 200ms ease-in-out;
+  transition: background-color 200ms ease-in-out;
+}
+.chart-legend li:hover {
+  background-color: #fafafa;
+}
+.chart-legend li span {
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+}
+.row-eq-height {
+    display: table;
+}
+.row-eq-height .bounded-column {
+    display: table-cell;
+    height: 100%;
+    bottom: 0;
+    top: 0;
+}
+
+/* data tables changes */
+.dataTables_length {
+    padding: 10px 10px 0px 12px;
+}
+
+.dataTables_info {
+    padding: 10px 10px 0px 12px;
+}
+
+.dataTables_filter {
+    padding: 10px 10px 0px 12px;
+}
+
+.dataTables_paginate {
+    padding: 10px 10px 0px 12px;
 }
