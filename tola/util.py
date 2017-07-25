@@ -613,9 +613,6 @@ def setSiloColumnType(silo_pk, column, column_type):
     if (counter % 1000 != 0):
         bulk.execute()
 
-    # db.label_value_store.mod
-
-    # TO DO: Add validation to the db
     res = db.command(
         'collMod',
         'label_value_store',
@@ -627,8 +624,6 @@ def setSiloColumnType(silo_pk, column, column_type):
         validationLevel = "moderate",
         validationAction = "error"
     )
-
-    print res
 
     #change type in mysql database
     silo = Silo.objects.get(pk=silo_pk)

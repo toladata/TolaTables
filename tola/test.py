@@ -13,6 +13,9 @@ from django.test import TestCase
 from django.test import Client
 from django.test import RequestFactory
 
+import pymongo
+from pymongo import MongoClient
+
 from tola.util import *
 from silo.models import *
 
@@ -817,3 +820,11 @@ class test_setSiloColumnType(TestCase):
             pass
         lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
         self.assertTrue({'name' : 'a', 'type' : 'int'} in json.loads(self.silo.columns))
+
+        db = MongoClient(settings.MONGODB_HOST).tola
+        db.command(
+            'collMod',
+            'label_value_store',
+            validator={},
+            validationLevel = "off"
+        )
