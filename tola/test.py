@@ -834,3 +834,34 @@ class test_saveDataToSilo(TestCase):
         LabelValueStore.objects.filter(a='dog', b='house').delete()
         LabelValueStore.objects.filter(a='dog', b='out').delete()
         LabelValueStore.objects.filter(a='cat', b='house').delete()
+
+class test_setSiloColumnType(TestCase):
+    def test_setToInt(self):
+        lvs = LabelValueStore()
+        lvs.silo_id = -1
+        lvs.a = '1'
+        lvs.b = 2
+        lvs.c = '3'
+        try:
+            lvs = LabelValueStore.objects.get(silo_id=-1, a='1', b=2, c = '3')
+        except LabelValueStore.DoesNotExist as e:
+            lvs = LabelValueStore.objects.filter(silo_id=-1).delete()
+            self.assertTrue(False)
+        try:
+            lvs = LabelValueStore.objects.get(silo_id=-1, a=1, b=2, c = '3')
+            lvs = LabelValueStore.objects.filter(silo_id=-1).delete()
+            self.assertTrue(False)
+        except LabelValueStore.DoesNotExist as e:
+            pass
+        setSiloColumnType(-1, 'a', 'int')
+        try:
+            lvs = LabelValueStore.objects.get(silo_id=-1, a=1, b=2, c = '3')
+        except LabelValueStore.DoesNotExist as e:
+            lvs = LabelValueStore.objects.filter(silo_id=-1).delete()
+            self.assertTrue(False)
+        try:
+            lvs = LabelValueStore.objects.get(silo_id=-1, a='1', b=2, c = '3')
+            lvs = LabelValueStore.objects.filter(silo_id=-1).delete()
+            self.assertTrue(False)
+        except LabelValueStore.DoesNotExist as e:
+            pass
