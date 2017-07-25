@@ -1496,9 +1496,10 @@ def setColumnType(request, pk):
         return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk}))
 
     silo = Silo.objects.get(pk=pk)
-    column = request.POST.get('column')
+    column = request.POST.get('column_for_type')
     col_type = request.POST.get('column_type')
 
-    res = setSiloColumnType(pk, column, col_type)
+    msg = setSiloColumnType(int(pk), column, col_type)
+    messages.add_message(request, msg[0], msg[1])
 
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))

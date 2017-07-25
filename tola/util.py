@@ -11,7 +11,7 @@ from django.utils.encoding import smart_str, smart_unicode
 from django.conf import settings
 from django.contrib.auth.models import User
 
-from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ColumnType, ThirdPartyTokens
+from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ThirdPartyTokens
 from django.contrib import messages
 import pymongo
 from bson.objectid import ObjectId
@@ -355,22 +355,6 @@ def ona_parse_type_group(data, form_data, parent_name, silo, read):
         else:
             name = field['name']
 
-        try:
-            ct = ColumnType.objects.get(silo_id=silo.pk,\
-                                        read_id=read.pk,\
-                                        column_name=name,\
-                                        column_source_name=field['name'],\
-                                        column_type=field['type'])
-            setattr(ct, "edit_date", timezone.now())
-        except ColumnType.DoesNotExist as e:
-            ct = ColumnType(silo_id=silo.pk,\
-                            read_id=read.pk,\
-                            create_date=timezone.now(),\
-                            column_name=name,\
-                            column_source_name=field['name'],\
-                            column_type=field['type'])
-            ct.save()
-
 def ona_parse_type_repeat(data, form_data, parent_name, silo, read):
     """
     if data is of type repeat this replaces the compound key names apropriate column headers
@@ -588,27 +572,72 @@ def setSiloColumnType(silo_pk, column, column_type):
     # TO DO: check for acceptable column type
     if column_type not in ['int']:
         raise TypeError(column_type)
-    # TO DO: change in the mysql database the type column
-    # silo = silo.objects.get(pk=silo_pk)
 
+    # TO DO: check if all entries could comply
 
     db = MongoClient(settings.MONGODB_HOST).tola
     bulk = db.label_value_store.initialize_ordered_bulk_op()
+
+    if (db.label_value_store.find({'silo_id' : silo_pk, column : {'$not' : {'$exists' : True}}}).count() > 0):
+        return (messages.ERROR, 'Faluire to set column type due to not all rows having designated column')
+
+    # find a non castable row
+    res = db.label_value_store.map_reduce(
+        "function() { emit(isNaN(parseInt(this.%s)), this.%s); }" % (column, column),
+        "function(key, value) {return value.toString();}",
+        {'inline': 1 },
+        query={'silo_id' : silo_pk}
+    )
+
+
+    if len(res['results']) > 1:
+        unparsed_rows = [x for x in res['results'] if x['_id']]
+        return (messages.ERROR, '%s is/are not parsable to %s' % (unparsed_rows[0]['value'], column_type))
+
     counter = 0;
     for data in db.label_value_store.find({'silo_id' : silo_pk}):
         updoc = {
             "$set": {}
         }
-        updoc["$set"][column] = int(data[column]);
+        updoc["$set"][column] = int(data[column])
         # queue the update
-        bulk.find({'_id': data[_id]}).update(updoc)
+        bulk.find({'_id': data['_id']}).update(updoc)
         counter+=1
         # Drain and re-initialize every 1000 update statements
         if (counter % 1000 == 0):
-            bulk.execute();
+            bulk.execute()
             bulk = db.label_value_store.initialize_ordered_bulk_op();
 
 
-    # // Add the rest in the queue
+    # Add the rest in the queue
     if (counter % 1000 != 0):
-        bulk.execute();
+        bulk.execute()
+
+    # db.label_value_store.mod
+
+    # TO DO: Add validation to the db
+    res = db.command(
+        'collMod',
+        'label_value_store',
+        validator = { '$and' : [
+                {'silo_id' : silo_pk},
+                {column : {'$type' : 'string'}}
+            ]
+        },
+        validationLevel = "moderate",
+        validationAction = "error"
+    )
+
+    print res
+
+    #change type in mysql database
+    silo = Silo.objects.get(pk=silo_pk)
+    silo_cols = json.loads(silo.columns)
+    for col in silo_cols:
+        if(col['name'] == column):
+            col['type'] = column_type
+            break
+    silo.columns = json.dumps(silo_cols)
+    silo.save()
+
+    return (messages.SUCCESS, 'All success columns parsed succesfully')

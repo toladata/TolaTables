@@ -162,6 +162,7 @@
                             <a href="/edit_columns/{{ silo.pk }}/" class="btn btn-primary">Edit or Delete columns</a>
                             <a href="/new_column/{{ silo.pk }}/" class="btn btn-primary">Add New Column</a>
                             <a href="/new_formula_column/{{ silo.pk }}/" class="btn btn-primary">Add New Formula Column</a>
+                            <button id="setColumnType" class="btn btn-primary" data-toggle="tooltip">Add Column Validation</button>
 
                         <!--
                         <a href="/anonymize_silo/{{ id }}/" class="btn btn-primary">Anonymize Table</a>
@@ -287,22 +288,23 @@
 
             <div class="modal-body">
               <form id="column_type_form" action="/set_column_type/{{silo.pk}}/" method="post">
+                {% csrf_token %}
                 Column:
-                <select id="column_for_type">
+                <select name="column_for_type">
                   {% for col in cols %}
-                      <option value="{{col}}">{{col}}</option>
-                  {% ender for %}
+                      {% if col != '_id'%}
+                        <option value="{{col}}">{{col}}</option>
+                      {% endif %}
+                  {% endfor for %}
                 </select>
-                Column:
-                <select id="column_type">
+                should be a:
+                <!-- Can add support for more options later -->
+                <select name="column_type">
                     <option value="int">integer</option>
                 </select>
+                <br><br>
+                <input type="submit" value="Submit" class="btn btn-sm btn-primary">
               </form>
-            </div>
-
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">No, cancel</button>
-                <a class="btn btn-danger btn-del-import">Yes, erase and re-import data</a>
             </div>
         </div>
     </div>
@@ -551,6 +553,11 @@
                 console.log("i="+i + " " + col);
             });
             */
+
+            $('#setColumnType').on('click', function(e){
+                e.preventDefault();
+                $('#column_type_modal').modal('toggle');
+            });
 
 
             $("#table_tabs li a").click(function(e){
