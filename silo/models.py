@@ -58,6 +58,10 @@ class Organization(models.Model):
     name = models.CharField("Organization Name", max_length=255, blank=True, default="TolaData")
     description = models.TextField("Description/Notes", max_length=765, null=True, blank=True)
     organization_url = models.CharField(blank=True, null=True, max_length=255)
+    level_1_label = models.CharField("Project/Program Organization Level 1 label", default="Program", max_length=255, blank=True)
+    level_2_label = models.CharField("Project/Program Organization Level 2 label", default="Project", max_length=255, blank=True)
+    level_3_label = models.CharField("Project/Program Organization Level 3 label", default="Component", max_length=255, blank=True)
+    level_4_label = models.CharField("Project/Program Organization Level 4 label", default="Activity", max_length=255, blank=True)
     create_date = models.DateTimeField(null=True, blank=True)
     edit_date = models.DateTimeField(null=True, blank=True)
 
@@ -109,8 +113,69 @@ class Country(models.Model):
 
 
 class CountryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'create_date', 'edit_date')
+    list_display = ('country', 'create_date', 'edit_date')
     display = 'Country'
+
+
+class Workflowlevel1(models.Model):
+    country = models.CharField("Country Name", max_length=255, blank=True)
+    organization = models.ForeignKey(Organization, blank=True, null=True)
+    level1_uuid = models.CharField(max_length=255, verbose_name='WorkflowLevel1 UUID', unique=True)
+    name = models.CharField("Name", max_length=255, blank=True)
+    activity_id = models.IntegerField("ID", blank=True)
+    create_date = models.DateTimeField(null=True, blank=True)
+    edit_date = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ('country',)
+        verbose_name_plural = "Workflowlevel 1"
+
+    #onsave add create date or update edit date
+    def save(self, *args, **kwargs):
+        if self.create_date == None:
+            self.create_date = datetime.now()
+        self.edit_date = datetime.now()
+        super(Workflowlevel1, self).save()
+
+    #displayed in admin templates
+    def __unicode__(self):
+        return self.name
+
+
+class Workflowlevel1Admin(admin.ModelAdmin):
+    list_display = ('country', 'organization', 'name')
+    display = 'Workflowlevel 1'
+
+
+class Workflowlevel2(models.Model):
+    country = models.CharField("Country Name", max_length=255, blank=True)
+    organization = models.ForeignKey(Organization, blank=True, null=True)
+    workflowlevel1 = models.ForeignKey(Workflowlevel1)
+    level2_uuid = models.CharField(max_length=255, verbose_name='WorkflowLevel2 UUID', unique=True)
+    name = models.CharField("Name", max_length=255, blank=True)
+    activity_id = models.IntegerField("ID", blank=True)
+    create_date = models.DateTimeField(null=True, blank=True)
+    edit_date = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ('country',)
+        verbose_name_plural = "Workflowlevel 2"
+
+    #onsave add create date or update edit date
+    def save(self, *args, **kwargs):
+        if self.create_date == None:
+            self.create_date = datetime.now()
+        self.edit_date = datetime.now()
+        super(Workflowlevel2, self).save()
+
+    #displayed in admin templates
+    def __unicode__(self):
+        return self.name
+
+
+class Workflowlevel2Admin(admin.ModelAdmin):
+    list_display = ('country', 'organization', 'name')
+    display = 'Workflowlevel 2'
 
 
 TITLE_CHOICES = (
@@ -236,10 +301,12 @@ class Tag(models.Model):
     def __unicode__(self):
         return self.name
 
+
 class FormulaColumn(models.Model):
     mapping = models.TextField() #stores a json document for mapping
     operation = models.TextField()
     column_name = models.TextField()
+
 
 # Create your models here.
 class Silo(models.Model):
