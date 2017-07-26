@@ -44,7 +44,7 @@ from gviews_v4 import import_from_gsheet_helper
 from tola.util import importJSON, saveDataToSilo, getSiloColumnNames,\
                         parseMathInstruction, calculateFormulaColumn, makeQueryForHiddenRow,\
                         getNewestDataDate, addColsToSilo, deleteSiloColumns, hideSiloColumns, \
-                        getCompleteSiloColumnNames, setSiloColumnType
+                        getCompleteSiloColumnNames, setSiloColumnType, getColToTypeDict
 
 
 from commcare.tasks import fetchCommCareData
@@ -808,6 +808,7 @@ def siloDetail(request, silo_id):
 
     silo = Silo.objects.get(pk=silo_id)
     cols = []
+    col_types = getColToTypeDict(silo)
     data = []
     query = makeQueryForHiddenRow(json.loads(silo.rows_to_hide))
 
@@ -816,7 +817,7 @@ def siloDetail(request, silo_id):
         cols.extend(getSiloColumnNames(silo_id))
     else:
         messages.warning(request,"You do not have permission to view this table.")
-    return render(request, "display/silo.html", {"silo": silo, "cols": cols, "query": query})
+    return render(request, "display/silo.html", {"silo": silo, "cols": cols, "query": query, "col_types" : col_types})
 
 
 @login_required
@@ -1205,7 +1206,7 @@ def valueEdit(request,id):
                 k = Truncator(re.sub('\s+', ' ', k).strip()).chars(40)
                 data[k] = v
     if request.method == 'POST': # If the form has been submitted...
-        form = MongoEditForm(request.POST or None, extra = data) # A form bound to the POST data
+        form = MongoEditForm(request.POST or None, extra = data, silo_pk=silo_id) # A form bound to the POST data
         if form.is_valid():
             lvs = LabelValueStore.objects(id=id)[0]
             for lbl, val in form.cleaned_data.iteritems():
@@ -1232,7 +1233,7 @@ def valueEdit(request,id):
         else:
             print "not valid"
     else:
-        form = MongoEditForm(initial={'silo_id': silo_id, 'id': id}, extra=data)
+        form = MongoEditForm(initial={'silo_id': silo_id, 'id': id}, extra=data, silo_pk=silo_id)
 
     return render(request, 'read/edit_value.html', {'form': form, 'silo_id': silo_id})
 
@@ -1408,8 +1409,9 @@ def editColumnOrder(request, pk):
             silo = Silo.objects.get(pk=pk)
             cols = []
             cols_list = request.POST.getlist("columns")
+            col_types = getColToTypeDict(silo)
             for col in cols_list:
-                cols.append({'name' : col, 'type': 'string'})
+                cols.append({'name' : col, 'type': col_types.get(col,'string')})
             visible_cols_set = set(cols_list)
             cols.extend([x for x in json.loads(silo.columns) if x['name'] not in visible_cols_set])
             silo.columns = json.dumps(cols)

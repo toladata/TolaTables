@@ -245,6 +245,10 @@ def addColsToSilo(silo, columns):
     silo -- a silo object
     columns -- an iterable containing columns to add
     """
+    #make sure there are no duplicate columns
+    columns_set = set(columns)
+    if len(columns_set) != len(columns):
+        raise ValueError('Duplicate columns are not allowed')
     silo_cols = json.loads(silo.columns)
     silo_cols_set = set([x['name'] for x in silo_cols]) #this is done to decrease lookup time from n to 1
     silo_cols.extend([{'name' : x, 'type' : 'string'} for x in columns if x not in silo_cols_set])
@@ -285,6 +289,14 @@ def unhideSiloColumns(silo, cols):
     hidden_cols = hidden_cols.difference(cols)
     silo.hidden_columns = json.dumps(list(hidden_cols))
     silo.save()
+
+def getColToTypeDict(silo):
+    """
+    Returns key value pairs of the name of a column to its type in O(n)
+    """
+    columns = silo.columns
+    column_types = {x['name'] : x['type'] for x in json.loads(columns)}
+    return column_types
 
 def user_to_tola(backend, user, response, *args, **kwargs):
 
@@ -568,9 +580,21 @@ def getNewestDataDate(silo_id):
 
     return newest_record[0]['create_date']
 
+# to convert floating point strings to integers
+def strToInt(string):
+    return int(float(string))
+
 def setSiloColumnType(silo_pk, column, column_type):
     # TO DO: check for acceptable column type
-    if column_type not in ['int']:
+    if column_type == 'int':
+        cast_fnct = strToInt
+        parse_cmd = 'parseInt'
+    elif column_type =='double':
+        cast_fnct = float
+        parse_cmd = 'parseFloat'
+    elif column_type == 'string':
+        cast_fnct = str
+    else:
         raise TypeError(column_type)
 
     # TO DO: check if all entries could comply
@@ -581,25 +605,36 @@ def setSiloColumnType(silo_pk, column, column_type):
     if (db.label_value_store.find({'silo_id' : silo_pk, column : {'$not' : {'$exists' : True}}}).count() > 0):
         return (messages.ERROR, 'Faluire to set column type due to not all rows having designated column')
 
-    # find a non castable row
-    res = db.label_value_store.map_reduce(
-        "function() { emit(isNaN(parseInt(this.%s)), this.%s); }" % (column, column),
-        "function(key, value) {return value.toString();}",
-        {'inline': 1 },
-        query={'silo_id' : silo_pk}
+    # find a non castable row for int/float
+    if column_type in ('int', 'float'):
+        res = db.label_value_store.map_reduce(
+            "function() { emit(isNaN(%s(this.%s)), this.%s); }" % (parse_cmd, column, column),
+            "function(key, value) {return value.toString();}",
+            {'inline': 1 },
+            query={'silo_id' : silo_pk}
+        )
+        if len(res['results']) > 1:
+            unparsed_rows = [x for x in res['results'] if x['_id']]
+            return (messages.ERROR, '%s is/are not parsable to %s' % (unparsed_rows[0]['value'], column_type))
+
+    res = db.command(
+        'collMod',
+        'label_value_store',
+        validator = { '$and' : [
+                {'silo_id' : silo_pk},
+                {column : {'$type' : column_type}}
+            ]
+        },
+        validationLevel = "moderate",
+        validationAction = "error"
     )
-
-
-    if len(res['results']) > 1:
-        unparsed_rows = [x for x in res['results'] if x['_id']]
-        return (messages.ERROR, '%s is/are not parsable to %s' % (unparsed_rows[0]['value'], column_type))
 
     counter = 0;
     for data in db.label_value_store.find({'silo_id' : silo_pk}):
         updoc = {
             "$set": {}
         }
-        updoc["$set"][column] = int(data[column])
+        updoc["$set"][column] = cast_fnct(data[column])
         # queue the update
         bulk.find({'_id': data['_id']}).update(updoc)
         counter+=1
@@ -613,17 +648,6 @@ def setSiloColumnType(silo_pk, column, column_type):
     if (counter % 1000 != 0):
         bulk.execute()
 
-    res = db.command(
-        'collMod',
-        'label_value_store',
-        validator = { '$and' : [
-                {'silo_id' : silo_pk},
-                {column : {'$type' : 'string'}}
-            ]
-        },
-        validationLevel = "moderate",
-        validationAction = "error"
-    )
 
     #change type in mysql database
     silo = Silo.objects.get(pk=silo_pk)

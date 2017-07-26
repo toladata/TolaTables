@@ -301,6 +301,8 @@
                 <!-- Can add support for more options later -->
                 <select name="column_type">
                     <option value="int">integer</option>
+                    <option value="double">float</option>
+                    <option value="string">string</option>
                 </select>
                 <br><br>
                 <input type="submit" value="Submit" class="btn btn-sm btn-primary">
@@ -422,6 +424,12 @@
                     });
                 }
             });
+
+            // Add types to each column
+            $("#data_table").find("th").each(function(){
+               $(this).after("hi")
+            });
+
 
             var silo_table = $('#data_table').DataTable({
                 "processing": true,
