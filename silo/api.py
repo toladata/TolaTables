@@ -165,6 +165,7 @@ class ReadViewSet(viewsets.ModelViewSet):
     queryset = Read.objects.all()
     serializer_class = ReadSerializer
 
+
 class ReadTypeViewSet(viewsets.ModelViewSet):
     """
     This viewset automatically provides `list`, `create`, `retrieve`,
@@ -172,6 +173,42 @@ class ReadTypeViewSet(viewsets.ModelViewSet):
     """
     queryset = ReadType.objects.all()
     serializer_class = ReadTypeSerializer
+
+
+class OrganizationViewSet(viewsets.ModelViewSet):
+    """
+    This viewset automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = Organization.objects.all()
+    serializer_class = OrganizationSerializer
+
+
+class CountryViewSet(viewsets.ModelViewSet):
+    """
+    This viewset automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = Country.objects.all()
+    serializer_class = CountrySerializer
+
+
+class Workflowlevel1ViewSet(viewsets.ModelViewSet):
+    """
+    This viewset automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = Workflowlevel1.objects.all()
+    serializer_class = Workflowlevel1Serializer
+
+
+class Workflowlevel2ViewSet(viewsets.ModelViewSet):
+    """
+    This viewset automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = Workflowlevel2.objects.all()
+    serializer_class = Workflowlevel2Serializer
 
 #####-------API Views to Feed Data to Tolawork API requests-----####
 '''
