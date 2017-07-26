@@ -37,7 +37,7 @@ class ReadTest(TestCase):
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
 
     def test_new_read_post(self):
-        read_type = ReadType.objects.get(read_type="ONA")
+        read_type = ReadType.objects.get(read_type="Ona")
         upload_file = open('test.csv', 'rb')
         params = {
             'owner': self.user.pk,
