@@ -19,11 +19,18 @@ from pymongo import MongoClient
 from tola.util import *
 from silo.models import *
 
+db = MongoClient(settings.MONGODB_HOST).tola
+
 class onaParserTest(TestCase):
     """
     this tests the two recurseive Ona parser testing both the default one that does groups and the secondary one that does repeats
     """
+
+    def tearDown(self):
+		db.command('collMod', 'label_value_store', validationLevel = "moderate")
+
     def setUp(self):
+        db.command('collMod', 'label_value_store', validationLevel = "off")
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
         self.read_type = ReadType.objects.create(read_type="Ona")
@@ -428,7 +435,11 @@ class columnManipulation(TestCase):
     """
     this tests the function to add a column to silo
     """
+    def tearDown(self):
+		db.command('collMod', 'label_value_store', validationLevel = "moderate")
+
     def setUp(self):
+        db.command('collMod', 'label_value_store', validationLevel = "off")
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
         self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
     def test_manipulating_columns(self):
@@ -453,7 +464,10 @@ class columnManipulation(TestCase):
 
 
 class formulaOperations(TestCase):
+    def tearDown(self):
+		db.command('collMod', 'label_value_store', validationLevel = "moderate")
     def setUp(self):
+        db.command('collMod', 'label_value_store', validationLevel = "off")
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
         self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
         formulaColumn = FormulaColumn.objects.create(mapping=json.dumps(["a", "b", "c"]), operation="sum", column_name="sum")
@@ -537,6 +551,8 @@ class formulaOperations(TestCase):
             self.assertEqual(a,'a')
 
 class QueryMaker(TestCase):
+    def tearDown(self):
+		db.command('collMod', 'label_value_store', validationLevel = "moderate")
     def test_blankQuery(self):
         self.assertEqual(makeQueryForHiddenRow([]),"{}")
     def test_queryEmpty(self):
@@ -691,6 +707,10 @@ class QueryMaker(TestCase):
         self.assertEqual(json.loads(makeQueryForHiddenRow(row_filter)), json.loads(query))
 
 class testDateNewest(TestCase):
+    def tearDown(self):
+		db.command('collMod', 'label_value_store', validationLevel = "moderate")
+    def setUp(self):
+        db.command('collMod', 'label_value_store', validationLevel = "off")
     def test_newestDate(self):
         lvs = LabelValueStore()
         now = datetime.today()
@@ -711,7 +731,10 @@ class testDateNewest(TestCase):
         LabelValueStore.objects.filter(silo_id="-100").delete()
 
 class test_saveDataToSilo(TestCase):
+    def tearDown(self):
+		db.command('collMod', 'label_value_store', validationLevel = "moderate")
     def setUp(self):
+        db.command('collMod', 'label_value_store', validationLevel = "off")
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
         self.read_type = ReadType.objects.create(read_type="Ona")
         self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
@@ -784,50 +807,50 @@ class test_saveDataToSilo(TestCase):
         LabelValueStore.objects.filter(a='dog', b='out').delete()
         LabelValueStore.objects.filter(a='cat', b='house').delete()
 
-# This unit tests causes some buggy interaction with validation rules
-# class test_setSiloColumnType(TestCase):
-#     def setUp(self):
-#         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
-#         self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
-#     def test_setToInt(self):
-#         addColsToSilo(self.silo, ['a','b','c'])
-#         lvs = LabelValueStore()
-#         lvs.silo_id = self.silo.pk
-#         lvs.a = '1'
-#         lvs.b = 2
-#         lvs.c = '3'
-#         lvs.save()
-#         try:
-#             lvs = LabelValueStore.objects.get(silo_id=self.silo.pk, a='1', b=2, c = '3')
-#         except LabelValueStore.DoesNotExist as e:
-#             lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
-#             self.assertTrue(False)
-#         try:
-#             lvs = LabelValueStore.objects.get(silo_id=self.silo.pk, a=1, b=2, c = '3')
-#             lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
-#             self.assertTrue(False)
-#         except LabelValueStore.DoesNotExist as e:
-#             pass
-#         setSiloColumnType(self.silo.pk, 'a', 'int')
-#         self.silo = Silo.objects.get(pk=self.silo.pk)
-#         try:
-#             lvs = LabelValueStore.objects.get(silo_id=self.silo.pk, a=1, b=2, c = '3')
-#         except LabelValueStore.DoesNotExist as e:
-#             lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
-#             self.assertTrue(False)
-#         try:
-#             lvs = LabelValueStore.objects.get(silo_id=self.silo.pk, a='1', b=2, c = '3')
-#             lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
-#             self.assertTrue(False)
-#         except LabelValueStore.DoesNotExist as e:
-#             pass
-#         lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
-#         self.assertTrue({'name' : 'a', 'type' : 'int'} in json.loads(self.silo.columns))
-#
-#         db = MongoClient(settings.MONGODB_HOST).tola
-#         db.command(
-#             'collMod',
-#             'label_value_store',
-#             validator={},
-#             validationLevel = "off"
-#         )
+class test_setSiloColumnType(TestCase):
+    def tearDown(self):
+		db.command('collMod', 'label_value_store', validationLevel = "moderate")
+    def setUp(self):
+        db.command('collMod', 'label_value_store', validationLevel = "off")
+        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
+        self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
+    def test_setToInt(self):
+        addColsToSilo(self.silo, ['a','b','c'])
+        lvs = LabelValueStore()
+        lvs.silo_id = self.silo.pk
+        lvs.a = '1'
+        lvs.b = 2
+        lvs.c = '3'
+        lvs.save()
+        try:
+            lvs = LabelValueStore.objects.get(silo_id=self.silo.pk, a='1', b=2, c = '3')
+        except LabelValueStore.DoesNotExist as e:
+            lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
+            self.assertTrue(False)
+        try:
+            lvs = LabelValueStore.objects.get(silo_id=self.silo.pk, a=1, b=2, c = '3')
+            lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
+            self.assertTrue(False)
+        except LabelValueStore.DoesNotExist as e:
+            pass
+        setSiloColumnType(self.silo.pk, 'a', 'int')
+        self.silo = Silo.objects.get(pk=self.silo.pk)
+        try:
+            lvs = LabelValueStore.objects.get(silo_id=self.silo.pk, a=1, b=2, c = '3')
+        except LabelValueStore.DoesNotExist as e:
+            lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
+            self.assertTrue(False)
+        try:
+            lvs = LabelValueStore.objects.get(silo_id=self.silo.pk, a='1', b=2, c = '3')
+            lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
+            self.assertTrue(False)
+        except LabelValueStore.DoesNotExist as e:
+            pass
+        lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
+        self.assertTrue({'name' : 'a', 'type' : 'int'} in json.loads(self.silo.columns))
+
+        db.command(
+            'collMod',
+            'label_value_store',
+            validationLevel = "off"
+        )

@@ -30,8 +30,11 @@ class ReadTest(TestCase):
     fixtures = ['../fixtures/read_types.json']
     show_read_url = '/show_read/'
     new_read_url = 'source/new//'
+    def tearDown(self):
+		db.command('collMod', 'label_value_store', validationLevel = "moderate")
 
     def setUp(self):
+        db.command('collMod', 'label_value_store', validationLevel = "off")
         self.client = Client()
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
@@ -74,7 +77,12 @@ class SiloTest(TestCase):
     upload_csv_url = "/file/"
     silo_detail_url = "/silo_detail/"
 
+    def tearDown(self):
+		db.command('collMod', 'label_value_store', validationLevel = "moderate")
+
+
     def setUp(self):
+        db.command('collMod', 'label_value_store', validationLevel = "off")
         self.client = Client()
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="bob", email="bob@email.com", password="tola123")
@@ -180,7 +188,11 @@ class SiloTest(TestCase):
 class FormulaColumn(TestCase):
     new_formula_columh_url = "/new_formula_column/"
 
+    def tearDown(self):
+		db.command('collMod', 'label_value_store', validationLevel = "moderate")
+
     def setUp(self):
+        db.command('collMod', 'label_value_store', validationLevel = "off")
         self.client = Client()
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
@@ -243,8 +255,11 @@ class FormulaColumn(TestCase):
 
 class ColumnOrder(TestCase):
     url = "/edit_column_order/"
+    def tearDown(self):
+		db.command('collMod', 'label_value_store', validationLevel = "moderate")
 
     def setUp(self):
+        db.command('collMod', 'label_value_store', validationLevel = "off")
         self.client = Client()
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
@@ -269,7 +284,12 @@ class ColumnOrder(TestCase):
 
 class ColumnFilter(TestCase):
     url = "/edit_filter/"
+
+    def tearDown(self):
+        db.command('collMod', 'label_value_store', validationLevel = "moderate")
+
     def setUp(self):
+        db.command('collMod', 'label_value_store', validationLevel = "off")
         self.client = Client()
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
@@ -334,7 +354,10 @@ class ColumnFilter(TestCase):
 
 
 class removeSourceTest(TestCase):
+    def tearDown(self):
+		db.command('collMod', 'label_value_store', validationLevel = "moderate")
     def setUp(self):
+        db.command('collMod', 'label_value_store', validationLevel = "off")
         self.client = Client()
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
         self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
@@ -363,7 +386,10 @@ class removeSourceTest(TestCase):
         self.assertEqual(self.silo.reads.all().count(),0)
 
 class getCommCareProjectsTest(TestCase):
+    def tearDown(self):
+		db.command('collMod', 'label_value_store', validationLevel = "moderate")
     def setUp(self):
+        db.command('collMod', 'label_value_store', validationLevel = "off")
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
         self.user2 = User.objects.create_user(username="joe2", email="joe@email.com", password="tola123")
@@ -381,6 +407,10 @@ class getCommCareProjectsTest(TestCase):
         self.assertEqual(getProjects(self.user.id), ['a','b'])
 
 class parseCommCareDataTest(TestCase):
+    def tearDown(self):
+		db.command('collMod', 'label_value_store', validationLevel = "moderate")
+    def setUp(self):
+        db.command('collMod', 'label_value_store', validationLevel = "off")
     def test_commcaredataparser(self):
         data = [
             {
@@ -502,7 +532,10 @@ class parseCommCareDataTest(TestCase):
             self.assert_(False)
 
 class Test_ImportJson(TestCase):
+    def tearDown(self):
+		db.command('collMod', 'label_value_store', validationLevel = "moderate")
     def setUp(self):
+        db.command('collMod', 'label_value_store', validationLevel = "off")
         self.client = Client()
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
         self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
@@ -525,7 +558,10 @@ class Test_ImportJson(TestCase):
                 self.assertTrue(False)
 
 class Test_DeleteSilo(TestCase):
+    def tearDown(self):
+		db.command('collMod', 'label_value_store', validationLevel = "moderate")
     def setUp(self):
+        db.command('collMod', 'label_value_store', validationLevel = "off")
         self.client = Client()
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
         self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
