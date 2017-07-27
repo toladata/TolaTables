@@ -234,6 +234,8 @@ THIRD_PARTY_APPS = (
     'django_extensions',
     'corsheaders',
     'django_celery_results',
+    # required by restframework
+    'django_filters',
 )
 
 #to get a subdirectory to work
