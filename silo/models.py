@@ -118,7 +118,7 @@ class CountryAdmin(admin.ModelAdmin):
 
 
 class Workflowlevel1(models.Model):
-    country = models.CharField("Country Name", max_length=255, blank=True)
+    country = models.ForeignKey(Country, blank=True, null=True)
     organization = models.ForeignKey(Organization, blank=True, null=True)
     level1_uuid = models.CharField(max_length=255, verbose_name='WorkflowLevel1 UUID', unique=True)
     name = models.CharField("Name", max_length=255, blank=True)
@@ -148,7 +148,7 @@ class Workflowlevel1Admin(admin.ModelAdmin):
 
 
 class Workflowlevel2(models.Model):
-    country = models.CharField("Country Name", max_length=255, blank=True)
+    country = models.ForeignKey(Country, blank=True, null=True)
     organization = models.ForeignKey(Organization, blank=True, null=True)
     workflowlevel1 = models.ForeignKey(Workflowlevel1)
     level2_uuid = models.CharField(max_length=255, verbose_name='WorkflowLevel2 UUID', unique=True)
