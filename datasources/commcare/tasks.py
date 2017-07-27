@@ -9,6 +9,8 @@ from django.conf import settings
 from pymongo import MongoClient
 from pymongo.operations import UpdateMany
 
+from tola.util import getColToTypeDict
+from silo.models import Silo
 
 import requests
 import json
@@ -79,12 +81,27 @@ def parseCommCareData(data, silo_id, read_id, update):
 def storeCommCareData(data, silo_id, read_id, update):
 
     data_refined = []
+    try:
+        fieldToType = getColToTypeDict(Silo.objects.get(pk=silo_id))
+    except Silo.DoesNotExist as e:
+        fieldToType = {}
     for row in data:
         for column in row:
-            if "." in column:
-                row[column.replace(".", "_").replace("$", "USD")] = row.pop(column)
-            if "$" in column:
-                row[column.replace("$", "USD")] = row.pop(column)
+            if fieldToType.get(column, 'string') == 'int':
+                try:
+                    row[column] = int(row[column])
+                except ValueError as e:
+                    # skip this one
+                    # add message that this is skipped
+                    continue
+            if fieldToType.get(column, 'string') == 'double':
+                try:
+                    row[column] = float(row[column])
+                except ValueError as e:
+                    # skip this one
+                    # add message that this is skipped
+                    continue
+            row[column.replace(".", "_").replace("$", "USD")] = row.pop(column)
         try: row.pop("")
         except KeyError as e: pass
         try: row.pop("silo_id")

@@ -110,6 +110,7 @@ def saveDataToSilo(silo, data, read = -1, user = None):
     skipped_rows = set()
     enc = "latin-1"
     keys = set()
+    fieldToType = getColToTypeDict(silo)
     for counter, row in enumerate(data):
         # reseting filter_criteria for each row
         filter_criteria = {}
@@ -142,7 +143,7 @@ def saveDataToSilo(silo, data, read = -1, user = None):
             lvs.read_id = read_source_id
         except LabelValueStore.MultipleObjectsReturned as e:
             for k,v in filter_criteria.iteritems():
-                skipped_rows.add("%s=%s" % (k,v))
+                skipped_rows.add("%s=%s" % (str(k),str(v)))
             #print("skipping")
             continue
 
@@ -155,6 +156,20 @@ def saveDataToSilo(silo, data, read = -1, user = None):
             elif key == "create_date": key = "created_date"
             if type(val) == str or type(val) == unicode:
                 val = smart_str(val, strings_only=True)
+            if fieldToType.get(key, 'string') == 'int':
+                try:
+                    val = int(val)
+                except ValueError as e:
+                    # skip this one
+                    # add message that this is skipped
+                    continue
+            if fieldToType.get(key, 'string') == 'double':
+                try:
+                    val = float(val)
+                except ValueError as e:
+                    # skip this one
+                    # add message that this is skipped
+                    continue
             key = key.replace(".", "_").replace("$", "USD").replace(u'\u2026', "")
             key = " ".join(key.split())
             keys.add(key)
@@ -504,7 +519,12 @@ def makeQueryForHiddenRow(row_filter):
     #now add to the query
     for condition in row_filter:
         #this does string comparisons
-        num_to_compare = condition.get("number","")
+        num_to_compare = [condition.get("number","")]
+        try:
+            num_to_compare.append(float(condition.get("number","")))
+            num_to_compare.append(int(condition.get("number","")))
+        except Exception as e:
+            pass
         #specify the part of the dictionary to add to
         if condition.get("logic","") == "AND":
             to_add = query
@@ -543,22 +563,22 @@ def makeQueryForHiddenRow(row_filter):
                     to_add[column]["$not"]["$in"] = empty
             elif condition.get("operation","") == "eq":
                 try:
-                    to_add[column]['$in'].append(num_to_compare)
+                    to_add[column]['$in'].extend(num_to_compare)
                 except KeyError as e:
                     to_add[column] = {}
                     try:
-                        to_add[column]['$in'].append(num_to_compare)
+                        to_add[column]['$in'].extend(num_to_compare)
                     except KeyError as e:
-                        to_add[column]['$in'] = [num_to_compare]
+                        to_add[column]['$in'] = num_to_compare
             elif condition.get("operation","") == "neq":
                 try:
-                    to_add[column]['$nin'].append(num_to_compare)
+                    to_add[column]['$nin'].extend(num_to_compare)
                 except KeyError as e:
                     to_add[column] = {}
                     try:
-                        to_add[column]['$nin'].append(num_to_compare)
+                        to_add[column]['$nin'].extend(num_to_compare)
                     except KeyError as e:
-                        to_add[column]['$nin'] = [num_to_compare]
+                        to_add[column]['$nin'] = num_to_compare
             #for lt, gt, lte, gte need to take the most exclusive condition
 
     #conver the $or area to be properly formatted for a query
@@ -617,17 +637,39 @@ def setSiloColumnType(silo_pk, column, column_type):
             unparsed_rows = [x for x in res['results'] if x['_id']]
             return (messages.ERROR, '%s is/are not parsable to %s' % (unparsed_rows[0]['value'], column_type))
 
-    res = db.command(
-        'collMod',
-        'label_value_store',
-        validator = { '$and' : [
-                {'silo_id' : silo_pk},
-                {column : {'$type' : column_type}}
-            ]
-        },
-        validationLevel = "moderate",
-        validationAction = "error"
-    )
+
+    #change type in mysql database
+    silo = Silo.objects.get(pk=silo_pk)
+    silo_cols = json.loads(silo.columns)
+    for col in silo_cols:
+        if(col['name'] == column):
+            col['type'] = column_type
+            break
+    silo.columns = json.dumps(silo_cols)
+    silo.save()
+
+    # now redo validation for every silo
+
+    # this replaces validation not adds to it
+    # res = db.command(
+    #     'collMod',
+    #     'label_value_store',
+    #     validator = { '$or': [
+    #         {'$and' : [
+    #             {'silo_id' : silo_pk},
+    #             {column : {'$type' : column_type}},
+    #             {column : {'$exists' : True}}
+    #         ]},
+    #         {'$and' : [
+    #             {'silo_id' : silo_pk2},
+    #             {column : {'$type' : column_type}},
+    #             {column : {'$exists' : True}}
+    #         ]},
+    #         {'silo_id' : {'$nin' : [silo_pk, silo_pk2]}},
+    #     ]},
+    #     validationLevel = "moderate",
+    #     validationAction = "error"
+    # )
 
     counter = 0;
     for data in db.label_value_store.find({'silo_id' : silo_pk}):
@@ -649,14 +691,6 @@ def setSiloColumnType(silo_pk, column, column_type):
         bulk.execute()
 
 
-    #change type in mysql database
-    silo = Silo.objects.get(pk=silo_pk)
-    silo_cols = json.loads(silo.columns)
-    for col in silo_cols:
-        if(col['name'] == column):
-            col['type'] = column_type
-            break
-    silo.columns = json.dumps(silo_cols)
-    silo.save()
+
 
     return (messages.SUCCESS, 'All success columns parsed succesfully')

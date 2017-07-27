@@ -107,6 +107,7 @@ data will show up in tola tables.
 0.9.2 adds indexes to the mongodb to make reading and writing faster. To enforce this change run
 the add_indexes_for_silos command.
 
-# data validation while testing
-In order to make sure that your tests do not encounter validation errors make sure that all unit
-tests that use the mongodb turn off validation during setUp and turn on validation during tearDown
+# Testing
+Do not run unit tests on a production database. Django is not set up to make a test mongodb
+so data is added and removed from the mongodb in settings. Any data with silo_id 1 will be deleted
+and/or screwed up.

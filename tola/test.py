@@ -26,11 +26,10 @@ class onaParserTest(TestCase):
     this tests the two recurseive Ona parser testing both the default one that does groups and the secondary one that does repeats
     """
 
-    def tearDown(self):
-		db.command('collMod', 'label_value_store', validationLevel = "moderate")
+
+
 
     def setUp(self):
-        db.command('collMod', 'label_value_store', validationLevel = "off")
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
         self.read_type = ReadType.objects.create(read_type="Ona")
@@ -435,11 +434,10 @@ class columnManipulation(TestCase):
     """
     this tests the function to add a column to silo
     """
-    def tearDown(self):
-		db.command('collMod', 'label_value_store', validationLevel = "moderate")
+
+
 
     def setUp(self):
-        db.command('collMod', 'label_value_store', validationLevel = "off")
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
         self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
     def test_manipulating_columns(self):
@@ -464,10 +462,9 @@ class columnManipulation(TestCase):
 
 
 class formulaOperations(TestCase):
-    def tearDown(self):
-		db.command('collMod', 'label_value_store', validationLevel = "moderate")
+
+
     def setUp(self):
-        db.command('collMod', 'label_value_store', validationLevel = "off")
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
         self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
         formulaColumn = FormulaColumn.objects.create(mapping=json.dumps(["a", "b", "c"]), operation="sum", column_name="sum")
@@ -551,8 +548,8 @@ class formulaOperations(TestCase):
             self.assertEqual(a,'a')
 
 class QueryMaker(TestCase):
-    def tearDown(self):
-		db.command('collMod', 'label_value_store', validationLevel = "moderate")
+
+
     def test_blankQuery(self):
         self.assertEqual(makeQueryForHiddenRow([]),"{}")
     def test_queryEmpty(self):
@@ -614,30 +611,6 @@ class QueryMaker(TestCase):
             {
                 "logic" : "AND",
                 "operation": "eq",
-                "number":"1",
-                "conditional": ["a","b"],
-            },
-            {
-                "logic" : "OR",
-                "operation": "eq",
-                "number":"1",
-                "conditional": ["c","d"],
-            }
-        ]
-        # print makeQueryForHiddenRow(row_filter)
-        query = '{"a": {"$eq": "1"}, "$or": [{"c": {"$eq": "1"}}, {"d": {"$eq": "1"}}], "b": {"$eq": "1"}}'
-        self.assertEqual(json.loads(makeQueryForHiddenRow(row_filter)), json.loads(query))
-    def test_queryEqual(self):
-        row_filter = [
-            {
-                "logic" : "BLANKCHAR",
-                "operation": "",
-                "number":"",
-                "conditional": "---",
-            },
-            {
-                "logic" : "AND",
-                "operation": "eq",
                 "number":"0",
                 "conditional": ["a","b"],
             },
@@ -649,7 +622,7 @@ class QueryMaker(TestCase):
             }
         ]
         # print makeQueryForHiddenRow(row_filter)
-        query = '{"a": {"$in": ["0"]}, "$or": [{"c": {"$in": ["0"]}}, {"d": {"$in": ["0"]}}], "b": {"$in": ["0"]}}'
+        query = '{"a": {"$in": ["0", 0.0, 0]}, "$or": [{"c": {"$in": ["0", 0.0, 0]}}, {"d": {"$in": ["0", 0.0, 0]}}], "b": {"$in": ["0", 0.0, 0]}}'
         self.assertEqual(json.loads(makeQueryForHiddenRow(row_filter)), json.loads(query))
     def test_queryNotEqual(self):
         row_filter = [
@@ -673,7 +646,7 @@ class QueryMaker(TestCase):
             }
         ]
         # print makeQueryForHiddenRow(row_filter)
-        query = '{"a": {"$nin": ["-1"]}, "$or": [{"c": {"$nin": ["15"]}}, {"d": {"$nin": ["15"]}}], "b": {"$nin": ["-1"]}}'
+        query = '{"a": {"$nin": ["-1", -1.0, -1]}, "$or": [{"c": {"$nin": ["15", 15.0, 15]}}, {"d": {"$nin": ["15", 15.0, 15]}}], "b": {"$nin": ["-1", -1.0, -1]}}'
         self.assertEqual(json.loads(makeQueryForHiddenRow(row_filter)), json.loads(query))
     def test_queryColumnMultiple(self):
         row_filter = [
@@ -703,14 +676,10 @@ class QueryMaker(TestCase):
             }
         ]
         # print makeQueryForHiddenRow(row_filter)
-        query = '{"$or": [{"b": {"$nin": ["2", "3"]}}], "b": {"$nin": ["0", "1"]}}'
+        query = '{"$or": [{"b": {"$nin": ["2", 2.0, 2, "3", 3.0, 3]}}], "b": {"$nin": ["0", 0.0, 0, "1", 1, 1.0]}}'
         self.assertEqual(json.loads(makeQueryForHiddenRow(row_filter)), json.loads(query))
 
 class testDateNewest(TestCase):
-    def tearDown(self):
-		db.command('collMod', 'label_value_store', validationLevel = "moderate")
-    def setUp(self):
-        db.command('collMod', 'label_value_store', validationLevel = "off")
     def test_newestDate(self):
         lvs = LabelValueStore()
         now = datetime.today()
@@ -731,10 +700,7 @@ class testDateNewest(TestCase):
         LabelValueStore.objects.filter(silo_id="-100").delete()
 
 class test_saveDataToSilo(TestCase):
-    def tearDown(self):
-		db.command('collMod', 'label_value_store', validationLevel = "moderate")
     def setUp(self):
-        db.command('collMod', 'label_value_store', validationLevel = "off")
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
         self.read_type = ReadType.objects.create(read_type="Ona")
         self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
@@ -808,10 +774,7 @@ class test_saveDataToSilo(TestCase):
         LabelValueStore.objects.filter(a='cat', b='house').delete()
 
 class test_setSiloColumnType(TestCase):
-    def tearDown(self):
-		db.command('collMod', 'label_value_store', validationLevel = "moderate")
     def setUp(self):
-        db.command('collMod', 'label_value_store', validationLevel = "off")
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
         self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
     def test_setToInt(self):
