@@ -228,6 +228,8 @@ class FormulaColumn(TestCase):
         self.assertEqual(formula_column.mapping,'["a", "b", "c"]')
         self.assertEqual(formula_column.column_name,'sum')
         self.assertEqual(getSiloColumnNames(self.silo.pk),["sum"])
+        self.silo = Silo.objects.get(pk=self.silo.pk)
+        self.assertEqual(getColToTypeDict(self.silo).get('sum'),'float')
         try:
             lvs = LabelValueStore.objects.get(a="1", b="2", c="3", sum=6.0, read_id=-1, silo_id = self.silo.pk)
             lvs.delete()
@@ -272,9 +274,6 @@ class ColumnOrder(TestCase):
 
 class ColumnFilter(TestCase):
     url = "/edit_filter/"
-
-    def tearDown(self):
-        db.command('collMod', 'label_value_store', validationLevel = "moderate")
 
     def setUp(self):
         self.client = Client()

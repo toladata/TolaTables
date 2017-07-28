@@ -42,7 +42,7 @@
               </tr>
           {% endfor %}
         </table>
-        <input type="submit" value="Submit" class="btn btn-sm btn-primary">
+        <input type="submit" value="Submit" id="filter_form_submit" class="btn btn-sm btn-primary">
     </form>
 
     <!-- Modal -->
@@ -334,7 +334,7 @@
                     this.checked = false;
                 });
             });
-            $("#filterformglobal").submit(function(e){
+            $("#filter_form_submit").on('click', function(e){
                 e.preventDefault();
                 //hide_cols is just all checked boxes for the first part as JSON string
                 var hide_cols = [];
@@ -347,9 +347,24 @@
                 for (var i = 0; i < hide_rows.length; i++) {
                   delete hide_rows[i].row_id;
                 }
+                $('<input>').attr({
+                    type: 'hidden',
+                    id: 'hide_rows',
+                    name: 'hide_rows',
+                    value : JSON.stringify(hide_rows)
+                }).appendTo('#filterformglobal');
 
-                $.post("/edit_filter/{{silo.id}}/",{hide_cols: JSON.stringify(hide_cols), hide_rows: JSON.stringify(hide_rows)})
-                window.location.replace("/silo_detail/{{silo.id}}")
+                $('<input>').attr({
+                    type: 'hidden',
+                    id: 'hide_cols',
+                    name: 'hide_cols',
+                    value: JSON.stringify(hide_cols)
+                }).appendTo('#filterformglobal');
+
+
+                $("#filterformglobal").submit();
+                // $.post("/edit_filter/{{silo.id}}/",{hide_cols: JSON.stringify(hide_cols), hide_rows: JSON.stringify(hide_rows)})
+                // window.location.replace("/silo_detail/{{silo.id}}")
             });
 
         });

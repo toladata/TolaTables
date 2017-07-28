@@ -1392,7 +1392,7 @@ def newFormulaColumn(request, pk):
                                                 column_name=column_name)
         fcm.save()
         silo.formulacolumns.add(fcm)
-        addColsToSilo(silo,[column_name])
+        addColsToSilo(silo,[column_name], {column_name : 'float'})
         silo.save()
 
         return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
@@ -1436,7 +1436,6 @@ def addColumnFilter(request, pk):
         silo = Silo.objects.get(pk=pk)
 
         silo.hidden_columns = hide_cols
-
         silo.rows_to_hide = hide_rows
 
         silo.save()

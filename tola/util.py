@@ -253,7 +253,7 @@ def getCompleteSiloColumnNames(id):
     silo = Silo.objects.get(pk=id)
     return [x.get('name') for x in json.loads(silo.columns)]
 
-def addColsToSilo(silo, columns):
+def addColsToSilo(silo, columns, col_types = {}):
     """
     This adds columns to a silo object while preserving order in O(n)
 
@@ -266,7 +266,7 @@ def addColsToSilo(silo, columns):
         raise ValueError('Duplicate columns are not allowed')
     silo_cols = json.loads(silo.columns)
     silo_cols_set = set([x['name'] for x in silo_cols]) #this is done to decrease lookup time from n to 1
-    silo_cols.extend([{'name' : x, 'type' : 'string'} for x in columns if x not in silo_cols_set])
+    silo_cols.extend([{'name' : x, 'type' : col_types.get(x, 'string')} for x in columns if x not in silo_cols_set])
     silo.columns = json.dumps(silo_cols)
     silo.save()
 

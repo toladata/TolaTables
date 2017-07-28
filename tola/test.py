@@ -811,9 +811,3 @@ class test_setSiloColumnType(TestCase):
             pass
         lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
         self.assertTrue({'name' : 'a', 'type' : 'int'} in json.loads(self.silo.columns))
-
-        db.command(
-            'collMod',
-            'label_value_store',
-            validationLevel = "off"
-        )
