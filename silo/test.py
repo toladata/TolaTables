@@ -75,6 +75,8 @@ class SiloTest(TestCase):
     upload_csv_url = "/file/"
     silo_detail_url = "/silo_detail/"
 
+
+
     def setUp(self):
         self.client = Client()
         self.factory = RequestFactory()
@@ -181,6 +183,7 @@ class SiloTest(TestCase):
 class FormulaColumn(TestCase):
     new_formula_columh_url = "/new_formula_column/"
 
+
     def setUp(self):
         self.client = Client()
         self.factory = RequestFactory()
@@ -270,6 +273,10 @@ class ColumnOrder(TestCase):
 
 class ColumnFilter(TestCase):
     url = "/edit_filter/"
+
+    def tearDown(self):
+        db.command('collMod', 'label_value_store', validationLevel = "moderate")
+
     def setUp(self):
         self.client = Client()
         self.factory = RequestFactory()
@@ -497,16 +504,17 @@ class parseCommCareDataTest(TestCase):
     def test_delete_silo(self):
         pass
 """
+"""
 from django.test import Client
 from django.conf import settings
 
 class Microsoft(TestCase):
 
     def test_social_auth(self):
-        """
+
         Test social auth login with Microsoft online
         :return: 
-        """
+
         driver = Client()
         response = driver.get('/login/microsoft-graph', follow=True)
         #print(response.redirect_chain, response.status_code)
@@ -527,5 +535,55 @@ class Microsoft(TestCase):
         self.assertEqual(redir_options['client_id'], str(getattr(settings, 'SOCIAL_AUTH_MICROSOFT_OAUTH2_KEY', None)))
         self.assertTrue('state' in redir_options)
         self.assertTrue('response_type' in redir_options)
+            except LabelValueStore.DoesNotExist as e:
+                self.assert_(False)
+            LabelValueStore.objects.filter(read_id=-97, silo_id = -87).delete()
+        except LabelValueStore.MultipleObjectsReturned as e:
+            LabelValueStore.objects.filter(read_id=-97, silo_id = -87).delete()
+            #if this happens run the test again and it should work
+            self.assert_(False)
 
 
+class Test_ImportJson(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
+        self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
+        self.read_type = ReadType.objects.create(read_type="Ona")
+        self.read = Read.objects.create(read_name="test_read1", owner = self.user, type=self.read_type, read_url='http://mysafeinfo.com/api/data?list=englishmonarchs&format=json')
+        self.client.login(username='joe', password='tola123')
+    def test_JSONImport(self):
+        data_correct = json.loads('[{"nm":"Edmund lronside","cty":"United Kingdom","hse":"House of Wessex","yrs":"1016"},{"nm":"Cnut","cty":"United Kingdom","hse":"House of Denmark","yrs":"1016-1035"},{"nm":"Harold I Harefoot","cty":"United Kingdom","hse":"House of Denmark","yrs":"1035-1040"},{"nm":"Harthacanut","cty":"United Kingdom","hse":"House of Denmark","yrs":"1040-1042"},{"nm":"Edward the Confessor","cty":"United Kingdom","hse":"House of Wessex","yrs":"1042-1066"},{"nm":"Harold II","cty":"United Kingdom","hse":"House of Wessex","yrs":"1066"},{"nm":"William I","cty":"United Kingdom","hse":"House of Normandy","yrs":"1066-1087"},{"nm":"William II","cty":"United Kingdom","hse":"House of Normandy","yrs":"1087-1100"},{"nm":"Henry I","cty":"United Kingdom","hse":"House of Normandy","yrs":"1100-1135"},{"nm":"Stephen","cty":"United Kingdom","hse":"House of Blois","yrs":"1135-1154"},{"nm":"Henry II","cty":"United Kingdom","hse":"House of Angevin","yrs":"1154-1189"},{"nm":"Richard I","cty":"United Kingdom","hse":"House of Angevin","yrs":"1189-1199"},{"nm":"John","cty":"United Kingdom","hse":"House of Angevin","yrs":"1199-1216"},{"nm":"Henry III","cty":"United Kingdom","hse":"House of Plantagenet","yrs":"1216-1272"},{"nm":"Edward I","cty":"United Kingdom","hse":"House of Plantagenet","yrs":"1272-1307"},{"nm":"Edward II","cty":"United Kingdom","hse":"House of Plantagenet","yrs":"1307-1327"},{"nm":"Edward III","cty":"United Kingdom","hse":"House of Plantagenet","yrs":"1327-1377"},{"nm":"Richard II","cty":"United Kingdom","hse":"House of Plantagenet","yrs":"1377-1399"},{"nm":"Henry IV","cty":"United Kingdom","hse":"House of Lancaster","yrs":"1399-1413"},{"nm":"Henry V","cty":"United Kingdom","hse":"House of Lancaster","yrs":"1413-1422"},{"nm":"Henry VI","cty":"United Kingdom","hse":"House of Lancaster","yrs":"1422-1461"},{"nm":"Edward IV","cty":"United Kingdom","hse":"House of York","yrs":"1461-1483"},{"nm":"Edward V","cty":"United Kingdom","hse":"House of York","yrs":"1483"},{"nm":"Richard III","cty":"United Kingdom","hse":"House of York","yrs":"1483-1485"},{"nm":"Henry VII","cty":"United Kingdom","hse":"House of Tudor","yrs":"1485-1509"},{"nm":"Henry VIII","cty":"United Kingdom","hse":"House of Tudor","yrs":"1509-1547"},{"nm":"Edward VI","cty":"United Kingdom","hse":"House of Tudor","yrs":"1547-1553"},{"nm":"Mary I","cty":"United Kingdom","hse":"House of Tudor","yrs":"1553-1558"},{"nm":"Elizabeth I","cty":"United Kingdom","hse":"House of Tudor","yrs":"1558-1603"},{"nm":"James I","cty":"United Kingdom","hse":"House of Stuart","yrs":"1603-1625"},{"nm":"Charles I","cty":"United Kingdom","hse":"House of Stuart","yrs":"1625-1649"},{"nm":"Commonwealth","cty":"United Kingdom","hse":"Commonwealth","yrs":"1649-1653"},{"nm":"Oliver Cromwell","cty":"United Kingdom","hse":"Commonwealth","yrs":"1653-1658"},{"nm":"Richard Cromwell","cty":"United Kingdom","hse":"Commonwealth","yrs":"1658-1659"},{"nm":"Charles II","cty":"United Kingdom","hse":"House of Stuart","yrs":"1660-1685"},{"nm":"James II","cty":"United Kingdom","hse":"House of Stuart","yrs":"1685-1688"},{"nm":"William III","cty":"United Kingdom","hse":"House of Orange","yrs":"1689-1694"},{"nm":"Anne","cty":"United Kingdom","hse":"House of Stuart","yrs":"1702-1714"},{"nm":"George I","cty":"United Kingdom","hse":"House of Hanover","yrs":"1714-1727"},{"nm":"George II","cty":"United Kingdom","hse":"House of Hanover","yrs":"1727-1760"},{"nm":"George III","cty":"United Kingdom","hse":"House of Hanover","yrs":"1760-1820"},{"nm":"George IV","cty":"United Kingdom","hse":"House of Hanover","yrs":"1820-1830"},{"nm":"William IV","cty":"United Kingdom","hse":"House of Hanover","yrs":"1830-1837"},{"nm":"Victoria","cty":"United Kingdom","hse":"House of Hanover","yrs":"1837-1901"},{"nm":"Edward VII","cty":"United Kingdom","hse":"House of Saxe-Coburg-Gotha","yrs":"1901-1910"},{"nm":"George V","cty":"United Kingdom","hse":"House of Windsor","yrs":"1910-1936"},{"nm":"Edward VIII","cty":"United Kingdom","hse":"House of Windsor","yrs":"1936"},{"nm":"George VI","cty":"United Kingdom","hse":"House of Windsor","yrs":"1936-1952"},{"nm":"Elizabeth II","cty":"United Kingdom","hse":"House of Windsor","yrs":"1952-"},{"nm":"Edward the Elder","cty":"United Kingdom","hse":"House of Wessex","yrs":"899-925"},{"nm":"Athelstan","cty":"United Kingdom","hse":"House of Wessex","yrs":"925-940"},{"nm":"Edmund","cty":"United Kingdom","hse":"House of Wessex","yrs":"940-946"},{"nm":"Edred","cty":"United Kingdom","hse":"House of Wessex","yrs":"946-955"},{"nm":"Edwy","cty":"United Kingdom","hse":"House of Wessex","yrs":"955-959"},{"nm":"Edgar","cty":"United Kingdom","hse":"House of Wessex","yrs":"959-975"},{"nm":"Edward the Martyr","cty":"United Kingdom","hse":"House of Wessex","yrs":"975-978"},{"nm":"Ethelred II the Unready","cty":"United Kingdom","hse":"House of Wessex","yrs":"978-1016"}]')
+        response = self.client.post("/json", data={'read_id' : self.read.id, 'silo_id' : self.silo.id})
+        self.assertEqual(response.status_code,302)
+
+        for row in data_correct:
+            try:
+                lvs = LabelValueStore.objects.get(silo_id=self.silo.id, read_id = self.read.id, **row)
+                lvs.delete()
+            except Exception as e:
+                print e
+                print row
+                LabelValueStore.objects.filter(silo_id=self.silo.id, read_id = self.read.id).delete()
+                self.assertTrue(False)
+
+
+class Test_DeleteSilo(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
+        self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
+        self.read_type = ReadType.objects.create(read_type="Ona")
+        self.read = Read.objects.create(read_name="test_read1", owner = self.user, type=self.read_type, read_url='http://mysafeinfo.com/api/data?list=englishmonarchs&format=json')
+        self.silo.reads.add(self.read)
+        self.client.login(username='joe', password='tola123')
+    def test_deleteAuto(self):
+        silo_id = self.silo.id
+        read_id = self.read.id
+        response = self.client.post("/silo_delete/%i/" % silo_id)
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Silo.objects.filter(pk=silo_id).exists())
+        self.assertFalse(Read.objects.filter(pk=read_id).exists())
+        self.assertTrue(DeletedSilos.objects.filter(silo_name_id="test_silo1 with id %i" % silo_id).exists())
+
+"""

@@ -95,6 +95,7 @@ urlpatterns =[
     url(r'^edit_columns/(?P<id>\w+)/$', views.editColumns, name='editColumns'),
     url(r'^delete_column/(?P<id>\w+)/(?P<column>\w+)/$', views.deleteColumn, name='deleteColumn'),
     url(r'^edit_column_order/(?P<pk>\w+)/$', views.editColumnOrder, name='editColumnOrder'),
+    url(r'^set_column_type/(?P<pk>\w+)/$', views.setColumnType, name='setColumnType'),
 
 
     url(r'^export_to_activity/(?P<id>\d+)/$', tola_activity_views.export_to_tola_activity, name="acitivity_push"),
@@ -112,6 +113,8 @@ urlpatterns =[
 
     url(r'^accounts/profile/$', tola_views.profile, name='profile'),
     url(r'^board/$', tola_views.BoardView.as_view(), name='board'),
+
+    url(r'^renew_auto/(?P<read_pk>\d+)/(?P<operation>(pull|push))/$', views.renewAutoJobs, name='renewsAutoJobs'),
 
     #Auth backend URL's
     url('', include('django.contrib.auth.urls', namespace='auth')),

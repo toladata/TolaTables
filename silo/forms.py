@@ -7,6 +7,10 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Div, Submit, Reset, HTML, Button, Row, Field, Hidden
 from crispy_forms.bootstrap import FormActions
 from django.forms.formsets import formset_factory
+from collections import OrderedDict
+
+from tola.util import getColToTypeDict
+from silo.models import Silo
 
 
 class OnaLoginForm(forms.Form):
@@ -130,6 +134,7 @@ class MongoEditForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         extra = kwargs.pop("extra")
+        silo_pk = kwargs.pop('silo_pk')
         self.helper = FormHelper()
         self.helper.form_class = 'form-horizontal'
         self.helper.label_class = 'col-sm-5'
@@ -138,8 +143,17 @@ class MongoEditForm(forms.Form):
         self.helper.form_tag = False
         super(MongoEditForm, self).__init__(*args, **kwargs)
 
+        extra = OrderedDict(sorted(extra.iteritems()))
+        column_types = getColToTypeDict(Silo.objects.get(pk=silo_pk))
+
         for item in extra:
             if item == "edit_date" or item == "create_date":
                 self.fields[item] = forms.CharField(label = item, initial=extra[item], required=False, widget=forms.TextInput(attrs={'readonly': "readonly"}))
-            elif item != "_id" and item != "silo_id":
-                self.fields[item] = forms.CharField(label = item, initial=extra[item], required=False)
+            elif item != "_id" and item != "silo_id" and item!= "read_id":
+                column_type = column_types.get(item,'string')
+                if column_type=='string':
+                    self.fields[item] = forms.CharField(label = item, initial=extra[item], required=False)
+                elif column_type=='int':
+                    self.fields[item] = forms.IntegerField(label = item, initial=extra[item], required=False)
+                elif column_type=='double':
+                    self.fields[item] = forms.FloatField(label = item, initial=extra[item], required=False)

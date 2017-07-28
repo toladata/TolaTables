@@ -44,7 +44,7 @@ from gviews_v4 import import_from_gsheet_helper
 from tola.util import importJSON, saveDataToSilo, getSiloColumnNames,\
                         parseMathInstruction, calculateFormulaColumn, makeQueryForHiddenRow,\
                         getNewestDataDate, addColsToSilo, deleteSiloColumns, hideSiloColumns, \
-                        getCompleteSiloColumnNames
+                        getCompleteSiloColumnNames, setSiloColumnType, getColToTypeDict
 
 
 
@@ -73,7 +73,6 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
     rsid: Right Silo ID
     msid: Merge Silo ID
     """
-    print mapping_data
     mappings = json.loads(mapping_data)
 
     l_unmapped_cols = mappings.pop('left_unmapped_cols')
@@ -561,8 +560,16 @@ def deleteSilo(request, id):
                                             silo_description=silo_to_be_deleted.description)
             lvs = LabelValueStore.objects(silo_id=silo_to_be_deleted.id)
             num_rows_deleted = lvs.delete()
+
+            #look through each of the reads and delete them if this was their only silo
+            reads = silo_to_be_deleted.reads.all()
+            for read in reads:
+                if Silo.objects.filter(reads__pk=read.id).count() == 1:
+                    read.delete()
+
             silo_to_be_deleted.delete()
             messages.success(request, "Silo, %s, with all of its %s rows of data deleted successfully." % (silo_name, num_rows_deleted))
+
         except Silo.DoesNotExist as e:
             print(e)
         #except Exception as es:
@@ -580,7 +587,7 @@ def showRead(request, id):
     """
     Show a read data source and allow user to edit it
     """
-    excluded_fields = ['gsheet_id', 'resource_id', 'token', 'create_date', 'edit_date', 'token']
+    excluded_fields = ['gsheet_id', 'resource_id', 'token', 'create_date', 'edit_date', 'token', 'autopush_expiration', 'autopull_expiration']
     initial = {'owner': request.user}
     data = None
     access_token = None
@@ -635,6 +642,11 @@ def showRead(request, id):
                 basic_auth = base64.encodestring('%s:%s' % (read.username, read.password))[:-1]
                 read.token = basic_auth
                 read.password = None
+            if form.instance.autopull_frequency:
+                read.autopull_expiration = datetime.datetime.now() + datetime.timedelta(days=170)
+            if form.instance.autopush_frequency:
+                read.autopush_expiration = datetime.datetime.now() + datetime.timedelta(days=170)
+
             read.save()
             if form.instance.type.read_type == "CSV":
                 return HttpResponseRedirect("/file/" + str(read.id) + "/")
@@ -866,6 +878,7 @@ def addUniqueFiledsToSilo(request):
             for col in unique_cols:
                 unique_field = UniqueFields(name=col, silo=silo)
                 unique_field.save()
+                db.label_value_store.create_index(col, partialFilterExpression = {'silo_id' : silo.id})
             if not unique_cols:
                 silo.unique_fields.all().delete()
             return HttpResponse("Unique Fields saved")
@@ -899,6 +912,7 @@ def siloDetail(request, silo_id):
 
     silo = Silo.objects.get(pk=silo_id)
     cols = []
+    col_types = getColToTypeDict(silo)
     data = []
     query = makeQueryForHiddenRow(json.loads(silo.rows_to_hide))
 
@@ -907,7 +921,7 @@ def siloDetail(request, silo_id):
         cols.extend(getSiloColumnNames(silo_id))
     else:
         messages.warning(request,"You do not have permission to view this table.")
-    return render(request, "display/silo.html", {"silo": silo, "cols": cols, "query": query})
+    return render(request, "display/silo.html", {"silo": silo, "cols": cols, "query": query, "col_types" : col_types})
 
 
 @login_required
@@ -990,33 +1004,8 @@ def updateSiloData(request, pk):
             for msg in msgs:
                 messages.add_message(request, msg[0], msg[1])
 
-            #find any duplicate objects that do not contain a read_id and delete them
-            #legacy objects will not have a read_id
+            #delete legacy objects
             lvss = LabelValueStore.objects(silo_id=silo.pk,__raw__={ "$or" : [{"read_id" : {"$not" : { "$exists" : "true" }}}, {"read_id" : {"$in" : [-1,""]} } ]})
-            for lvs in lvss:
-                filter_criteria = {}
-                for key in lvs:
-                    if key !="id" and key !="read_id" and key!="create_date" and key!="edit_date":
-                        try:
-                            filter_criteria.update({key:lvs[key]})
-                        except KeyError:
-                            pass
-                        except ValueError:
-                            pass
-                try:
-                    #this will delete anything without a read_id that has a new dup
-                    dups = LabelValueStore.objects(**filter_criteria)
-                    if len(dups) == 2:
-                        try:
-                            dups = LabelValueStore.objects.get(__raw__={ "$or" : [{"read_id" : {"$not" : { "$exists" : "true" }}}, {"read_id" : {"$in" : [-1,""]} } ]},**filter_criteria)
-                            dups.delete()
-                        except LabelValueStore.MultipleObjectsReturned as e:
-                            dups = LabelValueStore.objects.filter(__raw__={ "$or" : [{"read_id" : {"$not" : { "$exists" : "true" }}}, {"read_id" : {"$in" : [-1,""]} } ]},**filter_criteria).first()
-                            dups.first().delete()
-                        except Exception as e:
-                            pass
-                except Exception as e:
-                    pass
 
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
 
@@ -1041,7 +1030,9 @@ def importDataFromRead(request, silo, read):
     elif read.type.read_type == "GSheet Import":
         #as the google sheet import already performs the update functionality so when its time to input the data again google spreadsheet update will be called
         return (None,2,None)
-
+    elif read.type.read_type == "Google Spreadsheet":
+        #as the google sheet import already performs the update functionality so when its time to input the data again google spreadsheet update will be called
+        return (None,2,None)
     elif read.type.read_type == "CommCare":
         commcare_token = None
         try:
@@ -1101,7 +1092,6 @@ def importDataFromRead(request, silo, read):
         #now mass update all the data in the database
 
         columns = list(columns)
-        addExtraFields.delay(columns, silo.id)
         addColsToSilo(silo, columns)
         hideSiloColumns(silo, columns)
 
@@ -1320,30 +1310,34 @@ def valueEdit(request,id):
                 k = Truncator(re.sub('\s+', ' ', k).strip()).chars(40)
                 data[k] = v
     if request.method == 'POST': # If the form has been submitted...
-        form = MongoEditForm(request.POST or None, extra = data) # A form bound to the POST data
+        form = MongoEditForm(request.POST or None, extra = data, silo_pk=silo_id) # A form bound to the POST data
         if form.is_valid():
             lvs = LabelValueStore.objects(id=id)[0]
             for lbl, val in form.cleaned_data.iteritems():
                 if lbl != "id" and lbl != "silo_id" and lbl != "csrfmiddlewaretoken":
                     setattr(lvs, lbl, val)
             lvs.edit_date = timezone.now()
-            formula_columns = silo.formulacolumns.all()
-            for column in formula_columns:
-                calculation_to_do = parseMathInstruction(column.operation)
-                columns_to_calculate_from = json.loads(column.mapping)
-                numbers = []
-                try:
-                    for col in columns_to_calculate_from:
-                        numbers.append(int(lvs[col]))
-                    setattr(lvs,column.column_name,calculation_to_do(numbers))
-                except ValueError as operation:
-                    setattr(lvs,column.column_name,calculation_to_do("Error"))
+            try:
+                silo = Silo.objects.get(pk=silo_id)
+                formula_columns = silo.formulacolumns.all()
+                for column in formula_columns:
+                    calculation_to_do = parseMathInstruction(column.operation)
+                    columns_to_calculate_from = json.loads(column.mapping)
+                    numbers = []
+                    try:
+                        for col in columns_to_calculate_from:
+                            numbers.append(int(lvs[col]))
+                        setattr(lvs,column.column_name,calculation_to_do(numbers))
+                    except ValueError as operation:
+                        setattr(lvs,column.column_name,calculation_to_do("Error"))
+            except Exception as e:
+                messages.warning(request, "Data format error prevented tola tables from applying formula column to your data")
             lvs.save()
             return HttpResponseRedirect('/silo_detail/' + str(silo_id))
         else:
             print "not valid"
     else:
-        form = MongoEditForm(initial={'silo_id': silo_id, 'id': id}, extra=data)
+        form = MongoEditForm(initial={'silo_id': silo_id, 'id': id}, extra=data, silo_pk=silo_id)
 
     return render(request, 'read/edit_value.html', {'form': form, 'silo_id': silo_id})
 
@@ -1515,12 +1509,16 @@ def newFormulaColumn(request, pk):
 def editColumnOrder(request, pk):
     if request.method == 'POST':
         try:
-            #this is not done using utility functions since it is a comlete replacement
+            #this is not done using utility functions since it is a complete replacement
             silo = Silo.objects.get(pk=pk)
+            cols = []
             cols_list = request.POST.getlist("columns")
+            col_types = getColToTypeDict(silo)
+            for col in cols_list:
+                cols.append({'name' : col, 'type': col_types.get(col,'string')})
             visible_cols_set = set(cols_list)
-            cols_list.extend([x for x in json.loads(silo.columns) if x not in visible_cols_set])
-            silo.columns = json.dumps(cols_list)
+            cols.extend([x for x in json.loads(silo.columns) if x['name'] not in visible_cols_set])
+            silo.columns = json.dumps(cols)
             silo.save()
 
         except Silo.DoesNotExist as e:
@@ -1578,3 +1576,36 @@ def export_silo_form(request, id):
 
     cols.sort()
     return render(request, "display/export_form.html", {'silo':silo,'cols': cols, 'shown_cols': shown_cols, 'hidden_rows': hidden_rows})
+@login_required
+def renewAutoJobs(request, read_pk, operation):
+    read = Read.objects.get(pk=read_pk)
+    if request.user != read.owner:
+        #return not owner of import page
+        return render(request, "display/read_renew.html", {'message' : 'You must be the owner of the import to renew it'})
+
+    # when go to this url change the read expiration date to 170 days from now
+    if operation == "pull" and read.autopull_frequency and (read.autopull_frequency == 'weekly' or read.autopull_frequency == 'daily'):
+        read.autopull_expiration = datetime.datetime.now() + datetime.timedelta(days=170)
+    elif operation == "push" and read.autopush_frequency and (read.autopush_frequency == 'weekly' or read.autopush_frequency == 'daily'):
+        read.autopush_expiration = datetime.datetime.now() + datetime.timedelta(days=170)
+    else:
+        return render(request, "display/renew_read.html", {'message' : 'Error, auto%s renewal of %s is not a valid operation' % (operation, read.read_name)})
+    read.save()
+
+    return render(request, "display/renew_read.html", {'message' : 'Success, your renewal of %s auto%s was successful' % (read.read_name, operation)})
+
+@login_required
+def setColumnType(request, pk):
+    #should only deal with post request since this will operate with a modal
+    if request.method != 'POST':
+        messages.error(request, '%s request is invalid' % request.method)
+        return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk}))
+
+    silo = Silo.objects.get(pk=pk)
+    column = request.POST.get('column_for_type')
+    col_type = request.POST.get('column_type')
+
+    msg = setSiloColumnType(int(pk), column, col_type)
+    messages.add_message(request, msg[0], msg[1])
+
+    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))

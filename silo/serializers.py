@@ -45,7 +45,7 @@ class ReadSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Read
-        fields = ('pk', 'owner', 'type', 'read_name', 'read_url', 'autopull_frequency', 'autopush_frequency')
+        fields = ('pk', 'owner', 'type', 'read_name', 'read_url', 'autopull_frequency', 'autopush_frequency', 'autopull_expiration', 'autopush_expiration')
 
 
 class ReadTypeSerializer(serializers.HyperlinkedModelSerializer):

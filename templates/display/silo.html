@@ -62,7 +62,7 @@
 
                             <a href="/silo_delete/{{ silo.pk }}" class="btn btn-del btn-sm btn-danger" title="Are you sure you want to delete this table? All of the data stored in this table will also be deleted."><span class="glyphicon glyphicon-trash" title="Delete"></span> Delete Table</a>
                             <a href="/edit_column_order/{{silo.pk}}" class="btn btn-primary">Edit Column Order</a>
-
+                            <a href="/edit_filter/{{ silo.pk }}/" class="btn btn-primary"> Filter Data</a>
                             <a href="/set_unique_columns/{{ id }}/" id="unique_cols_selection_btn" class="btn btn-primary"> Assign a Unique Column</a>
                             <span class="label label-info" id="unique_col_lbl"></span>
                         </li>
@@ -162,7 +162,7 @@
                             <a href="/edit_columns/{{ silo.pk }}/" class="btn btn-primary">Edit or Delete columns</a>
                             <a href="/new_column/{{ silo.pk }}/" class="btn btn-primary">Add New Column</a>
                             <a href="/new_formula_column/{{ silo.pk }}/" class="btn btn-primary">Add New Formula Column</a>
-                            <a href="/edit_filter/{{ silo.pk }}/" class="btn btn-primary">Add Filters</a>
+                            <button id="setColumnType" class="btn btn-primary" data-toggle="tooltip">Add Column Validation</button>
 
                         <!--
                         <a href="/anonymize_silo/{{ id }}/" class="btn btn-primary">Anonymize Table</a>
@@ -277,6 +277,41 @@
     </div>
 </div>
 
+<div class="modal fade" id="column_type_modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+
+            <div class="modal-header">
+                Give a column a type
+            </div>
+
+            <div class="modal-body">
+              <form id="column_type_form" action="/set_column_type/{{silo.pk}}/" method="post">
+                {% csrf_token %}
+                Column:
+                <select name="column_for_type">
+                  {% for col in cols %}
+                      {% if col != '_id'%}
+                        <option value="{{col}}">{{col}}</option>
+                      {% endif %}
+                  {% endfor for %}
+                </select>
+                should be a:
+                <!-- Can add support for more options later -->
+                <select name="column_type">
+                    <option value="int">integer</option>
+                    <option value="double">float</option>
+                    <option value="string">string</option>
+                </select>
+                <br><br>
+                <input type="submit" value="Submit" class="btn btn-sm btn-primary">
+              </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock content %}
 
 
@@ -379,13 +414,22 @@
                                   return Object.values(data);
                                 }
                             } else {
-                                return data;
+                              if (data == undefined) {
+                                  return ""
+                              }
+                              return data;
                             }
                         }
 
                     });
                 }
             });
+
+            // Add types to each column
+            $("#data_table").find("th").each(function(){
+               $(this).after("hi")
+            });
+
 
             var silo_table = $('#data_table').DataTable({
                 "processing": true,
@@ -518,6 +562,11 @@
             });
             */
 
+            $('#setColumnType').on('click', function(e){
+                e.preventDefault();
+                $('#column_type_modal').modal('toggle');
+            });
+
 
             $("#table_tabs li a").click(function(e){
                 e.preventDefault();
@@ -535,6 +584,9 @@
             $(".tab-content").on("change", "#autopull_frequency, #autopush_frequency", function(e){
                 var data = {};
                 data[$(this).attr('name')] = this.value;
+                var expiration_date = new Date();
+                expiration_date.setMonth(expiration_date.getMonth() + 6);
+                data[$(this).attr('name').substring(0, 9) + "expiration"] = expiration_date.toISOString();
                 var api_url = '/api/read/' + $(this).data("readId");
                 $.ajax({
                     url: api_url,

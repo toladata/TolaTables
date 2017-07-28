@@ -271,6 +271,8 @@ class Read(models.Model):
     file_data = models.FileField("Upload CSV File", upload_to='uploads', blank=True, null=True)
     autopull_frequency = models.CharField(max_length=25, choices=FREQUENCY_CHOICES, null=True, blank=True)
     autopush_frequency = models.CharField(max_length=25, choices=FREQUENCY_CHOICES, null=True, blank=True)
+    autopull_expiration = models.DateTimeField(null=True, blank=True)
+    autopush_expiration = models.DateTimeField(null=True, blank=True)
     create_date = models.DateTimeField(null=True, blank=True, auto_now=False, auto_now_add=True)
     edit_date = models.DateTimeField(null=True, blank=True, auto_now=True, auto_now_add=False)
 
@@ -323,7 +325,9 @@ class Silo(models.Model):
     create_date = models.DateTimeField(null=True, blank=True)
 
     formulacolumns = models.ManyToManyField(FormulaColumn, related_name='silos', blank=True)
-    columns = models.TextField(default = "[]") #stores a json string
+    columns = models.TextField(default = "[]") #stores a json string of json objects
+    # json objects stores in the format of  {'name' : <col_name>, 'type' : <col_type>}
+
     hidden_columns = models.TextField(default = "[]") #stores a Json string
     rows_to_hide = models.TextField(default = "[]")
     #Format of hidden rows:
@@ -425,12 +429,3 @@ class LabelValueStore(DynamicDocument):
     read_id = IntField(default=-1)
     create_date = DateTimeField(help_text='date created')
     edit_date = DateTimeField(help_text='date editted')
-
-class ColumnType(Document):
-    silo_id = IntField(required = True)
-    read_id = IntField(required = True)
-    create_date = DateTimeField(help_text='date created', required = True)
-    edit_date = DateTimeField(help_text='date editted')
-    column_name = StringField(required = True)
-    column_source_name = StringField(required = True)
-    column_type = StringField(required = True)

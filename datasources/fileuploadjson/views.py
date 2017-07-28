@@ -61,15 +61,15 @@ def file(request, id):
                 silo.save()
             else:
                 silo = Silo.objects.get(id = request.POST["silo_id"])
-            try:
-                silo.reads.add(read_obj)
-                silo_id = silo.id
-                data = json.load(read_obj.file_data)
-                saveDataToSilo(silo, data, read_obj)
-                return HttpResponseRedirect('/silo_detail/%s/' % silo_id)
-            except Exception as e:
-                messages.error(request, "Your JSON file was formatted incorrectly")
-                return HttpResponseRedirect('/fileuploadjson')
+            # try:
+            silo.reads.add(read_obj)
+            silo_id = silo.id
+            data = json.load(read_obj.file_data)
+            saveDataToSilo(silo, data, read_obj)
+            return HttpResponseRedirect('/silo_detail/%s/' % silo_id)
+            # except Exception as e:
+            #     messages.error(request, "Your JSON file was formatted incorrectly")
+            #     return HttpResponseRedirect('/fileuploadjson')
         else:
             messages.error(request, "There was a problem with reading the contents of your file" + form.errors)
 
