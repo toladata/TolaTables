@@ -514,7 +514,7 @@ def getOnaForms(request):
             elif response.status_code == 200:
                 auth_success = True
                 token = json.loads(response.content)['api_token']
-                ona_token, created = ThirdPartyTokens.objects.get_or_create(user=request.POST['username'], name=provider, token=token)
+                ona_token, created = ThirdPartyTokens.objects.get_or_create(user=request.user, name=provider, token=token)
                 if created: ona_token.save()
             else:
                 messages.error(request, "A %s error has occured: %s " % (response.status_code, response.text))
