@@ -88,7 +88,7 @@ def parseMathInstruction(operation):
 #     return parsed_data
 
 
-def saveDataToSilo(silo, data, read = -1, user = None):
+def saveDataToSilo(silo, data, read=-1, user=None):
     """
     This saves data to the silo
 
@@ -98,13 +98,15 @@ def saveDataToSilo(silo, data, read = -1, user = None):
     read -- the read object, optional only for backwards compatability
     user -- an optional parameter to use if its necessary to retrieve from ThirdPartyTokens
     """
-
+    print read
+    print read.type.read_type
+    print read.id
     try:
         if read.type.read_type == "ONA" and user:
             saveOnaDataToSilo(silo,data,read,user)
         read_source_id = read.id
     except AttributeError as e:
-        read_source_id = read
+        read_source_id = read.id
 
     unique_fields = silo.unique_fields.all()
     skipped_rows = set()
@@ -170,8 +172,14 @@ def saveDataToSilo(silo, data, read = -1, user = None):
                     # skip this one
                     # add message that this is skipped
                     continue
-            key = key.replace(".", "_").replace("$", "USD").replace(u'\u2026', "")
-            val = " ".join(val.split())
+            if key is None:
+                key = 0
+            elif type(key) is tuple:
+                key = str(key)
+                key = key.replace(".", "_").replace("$", "USD").replace(u'\u2026', "")
+            else:
+                key = key.replace(".", "_").replace("$", "USD").replace(u'\u2026', "")
+
             keys.add(key)
             setattr(lvs, key, val)
             counter += 1
@@ -371,7 +379,9 @@ def ona_parse_type_group(data, form_data, parent_name, silo, read):
                                         parent_name + field['name']+"/",silo,read)
                 if 'label' in field:
                     try:
-                        entry[field['label']] = entry.pop(parent_name + field['name'])
+                        key = frozenset(field['label'].items())
+                        for x in key:
+                            entry[x] = entry.pop(parent_name + field['name'])
                     except KeyError as e:
                         pass
 
