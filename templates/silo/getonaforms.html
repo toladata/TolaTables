@@ -1,16 +1,21 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 
-{% block page_title %}ONA Forms{% endblock %}
+{% block page_title %}Ona Forms{% endblock %}
 
 {% block content %}
 
     {% if not data %}
-        <img src="{{ STATIC_URL }}/img/onadata_logo_white.png">
+        <img src="{{ STATIC_URL }}/img/Ona-Logo.png" style="padding: 5px; width: 150px">
         <p>Login to your Ona account:</p>
-        {% crispy form %}
+        {% if not has_data %}
+            {% crispy form %}
+        {% else %}
+            {% crispy form %}
+            <p>If you do not see a login form, please ensure that you have Forms or Data <br/> associated with your account at Ona, then try logging in again.</p>
+        {% endif %}
     {% else %}
-        <p>List of forms from Ona.  Forms that have been imported are associated with a table. You can also <a href="/provider_logout/ona/">Logout</a> of this Ona users forms and <a href="/provider_logout/ona/">log in to another Ona account here</a>.</p>
+        <p>List of forms from Ona.  Forms that have been imported are associated with a table. You can also <a href="/provider_logout/ONA/">Logout</a> of this Ona users forms and <a href="/provider_logout/ONA/">log in to another Ona account here</a>.</p>
         <table id="onaforms" class="table table-bordered table-hover table-striped">
             <tr>
                 <th>No</th>

@@ -47,7 +47,6 @@ from tola.util import importJSON, saveDataToSilo, getSiloColumnNames,\
                         getCompleteSiloColumnNames, setSiloColumnType, getColToTypeDict
 
 
-
 from commcare.tasks import fetchCommCareData
 
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeletedSilos, FormulaColumn
@@ -503,6 +502,7 @@ def getOnaForms(request):
     ona_token = None
     form = None
     provider = "ONA"
+    has_data = False
     url_user_token = "https://api.ona.io/api/v1/user.json"
     url_user_forms = 'https://api.ona.io/api/v1/data'
     if request.method == 'POST':
@@ -514,7 +514,7 @@ def getOnaForms(request):
             elif response.status_code == 200:
                 auth_success = True
                 token = json.loads(response.content)['api_token']
-                ona_token, created = ThirdPartyTokens.objects.get_or_create(user=request.user, name=provider, token=token)
+                ona_token, created = ThirdPartyTokens.objects.get_or_create(user=request.POST['username'], name=provider, token=token)
                 if created: ona_token.save()
             else:
                 messages.error(request, "A %s error has occured: %s " % (response.status_code, response.text))
@@ -529,10 +529,13 @@ def getOnaForms(request):
     if ona_token and auth_success:
         onaforms = requests.get(url_user_forms, headers={'Authorization': 'Token %s' % ona_token.token})
         data = json.loads(onaforms.content)
+        if data:
+            has_data = True
+
 
     silos = Silo.objects.filter(owner=request.user)
     return render(request, 'silo/getonaforms.html', {
-        'form': form, 'data': data, 'silos': silos
+        'form': form, 'data': data, 'silos': silos, 'has_data': has_data
     })
 
 @login_required
