@@ -7,12 +7,11 @@
 
     {% if not data %}
         <img src="{{ STATIC_URL }}/img/Ona-Logo.png" style="padding: 5px; width: 150px">
-        <p>Login to your Ona account:</p>
         {% if not has_data %}
+            <p>Login to your Ona account:</p>
             {% crispy form %}
         {% else %}
-            {% crispy form %}
-            <p>If you do not see a login form, please ensure that you have Forms or Data <br/> associated with your account at Ona, then try logging in again.</p>
+            <p>If you do not see a login form, please ensure that you have forms or Data <br/> associated with your account at <a href="http://www.ona.io">Ona</a>, then try logging in again.</p>
         {% endif %}
     {% else %}
         <p>List of forms from Ona.  Forms that have been imported are associated with a table. You can also <a href="/provider_logout/ONA/">Logout</a> of this Ona users forms and <a href="/provider_logout/ONA/">log in to another Ona account here</a>.</p>
