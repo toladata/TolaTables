@@ -74,6 +74,8 @@ class SiloTest(TestCase):
     upload_csv_url = "/file/"
     silo_detail_url = "/silo_detail/"
 
+
+
     def setUp(self):
         self.client = Client()
         self.factory = RequestFactory()
@@ -180,6 +182,7 @@ class SiloTest(TestCase):
 class FormulaColumn(TestCase):
     new_formula_columh_url = "/new_formula_column/"
 
+
     def setUp(self):
         self.client = Client()
         self.factory = RequestFactory()
@@ -225,6 +228,8 @@ class FormulaColumn(TestCase):
         self.assertEqual(formula_column.mapping,'["a", "b", "c"]')
         self.assertEqual(formula_column.column_name,'sum')
         self.assertEqual(getSiloColumnNames(self.silo.pk),["sum"])
+        self.silo = Silo.objects.get(pk=self.silo.pk)
+        self.assertEqual(getColToTypeDict(self.silo).get('sum'),'float')
         try:
             lvs = LabelValueStore.objects.get(a="1", b="2", c="3", sum=6.0, read_id=-1, silo_id = self.silo.pk)
             lvs.delete()
@@ -269,6 +274,7 @@ class ColumnOrder(TestCase):
 
 class ColumnFilter(TestCase):
     url = "/edit_filter/"
+
     def setUp(self):
         self.client = Client()
         self.factory = RequestFactory()

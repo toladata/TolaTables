@@ -112,3 +112,8 @@ To accomodate these changes it is necessary to run the collect_silo_columns comm
 data will show up in tola tables.
 0.9.2 adds indexes to the mongodb to make reading and writing faster. To enforce this change run
 the add_indexes_for_silos command.
+
+# Testing
+Do not run unit tests on a production database. Django is not set up to make a test mongodb
+so data is added and removed from the mongodb in settings. Any data with silo_id 1 will be deleted
+and/or screwed up.

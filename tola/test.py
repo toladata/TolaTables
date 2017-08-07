@@ -13,13 +13,22 @@ from django.test import TestCase
 from django.test import Client
 from django.test import RequestFactory
 
+import pymongo
+from pymongo import MongoClient
+
 from tola.util import *
 from silo.models import *
+
+db = MongoClient(settings.MONGODB_HOST).tola
 
 class onaParserTest(TestCase):
     """
     this tests the two recurseive Ona parser testing both the default one that does groups and the secondary one that does repeats
     """
+
+
+
+
     def setUp(self):
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
@@ -70,16 +79,8 @@ class onaParserTest(TestCase):
             }
         ]
         ona_parse_type_group(data, label_file_data, "", self.silo, self.read)
-        try: ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="aa",column_source_name="a",column_type="text")
-        except ColumnType.DoesNotExist as e:
-            self.assert_(False)
-        try: ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="b",column_source_name="b",column_type="text")
-        except ColumnType.DoesNotExist as e:
-            self.assert_(False)
         self.assertEqual(data,data_final)
         #since the unit_test doesn't automatically delete entries in the mongodb database do it now
-        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="aa",column_source_name="a",column_type="text").delete()
-        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="b",column_source_name="b",column_type="text").delete()
     def test_onaParserTwoLayer(self):
         label_file_data = [
             {
@@ -213,24 +214,8 @@ class onaParserTest(TestCase):
             },
         ]
         ona_parse_type_group(data, label_file_data, "", self.silo, self.read)
-        try: ColumnType.objects.get(silo_id=self.silo.pk,read_id=self.read.pk,column_name="aa",column_source_name="a",column_type="group")
-        except ColumnType.DoesNotExist as e:
-            self.assert_(False)
-        try: ColumnType.objects.get(silo_id=self.silo.pk,read_id=self.read.pk,column_name="bb",column_source_name="b",column_type="text")
-        except ColumnType.DoesNotExist as e:
-            self.assert_(False)
-        try: ColumnType.objects.get(silo_id=self.silo.pk,read_id=self.read.pk,column_name="c",column_source_name="c",column_type="text")
-        except ColumnType.DoesNotExist as e:
-            self.assert_(False)
-        try: ColumnType.objects.get(silo_id=self.silo.pk,read_id=self.read.pk,column_name="d",column_source_name="d",column_type="repeat")
-        except ColumnType.DoesNotExist as e:
-            self.assert_(False)
         self.assertEqual(data,data_final)
         #since the unit_test doesn't automatically delete entries in the mongodb database do it now
-        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="aa",column_source_name="a",column_type="group").delete()
-        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="bb",column_source_name="b",column_type="text").delete()
-        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="c",column_source_name="c",column_type="text").delete()
-        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="d",column_source_name="d",column_type="repeat").delete()
     def test_onaParserThreeLayerByGroup(self):
         label_file_data = [
             {
@@ -292,28 +277,8 @@ class onaParserTest(TestCase):
             },
         ]
         ona_parse_type_group(data, label_file_data, "", self.silo, self.read)
-        try: ColumnType.objects.get(silo_id=self.silo.pk,read_id=self.read.pk,column_name="aa",column_source_name="a",column_type="group")
-        except ColumnType.DoesNotExist as e:
-            self.assert_(False)
-        try: ColumnType.objects.get(silo_id=self.silo.pk,read_id=self.read.pk,column_name="b",column_source_name="b",column_type="group")
-        except ColumnType.DoesNotExist as e:
-            self.assert_(False)
-        try: ColumnType.objects.get(silo_id=self.silo.pk,read_id=self.read.pk,column_name="cc",column_source_name="c",column_type="text")
-        except ColumnType.DoesNotExist as e:
-            self.assert_(False)
-        try: ColumnType.objects.get(silo_id=self.silo.pk,read_id=self.read.pk,column_name="d",column_source_name="d",column_type="text")
-        except ColumnType.DoesNotExist as e:
-            self.assert_(False)
-        try: ColumnType.objects.get(silo_id=self.silo.pk,read_id=self.read.pk,column_name="ee",column_source_name="e",column_type="text")
-        except ColumnType.DoesNotExist as e:
-            self.assert_(False)
         self.assertEqual(data,data_final)
         #since the unit_test doesn't automatically delete entries in the mongodb database do it now
-        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="aa",column_source_name="a",column_type="group").delete()
-        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="b",column_source_name="b",column_type="group").delete()
-        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="cc",column_source_name="c",column_type="text").delete()
-        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="d",column_source_name="d",column_type="text").delete()
-        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="ee",column_source_name="e",column_type="text").delete()
     def test_onaParserThreeLayer(self):
         label_file_data = [
             {
@@ -461,26 +426,17 @@ class onaParserTest(TestCase):
             }
         ]
         ona_parse_type_group(data, label_file_data, "", self.silo, self.read)
-        try: ColumnType.objects.get(silo_id=self.silo.pk,read_id=self.read.pk,column_name="bb",column_source_name="b",column_type="text")
-        except ColumnType.DoesNotExist as e:
-            self.assert_(False)
-        try: ColumnType.objects.get(silo_id=self.silo.pk,read_id=self.read.pk,column_name="c",column_source_name="c",column_type="text")
-        except ColumnType.DoesNotExist as e:
-            self.assert_(False)
-        try: ColumnType.objects.get(silo_id=self.silo.pk,read_id=self.read.pk,column_name="rep",column_source_name="rep",column_type="repeat")
-        except ColumnType.DoesNotExist as e:
-            self.assert_(False)
         self.assertEqual(data,data_final)
         #since the unit_test doesn't automatically delete entries in the mongodb database do it now
-        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="rep",column_source_name="rep",column_type="repeat").delete()
-        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="bb",column_source_name="b",column_type="text").delete()
-        ColumnType.objects.filter(silo_id=self.silo.pk,read_id=self.read.pk,column_name="c",column_source_name="c",column_type="text").delete()
 
 
 class columnManipulation(TestCase):
     """
     this tests the function to add a column to silo
     """
+
+
+
     def setUp(self):
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
         self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
@@ -488,6 +444,7 @@ class columnManipulation(TestCase):
         columns = ["b", "a", "x", "4"]
         addColsToSilo(self.silo,columns)
         self.assertEqual(["b", "a", "x", "4"], getSiloColumnNames(self.silo.id))
+        self.assertEqual({"b" : 'string', "a" : 'string', "x" : 'string', "4" : 'string'}, getColToTypeDict(self.silo))
         columns = ["c", "q", "3", "8"]
         addColsToSilo(self.silo,columns)
         self.assertEqual(["b", "a", "x", "4", "c", "q", "3", "8"], getSiloColumnNames(self.silo.id))
@@ -501,9 +458,12 @@ class columnManipulation(TestCase):
         hideSiloColumns(self.silo, ["b", "c"])
         self.assertEqual(["x", "q", "8"], getSiloColumnNames(self.silo.id))
         self.assertEqual(["b", "x", "c", "q", "8"], getCompleteSiloColumnNames(self.silo.id))
+        self.assertEqual({"b" : 'string', "x" : 'string', "c" : 'string', "q" : 'string', "8" : 'string'}, getColToTypeDict(self.silo))
 
 
 class formulaOperations(TestCase):
+
+
     def setUp(self):
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
         self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
@@ -588,6 +548,8 @@ class formulaOperations(TestCase):
             self.assertEqual(a,'a')
 
 class QueryMaker(TestCase):
+
+
     def test_blankQuery(self):
         self.assertEqual(makeQueryForHiddenRow([]),"{}")
     def test_queryEmpty(self):
@@ -649,30 +611,6 @@ class QueryMaker(TestCase):
             {
                 "logic" : "AND",
                 "operation": "eq",
-                "number":"1",
-                "conditional": ["a","b"],
-            },
-            {
-                "logic" : "OR",
-                "operation": "eq",
-                "number":"1",
-                "conditional": ["c","d"],
-            }
-        ]
-        # print makeQueryForHiddenRow(row_filter)
-        query = '{"a": {"$eq": "1"}, "$or": [{"c": {"$eq": "1"}}, {"d": {"$eq": "1"}}], "b": {"$eq": "1"}}'
-        self.assertEqual(json.loads(makeQueryForHiddenRow(row_filter)), json.loads(query))
-    def test_queryEqual(self):
-        row_filter = [
-            {
-                "logic" : "BLANKCHAR",
-                "operation": "",
-                "number":"",
-                "conditional": "---",
-            },
-            {
-                "logic" : "AND",
-                "operation": "eq",
                 "number":"0",
                 "conditional": ["a","b"],
             },
@@ -684,7 +622,7 @@ class QueryMaker(TestCase):
             }
         ]
         # print makeQueryForHiddenRow(row_filter)
-        query = '{"a": {"$in": ["0"]}, "$or": [{"c": {"$in": ["0"]}}, {"d": {"$in": ["0"]}}], "b": {"$in": ["0"]}}'
+        query = '{"a": {"$in": ["0", 0.0, 0]}, "$or": [{"c": {"$in": ["0", 0.0, 0]}}, {"d": {"$in": ["0", 0.0, 0]}}], "b": {"$in": ["0", 0.0, 0]}}'
         self.assertEqual(json.loads(makeQueryForHiddenRow(row_filter)), json.loads(query))
     def test_queryNotEqual(self):
         row_filter = [
@@ -708,7 +646,7 @@ class QueryMaker(TestCase):
             }
         ]
         # print makeQueryForHiddenRow(row_filter)
-        query = '{"a": {"$nin": ["-1"]}, "$or": [{"c": {"$nin": ["15"]}}, {"d": {"$nin": ["15"]}}], "b": {"$nin": ["-1"]}}'
+        query = '{"a": {"$nin": ["-1", -1.0, -1]}, "$or": [{"c": {"$nin": ["15", 15.0, 15]}}, {"d": {"$nin": ["15", 15.0, 15]}}], "b": {"$nin": ["-1", -1.0, -1]}}'
         self.assertEqual(json.loads(makeQueryForHiddenRow(row_filter)), json.loads(query))
     def test_queryColumnMultiple(self):
         row_filter = [
@@ -738,7 +676,7 @@ class QueryMaker(TestCase):
             }
         ]
         # print makeQueryForHiddenRow(row_filter)
-        query = '{"$or": [{"b": {"$nin": ["2", "3"]}}], "b": {"$nin": ["0", "1"]}}'
+        query = '{"$or": [{"b": {"$nin": ["2", 2.0, 2, "3", 3.0, 3]}}], "b": {"$nin": ["0", 0.0, 0, "1", 1, 1.0]}}'
         self.assertEqual(json.loads(makeQueryForHiddenRow(row_filter)), json.loads(query))
 
 class testDateNewest(TestCase):
@@ -834,3 +772,42 @@ class test_saveDataToSilo(TestCase):
         LabelValueStore.objects.filter(a='dog', b='house').delete()
         LabelValueStore.objects.filter(a='dog', b='out').delete()
         LabelValueStore.objects.filter(a='cat', b='house').delete()
+
+class test_setSiloColumnType(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
+        self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
+    def test_setToInt(self):
+        addColsToSilo(self.silo, ['a','b','c'])
+        lvs = LabelValueStore()
+        lvs.silo_id = self.silo.pk
+        lvs.a = '1'
+        lvs.b = 2
+        lvs.c = '3'
+        lvs.save()
+        try:
+            lvs = LabelValueStore.objects.get(silo_id=self.silo.pk, a='1', b=2, c = '3')
+        except LabelValueStore.DoesNotExist as e:
+            lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
+            self.assertTrue(False)
+        try:
+            lvs = LabelValueStore.objects.get(silo_id=self.silo.pk, a=1, b=2, c = '3')
+            lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
+            self.assertTrue(False)
+        except LabelValueStore.DoesNotExist as e:
+            pass
+        setSiloColumnType(self.silo.pk, 'a', 'int')
+        self.silo = Silo.objects.get(pk=self.silo.pk)
+        try:
+            lvs = LabelValueStore.objects.get(silo_id=self.silo.pk, a=1, b=2, c = '3')
+        except LabelValueStore.DoesNotExist as e:
+            lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
+            self.assertTrue(False)
+        try:
+            lvs = LabelValueStore.objects.get(silo_id=self.silo.pk, a='1', b=2, c = '3')
+            lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
+            self.assertTrue(False)
+        except LabelValueStore.DoesNotExist as e:
+            pass
+        lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
+        self.assertTrue({'name' : 'a', 'type' : 'int'} in json.loads(self.silo.columns))

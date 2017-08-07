@@ -162,6 +162,7 @@
                             <a href="/edit_columns/{{ silo.pk }}/" class="btn btn-primary">Edit or Delete columns</a>
                             <a href="/new_column/{{ silo.pk }}/" class="btn btn-primary">Add New Column</a>
                             <a href="/new_formula_column/{{ silo.pk }}/" class="btn btn-primary">Add New Formula Column</a>
+                            <button id="setColumnType" class="btn btn-primary" data-toggle="tooltip">Add Column Validation</button>
 
                         <!--
                         <a href="/anonymize_silo/{{ id }}/" class="btn btn-primary">Anonymize Table</a>
@@ -271,6 +272,41 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">No, cancel</button>
                 <a class="btn btn-danger btn-del-import">Yes, erase and re-import data</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="column_type_modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+
+            <div class="modal-header">
+                Give a column a type
+            </div>
+
+            <div class="modal-body">
+              <form id="column_type_form" action="/set_column_type/{{silo.pk}}/" method="post">
+                {% csrf_token %}
+                Column:
+                <select name="column_for_type">
+                  {% for col in cols %}
+                      {% if col != '_id'%}
+                        <option value="{{col}}">{{col}}</option>
+                      {% endif %}
+                  {% endfor for %}
+                </select>
+                should be a:
+                <!-- Can add support for more options later -->
+                <select name="column_type">
+                    <option value="int">integer</option>
+                    <option value="double">float</option>
+                    <option value="string">string</option>
+                </select>
+                <br><br>
+                <input type="submit" value="Submit" class="btn btn-sm btn-primary">
+              </form>
             </div>
         </div>
     </div>
@@ -388,6 +424,11 @@
                     });
                 }
             });
+
+            // Add types to each column
+            // $("#data_table").find("th").each(function(){
+            //    $(this).after("hi")
+            // });
 
             var silo_table = $('#data_table').DataTable({
                 "processing": true,
@@ -519,6 +560,11 @@
                 console.log("i="+i + " " + col);
             });
             */
+
+            $('#setColumnType').on('click', function(e){
+                e.preventDefault();
+                $('#column_type_modal').modal('toggle');
+            });
 
 
             $("#table_tabs li a").click(function(e){

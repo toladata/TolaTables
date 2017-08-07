@@ -27,30 +27,39 @@ class Command(BaseCommand):
         silos = Silo.objects.all()
 
         for silo in silos:
-            keys = set()
-            keys_collect = db.label_value_store.map_reduce(
-                    "function() {for (var key in this) { emit(key, null); }}",\
-                    "function(key, value) {return null;}",\
-                    {'inline': 1 }, \
-                    query = {"silo_id" : silo.id}, \
-                    )
-            for key in keys_collect['results']:
-                keys.add(key['_id'])
-            keys = keys.difference(['id', 'silo_id', 'read_id', 'create_date', 'edit_date', 'editted_date', '_id'])
-            keys = list(keys)
-            keys.sort()
-            silo.columns = json.dumps(keys)
-            silo.save()
-            for key in keys:
-                results = db.label_value_store.find({key : {"$regex" : '^\s+|\s+$'}})
-                for result in results:
-                    db.label_value_store.update_many(
-                            result,
-                            {"$set" : {key: result[key].strip()}}
-                            )
-            #add indexes to unique columns
-            for column in UniqueFields.objects.filter(silo_id=silo.pk):
-                db.label_value_store.create_index(column.name, partialFilterExpression = {'silo_id' : silo.id})
+            if silo.columns == '[]':
+                keys = set()
+                keys_collect = db.label_value_store.map_reduce(
+                        "function() {for (var key in this) { emit(key, null); }}",\
+                        "function(key, value) {return null;}",\
+                        {'inline': 1 }, \
+                        query = {"silo_id" : silo.id}, \
+                        )
+                for key in keys_collect['results']:
+                    keys.add(key['_id'])
+                keys = keys.difference(['id', 'silo_id', 'read_id', 'create_date', 'edit_date', 'editted_date', '_id'])
+                keys = list(keys)
+                keys.sort()
+                silo.columns = json.dumps(keys)
+                silo.save()
+                for key in keys:
+                    results = db.label_value_store.find({key : {"$regex" : '^\s+|\s+$'}})
+                    for result in results:
+                        db.label_value_store.update_many(
+                                result,
+                                {"$set" : {key: result[key].strip()}}
+                                )
+                #add indexes to unique columns
+                for column in UniqueFields.objects.filter(silo_id=silo.pk):
+                    db.label_value_store.create_index(column.name, partialFilterExpression = {'silo_id' : silo.id})
+
+            #Now turn that list stored in the database into a dictionary of the proper format
+            #this is done seperately since the above script has been run in isolation before
+            cols_with_metadata = []
+            for col in json.loads(silo.columns):
+                cols_with_metadata.append({'name' : col, 'type': 'string'})
+                silo.columns = json.dumps(cols_with_metadata)
+                silo.save()
 
 
         #delete all reads that are no longer associated with a silo
