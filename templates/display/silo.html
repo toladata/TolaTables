@@ -62,7 +62,7 @@
 
                             <a href="/silo_delete/{{ silo.pk }}" class="btn btn-del btn-sm btn-danger" title="Are you sure you want to delete this table? All of the data stored in this table will also be deleted."><span class="glyphicon glyphicon-trash" title="Delete"></span> Delete Table</a>
                             <a href="/edit_column_order/{{silo.pk}}" class="btn btn-primary">Edit Column Order</a>
-
+                            <a href="/edit_filter/{{ silo.pk }}/" class="btn btn-primary"> Filter Data</a>
                             <a href="/set_unique_columns/{{ id }}/" id="unique_cols_selection_btn" class="btn btn-primary"> Assign a Unique Column</a>
                             <span class="label label-info" id="unique_col_lbl"></span>
                         </li>
@@ -162,7 +162,6 @@
                             <a href="/edit_columns/{{ silo.pk }}/" class="btn btn-primary">Edit or Delete columns</a>
                             <a href="/new_column/{{ silo.pk }}/" class="btn btn-primary">Add New Column</a>
                             <a href="/new_formula_column/{{ silo.pk }}/" class="btn btn-primary">Add New Formula Column</a>
-                            <a href="/edit_filter/{{ silo.pk }}/" class="btn btn-primary">Add Filters</a>
 
                         <!--
                         <a href="/anonymize_silo/{{ id }}/" class="btn btn-primary">Anonymize Table</a>
@@ -379,7 +378,10 @@
                                   return Object.values(data);
                                 }
                             } else {
-                                return data;
+                              if (data == undefined) {
+                                  return ""
+                              }
+                              return data;
                             }
                         }
 

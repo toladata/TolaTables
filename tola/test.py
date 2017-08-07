@@ -760,3 +760,77 @@ class testDateNewest(TestCase):
         lvs.save()
         self.assertEqual(getNewestDataDate(-100).date(), now.date() + timedelta(days=1))
         LabelValueStore.objects.filter(silo_id="-100").delete()
+
+class test_saveDataToSilo(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
+        self.read_type = ReadType.objects.create(read_type="Ona")
+        self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
+        self.read = Read.objects.create(read_name="test_read1", owner = self.user, type=self.read_type)
+        self.client = Client()
+        self.client.login(username='joe', password='tola123')
+    def test_noRead(self):
+        data = [{'a' : 'dog', 'b' : 'house'}, {'a' : 'cat', 'b' : 'house'}]
+        saveDataToSilo(self.silo, data)
+        try:
+            lvs = LabelValueStore.objects.get(a='dog', b='house', read_id=-1, silo_id = self.silo.id)
+        except LabelValueStore.DoesNotExist as e:
+            self.deleteTestData()
+            self.assert_(False)
+        try:
+            lvs = LabelValueStore.objects.get(a='cat', b='house', read_id=-1, silo_id = self.silo.id)
+        except LabelValueStore.DoesNotExist as e:
+            deleteTestData()
+            self.assert_(False)
+        self.deleteTestData()
+    def test_uniqueColsUnique(self):
+        unique_field = UniqueFields(name='a', silo=self.silo)
+        unique_field.save()
+        data = [{'a' : 'dog', 'b' : 'house'}, {'a' : 'cat', 'b' : 'house'}]
+        saveDataToSilo(self.silo, data)
+        #now test changing data
+        data = [{'a' : 'dog', 'b' : 'out'}, {'a' : 'cat', 'b' : 'house'}]
+        saveDataToSilo(self.silo, data, self.read)
+        try:
+            lvs = LabelValueStore.objects.get(a='dog', b='out', read_id=self.read.id, silo_id = self.silo.id)
+        except LabelValueStore.DoesNotExist as e:
+            self.deleteTestData()
+            self.assert_(False)
+        try:
+            lvs = LabelValueStore.objects.get(a='cat', b='house', read_id=self.read.id, silo_id = self.silo.id)
+        except LabelValueStore.DoesNotExist as e:
+            self.deleteTestData()
+            self.assert_(False)
+        self.deleteTestData()
+    def test_uniqueColsNonUnique(self):
+        data = [{'a' : 'dog', 'b' : 'house'}, {'a' : 'cat', 'b' : 'house'}]
+        saveDataToSilo(self.silo, data)
+        unique_field = UniqueFields(name='b', silo=self.silo)
+        unique_field.save()
+
+        #now test changing data
+        data = [{'a' : 'dog', 'b' : 'out'}, {'a' : 'cat', 'b' : 'house'}]
+        saveDataToSilo(self.silo, data, self.read)
+        try:
+            lvs = LabelValueStore.objects.get(a='dog', b='out', read_id=self.read.id, silo_id = self.silo.id)
+        except LabelValueStore.DoesNotExist as e:
+            self.deleteTestData()
+            self.assert_(False)
+        try:
+            lvs = LabelValueStore.objects.get(a='dog', b='house', read_id=-1, silo_id = self.silo.id)
+        except LabelValueStore.DoesNotExist as e:
+            self.deleteTestData()
+            self.assert_(False)
+        try:
+            lvs = LabelValueStore.objects.get(a='cat', b='house', read_id=-1, silo_id = self.silo.id)
+        except LabelValueStore.DoesNotExist as e:
+            self.deleteTestData()
+            self.assert_(False)
+        self.deleteTestData()
+
+    def test_noUniqueCols(self):
+        pass
+    def deleteTestData(self):
+        LabelValueStore.objects.filter(a='dog', b='house').delete()
+        LabelValueStore.objects.filter(a='dog', b='out').delete()
+        LabelValueStore.objects.filter(a='cat', b='house').delete()
