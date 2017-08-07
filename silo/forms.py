@@ -143,12 +143,14 @@ class MongoEditForm(forms.Form):
         super(MongoEditForm, self).__init__(*args, **kwargs)
 
         extra = OrderedDict(sorted(extra.iteritems()))
-        column_types = getColToTypeDict(Silo.objects.get(pk=silo_pk))
+        #column_types = getColToTypeDict(Silo.objects.get(pk=silo_pk))
 
         for item in extra:
             if item == "edit_date" or item == "create_date":
                 self.fields[item] = forms.CharField(label = item, initial=extra[item], required=False, widget=forms.TextInput(attrs={'readonly': "readonly"}))
             elif item != "_id" and item != "silo_id" and item!= "read_id":
+                self.fields[item] = forms.CharField(label = item, initial=extra[item], required=False)
+                """
                 column_type = column_types.get(item,'string')
                 if column_type=='string':
                     self.fields[item] = forms.CharField(label = item, initial=extra[item], required=False)
@@ -156,3 +158,6 @@ class MongoEditForm(forms.Form):
                     self.fields[item] = forms.IntegerField(label = item, initial=extra[item], required=False)
                 elif column_type=='double':
                     self.fields[item] = forms.FloatField(label = item, initial=extra[item], required=False)
+                """
+
+

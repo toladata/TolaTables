@@ -808,7 +808,7 @@ def siloDetail(request, silo_id):
 
     silo = Silo.objects.get(pk=silo_id)
     cols = []
-    col_types = getColToTypeDict(silo)
+    # col_types = getColToTypeDict(silo)
     data = []
     query = makeQueryForHiddenRow(json.loads(silo.rows_to_hide))
 
@@ -817,7 +817,7 @@ def siloDetail(request, silo_id):
         cols.extend(getSiloColumnNames(silo_id))
     else:
         messages.warning(request,"You do not have permission to view this table.")
-    return render(request, "display/silo.html", {"silo": silo, "cols": cols, "query": query, "col_types" : col_types})
+    return render(request, "display/silo.html", {"silo": silo, "cols": cols, "query": query})
 
 
 @login_required
@@ -1187,6 +1187,9 @@ def valueEdit(request,id):
     data = {}
     jsondoc = json.loads(doc)
     silo_id = None
+    silo = Silo.objects.get(pk=jsondoc[0].get('silo_id'))
+    cols = json.loads(silo.columns)
+
     for item in jsondoc:
         for k, v in item.iteritems():
             #print("The key and value are ({}) = ({})".format(smart_str(k), smart_str(v)))
@@ -1205,6 +1208,12 @@ def valueEdit(request,id):
             else:
                 k = Truncator(re.sub('\s+', ' ', k).strip()).chars(40)
                 data[k] = v
+
+        keys = item.keys()
+        for col in cols:
+            if col not in keys:
+                data[col] = None
+
     if request.method == 'POST': # If the form has been submitted...
         form = MongoEditForm(request.POST or None, extra = data, silo_pk=silo_id) # A form bound to the POST data
         if form.is_valid():

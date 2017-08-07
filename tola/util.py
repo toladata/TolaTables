@@ -233,7 +233,8 @@ def getSiloColumnNames(id):
     takes silo_id and returns the shown columns in order in O(n)
     """
     silo = Silo.objects.get(pk=id)
-    cols_raw = [x.get('name') for x in json.loads(silo.columns)]
+    #cols_raw = [x.get('name') for x in json.loads(silo.columns)]
+    cols_raw = json.loads(silo.columns)
     hidden_cols = set(json.loads(silo.hidden_columns))
     hidden_cols = hidden_cols.union(['id', 'silo_id', 'read_id', 'create_date', 'edit_date', 'editted_date'])
 
