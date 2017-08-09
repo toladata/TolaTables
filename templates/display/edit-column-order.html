@@ -13,8 +13,9 @@
             <tr>
         {% endfor %}
     </table>
-      <br><br><br>
+      <br><br>
       <input type="submit" value="Submit" class="btn btn-sm btn-primary">
+      <input type="button" value="Sort Alphabetically" id="order_alphabetically" class="btn btn-sm btn-warning">
     </form>
 
 {% endblock content %}
@@ -40,6 +41,30 @@
             helper: fixHelperModified,
             stop: updateIndex
           }).disableSelection();
+
+          // Sort command
+          $("#order_alphabetically").on('click', function(e){
+            e.preventDefault();
+            var columns = [];
+            $("#listcolumns").find('td').each(function() {
+                columns.push($(this).text())
+            });
+            columns = columns.sort(insensitive_comparator);
+            for (var i = 0; i < columns.length; i++) {
+              var tableRow = $("td").filter(function() {
+                  return $(this).text() == columns[i];
+              }).closest("tr");
+
+              $("#listcolumns").append(tableRow);
+            }
+
+          });
+
+          function insensitive_comparator(s1, s2) {
+            var s1lower = s1.toLowerCase();
+            var s2lower = s2.toLowerCase();
+            return s1lower > s2lower? 1 : (s1lower < s2lower? -1 : 0);
+          }
         });
 
     </script>
