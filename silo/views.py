@@ -613,7 +613,7 @@ def showRead(request, id):
         excluded_fields = excluded_fields + ['username', 'password', 'autopush_frequency', 'autopull_frequency', 'read_url']
     elif read_type == "OneDrive":
         user = User.objects.get(username__exact=request.user)
-        social = user.social_auth.get(provider='microsoft')
+        social = user.social_auth.get(provider='microsoft-graph')
         access_token = social.extra_data['access_token']
 
         """
@@ -687,7 +687,7 @@ def oneDriveImport(request, id):
 
     print(read_obj.onedrive_file)
     user = User.objects.get(username__exact=request.user)
-    social = user.social_auth.get(provider='microsoft')
+    social = user.social_auth.get(provider='microsoft-graph')
     access_token = social.extra_data['access_token']
 
     request_meta = requests.get(
