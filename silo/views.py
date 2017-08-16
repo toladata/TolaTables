@@ -1422,7 +1422,8 @@ def editColumnOrder(request, pk):
             for col in cols_list:
                 cols.append({'name' : col, 'type': col_types.get(col,'string')})
             visible_cols_set = set(cols_list)
-            cols.extend([x for x in json.loads(silo.columns) if x['name'] not in visible_cols_set])
+
+            cols.extend([x for x in json.loads(silo.columns) if (x if isinstance(x, basestring) else x['name']) not in visible_cols_set])
             silo.columns = json.dumps(cols)
             silo.save()
 
