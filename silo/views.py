@@ -1211,9 +1211,8 @@ def valueEdit(request,id):
 
         keys = item.keys()
         for col in cols:
-            if col not in keys:
-                data[col] = None
-
+            if col['name'] not in keys:
+                data[col['name']] = None
     if request.method == 'POST': # If the form has been submitted...
         form = MongoEditForm(request.POST or None, extra = data, silo_pk=silo_id) # A form bound to the POST data
         if form.is_valid():
