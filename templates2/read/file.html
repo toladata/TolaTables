@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block page_title %}Get Data From an External Data Collection Tool{% endblock %}
+
+{% block content %}
+	<p>Select a Table to store the data from your Uploaded File</p>
+    <form action="{{ form_action }}" method="post">{% csrf_token %}
+    {% if request.GET.read_id %}
+        <input type="hidden" name="read_id" value="{{ request.GET.read_id }}">
+    {% else %}
+        <input type="hidden" name="read_id" value="{{ read_id }}">
+    {% endif %}
+    <BR/>
+    Select an Existing table from the drop down:
+	<select name="silo_id">
+		<option value="">-- select --</option>
+	{% for ss in get_silo %}
+		<option value="{{ ss.id }}">{{ ss.name}}</option>
+	{% endfor %}
+	</select>
+	Or Enter a New Table
+	<input type="text" name="new_silo" value="">
+	<input type="hidden" name="id" value="{{ read_obj.id }}">
+	<input type="submit" value="Submit" />
+	</form>
+
+{% endblock content %}

@@ -172,14 +172,9 @@ def saveDataToSilo(silo, data, read=-1, user=None):
                     # skip this one
                     # add message that this is skipped
                     continue
-            if key is None:
-                key = 0
-            elif type(key) is tuple:
-                key = str(key)
-                key = key.replace(".", "_").replace("$", "USD").replace(u'\u2026', "")
-            else:
-                key = key.replace(".", "_").replace("$", "USD").replace(u'\u2026', "")
 
+            key = key.replace(".", "_").replace("$", "USD").replace(u'\u2026', "")
+            if isinstance(val, basestring): val = val.strip()
             keys.add(key)
             setattr(lvs, key, val)
             counter += 1
@@ -241,14 +236,17 @@ def getSiloColumnNames(id):
     takes silo_id and returns the shown columns in order in O(n)
     """
     silo = Silo.objects.get(pk=id)
-    cols_raw = [x.get('name') for x in json.loads(silo.columns)]
+    #cols_raw = [x.get('name') for x in json.loads(silo.columns)]
+    cols_raw = json.loads(silo.columns)
     hidden_cols = set(json.loads(silo.hidden_columns))
     hidden_cols = hidden_cols.union(['id', 'silo_id', 'read_id', 'create_date', 'edit_date', 'editted_date'])
 
     cols_final = deque()
     for col in cols_raw:
-        if col not in hidden_cols:
-            cols_final.append(col)
+        col_name = col if isinstance(col, basestring) else col.get('name')
+
+        if col_name not in hidden_cols:
+            cols_final.append(col_name)
 
     return list(cols_final)
 
@@ -259,9 +257,9 @@ def getCompleteSiloColumnNames(id):
     id -- silo_id
     """
     silo = Silo.objects.get(pk=id)
-    return [x.get('name') for x in json.loads(silo.columns)]
+    return [x if isinstance(x, basestring) else x.get('name') for x in json.loads(silo.columns)]
 
-def addColsToSilo(silo, columns):
+def addColsToSilo(silo, columns, col_types = {}):
     """
     This adds columns to a silo object while preserving order in O(n)
 
@@ -274,7 +272,7 @@ def addColsToSilo(silo, columns):
         raise ValueError('Duplicate columns are not allowed')
     silo_cols = json.loads(silo.columns)
     silo_cols_set = set([x['name'] for x in silo_cols]) #this is done to decrease lookup time from n to 1
-    silo_cols.extend([{'name' : x, 'type' : 'string'} for x in columns if x not in silo_cols_set])
+    silo_cols.extend([{'name' : x, 'type' : col_types.get(x, 'string')} for x in columns if x not in silo_cols_set])
     silo.columns = json.dumps(silo_cols)
     silo.save()
 
@@ -317,8 +315,11 @@ def getColToTypeDict(silo):
     """
     Returns key value pairs of the name of a column to its type in O(n)
     """
-    columns = silo.columns
-    column_types = {x['name'] : x['type'] for x in json.loads(columns)}
+    columns = json.loads(silo.columns)
+    if len(columns) > 0 and not isinstance(columns[0], basestring):
+        column_types = {x['name'] : x['type'] for x in columns}
+    else:
+        column_types = {x: 'string' for x in columns}
     return column_types
 
 def user_to_tola(backend, user, response, *args, **kwargs):

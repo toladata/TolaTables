@@ -1,0 +1,380 @@
+{% load staticfiles %}
+{% load topbartags %}
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="TolaData - TolaTables: Collect, Aggregate and Share Data">
+        <meta name="author" content="TolaData">
+
+        <title>{% block title %} TolaTrack - Collect, Aggregate and Share Data {% endblock %}</title>
+
+        <link rel="icon" href="{{ STATIC_URL }}img/favicon.ico?v=2" />
+
+        <!-- Bootstrap -->
+        <link href="{{ STATIC_URL}}css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+
+        <!-- JQuery UI CSS -->
+        <link href="{{ STATIC_URL }}css/ui-lightness/jquery-ui-1.10.4.min.css" rel="stylesheet" type="text/css" />
+
+        <!-- Custom Footer CSS -->
+        <link href="{{ STATIC_URL }}css/app.css" rel="stylesheet" type="text/css">
+
+        <link href="{{ STATIC_URL }}css/select2.min.css" rel="stylesheet" type="text/css">
+        <link href="{{ STATIC_URL }}css/introjs.min.css" rel="stylesheet" type="text/css">
+
+        <link href="{{ STATIC_URL }}css/datatables.min.css" rel="stylesheet" type="text/css" />
+
+        <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.11.1.min.js"></script>
+
+        <!-- App specific Javascript -->
+        <script type="text/javascript" src="{{ STATIC_URL }}js/app.js"></script>
+
+        {% block extra_js_in_header %}
+        <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+
+
+        {% endblock %}
+
+        {% block extra_css %}
+
+        {% endblock %}
+
+    </head>
+    <body>
+        <!--http://getbootstrap.com/examples/sticky-footer-navbar/-->
+        <div class="navbar navbar-default navbar-tola navbar-fixed-top" role="navigation">
+            <div class="container">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="{% url 'index' %}">
+                    <img style="margin-top: -15px; width: 52px;" src="{{ STATIC_URL }}img/TolaTables.svg" />
+                </a>
+            </div>
+            <div class="navbar-collapse collapse" role="navigation">
+                {% if user.is_authenticated  %}
+                    <ul class="nav navbar-nav">
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Import Data<b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li><a href="/onalogin"><span class="glyphicon glyphicon-list-alt"></span> Import from ONA</a></li>
+                                <li><a href="{% url 'newRead' %}?type=JSON"><span class="glyphicon glyphicon-list-alt"></span> Import JSON Feed</a></li>
+                                <li><a href="{% url 'newRead' %}?type=CSV"><span class="glyphicon glyphicon-list-alt"></span> Import From CSV</a></li>
+                                <li><a href="{% url 'newRead' %}?type=OneDrive"><span class="glyphicon glyphicon-list-alt"></span> Import From OneDrive</a></li>
+                                <li><a href="#" onclick="select_silo_for_importing_gsheet();"><span class="glyphicon glyphicon-list-alt"></span> Import from Google Spreadsheet</a></li>
+                                {%getDataImports as apps%}
+                                {%for app in apps%}
+                                  <li><a href=/{{app.0}}><span class="glyphicon glyphicon-list-alt"></span> Import from {{app.1}}</a></li>
+                                {% endfor %}
+                            </ul>
+                        </li>
+                         <li class="dropdown">
+                            <a href="{% url 'listSilos' %}" > Your Tables</a>
+                        </li>
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Help<b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li><a href="http://tola.work/documentation" target="blank">Documentation</a></li>
+                                <li><a href="http://tola.work/faq" target="blank">FAQ</a></li>
+                                <li><a href="http://tola.work/contact" target="blank">Contact</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <ul class="nav navbar-nav navbar-right">
+                        <li class="dropdown">
+                             <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                                {% if "demo" in request.build_absolute_uri %}
+                                    <span class="label label-danger">DEMO SERVER</span>
+                                {% elif  "127." in request.build_absolute_uri %}
+                                    <span class="label label-danger">LOCAL SERVER</span>
+                                {% elif "dev" in request.build_absolute_uri %}
+                                    <span class="label label-danger">DEV SERVER</span>
+                                {% elif "report" in request.build_absolute_uri %}
+                                    <span class="label label-info">REPORT SERVER</span>
+                                {% endif %}
+                                <span class="glyphicon glyphicon-user"></span> {{ user.tola_user.name }} <b class="caret"></b>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a href="{% url 'logout' %}"><span class="glyphicon glyphicon-lock"></span> Logout</a></li>
+                                <li><a href="{% url 'profile' %}"><span class="glyphicon glyphicon-user"></span> Profile</a></li>
+                            </ul>
+                        </li><!-- .dropdown collapse -->
+                    </ul>
+                {% else %}
+                    <ul class="nav navbar-nav navbar-right">
+                        <li class="dropdown">
+
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> Login <b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <div class="navbar-text">
+                                        Login via
+                                        <div class="social-buttons">
+                                            <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-go"><i class="fa fa-google"></i> Google</a>
+                                        </div>
+                                    </div>
+                                </li>
+                            </ul>
+                        </li><!-- .dropdown collapse -->
+                    </ul>
+                {% endif %}
+            </div><!-- .navbar-header collapse -->
+            </div><!-- .container collapse -->
+        </div><!-- .navbar collapse -->
+
+
+        <div class="container">
+            <div>{% block bread_crumb %}{% endblock %}</div>
+            <div id = "alerts">
+                <!-- Any messages for users -->
+                {% block messages %}
+                    {% if messages %}
+                            {% for message in messages %}
+                                    {% if 'safe' in message.tags %}
+                                        <div class="alert alert-{{message.tags}}">{{ message|safe }}</div>
+                                    {% else %}
+                                        <div class="alert alert-{{message.tags}}">{{ message|safe }}</div>
+                                    {% endif %}
+                            {% endfor %}
+                    <br/>
+                    {% endif %}
+                {% endblock messages %}
+            </div>
+        </div><!-- .container collapse -->
+
+
+        <!-- Main body content -->
+        <div class="container" id="content">
+            <!-- Page title  -->
+            <h2>{% block page_title %}{% endblock %}</h2>
+
+            <!-- Main body content -->
+            {% block content %} {% endblock %}
+        </div>
+
+
+
+        <div id = "loading" class="modal"> </div>
+
+        <div class="modal fade" id="select_silo_for_gsheet_import_modal" tabindex="-1" role="dialog" aria-labelledby="select_silo_for_gsheet_import_modal" aria-hidden="true">
+            <div class="modal-dialog modal-md">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                        <h4 class="modal-title">Choose Destination for importing data from Google Spreadsheet.</h4>
+                    </div>
+                    <div class="modal-body" id="unique_cols_selection_modal_body_div">
+                        <label for="silo_cols">Existing Tables</label>
+                        <select id="silo_select" name="silo_cols" class="form-control input-sm" style="width: 100%;">
+                                <option value="0">New Table</option>
+                            {% for silo in all_my_silos %}
+                                <option value="{{ silo.id }}">{{ silo.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="button" id="import_gsheet_btn" class="btn btn-primary" data-dismiss="modal">Import</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="select_gsheet_modal" tabindex="-1" role="dialog" aria-labelledby="select_gsheet_modal" aria-hidden="true">
+            <div class="modal-dialog modal-md">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <label for="gsheets">Select a sheet to import its data</label>
+                        <select id="gsheet_select" name="gsheets" class="form-control input-sm" style="width: 100%;">
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="button" id="select_gsheet_btn" class="btn btn-primary" data-dismiss="modal">Select</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="generic_modal" class="modal"></div>
+        <div id = "loading" class="modal"> </div>
+        <div id="footer">
+            <!-- Sticky Footer -->
+            <div class="container">
+                <div class="col-md-6 text-left">
+                    <a href="http://www.toladata.com" class="text-muted"><b>Tola</b>Data</a>
+                </div>
+                <div class="col-md-6 text-right">
+                    <a href="http://tola.work/documentation" class="text-muted">Documentation</a> | <a href="http://tola.work/faq" class="text-muted">FAQ</a> | <a href="http://tola.work/helpdesk/tickets/submit/" class="text-muted">Feedback</a> | <a href="https://github.com/toladata/TolaActivity/blob/master/LICENSE" class="text-muted">License</a>
+                </div>
+            </div>
+        </div><!-- .footer collapse -->
+
+        <!-- jQuery UI (necessary for datepicker as well as dataTables library -->
+        <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-ui-1.10.4.min.js"></script>
+
+        <!-- data tables jquery javascript library -->
+        <script type="text/javascript" src="{{ STATIC_URL }}js/datatables.min.js"></script>
+
+        <!-- Bootstrap compiled javascript plugins -->
+        <script type="text/javascript" src="{{ STATIC_URL }}js/bootstrap.min.js"></script>
+
+        <script type="text/javascript" src="{{ STATIC_URL }}js/select2.min.js"></script>
+
+        <script type="text/javascript" src="{{ STATIC_URL }}js/intro.min.js"></script>
+
+        <!-- Typekit (Fonts) -->
+        <script src="https://use.typekit.net/shi4wqr.js"></script>
+        <script>try{Typekit.load({ async: true });}catch(e){}</script>
+
+        <script type="text/javascript">
+
+            // The Client ID obtained from the Google Developers Console.
+            var clientId = "445847194486-mah10ripofn1bl6q7pgi29ssvfhvq2uu.apps.googleusercontent.com"
+            // developerKey is the same as the Browser API key, at least, as of writing this code.
+            var developerKey = 'AIzaSyCwwfqoakFNLYHsWK1pMzVfYF9bhDTfOO0';
+            // The list of scopes to request access to is available at: https://developers.google.com/picker/docs/#otherviews
+            var scope = ['https://www.googleapis.com/auth/drive.readonly'];
+            var silo_id;
+            var pickerApiLoaded = false;
+            var oauthToken;
+            var actionType = null;
+            var doc = null;
+            var url = null;
+            var spreadsheet_id = null;
+
+            function select_silo_for_importing_gsheet() {
+                $("#select_silo_for_gsheet_import_modal").modal("show");
+            }
+
+            $("#select_silo_for_gsheet_import_modal").on("click", "#import_gsheet_btn", function(e) {
+                e.preventDefault();
+                silo_id =  $("select#silo_select").val();
+                actionType = "import";
+                onAuthApiLoad(silo_id);
+            });
+
+            // Use the API Loader script to load google.picker and gapi.auth.
+            function onApiLoad() {
+                gapi.load('auth');
+                gapi.load('picker', {'callback': onPickerApiLoad});
+            }
+
+            // After Google's auth library is loaded, this function is called
+            function onAuthApiLoad(siloId) {
+                silo_id = siloId;
+                window.gapi.auth.authorize( {
+                    'client_id': clientId,
+                    'scope': scope,
+                    'immediate': false
+                },
+                handleAuthResult);
+            }
+
+            function onPickerApiLoad() {
+                pickerApiLoaded = true;
+                //createPicker();
+            }
+
+            // After the authentication is complete, this method is called
+            function handleAuthResult(authResult) {
+                if (authResult && !authResult.error) {
+                    oauthToken = authResult.access_token;
+                    createPicker();
+                }
+            }
+
+            // Create and render a Picker object for picking user Photos.
+            function createPicker() {
+                if (pickerApiLoaded && oauthToken) {
+                    var view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS);
+                    view.setIncludeFolders(true);
+                    view.setOwnedByMe(true);
+                    view.setSelectFolderEnabled(false);
+                    view.setMode("DocsViewMode.LIST");
+                    var picker = new google.picker.PickerBuilder()
+                        .setOrigin(window.location.protocol + '//' + window.location.host)
+                        //.setOrigin('https://localhost:8000')
+                        .enableFeature(google.picker.Feature.NAV_HIDDEN)
+                        .addView(view)
+                        .setOAuthToken(oauthToken)
+                        .setDeveloperKey(developerKey)
+                        .setCallback(pickerCallback)
+                        .build();
+                    picker.setVisible(true);
+                }
+            }
+
+            // A simple callback implementation.
+            function pickerCallback(data) {
+                //console.log(JSON.stringify(data));
+                if (data[google.picker.Response.ACTION] == google.picker.Action.PICKED) {
+                    doc = data[google.picker.Response.DOCUMENTS][0];
+                    url = doc[google.picker.Document.URL];
+                    spreadsheet_id = doc[google.picker.Document.ID];
+                    if (actionType == "import") {
+                        //$(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + spreadsheet_id + "&name=" + doc['name']);
+
+                        $.get('/get_sheets_from_google_spredsheet/', { "spreadsheet_id": spreadsheet_id } )
+                            .done(function(data) {
+                                var sheets = data['sheets'];
+                                if (sheets == undefined) {
+                                    $(location).attr('href', data['redirect']);
+                                }
+                                $("#gsheet_select").empty();
+                                $.each(sheets, function(i, sheet) {
+                                    var item = sheet["properties"];
+
+                                    $("#gsheet_select").append($('<option>', {
+                                        value: item.sheetId,
+                                        text : item.title
+                                    }));
+                                });
+                                $("#select_gsheet_modal").modal("show");
+                            });
+                    } else {
+                        url = url + "&resource_id=" + spreadsheet_id + "&query=" + query;
+                        if (shown_cols != "") {
+                            url += "&shown_cols=" + shown_cols;
+                        }
+                        $(location).attr('href', '/export_to_gsheet/' + silo_id + "/?link=" + url);
+                    }
+                }
+            }
+
+            var query = {};
+            var shown_cols = "";
+
+            function setDatabaseQuery(query_new){
+                query = query_new;
+            }
+
+            function setShownCols(shown_cols_new){
+                shown_cols = shown_cols_new;
+            }
+
+
+            $("#select_gsheet_modal").on("click", "#select_gsheet_btn", function(e) {
+                e.preventDefault();
+                sheet_id = $("#gsheet_select").val();
+                $(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + spreadsheet_id + "&name=" + doc['name'] + "&sheet_id=" + sheet_id);
+            });
+
+        </script>
+        <script type="text/javascript" src="https://apis.google.com/js/api.js?onload=onApiLoad"></script>
+
+        {% block extra_js_in_body %}{% endblock %}
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-73736890-2', 'auto');
+          ga('send', 'pageview');
+
+        </script>
+
+    </body>
+</html>
