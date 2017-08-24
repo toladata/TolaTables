@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% load render_table from django_tables2 %}
+
+{% block page_title %}<center> <a href="/silo_edit/{{ silo.id }}">{{ silo.name }}</a>
+    <br /><small><p>{{ silo.description|default:"" }}</p></small></center>
+{% endblock %}
+
+{% block content %}
+    {% if silo.merged_silo_mappings %}
+        <center>
+            Merged from <a href="{% url 'siloDetail' silo.merged_silo_mappings.from_silo.pk %}">{{silo.merged_silo_mappings.from_silo}}</a>
+            and <a href="{% url 'siloDetail' silo.merged_silo_mappings.to_silo.pk %}">{{ silo.merged_silo_mappings.to_silo}}</a>
+        </center>
+    {% endif %}
+
+    <hr />
+    <a href="#"><h4 data-toggle="collapse" data-target="#table_options" aria-expanded="false" aria-controls="table_options"> Auto Update or Push Your Data</a><br /><small>Perform table level operations.</small></h4>
+    <div id="table_options" class="collapse">
+        <div class = "table-responsive">
+            <table class="table table-bordered table-striped table-hover table-condensed">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Type</th>
+                    <th>Source</th>
+                    <th>Auto-pull</th>
+                    <th>Auto-push</th>
+                </tr>
+                </thead>
+                <tbody>
+                    {% for read in silo.reads.all %}
+                        <tr>
+                            <td><a href="/show_read/{{read.id}}" target="_blank">{{read.read_name }}</a></td>
+                            <td>{{read.description}}</td>
+                            <td>{{ read.type.read_type}}</td>
+                            <td><a href="{{ read.read_url }}" target="_blank">link to source</a></td>
+                            <td>
+                                {% if read.type.read_type == "CSV" or read.type.read_type == "Google Spreadsheet" %}
+                                    N/A
+                                {% else %}
+                                    {% if read.autopull_frequency %} {{ read.autopull_frequency }} {% else %} <a href="/show_read/{{read.id}}">Setup</a> {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if read.type.read_type == "CSV" or read.type.read_type == "GSheet Import" or read.type.read_type == "JSON" or read.type.read_type == "ONA"  %}
+                                    N/A
+                                {% else %}
+                                    {% if read.autopush_frequency %} {{ read.autopush_frequency }} {% else %} <a href="/show_read/{{read.id}}">Setup</a> * {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <span class="text-muted"><small>*Auto Push will replace all your data in the destination source</small></span>
+        </div>
+    </div>
+    <hr />
+    <a href="#"><h4 data-toggle="collapse" data-target="#table_edit" aria-expanded="false" aria-controls="table_edit"> Edit or Update Table</a><br /><small>Edit or Delete each row below using the buttons on the left.</small></h4>
+    <div id = "table_edit" class="collapse">
+        <p>
+        <a href="{% url 'updateMergedTable' id %}" id="update_silo_btn" class="btn btn-primary">Update Table</a>
+        <a href="{% url 'acitivity_push' id %}" id="push_to_activity_btn" class="btn btn-primary">Send To Tola Activity</a>
+        <a href="/edit_columns/{{ id }}/" class="btn btn-primary">Edit or Delete columns</a>
+        <a href="/new_column/{{ id }}/" class="btn btn-primary">Add New Column</a>
+        <!--
+        <a href="/anonymize_silo/{{ id }}/" class="btn btn-primary">Anonymize Table</a>
+        <a href="/identifyPII/{{ id }}/" id="identifyPIIBtn" class="btn btn-primary">Identify PIIF Columns</a>
+        -->
+        </p>
+
+        <form class="form-inline" action="{% url 'updateColumn' %}"  method="POST">
+            {% csrf_token %}
+            <input name="silo_id" value="{{silo.pk}}" type="hidden">
+            <div class="form-group">
+                <label for="all_cols">Set new value  for a column</label>
+                <select name="update_col" class="form-control">
+                    <option value="-1">Select Column</option>
+                    {% for col in cols %}
+                        <option value="{{ col }}">{{ col }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <input type="text" class="form-control" id="new_val" name="new_val" placeholder="New Value">
+            </div>
+            <button type="submit" class="btn btn-default">Submit</button>
+        </form>
+    </div>
+    <hr />
+
+<a href="/set_unique_columns/{{ id }}/" id="unique_cols_selection_btn" class="btn btn-primary"> Assign a Unique Column</a>
+<span class="label label-info" id="unique_col_lbl"></span>
+<div id="table_data">
+    {% render_table silo_table %}
+</div>
+
+
+<br />
+{% comment %}
+    {% for row in silo_table %}
+        {% for k,v in row.items %}
+            {{ k }} : {{ v }} <br />
+        {% endfor %}
+    {% endfor %}
+{% endcomment %}
+
+<div class="modal fade" id="unique_cols_selection_modal" tabindex="-1" role="dialog" aria-labelledby="pr_items_modal_div_label" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title">Choose unique column(s) for this table.</h4> <br />
+                <p>
+                A Unique Column is any column in your Tola Table that does not have the same data in any of its rows; each row in the column is unique and does not repeat
+                </p>
+            </div>
+            <div class="modal-body" id="unique_cols_selection_modal_body_div">
+                <label for="silo_cols">Unique Columns</label>
+                <select multiple id="silo_cols_multi_select" name="silo_cols" class="form-control input-sm" style="width: 100%;">
+                    {% for col in cols %}
+                        {% for unique_field in silo.unique_fields.all %}
+                            {% if col  == unique_field.name %}
+                                <option value="{{ col }}" selected="True">{{ unique_field.name }}</option>
+                            {% else %}
+                                <option value="{{ col }}">{{ col }}</option>
+                            {% endif %}
+                        {% empty %}
+                            <option value="{{ col }}">{{ col }}</option>
+                        {% endfor %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" id="add_unique_cols_save_btn" class="btn btn-primary" data-dismiss="modal">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="failed_project_agreements_modal" tabindex="-1" role="dialog" aria-labelledby="failed_project_agreements_modal" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h4 class="modal-title">Failed to Post to TolaActivity</h4>
+            </div>
+            <div class="modal-body" id="failed_project_agreements_modal_body">
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock content %}
+
+{% block extra_js_in_body %}
+<script type="text/javascript">
+"use strict";
+    $(document).ready(function() {
+        //$('#table_data').on('click', 'th', function(e) {
+            //e.preventDefault();
+            //var url = `{% url 'siloDetail' id %}` + $(this).children('a').attr('href');
+            //window.location = url ;
+        //});
+        var unique_col = $("#silo_cols_multi_select").val();
+        if (unique_col == null || unique_col == "null") {
+            unique_col = "not specified";
+        }
+        $("#unique_col_lbl").text("Unique Column: " + unique_col);
+        $("#silo_cols_multi_select").select2();
+        $("body").on("click", "#unique_cols_selection_btn", function(e) {
+            e.preventDefault();
+            $("#unique_cols_selection_modal").modal('show');
+        });
+
+        $("#unique_cols_selection_modal").on("click", "#add_unique_cols_save_btn", function(e) {
+            e.preventDefault();
+            var url = "{% url 'add_unique_fields_to_silo' %}" + "/";
+            var params = {"silo_id": `{{ id }}`, "fields": $("select#silo_cols_multi_select").val()};
+            //console.log(params);
+            $.post(url, params)
+            .done(function(data, textStatus, jqXHR) {
+                console.log(JSON.stringify(data));
+                $("#unique_col_lbl").text("Unique Column: " + $("#silo_cols_multi_select").val());
+            });
+        });
+        $("body").on("click", "#identifyPIIBtn", function(e) {
+            e.preventDefault();
+            var url = $(this).attr("href");
+
+            $.get( url, function( data ) {
+                $("#generic_modal").empty();
+                $("#generic_modal").append(data);
+                $("#generic_modal").modal('show');
+            });
+        });
+        $("body").on("click", "#push_to_activity_btn", function(e) {
+            e.preventDefault();
+            var url = $(this).attr("href");
+
+            $.ajax({
+                url: url,
+                type: 'post',
+                //data: {
+                //   'bla': 'bla bla',
+                //},
+                headers: {
+                    'Authorization': 'Token xxxxx',
+                },
+                dataType: 'json',
+                complete: function(data, status) {
+                    if (status == "success") {
+
+                        var failed_agreements = data.responseJSON["data"];
+                        if (failed_agreements != undefined) {
+                            createAlert("danger", data.responseJSON["status"], false);
+                            buildHtmlTable(failed_agreements, "#failed_project_agreements_modal_body");
+                            $("#failed_project_agreements_modal").modal('show');
+                        } else {
+                            createAlert("success", data.responseJSON["status"], false);
+                        }
+                    } else {
+                        console.log("something weird happened");
+                    }
+                }
+            });
+
+        });
+    });
+</script>
+{% endblock %}

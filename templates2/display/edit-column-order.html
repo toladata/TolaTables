@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block page_title %}Tables{% endblock %}
+
+
+{% block content %}
+    <p> Drag and drop elements to establish a column order </p>
+    <form action="/edit_column_order/{{silo.id}}/" method="post">{% csrf_token %}
+      <br><br>
+      <table id="listcolumns" class="table table-bordered table-hover table-striped">
+        {% for col in cols %}
+            <tr>
+              <td><input type="hidden" name="columns" value="{{col}}">{{col}}</td>
+            <tr>
+        {% endfor %}
+    </table>
+      <br><br>
+      <input type="submit" value="Submit" class="btn btn-sm btn-primary">
+      <input type="button" value="Sort Alphabetically" id="order_alphabetically" class="btn btn-sm btn-warning">
+    </form>
+
+{% endblock content %}
+
+{% block extra_js_in_body %}
+    <script type="text/javascript">
+        $(document).ready(function() {
+          var fixHelperModified = function(e, tr) {
+            var $originals = tr.children();
+            var $helper = tr.clone();
+            $helper.children().each(function(index) {
+                $(this).width($originals.eq(index).width())
+            });
+            return $helper;
+          },
+          updateIndex = function(e, ui) {
+              $('td.index', ui.item.parent()).each(function (i) {
+                  $(this).html(i + 1);
+              });
+          };
+
+          $("#listcolumns tbody").sortable({
+            helper: fixHelperModified,
+            stop: updateIndex
+          }).disableSelection();
+
+          // Sort command
+          $("#order_alphabetically").on('click', function(e){
+            e.preventDefault();
+            var columns = [];
+            $("#listcolumns").find('td').each(function() {
+                columns.push($(this).text())
+            });
+            columns = columns.sort(insensitive_comparator);
+            for (var i = 0; i < columns.length; i++) {
+              var tableRow = $("td").filter(function() {
+                  return $(this).text() == columns[i];
+              }).closest("tr");
+
+              $("#listcolumns").append(tableRow);
+            }
+
+          });
+
+          function insensitive_comparator(s1, s2) {
+            var s1lower = s1.toLowerCase();
+            var s2lower = s2.toLowerCase();
+            return s1lower > s2lower? 1 : (s1lower < s2lower? -1 : 0);
+          }
+        });
+
+    </script>
+{% endblock extra_js_in_body %}

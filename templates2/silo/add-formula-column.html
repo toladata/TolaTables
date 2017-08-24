@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block page_title %}Tables{% endblock %}
+
+
+{% block content %}
+    <br><p><b>Add a new formula column to Table: </b><a href="/silo_detail/{{silo.pk}}/">
+              {{ silo.name }}</a></p><br>
+    <form action="/new_formula_column/{{silo.id}}/" method="post">{% csrf_token %}
+      <p> <b>Enter the name of your new formula column:</b></p>
+      <input type="text" name="column_name" class="form-control"><br>
+      <b>Operation wanted: &nbsp &nbsp</b>
+      <select id="math_operation" name="math_operation">
+          <option value="sum">Sum</option>
+          <option value="mean">Mean</option>
+          <option value="median">Median</option>
+          <option value="mode">Mode</option>
+          <option value="max">Max</option>
+          <option value="min">Min</option>
+      </select>
+      <br><br>
+      <table id="listcolumsn" class="table table-bordered table-hover table-striped">
+        <tr>
+            <th>Column Name</th>
+            <th>To be included in the operation</th>
+        </tr>
+        {% for col in cols %}
+            <tr>
+              <td>{{col}}</td>
+              <td align = "center"><input type="checkbox" name="columns" value="{{col}}"></td>
+            <tr>
+        {% endfor %}
+      </table>
+      <br><br><br>
+      <input type="submit" value="Submit" class="btn btn-sm btn-primary">
+    </form>
+
+{% endblock content %}

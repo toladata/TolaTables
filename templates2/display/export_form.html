@@ -1,0 +1,445 @@
+{% extends "base.html" %}
+{% block page_title %}Export{% endblock %}
+
+
+{% block content %}
+    <form id="filterformglobal" action="/export_silo_form/{{silo.id}}/" method="post">{% csrf_token %}
+        <p>Show columns. This form allows you to pick which columns to export</p>
+        <br>
+        <button id="checkall">Check All</button>
+        <button id="uncheckall">Uncheck All</button>
+        <br>
+        <table id="listcolumns" class="table table-bordered table-hover table-striped">
+          <tr>
+              <th>Column Name</th>
+              <th>Export</th>
+          </tr>
+          {% for col in cols %}
+              <tr>
+                <td>{{col}}</td>
+                <td align = "center"><input type="checkbox" name="columns" value="{{col}}"></td>
+              <tr>
+          {% endfor %}
+        </table>
+        <p> This form below allows you to pick under what condition to export a row</p>
+        <button id="addcondition">Add Condition</button>
+        <button id="addblankchar">Add Blank Character</button>
+        <table id="listconditions" class="table table-bordered table-hover table-striped">
+          <tr>
+              <th>Logic</th>
+              <th>Operation</th>
+              <th>Number</th>
+              <th>Specifics</th>
+              <th>Remove</th>
+          </tr>
+          {% for row in hidden_rows %}
+              <tr>
+                <td>{{row.logic}}</td>
+                <td>{{row.operation}}</td>
+                <td>{{row.number}}</td>
+                <td>{{row.conditional}}</td>
+                <td><button class="removeRow glyphicon glyphicon-trash btn  btn-sm btn-danger"></button></td>
+              </tr>
+          {% endfor %}
+        </table>
+        <input id="ERA" type="button" value="Export as REST API" class="btn btn-sm btn-primary">
+        <input id="EJF" type="button" value="Export as JSON FEED" class="btn btn-sm btn-primary">
+        <input id="EC" type="button" value="Export as CSV" class="btn btn-sm btn-primary">
+        <input id="ENGS" type="button" value="Export to New Google Sheet" class="btn btn-sm btn-primary">
+        <input id="EEGS" type="button" value="Export to Existing Google Sheet" class="btn btn-sm btn-primary">
+    </form>
+
+    <!-- Modal -->
+    <div id="add_condition_modal" class="modal fade modal-lg" role="dialog">
+      <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title">Add a condition to filter rows</h4>
+          </div>
+          <div class="modal-body">
+            <form id="conditionform">
+              <p> Show only if </p>
+              <select id="boolean">
+                  <option value="OR">one of the following is</option>
+                  <option value="AND">all of the following are</option>
+              </select>
+              <select id="math">
+                  <!--  add these later when the database actually stores types-->
+                  <!-- <option value="gt">&gt;</option>
+                  <option value="lt">&lt;</option>
+                  <option value="gte">&ge;</option>
+                  <option value="lte">&le;</option> -->
+                  <option value="eq">=</option>
+                  <option value="neq">&ne;</option>
+                  <option value="empty">empty</option>
+                  <option value="nempty">not empty</option>
+              </select>
+              <input id="number" type="text"></input>
+              <br>
+              <button id="checkall_condition">Check All</button>
+              <button id="uncheckall_condition">Uncheck All</button>
+              <br>
+              <table id="listcolumns_conditions" class="table table-bordered table-hover table-striped">
+                <tr>
+                    <th>Column Name</th>
+                    <th>Hide</th>
+                </tr>
+                {% for col in cols %}
+                    <tr>
+                      <td>{{col}}</td>
+                      <td align = "center"><input type="checkbox" name="column_conditions" value="{{col}}"></td>
+                    <tr>
+                {% endfor %}
+              </table>
+              <input type="submit" value="Submit" class="btn btn-sm btn-primary">
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Modal -->
+    <div id="add_blankchar_modal" class="modal fade modal-lg" role="dialog">
+      <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title">Add a blank character</h4>
+          </div>
+          <div class="modal-body">
+            <form id="blankcharform">
+              <p> The filter will read this word as blank: </p>
+              <input type="text" id="new_blank_char" class="form-control"><br>
+              <input type="submit" value="Submit" class="btn btn-sm btn-primary">
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+{% endblock content %}
+
+{% block extra_js_in_body %}
+    <script type="text/javascript">
+        $(document).ready(function() {
+            //check columns that are already hidden
+            {% for col in shown_cols %}
+                $("#listcolumns").find('td input[value="{{col}}"]').each(function() {
+                    this.checked = true;
+                });
+            {% endfor %}
+
+
+            var hide_rows=[];
+            var j = 0;
+            $("#listconditions").find('tr').each(function() {
+              var i = 0;
+              if (j!=0) {
+                var logic;
+                var operation;
+                var number;
+                var conditional;
+                $(this).find('td').each(function(){
+                  if(i==0){
+                    logic = $(this).text();
+                  }
+                  else if(i==1){
+                    operation = $(this).text();
+                  }
+                  else if(i==2){
+                    number = $(this).text();
+                  }
+                  else if(i==3){
+                    conditional = JSON.parse($(this).text());
+                  }
+                  else if(i==5){
+                    row_id = $(this).text();
+                  }
+                  i+=1;
+                });
+                row = {"logic":logic,
+                      "operation":operation,
+                      "number":number,
+                      "conditional":conditional,
+                      "row_id": j};
+                hide_rows.push(row);
+              }
+              j+=1;
+
+            });
+
+
+            $("#addcondition").on('click', function(e){
+                e.preventDefault();
+                $("#add_condition_modal").modal();
+            });
+            $("#addblankchar").on('click', function(e){
+                e.preventDefault();
+                $("#add_blankchar_modal").modal();
+            });
+            $("#checkall").on('click', function(e){
+                e.preventDefault();
+                $("#listcolumns").find('td input:checkbox').each(function() {
+                    this.checked = true;
+                });
+            });
+            $("#uncheckall").on('click', function(e){
+                e.preventDefault();
+                $("#listcolumns").find('td input:checkbox').each(function() {
+                    this.checked = false;
+                });
+            });
+            $("#checkall_condition").on('click', function(e){
+                e.preventDefault();
+                $("#listcolumns_conditions").find('td input:checkbox').each(function() {
+                    this.checked = true;
+                });
+            });
+            $("#uncheckall_condition").on('click', function(e){
+                e.preventDefault();
+                $("#listcolumns_conditions").find('td input:checkbox').each(function() {
+                    this.checked = false;
+                });
+            });
+            $("#math").on("change", function(e){
+              if (this.value == "gt" ||
+                  this.value == "lt" ||
+                  this.value == "gte" ||
+                  this.value == "lte" ||
+                  this.value == "eq" ||
+                  this.value == "neq") {
+                    $("#number").show();
+              }
+              else{
+                $("#number").hide();
+              }
+            });
+
+            $(document.body).on('click',".removeRow", function(e) {
+                e.preventDefault();
+                var logic;
+                var operation;
+                var number;
+                var conditional;
+                var i = 0;
+                $(this).closest('tr').find('td').each(function(){
+                  if(i==0){
+                    logic = $(this).text();
+                  }
+                  else if(i==1){
+                    operation = $(this).text();
+                  }
+                  else if(i==2){
+                    number = $(this).text();
+                  }
+                  else if(i==3){
+                    try {
+                        conditional = JSON.parse($(this).text());
+                    } catch (e) {
+                        conditional = $(this).text().replace(" ","").split(",");
+                    }
+                  }
+                  i+=1;
+                });
+                var index = -1;
+                for (var i = 0; i < hide_rows.length; i++) {
+                    if (hide_rows[i].logic == logic &&
+                        hide_rows[i].operation == operation &&
+                        hide_rows[i].number == number &&
+                        JSON.stringify(hide_rows[i].conditional) == JSON.stringify(conditional)) {
+                        index=i;
+                        break;
+                    }
+                }
+                if (index>-1) {
+                  hide_rows.splice(index,1);
+                }
+                $(this).closest('tr').remove();
+            });
+
+            $("#blankcharform").submit(function(e){
+                e.preventDefault();
+                $("#add_blankchar_modal").modal('toggle');
+                var table = document.getElementById('listconditions').getElementsByTagName('tbody')[0];
+                var newRow = table.insertRow(table.rows.length);
+                var newCell = newRow.insertCell(0);
+                var newText = document.createTextNode('Additional blank');
+                newCell.appendChild(newText);
+
+                newCell = newRow.insertCell(1);
+                newText = document.createTextNode('');
+                newCell.appendChild(newText);
+
+                newCell = newRow.insertCell(2);
+                newText = document.createTextNode('');
+                newCell.appendChild(newText);
+
+                newCell = newRow.insertCell(3);
+                newText = document.createTextNode($("#new_blank_char").val());
+                newCell.appendChild(newText);
+
+                hide_rows.push({"logic":"BLANKCHAR",
+                                "operation":"",
+                                "number":"",
+                                "conditional":$("#new_blank_char").val(),
+                                "row_id": hide_rows.length });
+
+                newCell = newRow.insertCell(4);
+                newCell.innerHTML = '<button class="removeRow glyphicon glyphicon-trash btn  btn-sm btn-danger"></button>';
+
+
+                $("#new_blank_char").val("");
+
+
+            });
+            $("#conditionform").submit(function(e){
+                e.preventDefault();
+                $("#add_condition_modal").modal('toggle');
+                var table = document.getElementById('listconditions').getElementsByTagName('tbody')[0];
+                var newRow = table.insertRow(table.rows.length);
+
+                var newCell = newRow.insertCell(0);
+                var newText = document.createTextNode($("#boolean").val());
+                newCell.appendChild(newText);
+
+                newCell = newRow.insertCell(1);
+                newText = document.createTextNode($("#math").val());
+                newCell.appendChild(newText);
+
+                newCell = newRow.insertCell(2);
+                newText = document.createTextNode($("#number").val());
+                newCell.appendChild(newText);
+
+                newCell = newRow.insertCell(3);
+                var text = "";
+                var val = [];
+                $("#listcolumns_conditions").find('td input:checkbox').each(function() {
+                  if (this.checked) {
+                    text += this.value + ", ";
+                    val.push(this.value);
+                  }
+                });
+                text = text.slice(0, text.length-2);
+                newText = document.createTextNode(text);
+                newCell.appendChild(newText);
+
+                newCell = newRow.insertCell(4);
+                newCell.innerHTML = '<button class="removeRow glyphicon glyphicon-trash btn  btn-sm btn-danger"></button>';
+
+                hide_rows.push({"logic":$("#boolean").val(),
+                                "operation":$("#math").val(),
+                                "number":$("#number").val(),
+                                "conditional":val,
+                                "row_id": hide_rows.length });
+
+                $("#number").val("")
+
+                $("#listcolumns_conditions").find('td input:checkbox').each(function() {
+                    this.checked = false;
+                });
+            });
+
+            $("#ERA").on('click', function(e){
+                e.preventDefault();
+                var shown_cols = [];
+                $("#listcolumns").find('td input:checkbox').each(function() {
+                  if (this.checked) {
+                    shown_cols.push(this.value);
+                  }
+                });
+
+                var query = $("<input>").attr("type", "hidden").attr("name", "query").val(JSON.stringify(hide_rows));
+                $('#filterformglobal').append($(query));
+
+                var shown_cols = $("<input>").attr("type", "hidden").attr("name", "shown_cols").val(JSON.stringify(shown_cols));
+                $('#filterformglobal').append($(shown_cols));
+
+                var url = $("<input>").attr("type", "hidden").attr("name", "url").val("/api/silo/{{ silo.id}}");
+                $('#filterformglobal').append($(url));
+
+                $("#filterformglobal").submit()
+            });
+            $("#EJF").on('click', function(e){
+                e.preventDefault();
+                var shown_cols = [];
+                $("#listcolumns").find('td input:checkbox').each(function() {
+                  if (this.checked) {
+                    shown_cols.push(this.value);
+                  }
+                });
+
+                var query = $("<input>").attr("type", "hidden").attr("name", "query").val(JSON.stringify(hide_rows));
+                $('#filterformglobal').append($(query));
+
+                var shown_cols = $("<input>").attr("type", "hidden").attr("name", "shown_cols").val(JSON.stringify(shown_cols));
+                $('#filterformglobal').append($(shown_cols));
+
+                var url = $("<input>").attr("type", "hidden").attr("name", "url").val("/api/public_tables/{{ silo.id}}/data");
+                $('#filterformglobal').append($(url));
+
+                $("#filterformglobal").submit()
+            });
+            $("#EC").on('click', function(e){
+                e.preventDefault();
+                var shown_cols = [];
+                $("#listcolumns").find('td input:checkbox').each(function() {
+                  if (this.checked) {
+                    shown_cols.push(this.value);
+                  }
+                });
+
+                var query = $("<input>").attr("type", "hidden").attr("name", "query").val(JSON.stringify(hide_rows));
+                $('#filterformglobal').append($(query));
+
+                var shown_cols = $("<input>").attr("type", "hidden").attr("name", "shown_cols").val(JSON.stringify(shown_cols));
+                $('#filterformglobal').append($(shown_cols));
+
+                var url = $("<input>").attr("type", "hidden").attr("name", "url").val("/export/{{ silo.id}}");
+                $('#filterformglobal').append($(url));
+
+                $("#filterformglobal").submit()
+            });
+            $("#ENGS").on('click', function(e){
+                e.preventDefault();
+                var shown_cols = [];
+                $("#listcolumns").find('td input:checkbox').each(function() {
+                  if (this.checked) {
+                    shown_cols.push(this.value);
+                  }
+                });
+
+                var query = $("<input>").attr("type", "hidden").attr("name", "query").val(JSON.stringify(hide_rows));
+                $('#filterformglobal').append($(query));
+
+                var shown_cols = $("<input>").attr("type", "hidden").attr("name", "shown_cols").val(JSON.stringify(shown_cols));
+                $('#filterformglobal').append($(shown_cols));
+
+                var url = $("<input>").attr("type", "hidden").attr("name", "url").val("/export_to_gsheet/{{ silo.id}}");
+                $('#filterformglobal').append($(url));
+
+                $("#filterformglobal").submit()
+            });
+            $("#EEGS").on('click', function(e){
+                e.preventDefault();
+                var shown_cols = [];
+                $("#listcolumns").find('td input:checkbox').each(function() {
+                  if (this.checked) {
+                    shown_cols.push(this.value);
+                  }
+                });
+
+                hide_rows = JSON.stringify(hide_rows);
+                shown_cols = JSON.stringify(shown_cols);
+
+                setDatabaseQuery(hide_rows);
+                setShownCols(shown_cols);
+
+                onAuthApiLoad({{silo.id}});
+            });
+
+        });
+
+    </script>
+
+
+{% endblock extra_js_in_body %}
