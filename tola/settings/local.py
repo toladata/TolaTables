@@ -127,6 +127,7 @@ TEMPLATES = [
                 'django.template.context_processors.tz',
                 'django.contrib.messages.context_processors.messages',
                 'tola.context_processors.get_silos',
+                'tola.processor.org_levels',
             ],
             'builtins': [
                 'django.contrib.staticfiles.templatetags.staticfiles',
