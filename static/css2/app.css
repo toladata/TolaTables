@@ -40,6 +40,7 @@ button:focus,
 
 .navbar-right{
     float: right;
+    z-index: 4;
 }
 
 .navbar-header{
