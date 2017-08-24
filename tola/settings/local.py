@@ -55,6 +55,8 @@ import mongoengine
 from mongoengine import register_connection
 register_connection(alias='default', name='tola')
 
+MONGODB_HOST = os.getenv('TOLATABLES_DB_HOST')
+
 mongoengine.connect(
     os.getenv('TOLATABLES_MONGODB_NAME'),
     username=os.getenv('TOLATABLES_MONGODB_USER'),
