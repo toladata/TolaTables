@@ -1,6 +1,6 @@
 from django.forms import widgets
 from rest_framework import serializers
-from silo.models import Silo, Read, ReadType, Tag, Organization, Country, Workflowlevel1, Workflowlevel2
+from silo.models import Silo, Read, ReadType, Tag, Organization, Country, WorkflowLevel1, WorkflowLevel2
 from tola.models import LoggedUser
 from django.contrib.auth.models import User
 import json
@@ -16,6 +16,7 @@ class PublicSiloSerializer(serializers.HyperlinkedModelSerializer):
         link = "/api/public_tables/" + str(obj.id) + "/data"
         return (self.context['request'].build_absolute_uri(link))
 
+
 class SiloSerializer(serializers.HyperlinkedModelSerializer):
     data = serializers.SerializerMethodField()
     data_count = serializers.ReadOnlyField()
@@ -29,10 +30,12 @@ class SiloSerializer(serializers.HyperlinkedModelSerializer):
         link = "/api/silo/" + str(obj.id) + "/data"
         return (self.context['request'].build_absolute_uri(link))
 
+
 class TagSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Tag
         fields = ('name', 'owner')
+
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
 
@@ -84,17 +87,17 @@ class CountrySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class Workflowlevel1Serializer(serializers.ModelSerializer):
+class WorkflowLevel1Serializer(serializers.ModelSerializer):
 
     class Meta:
-        model = Workflowlevel1
+        model = WorkflowLevel1
         fields = '__all__'
 
 
-class Workflowlevel2Serializer(serializers.ModelSerializer):
+class WorkflowLevel2Serializer(serializers.ModelSerializer):
 
     class Meta:
-        model = Workflowlevel2
+        model = WorkflowLevel2
         fields = '__all__'
 
 

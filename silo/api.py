@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 
 from rest_framework import renderers, viewsets,filters,permissions
 
-from .models import Silo, LabelValueStore
+from .models import Silo, LabelValueStore, Country, WorkflowLevel1, WorkflowLevel2
 from .serializers import *
 from silo.permissions import IsOwnerOrReadOnly
 from django.contrib.auth.models import User
@@ -30,9 +30,31 @@ def silo_data_api(request, id):
     return JsonResponse(json_data, safe=False)
 """
 
+
+class OrganizationViewSet(viewsets.ModelViewSet):
+    queryset = Organization.objects.all()
+    serializer_class = OrganizationSerializer
+
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+
+
+class CountryViewSet(viewsets.ModelViewSet):
+    queryset = Country.objects.all()
+    serializer_class = CountrySerializer
+
+
+class WorkflowLevel1ViewSet(viewsets.ModelViewSet):
+    queryset = WorkflowLevel1.objects.all()
+    serializer_class = WorkflowLevel1Serializer
+
+
+class WorkflowLevel2ViewSet(viewsets.ModelViewSet):
+    queryset = WorkflowLevel1.objects.all()
+    serializer_class = WorkflowLevel2Serializer
+
 
 class PublicSiloViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PublicSiloSerializer
@@ -174,41 +196,6 @@ class ReadTypeViewSet(viewsets.ModelViewSet):
     queryset = ReadType.objects.all()
     serializer_class = ReadTypeSerializer
 
-
-class OrganizationViewSet(viewsets.ModelViewSet):
-    """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions.
-    """
-    queryset = Organization.objects.all()
-    serializer_class = OrganizationSerializer
-
-
-class CountryViewSet(viewsets.ModelViewSet):
-    """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions.
-    """
-    queryset = Country.objects.all()
-    serializer_class = CountrySerializer
-
-
-class Workflowlevel1ViewSet(viewsets.ModelViewSet):
-    """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions.
-    """
-    queryset = Workflowlevel1.objects.all()
-    serializer_class = Workflowlevel1Serializer
-
-
-class Workflowlevel2ViewSet(viewsets.ModelViewSet):
-    """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions.
-    """
-    queryset = Workflowlevel2.objects.all()
-    serializer_class = Workflowlevel2Serializer
 
 #####-------API Views to Feed Data to Tolawork API requests-----####
 '''

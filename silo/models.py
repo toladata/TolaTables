@@ -117,7 +117,7 @@ class CountryAdmin(admin.ModelAdmin):
     display = 'Country'
 
 
-class Workflowlevel1(models.Model):
+class WorkflowLevel1(models.Model):
     country = models.ForeignKey(Country, blank=True, null=True)
     organization = models.ForeignKey(Organization, blank=True, null=True)
     level1_uuid = models.CharField(max_length=255, verbose_name='WorkflowLevel1 UUID', unique=True)
@@ -135,22 +135,22 @@ class Workflowlevel1(models.Model):
         if self.create_date == None:
             self.create_date = datetime.now()
         self.edit_date = datetime.now()
-        super(Workflowlevel1, self).save()
+        super(WorkflowLevel1, self).save()
 
     #displayed in admin templates
     def __unicode__(self):
         return self.name
 
 
-class Workflowlevel1Admin(admin.ModelAdmin):
+class WorkflowLevel1Admin(admin.ModelAdmin):
     list_display = ('country', 'organization', 'name')
     display = 'Workflowlevel 1'
 
 
-class Workflowlevel2(models.Model):
+class WorkflowLevel2(models.Model):
     country = models.ForeignKey(Country, blank=True, null=True)
     organization = models.ForeignKey(Organization, blank=True, null=True)
-    workflowlevel1 = models.ForeignKey(Workflowlevel1)
+    workflowlevel1 = models.ForeignKey(WorkflowLevel1)
     level2_uuid = models.CharField(max_length=255, verbose_name='WorkflowLevel2 UUID', unique=True)
     name = models.CharField("Name", max_length=255, blank=True)
     activity_id = models.IntegerField("ID", blank=True)
@@ -166,14 +166,14 @@ class Workflowlevel2(models.Model):
         if self.create_date == None:
             self.create_date = datetime.now()
         self.edit_date = datetime.now()
-        super(Workflowlevel2, self).save()
+        super(WorkflowLevel2, self).save()
 
     #displayed in admin templates
     def __unicode__(self):
         return self.name
 
 
-class Workflowlevel2Admin(admin.ModelAdmin):
+class WorkflowLevel2Admin(admin.ModelAdmin):
     list_display = ('country', 'organization', 'name')
     display = 'Workflowlevel 2'
 
@@ -192,6 +192,7 @@ class TolaUser(models.Model):
     employee_number = models.IntegerField("Employee Number", blank=True, null=True)
     user = models.OneToOneField(User, unique=True, related_name='tola_user')
     country = models.ForeignKey(Country, blank=True, null=True)
+    workflowlevel1 = models.ForeignKey(WorkflowLevel1, blank=True, null=True)
     tables_api_token = models.CharField(blank=True, null=True, max_length=255)
     activity_api_token = models.CharField(blank=True, null=True, max_length=255)
     privacy_disclaimer_accepted = models.BooleanField(default=False)
@@ -320,7 +321,7 @@ class Silo(models.Model):
     description = models.CharField(max_length=255, blank=True, null=True)
     organization = models.ForeignKey(Organization, blank=True, null=True)
     country = models.ForeignKey(Country, blank=True, null=True)
-    program = models.CharField(max_length=255, blank=True, null=True)
+    workflowlevel1 = models.ForeignKey(WorkflowLevel1, blank=True, null=True)
     public = models.BooleanField()
     create_date = models.DateTimeField(null=True, blank=True)
 

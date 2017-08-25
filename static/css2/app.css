@@ -38,9 +38,16 @@ button:focus,
   outline: none;
 }
 
+.header-image{
+    width: 50px;
+    height: 50px;
+    margin-left: -15px;
+    margin-top: -15px;
+}
+
 .navbar-right{
     float: right;
-    z-index: 4;
+
 }
 
 .navbar-header{
@@ -53,17 +60,13 @@ button:focus,
   margin-top: 50px;
   font-color: #FFFFFF;
   border: 0px;
-}
-
-.navbar-tola2 {
-  /* TolaTables Brand Color: */
-  background-color: #FFFFFF;
 
 }
-
 
 .navbar-tola .navbar-nav > li > a {
   color: #FFFFFF;
+      position: relative;
+    z-index: 2;
 }
 
 .navbar-tola .navbar-nav > li > a:hover,
@@ -76,6 +79,11 @@ button:focus,
   background-color: rgba(0, 0, 0, .15);
 }
 
+dropdown{
+    position: relative;
+    z-index: 1;
+
+}
 /* - End Bootstrap Overrides */
 
 
