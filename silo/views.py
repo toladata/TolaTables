@@ -884,9 +884,10 @@ def updateSiloData(request, pk):
                         greturn[1][:] = [d for d in greturn[1] if d.get('silo_id') == None]
                         for ret in greturn[1]:
                             msgs.append((ret.get('level'),ret.get('msg')))
-                        #delete data associated with old read
-                        lvs = lvs = LabelValueStore.objects(silo_id=silo.pk,__raw__={"read_id" : { "$exists" : "true", "$in" : [read.id] }})
-                        lvs.delete()
+                        #delete data associated with old read if there's no unique column
+                        if unique_field_exist == False:
+                            lvss_to_delete = LabelValueStore.objects(silo_id=silo.pk,__raw__={"read_id" : { "$exists" : "true", "$in" : [read.id] }})
+                            lvss_to_delete.delete()
                         #read the data
                         for lvs in greturn[0]:
                             lvs.save()
