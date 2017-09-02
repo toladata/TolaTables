@@ -1012,6 +1012,7 @@ def newColumn(request,id):
             label = form.cleaned_data['new_column_name']
             value = form.cleaned_data['default_value']
             #insert a new column into the existing silo
+            addColsToSilo(silo, [label])
             db.label_value_store.update_many(
                 {"silo_id": silo.id},
                     {
@@ -1067,9 +1068,10 @@ def editColumns(request,id):
                     except Exception as e:
                         pass
 
-                    to_delete.append(silo)
+                    to_delete.append(column_name)
 
-            deleteSiloColumns(silo, to_delete)
+            if len(to_delete):
+                deleteSiloColumns(silo, to_delete)
             messages.info(request, 'Updates Saved', fail_silently=False)
         else:
             messages.error(request, 'ERROR: There was a problem with your request', fail_silently=False)
