@@ -109,7 +109,7 @@ def saveDataToSilo(silo, data, read = -1, user = None):
     unique_fields = silo.unique_fields.all()
     skipped_rows = set()
     enc = "latin-1"
-    keys = set()
+    keys = []
     fieldToType = getColToTypeDict(silo)
     for counter, row in enumerate(data):
         # reseting filter_criteria for each row
@@ -172,7 +172,7 @@ def saveDataToSilo(silo, data, read = -1, user = None):
                     continue
             key = key.replace(".", "_").replace("$", "USD").replace(u'\u2026', "")
             if isinstance(val, basestring): val = val.strip()
-            keys.add(key)
+            if key not in keys: keys.append(key)
             setattr(lvs, key, val)
             counter += 1
         lvs = calculateFormulaCell(lvs,silo)
