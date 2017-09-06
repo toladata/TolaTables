@@ -1372,6 +1372,8 @@ def removeSource(request, silo_id, read_id):
         read = silo.reads.get(pk=read_id)
         read_name = read.read_name
         silo.reads.remove(read)
+        if Silo.objects.filter(reads__pk=read.id).count() == 0:
+            read.delete()
         messages.success(request,"%s has been removed successfully" % read_name)
     except Read.DoesNotExist as e:
         messages.error(request,"Datasource with id=%s does not exist." % read_id)
