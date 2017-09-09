@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Custom styles for this template -->
+<link href="{{ STATIC_URL}}css/tola-dashboard.css" rel="stylesheet" type="text/css" />
+
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.11.1.min.js"></script>
+<script src="{{ STATIC_URL }}js/Chart.min.js"></script>
+<link rel="borders" type="application/json" href="js/world_borders.geojson">
+<!-- Hosted Leaflet -->
+<script src="{{ STATIC_URL }}js/leaflet.js"></script>
+<!--- Hosted Leaflet CSS --->
+<link rel="stylesheet" href="{{ STATIC_URL }}css/leaflet.css"/>
+<div class="row">
+
+    <div class="main">
+        <div class="details">
+            {{ get_table.data_count }} Entries
+        </div>
+        <h4 class="sub-header">Map </h4>
+        <div class="map-container">
+            <style>
+              #map { height: 350px; }
+            </style>
+            <div id="map"></div>
+            <script>
+            var countries = new L.LayerGroup();
+
+            // Define an icon called cssIcon
+            var countryIcon = L.divIcon({
+              // Specify a class name we can refer to in CSS.
+              // Set marker width and height
+              html:'<div class="map-marker"></div>',
+              iconSize: [0,0]
+            });
+
+            {% for item in lat_long %}
+                L.marker([{{ item.latitude }}, {{ item.longitude }}], {icon: countryIcon}).addTo(countries).bindPopup("" + "<b>{{ item.country }}</b><br/>TolaData country<br/> ");
+            {% endfor %}
+
+            var mbAttr = 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+            '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+            'Imagery &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+            mbUrl = 'http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png';
+            var grayscale   = L.tileLayer(mbUrl, {id: 'mapbox.light', attribution: mbAttr}),
+            streets  = L.tileLayer(mbUrl, {id: 'mapbox.streets',   attribution: mbAttr});
+            var map = L.map('map', {
+            center: [25, 25],
+            zoom: 2,
+            layers: [grayscale, countries]
+            });
+            var baseLayers = {
+            "Grayscale": grayscale,
+            "Streets": streets,
+            };
+            var overlays = {
+            "TolaData Countries": countries,
+            };
+            L.control.layers(baseLayers, overlays).addTo(map);
+            </script>
+        </div>
+        <h4>Columns and Uniques</h4>
+        <div class="row placeholders">
+            {% for item in get_fields %}
+            <div class="col-sm-5 main" style="width:250px;">
+                <B>{{ item|truncatechars:30}}</B>
+                <canvas id="{{ item }}" height="50" width="50"></canvas>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <script>
+
+        var dynamicColors = function() {
+        var r = Math.floor(Math.random() * 255);
+        var g = Math.floor(Math.random() * 255);
+        var b = Math.floor(Math.random() * 255);
+        return "rgba(" + r + "," + g + "," + b + ", 0.3)";
+        }
+
+        {% for name,value in get_fields.items %}
+            //render meaning on radar_chart
+            var data = {
+                labels : {% for x,y in value.items %} {{ y.label }} {% endfor %},
+                datasets : [
+                    {
+                        data : {% for x,y in value.items %}{{ y.count }} {% endfor %},
+                        backgroundColor: [{% for i in "xxxxxxxxxxxxxxxxxxxx" %}{{ "dynamicColors()," }}{% endfor %}],
+
+
+
+                    }
+                ]
+            }
+            var ctx = document.getElementById("{{ name }}").getContext("2d");
+            height = 75,
+            radar = new Chart(ctx, {
+                type: 'doughnut',
+                data: data,
+                options: {
+                            legend: {
+                                display: false,
+                                },
+
+                            }
+            });
+        {% endfor %}
+    </script>
+</div>
+</div>
+{% endblock %}

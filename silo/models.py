@@ -356,6 +356,25 @@ class Silo(models.Model):
         return LabelValueStore.objects(silo_id=self.id).count()
 
 
+class Dashboard(models.Model):
+    table = models.ForeignKey(Silo)
+    name = models.CharField(max_length=255)
+    map_lat = models.CharField(max_length=100, blank=True, null=True)
+    map_long = models.CharField(max_length=100, blank=True, null=True)
+    map_zoom = models.CharField(max_length=10, blank=True, null=True)
+    column_charts = models.TextField(default="[]")
+    owner = models.ForeignKey(User, related_name='dashboard')
+    created = models.DateTimeField(auto_now=False, auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True, auto_now_add=False)
+
+    def __str__(self):
+        return self.name
+
+    def __unicode__(self):
+        return self.name
+
+
+
 class DeletedSilos(models.Model):
     user = models.ForeignKey(User)
     deleted_time = models.DateTimeField()
