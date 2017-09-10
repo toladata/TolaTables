@@ -19,9 +19,13 @@
         <td>{{ item.create_date}}</td>
         <td>{{ item.name}}</td>
         <td>{{ item.description}}</td>
-        <td>{{ item.tags}}</td>
-        <td>{% if item.public%}Public{% else %} N/A {% endif %}</td>
-        <td><a href="/reports/table_dashboard/{{ item.id }}/">View Dashboard</a></td>
+        <td>{{ item.tag_list}}</td>
+        <td>{% if item.public%}Public{% else %} Private {% endif %}</td>
+        {% if item.columns %}
+            <td><a href="/reports/table_dashboard/{{ item.id }}/">View Dashboard</a></td>
+        {% else %}
+            <td>No Data found for Table</td>
+        {% endif %}
     </tr>
     {% empty %}
         <tr>

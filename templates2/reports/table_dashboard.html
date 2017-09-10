@@ -12,62 +12,106 @@
 <script src="{{ STATIC_URL }}js/leaflet.js"></script>
 <!--- Hosted Leaflet CSS --->
 <link rel="stylesheet" href="{{ STATIC_URL }}css/leaflet.css"/>
-<div class="row">
+
 
     <div class="main">
-        <div class="details">
-            {{ get_table.data_count }} Entries
-        </div>
-        <h4 class="sub-header">Map </h4>
-        <div class="map-container">
-            <style>
-              #map { height: 350px; }
-            </style>
-            <div id="map"></div>
-            <script>
-            var countries = new L.LayerGroup();
+        <div class="col-xs-12 header">
+            <div class="panel panel-default">
+                <div class="panel-heading center">
+                  <h4>{{ get_table.name|truncatechars:50}}</h4>
+                </div>
+                <div class="panel-body">
+                    <div class="row dashboard">
+                        <div class="col-xs-3 well well-sm">
+                            <b>Entries:</b> {{ get_table.data_count }}
+                        </div>
+                        <div class="col-xs-3 well well-sm">
+                            <b>Create Date:</b> {{ get_table.create_date }}
+                        </div>
+                        <div class="col-xs-3 well well-sm">
+                            <b>Tags:</b> {{ get_table.tag_list }}
+                        </div>
+                        <div class="col-xs-3 well well-sm">
+                            <b>Public:</b> {{ get_table.public }}
+                        </div>
 
-            // Define an icon called cssIcon
-            var countryIcon = L.divIcon({
-              // Specify a class name we can refer to in CSS.
-              // Set marker width and height
-              html:'<div class="map-marker"></div>',
-              iconSize: [0,0]
-            });
-
-            {% for item in lat_long %}
-                L.marker([{{ item.latitude }}, {{ item.longitude }}], {icon: countryIcon}).addTo(countries).bindPopup("" + "<b>{{ item.country }}</b><br/>TolaData country<br/> ");
-            {% endfor %}
-
-            var mbAttr = 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
-            '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
-            'Imagery &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
-            mbUrl = 'http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png';
-            var grayscale   = L.tileLayer(mbUrl, {id: 'mapbox.light', attribution: mbAttr}),
-            streets  = L.tileLayer(mbUrl, {id: 'mapbox.streets',   attribution: mbAttr});
-            var map = L.map('map', {
-            center: [25, 25],
-            zoom: 2,
-            layers: [grayscale, countries]
-            });
-            var baseLayers = {
-            "Grayscale": grayscale,
-            "Streets": streets,
-            };
-            var overlays = {
-            "TolaData Countries": countries,
-            };
-            L.control.layers(baseLayers, overlays).addTo(map);
-            </script>
-        </div>
-        <h4>Columns and Uniques</h4>
-        <div class="row placeholders">
-            {% for item in get_fields %}
-            <div class="col-sm-5 main" style="width:250px;">
-                <B>{{ item|truncatechars:30}}</B>
-                <canvas id="{{ item }}" height="50" width="50"></canvas>
+                    </div>
+                    <div class="row">
+                        <div class="well">
+                            <h4>Column Names and Types</h4>
+                            {{ get_table.columns }}
+                        </div>
+                    </div>
+                </div>
             </div>
-            {% endfor %}
+        </div>
+
+        <div class="col-xs-12 map-container">
+            <div class="panel panel-default">
+                <div class="panel-heading center">
+                    <h4>Map</h4>
+                </div>
+                <style>
+                  #map { height: 350px; }
+                </style>
+                <div id="map"></div>
+                <script>
+                var countries = new L.LayerGroup();
+
+                // Define an icon called cssIcon
+                var countryIcon = L.divIcon({
+                  // Specify a class name we can refer to in CSS.
+                  // Set marker width and height
+                  html:'<div class="map-marker"></div>',
+                  iconSize: [0,0]
+                });
+
+                {% for item in lat_long %}
+                    L.marker([{{ item.latitude }}, {{ item.longitude }}], {icon: countryIcon}).addTo(countries).bindPopup("" + "<b>{{ item.country }}</b><br/>TolaData country<br/> ");
+                {% endfor %}
+
+                var mbAttr = 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+                '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+                'Imagery &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+                mbUrl = 'http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png';
+                var grayscale   = L.tileLayer(mbUrl, {id: 'mapbox.light', attribution: mbAttr}),
+                streets  = L.tileLayer(mbUrl, {id: 'mapbox.streets',   attribution: mbAttr});
+                var map = L.map('map', {
+                center: [25, 25],
+                zoom: 2,
+                layers: [grayscale, countries]
+                });
+                var baseLayers = {
+                "Grayscale": grayscale,
+                "Streets": streets,
+                };
+                var overlays = {
+                "TolaData Countries": countries,
+                };
+                L.control.layers(baseLayers, overlays).addTo(map);
+                </script>
+            </div>
+        </div>
+
+        <div class="col-xs-12 viz">
+            <div class="panel panel-default">
+                <div class="panel-heading center">
+                    <h4>Columns and Uniques</h4>
+                </div>
+                <div class="row dashboard">
+                    <br/>
+                    {% for question,answers in get_fields.items %}
+                    <div class="col-xs-3">
+                        <div class="panel panel-default">
+                          <div class="panel-heading center"><b>{{ question|truncatechars:30}}</b></div>
+                            <div class="panel-body">
+                                <canvas id="{{ question }}"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
     </div>
     <script>
@@ -107,6 +151,4 @@
             });
         {% endfor %}
     </script>
-</div>
-</div>
 {% endblock %}

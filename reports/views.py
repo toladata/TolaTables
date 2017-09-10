@@ -45,7 +45,7 @@ def tableDashboard(request,id=0):
     lat_long = {}
     country = {}
     # each field needs a count of unique answers
-    if get_fields is None:
+    if get_fields is None and data:
         get_fields = {}
         # loop over the field names only
         for field in data[0]:
@@ -97,6 +97,8 @@ def tableDashboard(request,id=0):
         lat_long = latitude.copy()
         lat_long.update(longitude)
         print lat_long
+    else:
+        get_fields = None
     return render(request, "reports/table_dashboard.html",
                   {'data': data, 'get_table': get_table, 'countries': countries, 'get_fields': get_fields,
                    'lat_long': lat_long})

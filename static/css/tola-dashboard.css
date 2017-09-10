@@ -2,23 +2,6 @@
  * Base structure
  */
 
-/*
- * Main content
- */
-
-.main {
-  padding: 20px;
-}
-@media (min-width: 768px) {
-  .main {
-    padding-right: 40px;
-    padding-left: 40px;
-  }
-}
-.main .page-header {
-  margin-top: 0;
-}
-
 /* Chart.js legends */
 
 .chart-legend {
@@ -52,4 +35,9 @@
   width: 20px;
   height: 20px;
   border-radius: 5px;
+}
+
+.row .dashboard{
+  padding: 5px;
+  background-color: #1b6d85;
 }
