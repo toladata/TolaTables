@@ -19,9 +19,11 @@
             <div class="panel panel-default">
                 <div class="panel-heading center">
                   <h4>{{ get_table.name|truncatechars:50}}</h4>
+                    <span class="table_link"><a href="/silo_detail/{{ get_table.id}}/">View/Edit Table</a></span>
                 </div>
                 <div class="panel-body">
                     <div class="row dashboard">
+                        
                         <div class="col-xs-3 well well-sm">
                             <b>Entries:</b> {{ get_table.data_count }}
                         </div>
