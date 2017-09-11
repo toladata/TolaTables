@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 import requests
 import json
 import ast
+from math import *
 
 
 def listTableDashboards(request,id=0):
@@ -40,21 +41,22 @@ def tableDashboard(request,id=0):
     data = ast.literal_eval(doc)
 
     from collections import Counter
-    latitude = {}
-    longitude = {}
+    latitude = []
+    longitude = []
     lat_long = {}
     country = {}
+
     # each field needs a count of unique answers
     if get_fields is None and data:
         get_fields = {}
         # loop over the field names only
         for field in data[0]:
             # to-do move these into models
-            exclude_string = ['read_id','silo_id','_id','formhub/uuid','meta/instanceID','user_assigned_id','meta/instanceName']
+            exclude_string = ['read_id','silo_id','_id','formhub/uuid','meta/instanceID','user_assigned_id','meta/instanceName','create_date']
             map_lat_string = ['lat', 'latitude', 'x']
-            map_long_string = ['long', 'longitude', 'y']
+            map_long_string = ['long','lng','longitude', 'y']
             map_country_string = ['countries','country']
-            if str(field) not in exclude_string:
+            if field not in exclude_string:
                 get_fields[field] = {} # create a dict with fields as the key
                 cnt = Counter()
                 answers = [] # a list for the answers
@@ -84,18 +86,20 @@ def tableDashboard(request,id=0):
                     temp2.append(str(count))
 
                 get_fields[field][idx] = {"label": SafeString(temp), "count": SafeString(temp2)}
+
             # if a latitude string add it to the map list
-            elif str(field) in map_lat_string:
+            if field in map_lat_string:
                 for idx, col in enumerate(data):
-                    latitude[field].append(col[field])
+                    latitude.append(col[field])
+
             # if a longitude string add it to the map list
-            elif str(field) in map_long_string:
+            if field in map_long_string:
                 for idx, col in enumerate(data):
-                    longitude[field].append(col[field])
-        # merge lat and long
-        lat_long = latitude.copy()
-        lat_long.update(longitude)
- 
+                    longitude.append(col[field])
+
+            # merge lat and long
+            lat_long = dict(zip(latitude,longitude))
+
     else:
         get_fields = None
 

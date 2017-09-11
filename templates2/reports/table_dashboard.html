@@ -63,6 +63,7 @@
                 <div id="map"></div>
                 <script>
                 var countries = new L.LayerGroup();
+                var bounds = new L.LatLngBounds();
 
                 // Define an icon called cssIcon
                 var countryIcon = L.divIcon({
@@ -72,8 +73,9 @@
                   iconSize: [0,0]
                 });
 
-                {% for item in lat_long %}
-                    L.marker([{{ item.latitude }}, {{ item.longitude }}], {icon: countryIcon}).addTo(countries).bindPopup("" + "<b>{{ item.country }}</b><br/>TolaData country<br/> ");
+                {% for item in lat_long.items %}
+                    marker = L.marker([{{ item.0 }} , {{ item.1 }}], {icon: countryIcon}).addTo(countries).bindPopup("" + "<b> {{ item.0 }} , {{ item.1 }} </b><br/>Location Entry <br/> ");
+                    bounds.extend(marker.getLatLng());
                 {% endfor %}
 
                 var mbAttr = 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
@@ -83,8 +85,8 @@
                 var grayscale   = L.tileLayer(mbUrl, {id: 'mapbox.light', attribution: mbAttr}),
                 streets  = L.tileLayer(mbUrl, {id: 'mapbox.streets',   attribution: mbAttr});
                 var map = L.map('map', {
-                center: [25, 25],
-                zoom: 2,
+
+                zoom: 5,
                 layers: [grayscale, countries]
                 });
                 var baseLayers = {
@@ -95,6 +97,8 @@
                 "TolaData Countries": countries,
                 };
                 L.control.layers(baseLayers, overlays).addTo(map);
+
+                map.fitBounds(bounds);
                 </script>
             </div>
         </div>
