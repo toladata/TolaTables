@@ -34,12 +34,18 @@
                         <div class="col-xs-3 well well-sm">
                             <b>Public:</b> {{ get_table.public }}
                         </div>
-
                     </div>
                     <div class="row">
                         <div class="well">
-                            <h4>Column Names and Types</h4>
-                            {{ get_table.columns }}
+                            <b>Column Names and Types</b>
+                            <div class="columns">
+                            {% for item in columns %}
+                                <span class="column">
+                                    <span class="column-name">{{ item.name }}</span>
+                                    <span class="column-type">{{ item.type }}</span>
+                                </span>
+                            {% endfor %}
+                            </div>
                         </div>
                     </div>
                 </div>

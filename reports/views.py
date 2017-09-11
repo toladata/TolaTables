@@ -55,7 +55,6 @@ def tableDashboard(request,id=0):
             map_long_string = ['long', 'longitude', 'y']
             map_country_string = ['countries','country']
             if str(field) not in exclude_string:
-                print field
                 get_fields[field] = {} # create a dict with fields as the key
                 cnt = Counter()
                 answers = [] # a list for the answers
@@ -96,12 +95,15 @@ def tableDashboard(request,id=0):
         # merge lat and long
         lat_long = latitude.copy()
         lat_long.update(longitude)
-        print lat_long
+ 
     else:
         get_fields = None
+
+    columns = ast.literal_eval(get_table.columns)
+
     return render(request, "reports/table_dashboard.html",
                   {'data': data, 'get_table': get_table, 'countries': countries, 'get_fields': get_fields,
-                   'lat_long': lat_long})
+                   'lat_long': lat_long, 'columns': columns})
 
 
 
