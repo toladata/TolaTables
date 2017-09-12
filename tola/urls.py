@@ -30,7 +30,7 @@ router.register(r'silo', SiloViewSet, base_name="silos")
 router.register(r'usersilos', SilosByUser, base_name='usersilos')
 router.register(r'public_tables', PublicSiloViewSet, base_name="public_tables")
 router.register(r'users', UserViewSet)
-router.register(r'read', ReadViewSet)
+router.register(r'read', ReadViewSet, base_name='read')
 router.register(r'readtype', ReadTypeViewSet)
 router.register(r'tag', TagViewSet)
 
