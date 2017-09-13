@@ -531,6 +531,7 @@ def getOnaForms(request):
     if ona_token and auth_success:
         onaforms = requests.get(url_user_forms, headers={'Authorization': 'Token %s' % ona_token.token})
         data = json.loads(onaforms.content)
+        print data
         if data:
             has_data = True
 

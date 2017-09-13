@@ -52,7 +52,7 @@ class WorkflowLevel1ViewSet(viewsets.ModelViewSet):
 
 
 class WorkflowLevel2ViewSet(viewsets.ModelViewSet):
-    queryset = WorkflowLevel1.objects.all()
+    queryset = WorkflowLevel2.objects.all()
     serializer_class = WorkflowLevel2Serializer
 
 
@@ -98,6 +98,7 @@ class PublicSiloViewSet(viewsets.ReadOnlyModelViewSet):
         data = data.order_by(sort)
         json_data = json.loads(data.to_json())
         return JsonResponse(json_data, safe=False)
+
 
 class SilosByUser(viewsets.ReadOnlyModelViewSet):
     """
