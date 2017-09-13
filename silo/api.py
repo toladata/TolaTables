@@ -15,6 +15,9 @@ from rest_framework.views import APIView
 from rest_framework_json_api.parsers import JSONParser
 from rest_framework_json_api.renderers import JSONRenderer
 
+from django_filters.rest_framework import DjangoFilterBackend
+import django_filters
+
 from tola.util import getSiloColumnNames, getCompleteSiloColumnNames
 
 
@@ -32,6 +35,8 @@ def silo_data_api(request, id):
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
+    filter_fields = ('name')
+    filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
 
