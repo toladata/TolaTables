@@ -35,7 +35,7 @@ def silo_data_api(request, id):
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
-    filter_fields = ('name')
+    filter_fields = ('name',)
     filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
@@ -47,14 +47,14 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class CountryViewSet(viewsets.ModelViewSet):
-    filter_fields = ('country')
+    filter_fields = ('country',)
     filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
     queryset = Country.objects.all()
     serializer_class = CountrySerializer
 
 
 class WorkflowLevel1ViewSet(viewsets.ModelViewSet):
-    filter_fields = ('name')
+    filter_fields = ('name',)
     filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
     queryset = WorkflowLevel1.objects.all()
     serializer_class = WorkflowLevel1Serializer
