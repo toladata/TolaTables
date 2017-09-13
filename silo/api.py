@@ -47,16 +47,22 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class CountryViewSet(viewsets.ModelViewSet):
+    filter_fields = ('country')
+    filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
     queryset = Country.objects.all()
     serializer_class = CountrySerializer
 
 
 class WorkflowLevel1ViewSet(viewsets.ModelViewSet):
+    filter_fields = ('name')
+    filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
     queryset = WorkflowLevel1.objects.all()
     serializer_class = WorkflowLevel1Serializer
 
 
 class WorkflowLevel2ViewSet(viewsets.ModelViewSet):
+    filter_fields = ('name','workflowlevel1__name')
+    filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
     queryset = WorkflowLevel2.objects.all()
     serializer_class = WorkflowLevel2Serializer
 
