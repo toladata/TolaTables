@@ -50,6 +50,7 @@ class Command(BaseCommand):
                                 {"$set" : {key: result[key].strip()}}
                                 )
                 #add indexes to unique columns
+                #Note that the partialFilterExperession parameter isn't available until MongoDB 3.2
                 for column in UniqueFields.objects.filter(silo_id=silo.pk):
                     db.label_value_store.create_index(column.name, partialFilterExpression = {'silo_id' : silo.id})
 

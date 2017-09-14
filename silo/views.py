@@ -768,13 +768,21 @@ def addUniqueFiledsToSilo(request):
     if request.method == 'POST':
         unique_cols = request.POST.getlist("fields[]", None)
         silo_id = request.POST.get("silo_id", None)
+
         if silo_id:
             silo = Silo.objects.get(pk=silo_id)
             silo.unique_fields.all().delete()
             for col in unique_cols:
                 unique_field = UniqueFields(name=col, silo=silo)
                 unique_field.save()
-                db.label_value_store.create_index(col, partialFilterExpression = {'silo_id' : silo.id})
+
+                # The partialFilterExpression flag is not available until MongoDB 3.2.
+                # The exception should probably eventually be made more specific (i.e. for maxed out indexes)
+                # try:
+                #     db.label_value_store.create_index(col, partialFilterExpression = {'silo_id' : silo.id})
+                # except Exception as e:
+                #     logger.warning("Failed to create a unique column index: %s" % (e))
+
             if not unique_cols:
                 silo.unique_fields.all().delete()
             return HttpResponse("Unique Fields saved")
