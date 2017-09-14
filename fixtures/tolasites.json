@@ -3,12 +3,12 @@
     "fields": {
         "activity_url": "http://localhost:8000",
         "updated": null,
-        "name": "MercyCorps",
+        "name": "YourOrganization",
         "created": "2016-03-18T18:35:23Z",
-        "agency_url": "www.mercycorps.org",
+        "agency_url": "www.yourDomain.org",
         "site": 1,
-        "agency_name": "MercyCorps",
-        "privacy_disclaimer": "Hello"
+        "agency_name": "YourOrganization",
+        "privacy_disclaimer": "A Privacy Disclaimer"
     },
     "model": "silo.tolasites",
     "pk": 1
