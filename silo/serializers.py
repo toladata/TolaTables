@@ -24,7 +24,8 @@ class SiloSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Silo
         fields = ('owner', 'name', 'reads', 'description', 'create_date', 'id', 'data','shared','tags','public', 'data_count')
-        depth =1
+        # removind depth for now, it may be breaking the post method
+        # depth =1
 
     def get_data(self, obj):
         link = "/api/silo/" + str(obj.id) + "/data"
