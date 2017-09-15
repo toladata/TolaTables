@@ -49,15 +49,18 @@
         $(document).ready(function() {
             //This jquery function controls the dropdown menu in crispy_forms
             $("select").on("change", function() {
-                //var silo_id =  $("#" + this.id).val());
                 var select_obj = $("#" + this.id);
                 var silo_id =  select_obj.val();
                 if (silo_id < 0) {
                     var new_silo_name = prompt("Enter the name of your name silo");
                     if (new_silo_name) {
                       var num_options = select_obj.children("option").length;
-                      $("#" + select_obj[0].id + " option").val(0).text(new_silo_name);
-                      $("#" + select_obj[0].id).val(0);
+                      select_obj.find('option:eq(0)').text(new_silo_name)
+                      console.log('form', select_obj.closest('form'))
+                      var form = select_obj.closest('form')
+                      form.append($('<input type="hidden">')
+                          .attr({name: 'new_silo_name', value: new_silo_name}))
+                      select_obj.val(0)
                     }
                 }
             });
