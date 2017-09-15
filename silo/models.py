@@ -320,7 +320,7 @@ class Silo(models.Model):
     description = models.CharField(max_length=255, blank=True, null=True)
     organization = models.ForeignKey(Organization, blank=True, null=True)
     country = models.ForeignKey(Country, blank=True, null=True)
-    workflowlevel1 = models.ForeignKey(WorkflowLevel1, blank=True, null=True)
+    workflowlevel1 = models.ManyToManyField(WorkflowLevel1, blank=True)
     public = models.BooleanField()
     create_date = models.DateTimeField(null=True, blank=True)
 

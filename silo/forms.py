@@ -125,6 +125,7 @@ class EditColumnForm(forms.Form):
                 self.fields[item] = forms.CharField(label=item, initial=item, required=False,widget="")
                 self.fields[item + "_delete"] = forms.BooleanField(label="delete " + item, initial=False, required=False,widget="")
 
+
 class MongoEditForm(forms.Form):
     """
     A form that saves a document from mongodb
