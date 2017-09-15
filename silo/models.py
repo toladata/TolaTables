@@ -152,7 +152,7 @@ class WorkflowLevel2(models.Model):
     workflowlevel1 = models.ForeignKey(WorkflowLevel1)
     level2_uuid = models.CharField(max_length=255, verbose_name='WorkflowLevel2 UUID', unique=True)
     name = models.CharField("Name", max_length=255, blank=True)
-    activity_id = models.IntegerField("ID", blank=True)
+    activity_id = models.IntegerField("ID", blank=True, null=True)
     create_date = models.DateTimeField(null=True, blank=True)
     edit_date = models.DateTimeField(null=True, blank=True)
 
