@@ -2,12 +2,13 @@ import json
 
 from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 from django.contrib.auth.models import User
+from django.db.models import Q
 
 from rest_framework import renderers, viewsets,filters,permissions
 
 from .models import Silo, LabelValueStore
 from .serializers import *
-from silo.permissions import IsOwnerOrReadOnly, IsOwnerOrSuperUser
+from silo.permissions import *
 from django.contrib.auth.models import User
 from rest_framework.decorators import detail_route, list_route
 from rest_framework.permissions import IsAuthenticated
@@ -103,7 +104,7 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = 'id'
     # this permission sets seems to break the default permissions set by the restframework
     # permission_classes = (IsOwnerOrReadOnly,)
-    permission_classes = (IsAuthenticated, IsOwnerOrSuperUser,)
+    permission_classes = (IsAuthenticated, IsOwnerOrSuperOrPublic,)
     filter_fields = ('owner__username','shared__username','id','tags','public')
     filter_backends = (filters.DjangoFilterBackend,)
 
@@ -113,7 +114,7 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
         if user.is_superuser:
             #pagination.PageNumberPagination.page_size = 200
             return Silo.objects.all()
-        return Silo.objects.filter(owner=user)
+        return Silo.objects.filter(Q(owner=user) | Q(public=True))
 
     @detail_route()
     def data(self, request, id):
