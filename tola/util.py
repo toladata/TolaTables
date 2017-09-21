@@ -342,6 +342,8 @@ def user_to_tola(backend, user, response, *args, **kwargs):
 
     remote_org = response.get('organization')
     del remote_org['url']
+    del remote_org['industry']  # ignore for now
+    del remote_org['sector']  # ignore for now
     organization, org_created = Organization.objects.update_or_create(remote_org,
                                                                       organization_uuid=remote_org['organization_uuid'])
     if type(remote_country) == dict:
