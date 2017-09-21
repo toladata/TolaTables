@@ -138,6 +138,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.messages.context_processors.messages',
     'django.core.context_processors.request',
     'tola.context_processors.get_silos',
+    'tola.context_processors.get_servers',
 )
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#template-loaders
@@ -364,5 +365,7 @@ GOOGLE_REDIRECT_URL = 'http://localhost:8000/oauth2callback/'
 CELERY_RESULT_BACKEND = 'amqp'
 CELERY_CACHE_BACKEND = 'django-cache'
 
+ACTIVITY_URL = "http://master.toladatav2.app.tola.io"
+TABLES_URL = "http://master.tolatables.app.tola.io"
 
 

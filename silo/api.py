@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 
 from rest_framework import renderers, viewsets,filters,permissions
 
-from .models import Silo, LabelValueStore
+from .models import Silo, LabelValueStore, Country, WorkflowLevel1, WorkflowLevel2
 from .serializers import *
 from silo.permissions import IsOwnerOrReadOnly
 from django.contrib.auth.models import User
@@ -14,6 +14,9 @@ from rest_framework import pagination
 from rest_framework.views import APIView
 from rest_framework_json_api.parsers import JSONParser
 from rest_framework_json_api.renderers import JSONRenderer
+
+from django_filters.rest_framework import DjangoFilterBackend
+import django_filters
 
 from tola.util import getSiloColumnNames, getCompleteSiloColumnNames
 
@@ -30,9 +33,39 @@ def silo_data_api(request, id):
     return JsonResponse(json_data, safe=False)
 """
 
+
+class OrganizationViewSet(viewsets.ModelViewSet):
+    filter_fields = ('name',)
+    filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
+    queryset = Organization.objects.all()
+    serializer_class = OrganizationSerializer
+
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+
+
+class CountryViewSet(viewsets.ModelViewSet):
+    filter_fields = ('country',)
+    filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
+    queryset = Country.objects.all()
+    serializer_class = CountrySerializer
+
+
+class WorkflowLevel1ViewSet(viewsets.ModelViewSet):
+    filter_fields = ('name',)
+    filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
+    queryset = WorkflowLevel1.objects.all()
+    serializer_class = WorkflowLevel1Serializer
+
+
+class WorkflowLevel2ViewSet(viewsets.ModelViewSet):
+    filter_fields = ('name','workflowlevel1__name')
+    filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
+    queryset = WorkflowLevel2.objects.all()
+    serializer_class = WorkflowLevel2Serializer
+
 
 class PublicSiloViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PublicSiloSerializer
@@ -76,6 +109,7 @@ class PublicSiloViewSet(viewsets.ReadOnlyModelViewSet):
         data = data.order_by(sort)
         json_data = json.loads(data.to_json())
         return JsonResponse(json_data, safe=False)
+
 
 class SilosByUser(viewsets.ReadOnlyModelViewSet):
     """
@@ -174,41 +208,6 @@ class ReadTypeViewSet(viewsets.ModelViewSet):
     queryset = ReadType.objects.all()
     serializer_class = ReadTypeSerializer
 
-
-class OrganizationViewSet(viewsets.ModelViewSet):
-    """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions.
-    """
-    queryset = Organization.objects.all()
-    serializer_class = OrganizationSerializer
-
-
-class CountryViewSet(viewsets.ModelViewSet):
-    """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions.
-    """
-    queryset = Country.objects.all()
-    serializer_class = CountrySerializer
-
-
-class Workflowlevel1ViewSet(viewsets.ModelViewSet):
-    """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions.
-    """
-    queryset = Workflowlevel1.objects.all()
-    serializer_class = Workflowlevel1Serializer
-
-
-class Workflowlevel2ViewSet(viewsets.ModelViewSet):
-    """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions.
-    """
-    queryset = Workflowlevel2.objects.all()
-    serializer_class = Workflowlevel2Serializer
 
 #####-------API Views to Feed Data to Tolawork API requests-----####
 '''

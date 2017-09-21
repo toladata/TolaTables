@@ -44,8 +44,8 @@ router.register(r'graphinputs', GraphInputViewSet)
 router.register(r'boardsilos', SiloBoardViewSet)
 router.register(r'country', CountryViewSet)
 router.register(r'organization', OrganizationViewSet)
-router.register(r'workflowlevel1', Workflowlevel1ViewSet)
-router.register(r'workflowlevel2', Workflowlevel2ViewSet)
+router.register(r'workflowlevel1', WorkflowLevel1ViewSet)
+router.register(r'workflowlevel2', WorkflowLevel2ViewSet)
 
 
 urlpatterns =[
@@ -97,7 +97,6 @@ urlpatterns =[
     url(r'^edit_column_order/(?P<pk>\w+)/$', views.editColumnOrder, name='editColumnOrder'),
     url(r'^set_column_type/(?P<pk>\w+)/$', views.setColumnType, name='setColumnType'),
 
-
     url(r'^export_to_activity/(?P<id>\d+)/$', tola_activity_views.export_to_tola_activity, name="acitivity_push"),
     url(r'^export_silo_form/(?P<id>\w+)/$', views.export_silo_form, name='export_silo_form'),
     url(r'^export/(?P<id>\w+)/$', views.export_silo, name='export_silo'),
@@ -116,9 +115,12 @@ urlpatterns =[
 
     url(r'^renew_auto/(?P<read_pk>\d+)/(?P<operation>(pull|push))/$', views.renewAutoJobs, name='renewsAutoJobs'),
 
-    #Auth backend URL's
+    # Auth backend URL's
     url('', include('django.contrib.auth.urls', namespace='auth')),
-    url('', include('social_django.urls', namespace='social'))
+    url('', include('social_django.urls', namespace='social')),
+
+    # reports and dashboards
+    url(r'^reports/', include('reports.urls')),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
@@ -126,5 +128,5 @@ urlpatterns =[
 folders = getImportApps()
 for app in folders:
     url_construct = app + '/'
-    url_include =  app + '.urls'
+    url_include = app + '.urls'
     urlpatterns.append(url(url_construct,include(url_include)))

@@ -1,0 +1,101 @@
+/*
+ * Base structure
+ */
+
+/* Chart.js legends */
+
+.chart-legend {
+  list-style: none;
+  position: relative;
+  right: 8px;
+  top: 0;
+}
+.chart-legend li {
+  display: block;
+  padding-left: 30px;
+  position: relative;
+  margin-bottom: 4px;
+  border-radius: 5px;
+  padding: 2px 8px 2px 28px;
+  font-size: 14px;
+  cursor: default;
+  -webkit-transition: background-color 200ms ease-in-out;
+  -moz-transition: background-color 200ms ease-in-out;
+  -o-transition: background-color 200ms ease-in-out;
+  transition: background-color 200ms ease-in-out;
+}
+.chart-legend li:hover {
+  background-color: #fafafa;
+}
+.chart-legend li span {
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+}
+
+.row .dashboard{
+  padding: 5px;
+  background-color: #1b6d85;
+}
+.columns{
+    padding: 5px;
+}
+
+.column{
+  border-right: solid;
+  border-right-color: #2c2c2c;
+  border-right-width: 2px;
+  padding: 3px;
+}
+
+.column-name{
+  font-weight: 900;
+}
+.column-type{
+  background-color: #f5e79e;
+}
+
+.row {
+  padding: 5px;
+}
+
+/*General marker style*/
+.map-marker {
+  width: 20px;
+  height: 20px;
+  border-radius: 50% 50% 50% 0;
+  background: rgb(232, 148, 36);
+  position: absolute;
+  transform: rotate(-45deg);
+  left: 50%;
+  top: 50%;
+  margin: -20px 0 0 -20px;
+  box-shadow: 2px 1px 1px #888888;
+}
+
+.map-marker.indicator {
+  width: 20px;
+  height: 20px;
+  border-radius: 50% 50% 50% 0;
+  background: #00cae9;
+  position: absolute;
+  transform: rotate(-45deg);
+  left: 50%;
+  top: 50%;
+  margin: -20px 0 0 -20px;
+  box-shadow: 2px 1px 1px #888888;
+}
+
+.map-marker:after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  margin: 5px 0 0 5px;
+  background: #e6e6e6;
+  position: absolute;
+  border-radius: 50%;
+}

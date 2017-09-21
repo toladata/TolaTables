@@ -1,0 +1,29 @@
+{% extends "base.html" %} 
+{% block page_title %}Read Data From an External Data Collection Tool{% endblock %} 
+
+{% block content %}
+	<p>Login to your web service if not public and open</p>
+	<form action="/json" method="post">
+    {% csrf_token %}
+	<div><b>Login Information</b></div>
+	<input name="read_id" type="hidden" value = "{{ read_id }}" />
+	<div>
+	user name: <input name="user_name" type="text" value=""> 
+	</div>
+	<div>
+	password: <input name="password" type="password" value=""> 
+	</div>
+	<br/>
+	Select a Table to Store Data:
+	<select name="silo_id">
+	{% for ss in get_silo %}
+		<option value="{{ ss.id }}">{{ ss.name}}</option>
+	{% endfor %}
+	</select>
+	Or Enter a New Table
+	<input type="text" name="new_silo" value="">
+	<input type="hidden" name="id" value="{{ id }}">
+    <input type="hidden" name="url" value="{{ url }}">
+	<input type="submit" value="Submit" />
+	</form>
+{% endblock content %}

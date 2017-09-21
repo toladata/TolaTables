@@ -256,6 +256,7 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
 
     return {'status': "success",  'message': "Merged data successfully"}
 
+
 # fix now that not all mongo rows need to have the same column
 def appendTwoSilos(mapping_data, lsid, rsid, msid):
     """
@@ -395,7 +396,7 @@ def appendTwoSilos(mapping_data, lsid, rsid, msid):
 @login_required
 def editSilo(request, id):
     """
-    Edit the meta data and descirptor for each Table (silo)
+    Edit the meta data and description for each Table (silo)
     :param request:
     :param id: Unique table ID
     :return: silo edit form
@@ -490,6 +491,7 @@ def saveAndImportRead(request):
     res = saveDataToSilo(silo, data, read, request.user)
     return HttpResponse("View table data at <a href='/silo_detail/%s' target='_blank'>See your data</a>" % silo.pk)
 
+
 @login_required
 def getOnaForms(request):
     """
@@ -529,6 +531,7 @@ def getOnaForms(request):
     if ona_token and auth_success:
         onaforms = requests.get(url_user_forms, headers={'Authorization': 'Token %s' % ona_token.token})
         data = json.loads(onaforms.content)
+        print data
         if data:
             has_data = True
 
@@ -537,6 +540,7 @@ def getOnaForms(request):
     return render(request, 'silo/getonaforms.html', {
         'form': form, 'data': data, 'silos': silos, 'has_data': has_data
     })
+
 
 @login_required
 def providerLogout(request,provider):
@@ -584,6 +588,7 @@ def deleteSilo(request, id):
 
 from django.contrib.auth import logout
 from django.shortcuts import redirect
+
 
 @login_required
 def showRead(request, id):
@@ -676,6 +681,7 @@ def showRead(request, id):
 import tempfile
 from django.core import files
 
+
 @login_required
 def oneDriveImport(request, id):
     """
@@ -725,6 +731,7 @@ def oneDriveImport(request, id):
 
     return render(request, 'silo/onedrive.html', {
     })
+
 
 @login_required
 def oneDrive(request):
@@ -810,7 +817,6 @@ def getJSON(request):
             'form_action': reverse_lazy("getJSON"), 'get_silo': silos
         })
 #display
-
 
 
 #INDEX
@@ -915,7 +921,7 @@ def siloDetail(request, silo_id):
 
     silo = Silo.objects.get(pk=silo_id)
     cols = []
-    col_types = getColToTypeDict(silo)
+    # col_types = getColToTypeDict(silo)
     data = []
     query = makeQueryForHiddenRow(json.loads(silo.rows_to_hide))
 
@@ -924,7 +930,7 @@ def siloDetail(request, silo_id):
         cols.extend(getSiloColumnNames(silo_id))
     else:
         messages.warning(request,"You do not have permission to view this table.")
-    return render(request, "display/silo.html", {"silo": silo, "cols": cols, "query": query, "col_types" : col_types})
+    return render(request, "display/silo.html", {"silo": silo, "cols": cols, "query": query})
 
 
 @login_required
@@ -1011,6 +1017,7 @@ def updateSiloData(request, pk):
             lvss = LabelValueStore.objects(silo_id=silo.pk,__raw__={ "$or" : [{"read_id" : {"$not" : { "$exists" : "true" }}}, {"read_id" : {"$in" : [-1,""]} } ]})
 
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
+
 
 #return tuple: (list of list of dictionaries[[{}]] data, 0=falure 1=success 2=N/A, messages)
 def importDataFromRead(request, silo, read):
@@ -1133,6 +1140,7 @@ def newColumn(request,id):
 
     return render(request, "silo/new-column-form.html", {'silo':silo,'form': form})
 
+
 #Add a new column on to a silo
 @login_required
 def editColumns(request,id):
@@ -1185,6 +1193,7 @@ def editColumns(request,id):
     form = EditColumnForm(initial={'silo_id': silo.id}, extra=data)
     return render(request, "silo/edit-column-form.html", {'silo':silo,'form': form})
 
+
 #Delete a column from a table silo
 @login_required
 def deleteColumn(request,id,column):
@@ -1208,8 +1217,7 @@ def deleteColumn(request,id,column):
     return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
 
-
-#SHOW-MERGE FORM
+# SHOW-MERGE FORM
 @login_required
 def mergeForm(request,id):
     """
@@ -1219,7 +1227,7 @@ def mergeForm(request,id):
     getSourceTo = Silo.objects.filter(owner=request.user)
     return render(request, "display/merge-form.html", {'getSource':getSource,'getSourceTo':getSourceTo})
 
-#SHOW COLUMNS FOR MERGE FORM
+# SHOW COLUMNS FOR MERGE FORM
 def mergeColumns(request):
     """
     Step 2 in Merge different silos, map columns
@@ -1233,9 +1241,7 @@ def mergeColumns(request):
     return render(request, "display/merge-column-form.html", {'getSourceFrom':getSourceFrom, 'getSourceTo':getSourceTo, 'from_silo_id':from_silo_id, 'to_silo_id':to_silo_id})
 
 
-
 def doMerge(request):
-
     # get the table_ids.
     left_table_id = request.POST['left_table_id']
     right_table_id = request.POST["right_table_id"]
@@ -1284,7 +1290,7 @@ def doMerge(request):
     return JsonResponse({'status': "success",  'message': 'The merged table is accessible at <a href="/silo_detail/%s/" target="_blank">Merged Table</a>' % new_silo.pk})
 
 
-#EDIT A SINGLE VALUE STORE
+# EDIT A SINGLE VALUE STORE
 @login_required
 def valueEdit(request,id):
     """
@@ -1294,6 +1300,9 @@ def valueEdit(request,id):
     data = {}
     jsondoc = json.loads(doc)
     silo_id = None
+    silo = Silo.objects.get(pk=jsondoc[0].get('silo_id'))
+    cols = json.loads(silo.columns)
+
     for item in jsondoc:
         for k, v in item.iteritems():
             #print("The key and value are ({}) = ({})".format(smart_str(k), smart_str(v)))
@@ -1312,6 +1321,12 @@ def valueEdit(request,id):
             else:
                 k = Truncator(re.sub('\s+', ' ', k).strip()).chars(40)
                 data[k] = v
+
+        keys = item.keys()
+        for col in cols:
+            if col not in keys:
+                data[col] = None
+
     if request.method == 'POST': # If the form has been submitted...
         form = MongoEditForm(request.POST or None, extra = data, silo_pk=silo_id) # A form bound to the POST data
         if form.is_valid():
@@ -1344,6 +1359,7 @@ def valueEdit(request,id):
 
     return render(request, 'read/edit_value.html', {'form': form, 'silo_id': silo_id})
 
+
 @login_required
 def valueDelete(request,id):
     """
@@ -1365,7 +1381,6 @@ def valueDelete(request,id):
 
 
 def export_silo(request, id):
-
     silo_name = Silo.objects.get(id=id).name
 
     response = HttpResponse(content_type='text/csv')
@@ -1411,6 +1426,7 @@ def export_silo(request, id):
                 data[r][cols.index(col)] = val
             writer.writerow(data[r])
     return response
+
 
 @login_required
 def anonymizeTable(request, id):
@@ -1474,6 +1490,7 @@ def removeSource(request, silo_id, read_id):
 
     return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': silo_id},))
 
+
 @login_required
 def newFormulaColumn(request, pk):
     if request.method == 'POST':
@@ -1499,7 +1516,7 @@ def newFormulaColumn(request, pk):
                                                 column_name=column_name)
         fcm.save()
         silo.formulacolumns.add(fcm)
-        addColsToSilo(silo,[column_name])
+        addColsToSilo(silo,[column_name], {column_name : 'float'})
         silo.save()
 
         return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
@@ -1507,6 +1524,7 @@ def newFormulaColumn(request, pk):
     silo = Silo.objects.get(pk=pk)
     cols = getSiloColumnNames(pk)
     return render(request, "silo/add-formula-column.html", {'silo':silo,'cols': cols})
+
 
 @login_required
 def editColumnOrder(request, pk):
@@ -1520,7 +1538,8 @@ def editColumnOrder(request, pk):
             for col in cols_list:
                 cols.append({'name' : col, 'type': col_types.get(col,'string')})
             visible_cols_set = set(cols_list)
-            cols.extend([x for x in json.loads(silo.columns) if x['name'] not in visible_cols_set])
+
+            cols.extend([x for x in json.loads(silo.columns) if (x if isinstance(x, basestring) else x['name']) not in visible_cols_set])
             silo.columns = json.dumps(cols)
             silo.save()
 
@@ -1535,6 +1554,7 @@ def editColumnOrder(request, pk):
     cols = getSiloColumnNames(pk)
     return render(request, "display/edit-column-order.html", {'silo':silo,'cols': cols})
 
+
 @login_required
 def addColumnFilter(request, pk):
     if request.method == 'POST':
@@ -1543,7 +1563,6 @@ def addColumnFilter(request, pk):
         silo = Silo.objects.get(pk=pk)
 
         silo.hidden_columns = hide_cols
-
         silo.rows_to_hide = hide_rows
 
         silo.save()
@@ -1560,6 +1579,7 @@ def addColumnFilter(request, pk):
 
     cols.sort()
     return render(request, "display/add-column-filter.html", {'silo':silo,'cols': cols, 'hidden_cols': hidden_cols, 'hidden_rows': hidden_rows})
+
 
 @login_required
 def export_silo_form(request, id):
@@ -1579,6 +1599,8 @@ def export_silo_form(request, id):
 
     cols.sort()
     return render(request, "display/export_form.html", {'silo':silo,'cols': cols, 'shown_cols': shown_cols, 'hidden_rows': hidden_rows})
+
+
 @login_required
 def renewAutoJobs(request, read_pk, operation):
     read = Read.objects.get(pk=read_pk)
@@ -1596,6 +1618,7 @@ def renewAutoJobs(request, read_pk, operation):
     read.save()
 
     return render(request, "display/renew_read.html", {'message' : 'Success, your renewal of %s auto%s was successful' % (read.read_name, operation)})
+
 
 @login_required
 def setColumnType(request, pk):

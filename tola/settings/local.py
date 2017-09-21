@@ -55,6 +55,8 @@ import mongoengine
 from mongoengine import register_connection
 register_connection(alias='default', name='tola')
 
+MONGODB_HOST = os.getenv('TOLATABLES_DB_HOST')
+
 mongoengine.connect(
     os.getenv('TOLATABLES_MONGODB_NAME'),
     username=os.getenv('TOLATABLES_MONGODB_USER'),
@@ -109,6 +111,36 @@ LDAP_USER_GROUP = 'xxxx'
 LDAP_ADMIN_GROUP = 'xxxx-xxx'
 #ERTB_ADMIN_URL = 'https://xxxx.example.org/xx-xx-dev/'
 
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [normpath(join(SITE_ROOT, os.getenv('TOLATABLES_TEMPLATE_DIR'))),],
+        #'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.template.context_processors.debug',
+                'django.template.context_processors.i18n',
+                'django.template.context_processors.media',
+                'django.template.context_processors.static',
+                'django.template.context_processors.tz',
+                'django.contrib.messages.context_processors.messages',
+                'tola.context_processors.get_silos',
+                'tola.context_processors.get_servers',
+            ],
+            'builtins': [
+                'django.contrib.staticfiles.templatetags.staticfiles',
+                'silo.templatetags.underscoretags',
+            ],
+            'loaders': [
+                'django.template.loaders.filesystem.Loader',
+                'django.template.loaders.app_directories.Loader',
+            ]
+        },
+    },
+]
+
 
 ########## GOOGLE AUTH
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.getenv('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')
@@ -118,3 +150,6 @@ SOCIAL_AUTH_MICROSOFT_GRAPH_RESOURCE = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_RE
 SOCIAL_AUTH_MICROSOFT_GRAPH_KEY = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_KEY')
 SOCIAL_AUTH_MICROSOFT_GRAPH_SECRET = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_SECRET')
 SOCIAL_AUTH_MICROSOFT_GRAPH_REDIRECT_URL = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_REDIRECT_URL')
+
+ACTIVITY_URL = "http://master.toladatav2.app.tola.io"
+TABLES_URL = "http://master.tolatables.app.tola.io"

@@ -41,7 +41,7 @@ class SiloForm(forms.ModelForm):
         self.helper.layout.append(Submit('save', 'save'))
     class Meta:
         model = Silo
-        fields = ['id', 'name', 'description', 'tags', 'shared', 'owner']
+        fields = ['id', 'name', 'description', 'tags', 'shared', 'owner', 'workflowlevel1']
 
 
 class NewColumnForm(forms.Form):
@@ -125,6 +125,7 @@ class EditColumnForm(forms.Form):
                 self.fields[item] = forms.CharField(label=item, initial=item, required=False,widget="")
                 self.fields[item + "_delete"] = forms.BooleanField(label="delete " + item, initial=False, required=False,widget="")
 
+
 class MongoEditForm(forms.Form):
     """
     A form that saves a document from mongodb
@@ -144,12 +145,14 @@ class MongoEditForm(forms.Form):
         super(MongoEditForm, self).__init__(*args, **kwargs)
 
         extra = OrderedDict(sorted(extra.iteritems()))
-        column_types = getColToTypeDict(Silo.objects.get(pk=silo_pk))
+        #column_types = getColToTypeDict(Silo.objects.get(pk=silo_pk))
 
         for item in extra:
             if item == "edit_date" or item == "create_date":
                 self.fields[item] = forms.CharField(label = item, initial=extra[item], required=False, widget=forms.TextInput(attrs={'readonly': "readonly"}))
             elif item != "_id" and item != "silo_id" and item!= "read_id":
+                self.fields[item] = forms.CharField(label = item, initial=extra[item], required=False)
+                """
                 column_type = column_types.get(item,'string')
                 if column_type=='string':
                     self.fields[item] = forms.CharField(label = item, initial=extra[item], required=False)
@@ -157,3 +160,6 @@ class MongoEditForm(forms.Form):
                     self.fields[item] = forms.IntegerField(label = item, initial=extra[item], required=False)
                 elif column_type=='double':
                     self.fields[item] = forms.FloatField(label = item, initial=extra[item], required=False)
+                """
+
+
