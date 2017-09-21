@@ -46,6 +46,9 @@
                         <a href="/silos/" class="btn btn-lg btn-success">View My Data</a>
                     {% else %}
                         <div class="social-buttons">
+                            <p>Login with your {{ site.name }} Tola Account.</p>
+                            <a href="{% url 'social:begin' 'tola' %}" class="btn btn-go"><i class="fa fa-key"></i> Tola Login </a>
+
                             <p>Login with your {{ site.name }} Google Account.</p>
                             <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-go"><i class="fa fa-google"></i> Google Login </a>
 

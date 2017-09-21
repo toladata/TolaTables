@@ -11,7 +11,7 @@ from django.utils.encoding import smart_str, smart_unicode
 from django.conf import settings
 from django.contrib.auth.models import User
 
-from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ThirdPartyTokens
+from silo.models import Read, Silo, LabelValueStore, TolaUser, Country, ThirdPartyTokens, Organization
 from django.contrib import messages
 import pymongo
 from bson.objectid import ObjectId
@@ -321,20 +321,39 @@ def getColToTypeDict(silo):
     column_types = {x['name'] : x['type'] for x in json.loads(columns)}
     return column_types
 
+
 def user_to_tola(backend, user, response, *args, **kwargs):
+    print(user, response, args, kwargs)
 
     # Add a google auth user to the tola profile
     default_country = Country.objects.first()
-    userprofile, created = TolaUser.objects.get_or_create(
-        user = user)
+    remote_user = response.get('tola_user')
 
-    userprofile.country = default_country
+    remote_country = response.get('country')
 
-    userprofile.name = response.get('displayName')
+    # Only import fields to Tables that are required
+    tola_user_defaults = {}
+    tola_user_defaults['tola_user_uuid'] = remote_user['tola_user_uuid']
+    tola_user_defaults['name'] = remote_user['name']
+    tola_user_defaults['employee_number'] = remote_user['employee_number']
+    tola_user_defaults['title'] = remote_user['title']
+    tola_user_defaults['privacy_disclaimer_accepted'] = remote_user['privacy_disclaimer_accepted']
 
-    userprofile.email = response.get('emails["value"]')
+    remote_org = response.get('organization')
+    del remote_org['url']
+    organization, org_created = Organization.objects.update_or_create(remote_org,
+                                                                      organization_uuid=remote_org['organization_uuid'])
+    if type(remote_country) == dict:
+        del remote_country['zoom']
+        country, org_created = Country.objects.update_or_create(remote_country,
+                                                              organization=organization)
+        tola_user_defaults['country'] = country
 
-    userprofile.save()
+
+    tola_user_defaults['organization'] = organization
+
+    userprofile, tolauser_created = TolaUser.objects.update_or_create(tola_user_defaults,
+        user=user)
 
 
 #gets the list of apps to import data

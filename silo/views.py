@@ -40,7 +40,7 @@ from django.db.models import Count
 
 from silo.custom_csv_dict_reader import CustomDictReader
 from .models import GoogleCredentialsModel
-from gviews_v4 import import_from_gsheet_helper
+#from gviews_v4 import import_from_gsheet_helper
 from tola.util import importJSON, saveDataToSilo, getSiloColumnNames,\
                         parseMathInstruction, calculateFormulaColumn, makeQueryForHiddenRow,\
                         getNewestDataDate, addColsToSilo, deleteSiloColumns, hideSiloColumns, \

@@ -55,6 +55,7 @@ class TolaSitesAdmin(admin.ModelAdmin):
 
 
 class Organization(models.Model):
+    organization_uuid = models.CharField(max_length=255, verbose_name='Organization UUID', default='', unique=False)
     name = models.CharField("Organization Name", max_length=255, blank=True, default="TolaData")
     description = models.TextField("Description/Notes", max_length=765, null=True, blank=True)
     organization_url = models.CharField(blank=True, null=True, max_length=255)
@@ -185,7 +186,9 @@ TITLE_CHOICES = (
 )
 
 
+import uuid
 class TolaUser(models.Model):
+    tola_user_uuid = models.CharField(max_length=255, verbose_name='TolaUser UUID', default=uuid.uuid4, unique=True)
     title = models.CharField(blank=True, null=True, max_length=3, choices=TITLE_CHOICES)
     organization = models.ForeignKey(Organization, blank=True, null=True)
     name = models.CharField("Given Name", blank=True, null=True, max_length=100)
@@ -199,7 +202,7 @@ class TolaUser(models.Model):
     updated = models.DateTimeField(auto_now=False, blank=True, null=True)
 
     def __unicode__(self):
-        return self.name
+        return self.name if self.name is not None else '-'
 
     def save(self, *args, **kwargs):
         ''' On save, update timestamps as appropriate'''
