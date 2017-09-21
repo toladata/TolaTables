@@ -10,6 +10,7 @@ from django.dispatch import receiver
 from datetime import datetime
 from django.conf import settings
 from rest_framework.authtoken.models import Token
+import uuid
 
 #New user created generate a token
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
@@ -55,7 +56,7 @@ class TolaSitesAdmin(admin.ModelAdmin):
 
 
 class Organization(models.Model):
-    organization_uuid = models.CharField(max_length=255, verbose_name='Organization UUID', default='', unique=False)
+    organization_uuid = models.CharField(max_length=255, verbose_name='Organization UUID', default=uuid.uuid4, unique=True)
     name = models.CharField("Organization Name", max_length=255, blank=True, default="TolaData")
     description = models.TextField("Description/Notes", max_length=765, null=True, blank=True)
     organization_url = models.CharField(blank=True, null=True, max_length=255)
@@ -184,8 +185,6 @@ TITLE_CHOICES = (
     ('ms', 'Ms.'),
 )
 
-
-import uuid
 class TolaUser(models.Model):
     tola_user_uuid = models.CharField(max_length=255, verbose_name='TolaUser UUID', default=uuid.uuid4, unique=True)
     title = models.CharField(blank=True, null=True, max_length=3, choices=TITLE_CHOICES)

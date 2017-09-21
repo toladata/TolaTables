@@ -49,7 +49,14 @@ DATABASES = {
         'PORT': int(os.getenv('TOLATABLES_DB_PORT')),
     }
 }
-
+"""
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'tolatables',
+    }
+}
+"""
 ############ MONGO DB #####################
 import mongoengine
 from mongoengine import register_connection
@@ -151,5 +158,8 @@ SOCIAL_AUTH_MICROSOFT_GRAPH_KEY = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_KEY')
 SOCIAL_AUTH_MICROSOFT_GRAPH_SECRET = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_SECRET')
 SOCIAL_AUTH_MICROSOFT_GRAPH_REDIRECT_URL = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_REDIRECT_URL')
 
-ACTIVITY_URL = "http://master.toladatav2.app.tola.io"
+ACTIVITY_URL = os.getenv('ACTIVITY_URL')
 TABLES_URL = "http://master.tolatables.app.tola.io"
+
+SOCIAL_AUTH_TOLA_KEY = os.getenv('SOCIAL_AUTH_TOLA_KEY')
+SOCIAL_AUTH_TOLA_SECRET = os.getenv('SOCIAL_AUTH_TOLA_SECRET')
