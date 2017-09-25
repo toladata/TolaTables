@@ -19,7 +19,7 @@ from pymongo import MongoClient
 from tola.util import *
 from silo.models import *
 
-db = MongoClient(settings.MONGODB_HOST).tola
+db = MongoClient(settings.MONGO_URI).tola
 
 class onaParserTest(TestCase):
     """

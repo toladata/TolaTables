@@ -18,7 +18,10 @@ from os.path import join, normpath
 
 SECRET_KEY = r"!0^+)=t*ly6ycprf9@adsfsdfdfsdff#pa*3333*lp5k9ko7"
 
-#from mongoengine import connect
+from local import MONGO_CREDS, MONGO_URI
+import mongoengine
+mongoengine.connect(**MONGO_CREDS)
+
 
 ########## MANAGER CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#admins
@@ -80,8 +83,3 @@ CACHES = {
     }
 }
 ########## END CACHE CONFIGURATION
-
-
-
-
-

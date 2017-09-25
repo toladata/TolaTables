@@ -34,7 +34,9 @@ cp fixtures/read_types_.json fixtures/read_types_local.json
 Once copied, modify all new files to suit your own particular installation and
 organization.  The local.py file contains Django settings, client_secrets.py contains Google Auth related settings, and the fixture files are a starter set of metadata for your organization.  You will need to load the sites and tolasites fixtures in order to run Tola, and loading read_types is required for importing data.
 
-Once your are done configuring the fixtures you can load them:
+If you have password protected your MongoDB database, you will need to update the settings in the local.py file to match your setup.  If you have not password protected the MongoDB instance, you can comment out the MONGODB section in local.py and uncomment the same section in base.py.  
+
+Once you are done configuring the fixtures you can load them:
 ```
 ./manage.py loaddata sites_local
 ./manage.py loaddata tolasites_local

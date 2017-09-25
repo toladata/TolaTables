@@ -20,7 +20,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         #get every column for each silo
-        db = MongoClient(settings.MONGODB_HOST).tola
+        db = MongoClient(settings.MONGO_URI).tola
         #index by silo
         db.label_value_store.create_index('silo_id')
 

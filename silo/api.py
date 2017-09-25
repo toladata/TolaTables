@@ -104,7 +104,7 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = 'id'
     # this permission sets seems to break the default permissions set by the restframework
     # permission_classes = (IsOwnerOrReadOnly,)
-    permission_classes = (IsAuthenticated, IsOwnerOrSuperOrPublic,)
+    permission_classes = (IsAuthenticated, Silo_IsOwnerOrCanRead,)
     filter_fields = ('owner__username','shared__username','id','tags','public')
     filter_backends = (filters.DjangoFilterBackend,)
 
@@ -114,14 +114,13 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
         if user.is_superuser:
             #pagination.PageNumberPagination.page_size = 200
             return Silo.objects.all()
-        return Silo.objects.filter(Q(owner=user) | Q(public=True))
+
+        return Silo.objects.filter(Q(owner=user) | Q(public=True) | Q(shared=self.request.user))
 
     @detail_route()
     def data(self, request, id):
-
         # this applies the permission classes to this query
         silo = self.get_object()
-
         draw = int(request.GET.get("draw", 1))
         offset = int(request.GET.get('start', -1))
         length = int(request.GET.get('length', 10))
@@ -165,7 +164,7 @@ class ReadViewSet(viewsets.ReadOnlyModelViewSet):
     This viewset automatically provides `list` and `retrieve`, actions.
     """
     serializer_class = ReadSerializer
-    permission_classes = (IsAuthenticated, IsOwnerOrSuperUser,)
+    permission_classes = (IsAuthenticated, Silo_IsOwnerOrCanRead,)
 
     def get_queryset(self):
         if self.request.user.is_superuser:

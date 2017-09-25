@@ -12,7 +12,7 @@ from collections import OrderedDict
 
 import pymongo
 from pymongo import MongoClient
-from mongoengine.queryset.visitor import Q
+# from mongoengine.queryset.visitor import Q
 
 from bson.objectid import ObjectId
 from bson import CodecOptions, SON
@@ -56,7 +56,7 @@ from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, NewColumn
 # from .models import siloHideFilter
 
 logger = logging.getLogger("silo")
-db = MongoClient(settings.MONGODB_HOST).tola
+db = MongoClient(settings.MONGO_URI).tola
 
 # To preserve fields order when reading BSON from MONGO
 opts = CodecOptions(document_class=SON)

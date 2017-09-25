@@ -55,9 +55,24 @@ DATABASES = {
     }
 }
 
-########## MongoDB Connect
+############ MONGO DB
 
-#connect('feeds')
+import mongoengine
+
+MONGO_CREDS = {
+    'host': 'localhost',
+    'db': 'myDBName',
+    'username': urllib.quote_plus('myUsername'),
+    'password': urllib.quote_plus('myPassword'),
+    'authentication_source': 'admin',
+    'alias': 'default'
+}
+
+MONGO_URI = "mongodb://%(username)s:%(password)s@%(host)s/%(db)s?authSource=%(authentication_source)s" % (MONGO_CREDS)
+
+mongoengine.connect(**MONGO_CREDS)
+
+############ END OF MONGO DB
 
 ########## END DATABASE CONFIGURATION
 
