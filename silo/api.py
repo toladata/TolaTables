@@ -119,8 +119,9 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
 
     @detail_route()
     def data(self, request, id):
-        # this applies the permission classes to this query
+        # calling get_object applies the permission classes to this query
         silo = self.get_object()
+
         draw = int(request.GET.get("draw", 1))
         offset = int(request.GET.get('start', -1))
         length = int(request.GET.get('length', 10))
@@ -159,17 +160,18 @@ class TagViewSet(viewsets.ModelViewSet):
     serializer_class = TagSerializer
 
 
-class ReadViewSet(viewsets.ReadOnlyModelViewSet):
+class ReadViewSet(viewsets.ModelViewSet):
     """
     This viewset automatically provides `list` and `retrieve`, actions.
     """
     serializer_class = ReadSerializer
-    permission_classes = (IsAuthenticated, Silo_IsOwnerOrCanRead,)
+    permission_classes = (IsAuthenticated, Read_IsOwnerViewOrWrite,)
 
     def get_queryset(self):
-        if self.request.user.is_superuser:
+        user = self.request.user
+        if user.is_superuser:
             return Read.objects.all()
-        return Read.objects.filter(owner=self.request.user)
+        return Read.objects.filter(Q(owner=user) | Q(silos__public=True) | Q(silos__shared=self.request.user))
 
 class ReadTypeViewSet(viewsets.ModelViewSet):
     """
