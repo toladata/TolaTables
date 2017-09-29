@@ -1,8 +1,8 @@
 [
 {
     "fields": {
-        "domain": "mercycorps.org",
-        "name": "mercycorps.org"
+        "domain": "yourDomain.org",
+        "name": "yourDomain.org"
     },
     "model": "sites.site",
     "pk": 1

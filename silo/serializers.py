@@ -16,10 +16,19 @@ class PublicSiloSerializer(serializers.HyperlinkedModelSerializer):
         link = "/api/public_tables/" + str(obj.id) + "/data"
         return (self.context['request'].build_absolute_uri(link))
 
+<<<<<<< HEAD
+=======
+class UserSerializer(serializers.HyperlinkedModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ('url', 'username', 'email', 'is_staff')
+>>>>>>> c331b5f4dc4adb3e086810d6c2fa21760bdba186
 
 class SiloSerializer(serializers.HyperlinkedModelSerializer):
     data = serializers.SerializerMethodField()
     data_count = serializers.ReadOnlyField()
+    owner = UserSerializer()
 
     class Meta:
         model = Silo

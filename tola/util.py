@@ -111,7 +111,7 @@ def saveDataToSilo(silo, data, read=-1, user=None):
     unique_fields = silo.unique_fields.all()
     skipped_rows = set()
     enc = "latin-1"
-    keys = set()
+    keys = []
     fieldToType = getColToTypeDict(silo)
     for counter, row in enumerate(data):
         # reseting filter_criteria for each row
@@ -175,7 +175,7 @@ def saveDataToSilo(silo, data, read=-1, user=None):
 
             key = key.replace(".", "_").replace("$", "USD").replace(u'\u2026', "")
             if isinstance(val, basestring): val = val.strip()
-            keys.add(key)
+            if key not in keys: keys.append(key)
             setattr(lvs, key, val)
             counter += 1
         lvs = calculateFormulaCell(lvs,silo)
@@ -606,7 +606,7 @@ def getNewestDataDate(silo_id):
     """
     finds the newest date of data in a silo
     """
-    db = MongoClient(settings.MONGODB_HOST).tola
+    db = MongoClient(settings.MONGO_URI).tola
     newest_record = db.label_value_store.find({'silo_id' : silo_id}).sort([("create_date", -1)]).limit(1)
 
     return newest_record[0]['create_date']
@@ -630,7 +630,7 @@ def setSiloColumnType(silo_pk, column, column_type):
 
     # TO DO: check if all entries could comply
 
-    db = MongoClient(settings.MONGODB_HOST).tola
+    db = MongoClient(settings.MONGO_URI).tola
     bulk = db.label_value_store.initialize_ordered_bulk_op()
 
     if (db.label_value_store.find({'silo_id' : silo_pk, column : {'$not' : {'$exists' : True}}}).count() > 0):

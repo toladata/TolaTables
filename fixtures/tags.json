@@ -1,0 +1,22 @@
+[
+  {
+    "fields": {
+      "owner": 1,
+      "updated": "2015-08-20T23:06:09.847Z",
+      "name": "test entry for tag",
+      "created": "2015-08-20T23:06:09.847Z"
+    },
+    "model": "silo.tag",
+    "pk": 1
+  },
+  {
+    "fields": {
+      "owner": 1,
+      "updated": "2015-08-20T23:06:09.851Z",
+      "name": "test two",
+      "created": "2015-08-20T23:06:09.851Z"
+    },
+    "model": "silo.tag",
+    "pk": 2
+  }
+]
