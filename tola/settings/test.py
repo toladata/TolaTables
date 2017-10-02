@@ -83,7 +83,6 @@ CACHES = {
     }
 }
 ########## END CACHE CONFIGURATION
-<<<<<<< HEAD
 
 ############ MONGO DB #####################
 import mongoengine
@@ -101,6 +100,3 @@ mongoengine.connect(
 
 
 
-
-=======
->>>>>>> c331b5f4dc4adb3e086810d6c2fa21760bdba186
