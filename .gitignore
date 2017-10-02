@@ -33,6 +33,12 @@ conf/
 djangocosign/
 local-dev.py
 
+#fixtures
+read_types_local.json
+sites_local.json
+tags_local.json
+tolasites_local.json
+
 #Misc.
 .idea/
 .DS_Store

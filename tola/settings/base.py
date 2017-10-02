@@ -39,19 +39,24 @@ MANAGERS = ADMINS
 ########## END MANAGER CONFIGURATION
 
 
-########## DATABASE CONFIGURATION
-# See: https://docs.djangoproject.com/en/dev/ref/settings/#databases
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.',
-        'NAME': '',
-        'USER': '',
-        'PASSWORD': '',
-        'HOST': '',
-        'PORT': '',
-    }
-}
-########## END DATABASE CONFIGURATION
+
+############ MONGO DB #####################
+### uncomment the settings below if you are using MongoDB without a password
+
+# import mongoengine
+# from mongoengine import register_connection
+# register_connection(alias='default',name='tola')
+#
+# MONGO_CREDS = {
+#     'host': 'mongodb://localhost/tola',
+#     'db': 'tola',
+#     'alias': 'default'
+# }
+# MONGO_URI = MONGO_CREDS['host']
+#
+# mongoengine.connect(MONGO_CREDS['db'], host=MONGO_CREDS['host'], alias=MONGO_CREDS['alias'])
+
+################ END OF MONGO DB #######################
 
 
 ########## GENERAL CONFIGURATION

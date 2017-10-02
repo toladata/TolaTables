@@ -2,14 +2,16 @@ import json
 
 from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 from django.contrib.auth.models import User
+from django.db.models import Q
 
 from rest_framework import renderers, viewsets,filters,permissions
 
 from .models import Silo, LabelValueStore, Country, WorkflowLevel1, WorkflowLevel2
 from .serializers import *
-from silo.permissions import IsOwnerOrReadOnly
+from silo.permissions import *
 from django.contrib.auth.models import User
 from rest_framework.decorators import detail_route, list_route
+from rest_framework.permissions import IsAuthenticated
 from rest_framework import pagination
 from rest_framework.views import APIView
 from rest_framework_json_api.parsers import JSONParser
@@ -40,8 +42,8 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
 
+class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
-class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
@@ -128,30 +130,30 @@ class SilosByUser(viewsets.ReadOnlyModelViewSet):
         return silos
 
 
-class SiloViewSet(viewsets.ModelViewSet):
+class SiloViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions.
+    This viewset automatically provides `list` and `retrieve` actions.
     """
     serializer_class = SiloSerializer
     lookup_field = 'id'
     # this permission sets seems to break the default permissions set by the restframework
     # permission_classes = (IsOwnerOrReadOnly,)
+    permission_classes = (IsAuthenticated, Silo_IsOwnerOrCanRead,)
     filter_fields = ('owner__username','shared__username','id','tags','public')
     filter_backends = (filters.DjangoFilterBackend,)
-    permission_classes = []
 
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
             #pagination.PageNumberPagination.page_size = 200
             return Silo.objects.all()
-        return Silo.objects.filter(owner=user)
+
+        return Silo.objects.filter(Q(owner=user) | Q(public=True) | Q(shared=self.request.user))
 
     @detail_route()
     def data(self, request, id):
-        if id <= 0:
-            return HttpResponseBadRequest("The silo_id = %s is invalid" % id)
+        # calling get_object applies the permission classes to this query
+        silo = self.get_object()
 
         draw = int(request.GET.get("draw", 1))
         offset = int(request.GET.get('start', -1))
@@ -193,11 +195,16 @@ class TagViewSet(viewsets.ModelViewSet):
 
 class ReadViewSet(viewsets.ModelViewSet):
     """
-    This viewset automatically provides `list`, `create`, `retrieve`,
-    `update` and `destroy` actions.
+    This viewset automatically provides `list` and `retrieve`, actions.
     """
-    queryset = Read.objects.all()
     serializer_class = ReadSerializer
+    permission_classes = (IsAuthenticated, Read_IsOwnerViewOrWrite,)
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Read.objects.all()
+        return Read.objects.filter(Q(owner=user) | Q(silos__public=True) | Q(silos__shared=self.request.user))
 
 
 class ReadTypeViewSet(viewsets.ModelViewSet):

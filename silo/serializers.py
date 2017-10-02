@@ -17,9 +17,17 @@ class PublicSiloSerializer(serializers.HyperlinkedModelSerializer):
         return (self.context['request'].build_absolute_uri(link))
 
 
+class UserSerializer(serializers.HyperlinkedModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ('url', 'username', 'email', 'is_staff')
+
+
 class SiloSerializer(serializers.HyperlinkedModelSerializer):
     data = serializers.SerializerMethodField()
     data_count = serializers.ReadOnlyField()
+    owner = UserSerializer()
 
     class Meta:
         model = Silo

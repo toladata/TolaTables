@@ -12,7 +12,7 @@ from collections import OrderedDict
 
 import pymongo
 from pymongo import MongoClient
-from mongoengine.queryset.visitor import Q
+# from mongoengine.queryset.visitor import Q
 
 from bson.objectid import ObjectId
 from bson import CodecOptions, SON
@@ -881,13 +881,21 @@ def addUniqueFiledsToSilo(request):
     if request.method == 'POST':
         unique_cols = request.POST.getlist("fields[]", None)
         silo_id = request.POST.get("silo_id", None)
+
         if silo_id:
             silo = Silo.objects.get(pk=silo_id)
             silo.unique_fields.all().delete()
             for col in unique_cols:
                 unique_field = UniqueFields(name=col, silo=silo)
                 unique_field.save()
-                db.label_value_store.create_index(col, partialFilterExpression = {'silo_id' : silo.id})
+
+                # The partialFilterExpression flag is not available until MongoDB 3.2.
+                # The exception should probably eventually be made more specific (i.e. for maxed out indexes)
+                # try:
+                #     db.label_value_store.create_index(col, partialFilterExpression = {'silo_id' : silo.id})
+                # except Exception as e:
+                #     logger.warning("Failed to create a unique column index: %s" % (e))
+
             if not unique_cols:
                 silo.unique_fields.all().delete()
             return HttpResponse("Unique Fields saved")
@@ -997,9 +1005,10 @@ def updateSiloData(request, pk):
                         greturn[1][:] = [d for d in greturn[1] if d.get('silo_id') == None]
                         for ret in greturn[1]:
                             msgs.append((ret.get('level'),ret.get('msg')))
-                        #delete data associated with old read
-                        lvs = lvs = LabelValueStore.objects(silo_id=silo.pk,__raw__={"read_id" : { "$exists" : "true", "$in" : [read.id] }})
-                        lvs.delete()
+                        #delete data associated with old read if there's no unique column
+                        if unique_field_exist == False:
+                            lvss_to_delete = LabelValueStore.objects(silo_id=silo.pk,__raw__={"read_id" : { "$exists" : "true", "$in" : [read.id] }})
+                            lvss_to_delete.delete()
                         #read the data
                         for lvs in greturn[0]:
                             lvs.save()
@@ -1125,6 +1134,7 @@ def newColumn(request,id):
             label = form.cleaned_data['new_column_name']
             value = form.cleaned_data['default_value']
             #insert a new column into the existing silo
+            addColsToSilo(silo, [label])
             db.label_value_store.update_many(
                 {"silo_id": silo.id},
                     {
@@ -1181,9 +1191,10 @@ def editColumns(request,id):
                     except Exception as e:
                         pass
 
-                    to_delete.append(silo)
+                    to_delete.append(column_name)
 
-            deleteSiloColumns(silo, to_delete)
+            if len(to_delete):
+                deleteSiloColumns(silo, to_delete)
             messages.info(request, 'Updates Saved', fail_silently=False)
         else:
             messages.error(request, 'ERROR: There was a problem with your request', fail_silently=False)
@@ -1324,9 +1335,8 @@ def valueEdit(request,id):
 
         keys = item.keys()
         for col in cols:
-            if col not in keys:
-                data[col] = None
-
+            if col['name'] not in keys:
+                data[col['name']] = None
     if request.method == 'POST': # If the form has been submitted...
         form = MongoEditForm(request.POST or None, extra = data, silo_pk=silo_id) # A form bound to the POST data
         if form.is_valid():
@@ -1484,6 +1494,8 @@ def removeSource(request, silo_id, read_id):
         read = silo.reads.get(pk=read_id)
         read_name = read.read_name
         silo.reads.remove(read)
+        if Silo.objects.filter(reads__pk=read.id).count() == 0:
+            read.delete()
         messages.success(request,"%s has been removed successfully" % read_name)
     except Read.DoesNotExist as e:
         messages.error(request,"Datasource with id=%s does not exist." % read_id)

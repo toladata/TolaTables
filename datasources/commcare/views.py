@@ -78,7 +78,8 @@ def getCommCareAuth(request):
                     #add the silo and reads if necessary
                     try:
                         silo_id = int(request.POST.get("silo", None))
-                        if silo_id == 0: silo_id = None
+                        if silo_id == 0:
+                            silo_id = None
                     except Exception as e:
                         return HttpResponse("Silo ID can only be an integer")
 
@@ -89,7 +90,8 @@ def getCommCareAuth(request):
                     # except Exception as e:
                     #     return HttpResponse("Invalid name and/or URL")
 
-                    silo, silo_created = Silo.objects.get_or_create(id=silo_id, defaults={"name": "%s cases" % project, "public": False, "owner": request.user})
+                    new_silo_name = request.POST.get('new_silo_name', None)
+                    silo, silo_created = Silo.objects.get_or_create(id=silo_id, defaults={"name": new_silo_name, "public": False, "owner": request.user})
                     if silo_created or read_created:
                         silo.reads.add(read)
                     elif read not in silo.reads.all():
