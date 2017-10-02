@@ -19,7 +19,6 @@ from pymongo import MongoClient
 from tola.util import *
 from silo.models import *
 
-<<<<<<< HEAD
 # This fails in testing and doesn't appear to be used
 # db = MongoClient(settings.MONGODB_HOST).tola
 """
@@ -27,9 +26,7 @@ Most Tests are Failing becasue they need to be rewritten.
 =======
 db = MongoClient(settings.MONGO_URI).tola
 
->>>>>>> c331b5f4dc4adb3e086810d6c2fa21760bdba186
 class onaParserTest(TestCase):
-
 
 
 
