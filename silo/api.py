@@ -32,17 +32,13 @@ def silo_data_api(request, id):
     return JsonResponse(json_data, safe=False)
 """
 
-<<<<<<< HEAD
 
 class OrganizationViewSet(viewsets.ModelViewSet):
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
 
-
-class UserViewSet(viewsets.ModelViewSet):
-=======
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
->>>>>>> c331b5f4dc4adb3e086810d6c2fa21760bdba186
+
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
@@ -105,6 +101,7 @@ class PublicSiloViewSet(viewsets.ReadOnlyModelViewSet):
         json_data = json.loads(data.to_json())
         return JsonResponse(json_data, safe=False)
 
+
 class SilosByUser(viewsets.ReadOnlyModelViewSet):
     """
     Lists all silos by a user; returns data in a format
@@ -133,7 +130,6 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (IsAuthenticated, Silo_IsOwnerOrCanRead,)
     filter_fields = ('owner__username','shared__username','id','tags','public')
     filter_backends = (filters.DjangoFilterBackend,)
-
 
     def get_queryset(self):
         user = self.request.user
