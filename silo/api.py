@@ -146,7 +146,7 @@ class SiloViewSet(viewsets.ModelViewSet):
         if user.is_superuser:
             #pagination.PageNumberPagination.page_size = 200
             return Silo.objects.all()
-        return Silo.objects.filter(owner=user)
+        return Silo.objects.filter(owner__user__id=user)
 
     @detail_route()
     def data(self, request, id):
