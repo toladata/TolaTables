@@ -65,7 +65,7 @@ mongoengine.connect(
     username=os.getenv('TOLATABLES_MONGODB_USER'),
     password=os.getenv('TOLATABLES_MONGODB_PASS'),
     host=os.getenv('TOLATABLES_MONGODB_HOST'),
-    port=int(os.environ['TOLATABLES_MONGODB_PORT']),
+    port=27017,
     alias='default'
 )
 ################ END OF MONGO DB #######################
