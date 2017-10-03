@@ -43,7 +43,7 @@ DATABASES = {
         'USER': os.getenv('TOLATABLES_DB_USER'),
         'PASSWORD': os.getenv('TOLATABLES_DB_PASS'),
         'HOST': os.getenv('TOLATABLES_DB_HOST'),
-        'PORT': int(os.environ['TOLATABLES_DB_PORT']),
+        'PORT': 5432,
     }
 }
 """
