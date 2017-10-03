@@ -148,7 +148,7 @@ except KeyError:
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [normpath(join(SITE_ROOT, template_dir)),],
+        'DIRS': [normpath(join(SITE_ROOT, 'templates2')), ],
         #'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
