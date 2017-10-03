@@ -89,8 +89,10 @@ except KeyError:
     MONGODB_HOST = "localhost"
 
     mongoengine.connect(
-        "default",
-        host="locahost",
+        "tola",
+        username="",
+        password="",
+        host="",
         port=27017,
         alias='default'
     )
