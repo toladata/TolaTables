@@ -1,6 +1,3 @@
-"""Development settings and globals."""
-
-
 from os.path import join, normpath
 import os
 from base import *
@@ -68,7 +65,7 @@ mongoengine.connect(
     username=os.getenv('TOLATABLES_MONGODB_USER'),
     password=os.getenv('TOLATABLES_MONGODB_PASS'),
     host=os.getenv('TOLATABLES_MONGODB_HOST'),
-    port=int(os.getenv('TOLATABLES_MONGODB_PORT')),
+    port=int(os.environ['TOLATABLES_MONGODB_PORT']),
     alias='default'
 )
 ################ END OF MONGO DB #######################
