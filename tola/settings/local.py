@@ -140,10 +140,15 @@ LDAP_USER_GROUP = 'xxxx'
 LDAP_ADMIN_GROUP = 'xxxx-xxx'
 #ERTB_ADMIN_URL = 'https://xxxx.example.org/xx-xx-dev/'
 
+try:
+    template_dir = os.getenv('TOLATABLES_TEMPLATE_DIR')
+except KeyError:
+    template_dir ="templates2"
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [normpath(join(SITE_ROOT, os.getenv('TOLATABLES_TEMPLATE_DIR'))),],
+        'DIRS': [normpath(join(SITE_ROOT, template_dir)),],
         #'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
