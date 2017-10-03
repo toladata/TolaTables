@@ -185,6 +185,7 @@ TITLE_CHOICES = (
     ('ms', 'Ms.'),
 )
 
+
 class TolaUser(models.Model):
     tola_user_uuid = models.CharField(max_length=255, verbose_name='TolaUser UUID', default=uuid.uuid4, unique=True)
     title = models.CharField(blank=True, null=True, max_length=3, choices=TITLE_CHOICES)

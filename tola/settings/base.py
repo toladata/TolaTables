@@ -262,11 +262,14 @@ DATASOURCE_APPS = (
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS + DATASOURCE_APPS
 ########## END APP CONFIGURATION
 
+"""
+Allowed for now from everyone
 CORS_ORIGIN_WHITELIST = (
     "localhost:8000",
     "localhost:4200"
 )
-
+"""
+CORS_ORIGIN_ALLOW_ALL=True
 
 ####### AUTHENTICATION BAKEND CONFIG ##################
 # https://github.com/django/django/blob/master/django/contrib/auth/backends.py
