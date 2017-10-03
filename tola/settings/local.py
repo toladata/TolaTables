@@ -36,16 +36,28 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 ########## DATABASE CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#databases
-DATABASES = {
-    'default': {
-        'ENGINE': os.getenv('TOLATABLES_DB_ENGINE'),
-        'NAME': os.getenv('TOLATABLES_DB_NAME'),
-        'USER': os.getenv('TOLATABLES_DB_USER'),
-        'PASSWORD': os.getenv('TOLATABLES_DB_PASS'),
-        'HOST': os.getenv('TOLATABLES_DB_HOST'),
-        'PORT': 5432,
+try:
+    DATABASES = {
+        'default': {
+            'ENGINE': os.getenv('TOLATABLES_DB_ENGINE'),
+            'NAME': os.getenv('TOLATABLES_DB_NAME'),
+            'USER': os.getenv('TOLATABLES_DB_USER'),
+            'PASSWORD': os.getenv('TOLATABLES_DB_PASS'),
+            'HOST': os.getenv('TOLATABLES_DB_HOST'),
+            'PORT': 5432,
+        }
     }
-}
+except KeyError:
+    # Fallback for tests without environment variables configured
+    # Depends on os.environ for correct functionality
+    print("Writing to LOCAL")
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': 'tolatables',
+        }
+    }
+
 """
 DATABASES = {
     'default': {
@@ -58,16 +70,30 @@ import mongoengine
 from mongoengine import register_connection
 register_connection(alias='default', name='tola')
 
-MONGODB_HOST = os.getenv('TOLATABLES_DB_HOST')
 
-mongoengine.connect(
-    os.getenv('TOLATABLES_MONGODB_NAME'),
-    username=os.getenv('TOLATABLES_MONGODB_USER'),
-    password=os.getenv('TOLATABLES_MONGODB_PASS'),
-    host=os.getenv('TOLATABLES_MONGODB_HOST'),
-    port=27017,
-    alias='default'
-)
+try:
+    MONGODB_HOST = os.getenv('TOLATABLES_DB_HOST')
+
+    mongoengine.connect(
+        os.getenv('TOLATABLES_MONGODB_NAME'),
+        username=os.getenv('TOLATABLES_MONGODB_USER'),
+        password=os.getenv('TOLATABLES_MONGODB_PASS'),
+        host=os.getenv('TOLATABLES_MONGODB_HOST'),
+        port=27017,
+        alias='default'
+    )
+except KeyError:
+    # Fallback for tests without environment variables configured
+    # Depends on os.environ for correct functionality
+    print("Writing to LOCAL")
+    MONGODB_HOST = "localhost"
+
+    mongoengine.connect(
+        "default",
+        host="locahost",
+        port=27017,
+        alias='default'
+    )
 ################ END OF MONGO DB #######################
 
 ########## END DATABASE CONFIGURATION
