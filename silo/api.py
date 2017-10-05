@@ -145,14 +145,12 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         user_uuid = self.request.GET.get('user_uuid')
         if user_uuid is not None:
-            tola_user = TolaUser.objects.prefetch_related('user').get(tola_user_uuid=user_uuid)
-            print(tola_user)
-            if tola_user is not None:
+            if TolaUser.objects.filter(tola_user_uuid=user_uuid).count() == 1:
+                tola_user = TolaUser.objects.prefetch_related('user').filter(tola_user_uuid=user_uuid)
                 user = tola_user.user
                 return Silo.objects.filter(Q(owner=user) | Q(public=True) | Q(shared=user))
-
             else:
-                raise Exception()
+                return Silo.objects.filter(owner=None)
         else:
             user = self.request.user
             if user.is_superuser:
