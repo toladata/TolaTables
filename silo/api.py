@@ -6,7 +6,7 @@ from django.db.models import Q
 
 from rest_framework import renderers, viewsets,filters,permissions
 
-from .models import Silo, LabelValueStore, Country, WorkflowLevel1, WorkflowLevel2
+from .models import Silo, LabelValueStore, Country, WorkflowLevel1, WorkflowLevel2, TolaUser
 from .serializers import *
 from silo.permissions import *
 from django.contrib.auth.models import User
@@ -143,12 +143,24 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (filters.DjangoFilterBackend,)
 
     def get_queryset(self):
-        user = self.request.user
-        if user.is_superuser:
-            #pagination.PageNumberPagination.page_size = 200
-            return Silo.objects.all()
+        user_uuid = self.request.GET.get('user_uuid')
+        if user_uuid is not None:
+            tola_user = TolaUser.objects.prefetch_related('user').get(tola_user_uuid=user_uuid)
+            print(tola_user)
+            if tola_user is not None:
+                user = tola_user.user
+                return Silo.objects.filter(Q(owner=user) | Q(public=True) | Q(shared=user))
 
-        return Silo.objects.filter(Q(owner__user=user) | Q(public=True) | Q(shared__user=self.request.user))
+            else:
+                raise Exception()
+        else:
+            user = self.request.user
+            if user.is_superuser:
+                #pagination.PageNumberPagination.page_size = 200
+                return Silo.objects.all()
+
+            return Silo.objects.filter(Q(owner__user=user) | Q(public=True) | Q(shared__user=user))
+
 
 
     @detail_route()
