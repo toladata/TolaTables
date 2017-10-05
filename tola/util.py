@@ -332,8 +332,6 @@ def user_to_tola(backend, user, response, *args, **kwargs):
     default_country = Country.objects.first()
     remote_user = response.get('tola_user')
 
-    remote_country = response.get('country')
-
     # Only import fields to Tables that are required
     tola_user_defaults = {}
     tola_user_defaults['tola_user_uuid'] = remote_user['tola_user_uuid']
@@ -348,11 +346,6 @@ def user_to_tola(backend, user, response, *args, **kwargs):
     del remote_org['sector']  # ignore for now
     organization, org_created = Organization.objects.update_or_create(remote_org,
                                                                       organization_uuid=remote_org['organization_uuid'])
-    if type(remote_country) == dict:
-        del remote_country['zoom']
-        country, org_created = Country.objects.update_or_create(remote_country,
-                                                              organization=organization)
-        tola_user_defaults['country'] = country
 
 
     tola_user_defaults['organization'] = organization
