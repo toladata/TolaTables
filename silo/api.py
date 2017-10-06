@@ -42,6 +42,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
 
+
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = User.objects.all()
