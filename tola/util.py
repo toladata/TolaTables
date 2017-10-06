@@ -182,6 +182,7 @@ def saveDataToSilo(silo, data, read=-1, user=None):
             counter += 1
         lvs = calculateFormulaCell(lvs,silo)
         lvs.save()
+        keys = []
 
     addColsToSilo(silo, keys)
     res = {"skipped_rows": skipped_rows, "num_rows": counter}
