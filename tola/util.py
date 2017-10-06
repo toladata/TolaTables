@@ -173,10 +173,10 @@ def saveDataToSilo(silo, data, read=-1, user=None):
                     # add message that this is skipped
                     continue
 
-            if not isinstance(key, tuple) and not isinstance(key, list):
+            if not isinstance(key, tuple):
                 key = key.replace(".", "_").replace("$", "USD").replace(u'\u2026', "")
                 if isinstance(val, basestring): val = val.strip()
-                keys.add(key)
+                keys.append(key)
                 setattr(lvs, key, val)
 
             counter += 1
