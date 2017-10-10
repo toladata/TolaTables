@@ -1,8 +1,4 @@
-from os.path import join, normpath
-import os
 from base import *
-
-#from mongoengine import connect
 
 ########## MANAGER CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#admins
@@ -17,7 +13,7 @@ MANAGERS = ADMINS
 
 ########## DEBUG CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#debug
-DEBUG = True
+DEBUG = True if os.getenv('TOLA_DEBUG') == 'True' else False
 
 ########## END DEBUG CONFIGURATION
 
@@ -39,32 +35,25 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 try:
     DATABASES = {
         'default': {
-            'ENGINE': os.getenv('TOLATABLES_DB_ENGINE'),
-            'NAME': os.getenv('TOLATABLES_DB_NAME'),
-            'USER': os.getenv('TOLATABLES_DB_USER'),
-            'PASSWORD': os.getenv('TOLATABLES_DB_PASS'),
-            'HOST': os.getenv('TOLATABLES_DB_HOST'),
-            'PORT': 5432,
+            'ENGINE': os.environ["TOLATABLES_DB_ENGINE"],
+            'NAME': os.environ["TOLATABLES_DB_NAME"],
+            'USER': os.environ["TOLATABLES_DB_USER"],
+            'PASSWORD': os.environ["TOLATABLES_DB_PASS"],
+            'HOST': os.environ["TOLATABLES_DB_HOST"],
+            'PORT': os.getenv('TOLATABLES_DB_PORT', 5432),
         }
     }
 except KeyError:
     # Fallback for tests without environment variables configured
     # Depends on os.environ for correct functionality
-    print("Writing to LOCAL")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': 'tolatables',
         }
     }
+    print("DATABASES: {}".format(DATABASES))
 
-"""
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'tolatables',
-    }
-}"""
 ############ MONGO DB #####################
 import mongoengine
 from mongoengine import register_connection
@@ -72,22 +61,19 @@ register_connection(alias='default', name='tola')
 
 
 try:
-    MONGODB_HOST = os.getenv('TOLATABLES_DB_HOST')
-
+    MONGODB_HOST = os.environ['TOLATABLES_DB_HOST']
     mongoengine.connect(
-        os.getenv('TOLATABLES_MONGODB_NAME'),
-        username=os.getenv('TOLATABLES_MONGODB_USER'),
-        password=os.getenv('TOLATABLES_MONGODB_PASS'),
-        host=os.getenv('TOLATABLES_MONGODB_HOST'),
-        port=27017,
+        os.environ['TOLATABLES_MONGODB_NAME'],
+        username=os.environ['TOLATABLES_MONGODB_USER'],
+        password=os.environ['TOLATABLES_MONGODB_PASS'],
+        host=os.environ['TOLATABLES_MONGODB_HOST'],
+        port=int(os.getenv('TOLATABLES_MONGODB_PORT', 27017)),
         alias='default'
     )
 except KeyError:
     # Fallback for tests without environment variables configured
     # Depends on os.environ for correct functionality
-    print("Writing to LOCAL")
     MONGODB_HOST = "localhost"
-
     mongoengine.connect(
         "tola",
         username="",
@@ -96,6 +82,7 @@ except KeyError:
         port=27017,
         alias='default'
     )
+    print("DATABASES: {}".format(DATABASES))
 ################ END OF MONGO DB #######################
 
 ########## END DATABASE CONFIGURATION
@@ -143,7 +130,7 @@ LDAP_ADMIN_GROUP = 'xxxx-xxx'
 #ERTB_ADMIN_URL = 'https://xxxx.example.org/xx-xx-dev/'
 
 try:
-    template_dir = os.getenv('TOLATABLES_TEMPLATE_DIR')
+    template_dir = os.environ['TOLATABLES_TEMPLATE_DIR']
 except KeyError:
     template_dir ="templates2"
 
