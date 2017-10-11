@@ -372,5 +372,3 @@ CELERY_CACHE_BACKEND = 'django-cache'
 
 ACTIVITY_URL = "http://master.toladatav2.app.tola.io"
 TABLES_URL = "http://master.tolatables.app.tola.io"
-
-
