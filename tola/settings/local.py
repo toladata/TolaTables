@@ -162,6 +162,45 @@ SOCIAL_AUTH_TOLA_SECRET = os.getenv('SOCIAL_AUTH_TOLA_SECRET')
 
 GOOGLE_API_KEY = "ReplaceThisWithARealKey"
 
+########## OTHER SETTINGS ###
+LOGIN_METHODS = [
+    {
+        'category_name': 'Tola',
+        'targets':
+        [
+            {
+                'name': 'Tola',
+                'path': 'tola'
+            }
+        ]
+    },
+    {
+        'category_name': 'Google',
+        'targets':
+        [
+            {
+                'name': 'Google',
+                'path': 'google-oauth2'
+            }
+        ]
+    },
+    {
+        'category_name': 'Microsoft',
+        'targets':
+        [
+            {
+                'name': 'Microsoft',
+                'path': 'microsoft-graph'
+            },
+            {
+                'name': 'Azure',
+                'path': 'azuread-oauth2'
+            }
+        ]
+    },
+]
+
+# This allows for additional settings to be kept in a local file
 try:
     from local_secret import *
 except ImportError:
