@@ -56,7 +56,7 @@
                     if (new_silo_name) {
                       var num_options = select_obj.children("option").length;
                       select_obj.find('option:eq(0)').text(new_silo_name)
-                      console.log('form', select_obj.closest('form'))
+                      // console.log('form', select_obj.closest('form'))
                       var form = select_obj.closest('form')
                       form.append($('<input type="hidden">')
                           .attr({name: 'new_silo_name', value: new_silo_name}))

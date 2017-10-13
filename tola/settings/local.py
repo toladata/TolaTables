@@ -160,6 +160,8 @@ TABLES_URL = "http://master.tolatables.app.tola.io"
 SOCIAL_AUTH_TOLA_KEY = os.getenv('SOCIAL_AUTH_TOLA_KEY')
 SOCIAL_AUTH_TOLA_SECRET = os.getenv('SOCIAL_AUTH_TOLA_SECRET')
 
+GOOGLE_API_KEY = "ReplaceThisWithARealKey"
+
 try:
     from local_secret import *
 except ImportError:
