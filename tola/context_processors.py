@@ -1,6 +1,7 @@
 from silo.models import *
 from settings.local import ACTIVITY_URL
 from settings.local import TABLES_URL
+from django.conf import settings
 
 
 def get_silos(self):
@@ -23,3 +24,8 @@ def get_servers(request):
 
 
     return {'ACTIVITY_URL': activity_url, 'TABLES_URL': tables_url}
+
+def get_google_credentials(request):
+    print "got here"
+    creds = {'clientid': settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY, 'apikey': settings.GOOGLE_API_KEY}
+    return {"google_creds": creds}
