@@ -54,20 +54,26 @@ DATABASES = {
     }
 }"""
 ############ MONGO DB #####################
+
 import mongoengine
-from mongoengine import register_connection
-register_connection(alias='default', name='tola')
 
-MONGODB_HOST = os.getenv('TOLATABLES_DB_HOST')
+MONGODB_CREDS = {
+    'host': os.getenv('TOLATABLES_MONGODB_HOST'),
+    'db': os.getenv('TOLATABLES_MONGODB_NAME'),
+    'username': os.getenv('TOLATABLES_MONGODB_USER', None),
+    'password': os.getenv('TOLATABLES_MONGODB_PASS', None),
+    'authentication_source': os.getenv('TOLATABLES_MONGODB_AUTH', None),
+    'port': int(os.environ['TOLATABLES_MONGODB_PORT']),
+    'alias': 'default'
+}
 
-mongoengine.connect(
-    os.getenv('TOLATABLES_MONGODB_NAME'),
-    username=os.getenv('TOLATABLES_MONGODB_USER'),
-    password=os.getenv('TOLATABLES_MONGODB_PASS'),
-    host=os.getenv('TOLATABLES_MONGODB_HOST'),
-    port=int(os.environ['TOLATABLES_MONGODB_PORT']),
-    alias='default'
-)
+if MONGODB_CREDS['authentication_source']:
+    MONGODB_URI = "mongodb://%(username)s:%(password)s@%(host)s/%(db)s?authSource=%(authentication_source)s" % (MONGODB_CREDS)
+else:
+    MONGODB_URI = MONGODB_CREDS['host']
+
+mongoengine.connect(**MONGODB_CREDS)
+
 ################ END OF MONGO DB #######################
 
 ########## END DATABASE CONFIGURATION

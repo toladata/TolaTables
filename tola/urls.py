@@ -101,11 +101,11 @@ urlpatterns =[
     url(r'^export_silo_form/(?P<id>\w+)/$', views.export_silo_form, name='export_silo_form'),
     url(r'^export/(?P<id>\w+)/$', views.export_silo, name='export_silo'),
 
-    #url(r'^export_to_gsheet/(?P<id>\d+)/$', gviews_v4.export_to_gsheet, name='export_new_gsheet'),
-    #url(r'^export_to_gsheet/(?P<id>\d+)/$', gviews_v4.export_to_gsheet, name='export_existing_gsheet'),
-    #url(r'^oauth2callback/$', gviews_v4.oauth2callback, name='oauth2callback'),
-    #url(r'^import_gsheet/(?P<id>\d+)/$', gviews_v4.import_from_gsheet, name='import_gsheet'),
-    #url(r'^get_sheets_from_google_spredsheet/$', gviews_v4.get_sheets_from_google_spredsheet, name='get_sheets'),
+    # url(r'^export_to_gsheet/(?P<id>\d+)/$', gviews_v4.export_to_gsheet, name='export_new_gsheet'),
+    # url(r'^export_to_gsheet/(?P<id>\d+)/$', gviews_v4.export_to_gsheet, name='export_existing_gsheet'),
+    # url(r'^oauth2callback/$', gviews_v4.oauth2callback, name='oauth2callback'),
+    # url(r'^import_gsheet/(?P<id>\d+)/$', gviews_v4.import_from_gsheet, name='import_gsheet'),
+    # url(r'^get_sheets_from_google_spredsheet/$', gviews_v4.get_sheets_from_google_spredsheet, name='get_sheets'),
 
     url(r'^accounts/login/$', auth.views.login, name='login'),
     url(r'^accounts/logout/$', tola_views.logout_view, name='logout'),

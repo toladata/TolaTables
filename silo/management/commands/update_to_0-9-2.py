@@ -21,7 +21,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         #get every column for each silo
-        db = pymongo.MongoClient(settings.MONGO_URI).tola
+        db = pymongo.MongoClient(settings.MONGODB_URI).tola
         #index by silo
         db.label_value_store.create_index('silo_id')
 

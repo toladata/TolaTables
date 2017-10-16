@@ -638,7 +638,7 @@ def getNewestDataDate(silo_id):
     """
     finds the newest date of data in a silo
     """
-    db = MongoClient(settings.MONGO_URI).tola
+    db = MongoClient(settings.MONGODB_URI).tola
     newest_record = db.label_value_store.find({'silo_id' : silo_id}).sort([("create_date", -1)]).limit(1)
 
     return newest_record[0]['create_date']
@@ -662,7 +662,7 @@ def setSiloColumnType(silo_pk, column, column_type):
 
     # TO DO: check if all entries could comply
 
-    db = MongoClient(settings.MONGO_URI).tola
+    db = MongoClient(settings.MONGODB_URI).tola
     bulk = db.label_value_store.initialize_ordered_bulk_op()
 
     if (db.label_value_store.find({'silo_id' : silo_pk, column : {'$not' : {'$exists' : True}}}).count() > 0):

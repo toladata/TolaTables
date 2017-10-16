@@ -59,18 +59,24 @@ DATABASES = {
 
 import mongoengine
 
-MONGO_CREDS = {
-    'host': 'localhost',
-    'db': 'myDBName',
-    'username': urllib.quote_plus('myUsername'),
-    'password': urllib.quote_plus('myPassword'),
-    'authentication_source': 'admin',
+import mongoengine
+
+MONGODB_CREDS = {
+    'host': os.getenv('TOLATABLES_MONGODB_HOST'),
+    'db': os.getenv('TOLATABLES_MONGODB_NAME'),
+    'username': os.getenv('TOLATABLES_MONGODB_USER', None),
+    'password': os.getenv('TOLATABLES_MONGODB_PASS', None),
+    'authentication_source': os.getenv('TOLATABLES_MONGODB_AUTH', None),
+    'port': int(os.environ['TOLATABLES_MONGODB_PORT']),
     'alias': 'default'
 }
 
-MONGO_URI = "mongodb://%(username)s:%(password)s@%(host)s/%(db)s?authSource=%(authentication_source)s" % (MONGO_CREDS)
+if MONGODB_CREDS['authentication_source']:
+    MONGODB_URI = "mongodb://%(username)s:%(password)s@%(host)s/%(db)s?authSource=%(authentication_source)s" % (MONGODB_CREDS)
+else:
+    MONGODB_URI = MONGODB_CREDS['host']
 
-mongoengine.connect(**MONGO_CREDS)
+mongoengine.connect(**MONGODB_CREDS)
 
 ############ END OF MONGO DB
 

@@ -18,9 +18,9 @@ from os.path import join, normpath
 
 SECRET_KEY = r"!0^+)=t*ly6ycprf9@adsfsdfdfsdff#pa*3333*lp5k9ko7"
 
-from local import MONGO_CREDS, MONGO_URI
+from local import MONGODB_CREDS, MONGODB_URI
 import mongoengine
-mongoengine.connect(**MONGO_CREDS)
+mongoengine.connect(**MONGODB_CREDS)
 
 
 ########## MANAGER CONFIGURATION
@@ -97,6 +97,3 @@ mongoengine.connect(
     port=27017,
     alias='default'
 )
-
-
-

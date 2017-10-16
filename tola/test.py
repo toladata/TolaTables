@@ -24,7 +24,7 @@ from silo.models import *
 """
 Most Tests are Failing becasue they need to be rewritten.
 =======
-db = MongoClient(settings.MONGO_URI).tola
+db = MongoClient(settings.MONGODB_URI).tola
 
 class onaParserTest(TestCase):
 

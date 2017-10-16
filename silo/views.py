@@ -57,7 +57,7 @@ import requests, os
 # from .models import siloHideFilter
 
 logger = logging.getLogger("silo")
-db = MongoClient(os.getenv('TOLA_MONGODB_NAME')).tola
+db = MongoClient(settings.MONGODB_URI).tola
 
 # To preserve fields order when reading BSON from MONGO
 opts = CodecOptions(document_class=SON)

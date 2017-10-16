@@ -39,26 +39,6 @@ MANAGERS = ADMINS
 ########## END MANAGER CONFIGURATION
 
 
-
-############ MONGO DB #####################
-### uncomment the settings below if you are using MongoDB without a password
-
-# import mongoengine
-# from mongoengine import register_connection
-# register_connection(alias='default',name='tola')
-#
-# MONGO_CREDS = {
-#     'host': 'mongodb://localhost/tola',
-#     'db': 'tola',
-#     'alias': 'default'
-# }
-# MONGO_URI = MONGO_CREDS['host']
-#
-# mongoengine.connect(MONGO_CREDS['db'], host=MONGO_CREDS['host'], alias=MONGO_CREDS['alias'])
-
-################ END OF MONGO DB #######################
-
-
 ########## GENERAL CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#time-zone
 TIME_ZONE = 'America/Los_Angeles'
