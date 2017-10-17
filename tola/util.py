@@ -172,13 +172,14 @@ def saveDataToSilo(silo, data, read=-1, user=None):
                     # skip this one
                     # add message that this is skipped
                     continue
-
+            # if key is not a list save it to the keys
             if not isinstance(key, tuple):
                 key = key.replace(".", "_").replace("$", "USD").replace(u'\u2026', "")
                 if isinstance(val, basestring): val = val.strip()
-                keys.append(key)
+                # check for duplicate key
+                if key not in keys:
+                    keys.append(key)
                 setattr(lvs, key, val)
-
             counter += 1
         lvs = calculateFormulaCell(lvs,silo)
         lvs.save()
@@ -270,6 +271,7 @@ def addColsToSilo(silo, columns, col_types = {}):
     """
     #make sure there are no duplicate columns
     columns_set = set(columns)
+    print columns
     if len(columns_set) != len(columns):
         raise ValueError('Duplicate columns are not allowed')
     silo_cols = json.loads(silo.columns)
