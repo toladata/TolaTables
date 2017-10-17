@@ -9,6 +9,7 @@ body {
     /* Margin bottom by footer height */
     height: 100%;
     margin-bottom: 60px;
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 }
 #footer {
     position: absolute;
@@ -37,13 +38,35 @@ button:focus,
   outline: none;
 }
 
+.header-image{
+    width: 50px;
+    height: 50px;
+    margin-left: -15px;
+    margin-top: -15px;
+}
+
+.navbar-right{
+    float: right;
+
+}
+
+.navbar-header{
+    width: 100%;
+}
+
 .navbar-tola {
   /* TolaTables Brand Color: */
-  background-color: #f5f5f5;
+  background-color: #0B607D;
+  margin-top: 50px;
+  font-color: #FFFFFF;
+  border: 0px;
+
 }
 
 .navbar-tola .navbar-nav > li > a {
-  color: #15A0B2;
+  color: #FFFFFF;
+      position: relative;
+    z-index: 2;
 }
 
 .navbar-tola .navbar-nav > li > a:hover,
@@ -52,10 +75,15 @@ button:focus,
 .navbar-tola .navbar-nav > li.active > a:hover,
 .navbar-tola .navbar-nav > li.active > a:focus,
 .navbar-tola .navbar-nav .dropdown.open a.dropdown-toggle {
-  color: #15A0B2;
+  color: #FFFFFF;
   background-color: rgba(0, 0, 0, .15);
 }
 
+dropdown{
+    position: relative;
+    z-index: 1;
+
+}
 /* - End Bootstrap Overrides */
 
 

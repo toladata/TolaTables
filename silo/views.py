@@ -833,8 +833,8 @@ def index(request):
         count_public = Silo.objects.filter(owner=user).filter(public=1).count()
         count_shared = Silo.objects.filter(owner=user).filter(shared=1).count()
         # top 4 data sources and tags
-        get_reads = ReadType.objects.annotate(num_type=Count('read')).order_by('-num_type')[:4]
-        get_tags = Tag.objects.filter(owner=user).annotate(num_tag=Count('silos')).order_by('-num_tag')[:8]
+        get_reads = ReadType.objects.annotate(num_type=Count('read')).order_by('-num_type')[:4].values('read')
+        get_tags = Tag.objects.filter(owner=user).annotate(num_tag=Count('silos')).order_by('-num_tag')[:8].values('silos')
     else:
         get_silos = None
         # count all public and private data sets
@@ -842,8 +842,8 @@ def index(request):
         count_public = Silo.objects.filter(public=1).count()
         count_shared = Silo.objects.filter(shared=1).count()
         # top 4 data sources and tags
-        get_reads = ReadType.objects.annotate(num_type=Count('read')).order_by('-num_type')[:4]
-        get_tags = Tag.objects.annotate(num_tag=Count('silos')).order_by('-num_tag')[:8]
+        get_reads = ReadType.objects.annotate(num_type=Count('read')).order_by('-num_type')[:4].values('read')
+        get_tags = Tag.objects.annotate(num_tag=Count('silos')).order_by('-num_tag')[:8].values('silos')
     get_public = Silo.objects.filter(public=1)
     site = TolaSites.objects.get(site_id=1)
     response = render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_shared':count_shared, 'count_public': count_public, 'get_reads': get_reads, 'get_tags': get_tags, 'site': site})
