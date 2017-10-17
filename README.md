@@ -44,6 +44,54 @@ Once you are done configuring the fixtures you can load them:
 ./manage.py loaddata read_types_local
 ```
 
+P.S.: You don't need to load the fixtures manually, if you deploy locally via Docker.
+
+## Deploy locally via Docker
+
+Build first the images:
+
+```bash
+docker-compose -f docker-compose-dev.yml build
+```
+
+To run the webserver:
+
+```bash
+docker-compose -f docker-compose-dev.yml up #-d for detached
+```
+
+User: `admin`
+Password: `admin`.
+
+To run the tests:
+
+```bash
+docker-compose -f docker-compose-dev.yml run --entrypoint '/usr/bin/env' --rm tables python manage.py test
+```
+
+To run bash:
+
+```bash
+docker -f docker-compose-dev.yml run --entrypoint '/usr/bin/env' --rm tables bash
+```
+
+or if you initialized already a container:
+
+```bash
+docker exec -it tables bash
+```
+
+To connect to the postgres database when the container is running:
+
+```bash
+docker exec -it postgres psql -U root tolatables
+```
+
+To connect to the mongo database when the container is running:
+
+```bash
+docker exec -it mongo mongo tolatables -u root -p root
+```
 
 ## Deploy using Virtualenv
 Virtualenv allows us to customize an encapsulated version of python to use with your app.
@@ -70,6 +118,11 @@ You may need to install [selenium](http://www.seleniumhq.org/) as well.  On a Ma
 Some MacOS systems have trouble seeing the MySql installation.  If you are using MySql, you may need to run this command.
 
 `export PATH=$PATH:/usr/local/mysql/bin`
+
+### Fix probable mysql path issue (for Linux)
+The Linux systems is having a problem to install the Tola module of social core.  If you are using Linux, you may need to run this command in the folder where you cloned the repository.
+
+`docker cp src/social-core/social_core/backends/tola.py tables:/usr/local/lib/python2.7/site-packages/social_core/backends/`
 
 ### Set up the Database
 `python manage.py migrate`
