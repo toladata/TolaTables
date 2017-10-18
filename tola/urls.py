@@ -16,7 +16,6 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth.views import login, logout
 from silo.api import *
-from board.api import *
 
 from util import getImportApps
 import json
@@ -34,14 +33,6 @@ router.register(r'users', UserViewSet)
 router.register(r'read', ReadViewSet, base_name='read')
 router.register(r'readtype', ReadTypeViewSet)
 router.register(r'tag', TagViewSet)
-
-router.register(r'owners', OwnerViewSet)
-router.register(r'boards', BoardViewSet)
-router.register(r'graphs', GraphViewSet)
-router.register(r'graphmodels', GraphModelViewSet)
-router.register(r'items', ItemViewSet)
-router.register(r'graphinputs', GraphInputViewSet)
-router.register(r'boardsilos', SiloBoardViewSet)
 router.register(r'country', CountryViewSet)
 router.register(r'organization', OrganizationViewSet)
 router.register(r'workflowlevel1', WorkflowLevel1ViewSet)

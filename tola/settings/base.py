@@ -251,7 +251,6 @@ path.insert(0, normpath(join(SITE_ROOT, 'datasources')))
 LOCAL_APPS = (
     'silo',
     'tola',
-    'board',
 )
 DATASOURCE_APPS = (
     'commcare',

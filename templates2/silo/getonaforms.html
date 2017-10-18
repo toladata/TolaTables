@@ -21,6 +21,8 @@
                 <th>Title</th>
                 <th>Description</th>
                 <th>URL</th>
+                <th># of Records</th>
+                <th>Table Exists</th>
                 <th>Table</th>
                 <th>Action</th>
             </tr>
@@ -34,6 +36,8 @@
                      <input type="hidden" value="1" name="title"></input>
                      <input type="hidden" value="1" name="type"></input>
                      <input type="hidden" value="{{ request.user.id }}" name="owner"></input>
+                <td> <input type="hidden" value="{{ row.count }}" name="read_count"></input>{{ row.count }} </td>
+                <td> <input type="hidden" value="{{ row.silo }}" name="read_silo"></input>{% for item in row.silo %}<a href="/show_read/{{ item.id }}">{{ item }}</a> <br/>{% endfor %} </td>
                 <td>
                     <select id="id_silo-{{forloop.counter}}" name="silo_id" class="form-control input-sm">
                         <option selected="selected" value=""></option>

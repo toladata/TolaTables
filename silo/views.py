@@ -531,7 +531,24 @@ def getOnaForms(request):
     if ona_token and auth_success:
         onaforms = requests.get(url_user_forms, headers={'Authorization': 'Token %s' % ona_token.token})
         data = json.loads(onaforms.content)
-        print data
+        # check for records (very slow) may need to cache somehow or request count from Ona API endpoint
+        for x in data:
+            data_count = 0
+            ona_data = requests.get(x['url'], headers={'Authorization': 'Token %s' % ona_token.token})
+            data_to_count = json.loads(ona_data.content)
+            # check for existing read source
+            try:
+                check_read = Read.objects.all().filter(read_url=x['url'])
+                if check_read:
+                    x['silo'] = check_read
+                    print check_read
+                    print x['url']
+            except Read.DoesNotExist:
+                x['silo'] = None
+            # do count
+            for y in data_to_count:
+                data_count = data_count + 1
+            x['count'] = data_count
         if data:
             has_data = True
 
@@ -608,6 +625,11 @@ def showRead(request, id):
         read_type = request.GET.get("type", "CSV")
         initial['type'] = ReadType.objects.get(read_type=read_type)
 
+    try:
+        get_tables = Silo.objects.all().filter(reads__id__in=id)
+    except Silo.DoesNotExist:
+        get_tables = None
+
     if read_type == "GSheet Import" or read_type == "ONA":
         excluded_fields = excluded_fields + ['username', 'password', 'file_data','autopush_frequency']
     elif read_type == "JSON":
@@ -675,6 +697,7 @@ def showRead(request, id):
         'form': form,
         'read_id': id,
         'data': data,
+        'get_tables': get_tables,
         'access_token': access_token
     })
 
@@ -833,8 +856,8 @@ def index(request):
         count_public = Silo.objects.filter(owner=user).filter(public=1).count()
         count_shared = Silo.objects.filter(owner=user).filter(shared=1).count()
         # top 4 data sources and tags
-        get_reads = ReadType.objects.annotate(num_type=Count('read')).order_by('-num_type')[:4].values('read')
-        get_tags = Tag.objects.filter(owner=user).annotate(num_tag=Count('silos')).order_by('-num_tag')[:8].values('silos')
+        get_reads = ReadType.objects.annotate(num_type=Count('read')).order_by('-num_type')[:4].values('read','num_type')
+        get_tags = Tag.objects.filter(owner=user).annotate(num_tag=Count('silos')).order_by('-num_tag')[:8].values('silos','num_tag')
     else:
         get_silos = None
         # count all public and private data sets
@@ -842,8 +865,8 @@ def index(request):
         count_public = Silo.objects.filter(public=1).count()
         count_shared = Silo.objects.filter(shared=1).count()
         # top 4 data sources and tags
-        get_reads = ReadType.objects.annotate(num_type=Count('read')).order_by('-num_type')[:4].values('read')
-        get_tags = Tag.objects.annotate(num_tag=Count('silos')).order_by('-num_tag')[:8].values('silos')
+        get_reads = ReadType.objects.annotate(num_type=Count('read')).order_by('-num_type')[:4].values('read','num_type')
+        get_tags = Tag.objects.annotate(num_tag=Count('silos')).order_by('-num_tag')[:8].values('silos','num_tag')
     get_public = Silo.objects.filter(public=1)
     site = TolaSites.objects.get(site_id=1)
     response = render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_shared':count_shared, 'count_public': count_public, 'get_reads': get_reads, 'get_tags': get_tags, 'site': site})

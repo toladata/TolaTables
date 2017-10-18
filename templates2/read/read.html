@@ -43,6 +43,15 @@
     {% load crispy_forms_tags %}
     {% crispy form %}
     <input type="hidden" name="read_id" value="{{ read_id }}">
+    {% if get_tables %}
+        <h3>Tables using this source</h3>
+        <ul>
+        {% for item in get_tables %}
+            <li><a href="/silo_detail/{{item.id}}">{{ item.name }}</a></li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+
 
 {% endblock content %}
 
