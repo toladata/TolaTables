@@ -1,5 +1,15 @@
 from base import *
 
+########## GOOGLE AUTH
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.getenv('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.getenv('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET')
+GOOGLE_API_KEY = "ReplaceThisWithARealKey"
+
+########## MICROSOFT AUTH
+SOCIAL_AUTH_MICROSOFT_GRAPH_RESOURCE = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_RESOURCE')
+SOCIAL_AUTH_MICROSOFT_GRAPH_KEY = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_KEY')
+SOCIAL_AUTH_MICROSOFT_GRAPH_SECRET = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_SECRET')
+SOCIAL_AUTH_MICROSOFT_GRAPH_REDIRECT_URL = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_REDIRECT_URL')
 
 ########## IN-MEMORY TEST DATABASE
 DATABASES = {
@@ -83,17 +93,3 @@ CACHES = {
     }
 }
 ########## END CACHE CONFIGURATION
-
-############ MONGO DB #####################
-import mongoengine
-from mongoengine import register_connection
-register_connection(alias='default', name='tola')
-
-mongoengine.connect(
-    "tola",
-    username="",
-    password="",
-    host="",
-    port=27017,
-    alias='default'
-)

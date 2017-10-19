@@ -24,11 +24,10 @@ from silo.models import *
 """
 Most Tests are Failing becasue they need to be rewritten.
 =======
+"""
 db = MongoClient(settings.MONGODB_URI).tola
 
 class onaParserTest(TestCase):
-
-
 
     def setUp(self):
         self.factory = RequestFactory()
@@ -812,4 +811,3 @@ class test_setSiloColumnType(TestCase):
             pass
         lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
         self.assertTrue({'name' : 'a', 'type' : 'int'} in json.loads(self.silo.columns))
-"""

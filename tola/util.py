@@ -98,15 +98,12 @@ def saveDataToSilo(silo, data, read=-1, user=None):
     read -- the read object, optional only for backwards compatability
     user -- an optional parameter to use if its necessary to retrieve from ThirdPartyTokens
     """
-    print read
-    print read.type.read_type
-    print read.id
     try:
         if read.type.read_type == "ONA" and user:
             saveOnaDataToSilo(silo,data,read,user)
         read_source_id = read.id
     except AttributeError as e:
-        read_source_id = read.id
+        read_source_id = read
 
     unique_fields = silo.unique_fields.all()
     skipped_rows = set()
@@ -412,9 +409,7 @@ def ona_parse_type_group(data, form_data, parent_name, silo, read):
                                         parent_name + field['name']+"/",silo,read)
                 if 'label' in field:
                     try:
-                        key = frozenset(field['label'].items())
-                        for x in key:
-                            entry[x] = entry.pop(parent_name + field['name'])
+                        entry[field['label']] = entry.pop(parent_name + field['name'])
                     except KeyError as e:
                         pass
 

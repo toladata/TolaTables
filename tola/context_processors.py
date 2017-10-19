@@ -26,6 +26,5 @@ def get_servers(request):
     return {'ACTIVITY_URL': activity_url, 'TABLES_URL': tables_url}
 
 def get_google_credentials(request):
-    print "got here"
     creds = {'clientid': settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY, 'apikey': settings.GOOGLE_API_KEY}
     return {"google_creds": creds}
