@@ -138,6 +138,7 @@ TEMPLATES = [
                 'tola.context_processors.get_silos',
                 'tola.context_processors.get_servers',
                 'tola.context_processors.get_google_credentials',
+                'tola.context_processors.google_analytics',
             ],
             'builtins': [
                 'django.contrib.staticfiles.templatetags.staticfiles',
@@ -206,6 +207,9 @@ LOGIN_METHODS = [
         ]
     },
 ]
+
+GOOGLE_ANALYTICS_PROPERTY_ID = os.getenv('GOOGLE_ANALYTICS_PROPERTY_ID')
+
 
 # This allows for additional settings to be kept in a local file
 try:

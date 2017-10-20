@@ -25,6 +25,18 @@ def get_servers(request):
 
     return {'ACTIVITY_URL': activity_url, 'TABLES_URL': tables_url}
 
+
 def get_google_credentials(request):
     creds = {'clientid': settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY, 'apikey': settings.GOOGLE_API_KEY}
     return {"google_creds": creds}
+
+
+def google_analytics(request):
+    """
+    Use the variables returned in this function to render Google Analytics Tracking Code template.
+    """
+
+    ga_prop_id = getattr(settings, 'GOOGLE_ANALYTICS_PROPERTY_ID', False)
+    if not settings.DEBUG and ga_prop_id:
+        return {'google_prop_id': ga_prop_id}
+    return {}
