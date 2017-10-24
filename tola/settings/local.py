@@ -53,27 +53,37 @@ DATABASES = {
         'NAME': 'tolatables',
     }
 }"""
+print("DATABASES: {}".format(DATABASES))
+
 ############ MONGO DB #####################
-
 import mongoengine
+from mongoengine import register_connection
+register_connection(alias='default', name='tola')
 
-MONGODB_CREDS = {
-    'host': os.getenv('TOLATABLES_MONGODB_HOST'),
-    'db': os.getenv('TOLATABLES_MONGODB_NAME'),
-    'username': os.getenv('TOLATABLES_MONGODB_USER', None),
-    'password': os.getenv('TOLATABLES_MONGODB_PASS', None),
-    'authentication_source': os.getenv('TOLATABLES_MONGODB_AUTH', None),
-    'port': int(os.environ['TOLATABLES_MONGODB_PORT']),
-    'alias': 'default'
-}
 
-if MONGODB_CREDS['authentication_source']:
-    MONGODB_URI = "mongodb://%(username)s:%(password)s@%(host)s/%(db)s?authSource=%(authentication_source)s" % (MONGODB_CREDS)
-else:
-    MONGODB_URI = MONGODB_CREDS['host']
-
-mongoengine.connect(**MONGODB_CREDS)
-
+try:
+    MONGODB_HOST = os.environ['TOLATABLES_DB_HOST']
+    mongoengine.connect(
+        os.environ['TOLATABLES_MONGODB_NAME'],
+        username=os.environ['TOLATABLES_MONGODB_USER'],
+        password=os.environ['TOLATABLES_MONGODB_PASS'],
+        host=os.environ['TOLATABLES_MONGODB_HOST'],
+        port=int(os.getenv('TOLATABLES_MONGODB_PORT', 27017)),
+        alias='default'
+    )
+except KeyError:
+    # Fallback for tests without environment variables configured
+    # Depends on os.environ for correct functionality
+    MONGODB_HOST = "localhost"
+    mongoengine.connect(
+        "tola",
+        username="",
+        password="",
+        host="",
+        port=27017,
+        alias='default'
+    )
+    print("DATABASES: {}".format(DATABASES))
 ################ END OF MONGO DB #######################
 
 ########## END DATABASE CONFIGURATION
@@ -171,42 +181,51 @@ SOCIAL_AUTH_TOLA_SECRET = os.getenv('SOCIAL_AUTH_TOLA_SECRET')
 GOOGLE_API_KEY = "ReplaceThisWithARealKey"
 
 ########## OTHER SETTINGS ###
-LOGIN_METHODS = [
-    {
-        'category_name': 'Tola',
-        'targets':
-        [
-            {
-                'name': 'Tola',
-                'path': 'tola'
-            }
-        ]
-    },
-    {
-        'category_name': 'Google',
-        'targets':
-        [
-            {
-                'name': 'Google',
-                'path': 'google-oauth2'
-            }
-        ]
-    },
-    {
-        'category_name': 'Microsoft',
-        'targets':
-        [
-            {
-                'name': 'Microsoft',
-                'path': 'microsoft-graph'
-            },
-            {
-                'name': 'Azure',
-                'path': 'azuread-oauth2'
-            }
-        ]
-    },
-]
+
+## This section is commmented out because it is not clear how this sort of
+## configuration would be implemented given the requirements of for
+## environment variables.  However, it's an example of how a login method
+## configuration would look. If uncommented, you would see no change in the
+## login methods seciton of the unauthenticated index page.  Putting
+## LOGIN_METHODS = [] in the local_secret.py file would eliminate all of the
+## login options that appear beneath the charts.
+#
+# LOGIN_METHODS = [
+#     {
+#         'category_name': 'Tola',
+#         'targets':
+#         [
+#             {
+#                 'name': 'Tola',
+#                 'path': 'tola'
+#             }
+#         ]
+#     },
+#     {
+#         'category_name': 'Google',
+#         'targets':
+#         [
+#             {
+#                 'name': 'Google',
+#                 'path': 'google-oauth2'
+#             }
+#         ]
+#     },
+#     {
+#         'category_name': 'Microsoft',
+#         'targets':
+#         [
+#             {
+#                 'name': 'Microsoft',
+#                 'path': 'microsoft-graph'
+#             },
+#             {
+#                 'name': 'Azure',
+#                 'path': 'azuread-oauth2'
+#             }
+#         ]
+#     },
+# ]
 
 GOOGLE_ANALYTICS_PROPERTY_ID = os.getenv('GOOGLE_ANALYTICS_PROPERTY_ID')
 

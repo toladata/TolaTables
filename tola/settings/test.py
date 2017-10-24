@@ -28,9 +28,19 @@ from os.path import join, normpath
 
 SECRET_KEY = r"!0^+)=t*ly6ycprf9@adsfsdfdfsdff#pa*3333*lp5k9ko7"
 
-from local import MONGODB_CREDS, MONGODB_URI
+############ MONGO DB #####################
+
 import mongoengine
-mongoengine.connect(**MONGODB_CREDS)
+try:
+    from tola.settings.local_secret import MONGODB_TEST_URI
+    MONGODB_URI = MONGODB_TEST_URI
+except ImportError:
+    MONGODB_URI = 'mongodb://localhost:27017/tola'
+
+mongoengine.connect('tola', MONGODB_URI)
+
+
+################ END OF MONGO DB #######################
 
 
 ########## MANAGER CONFIGURATION

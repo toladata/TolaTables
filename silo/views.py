@@ -848,7 +848,11 @@ def index(request):
     site = TolaSites.objects.get(site_id=1)
 
     gCreds = {'clientid': settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY, 'apikey': settings.GOOGLE_API_KEY}
-    response = render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_shared':count_shared, 'count_public': count_public, 'get_reads': get_reads, 'get_tags': get_tags, 'site': site, 'gCreds': gCreds, 'logintypes': settings.LOGIN_METHODS})
+    try:
+        login_types = settings.LOGIN_METHODS
+    except AttributeError:
+        login_types = None
+    response = render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_shared':count_shared, 'count_public': count_public, 'get_reads': get_reads, 'get_tags': get_tags, 'site': site, 'gCreds': gCreds, 'logintypes': login_types})
     if request.COOKIES.get('auth_token', None) is None and request.user.is_authenticated():
         try:
             user.auth_token
