@@ -1,8 +1,8 @@
 [
 {
     "fields": {
-        "domain": "yourDomain.org",
-        "name": "yourDomain.org"
+        "domain": "tolasites.org",
+        "name": "TolaSites"
     },
     "model": "sites.site",
     "pk": 1
