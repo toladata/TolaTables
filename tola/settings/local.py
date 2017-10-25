@@ -182,51 +182,6 @@ GOOGLE_API_KEY = "ReplaceThisWithARealKey"
 
 ########## OTHER SETTINGS ###
 
-## This section is commmented out because it is not clear how this sort of
-## configuration would be implemented given the requirements of for
-## environment variables.  However, it's an example of how a login method
-## configuration would look. If uncommented, you would see no change in the
-## login methods seciton of the unauthenticated index page.  Putting
-## LOGIN_METHODS = [] in the local_secret.py file would eliminate all of the
-## login options that appear beneath the charts.
-#
-# LOGIN_METHODS = [
-#     {
-#         'category_name': 'Tola',
-#         'targets':
-#         [
-#             {
-#                 'name': 'Tola',
-#                 'path': 'tola'
-#             }
-#         ]
-#     },
-#     {
-#         'category_name': 'Google',
-#         'targets':
-#         [
-#             {
-#                 'name': 'Google',
-#                 'path': 'google-oauth2'
-#             }
-#         ]
-#     },
-#     {
-#         'category_name': 'Microsoft',
-#         'targets':
-#         [
-#             {
-#                 'name': 'Microsoft',
-#                 'path': 'microsoft-graph'
-#             },
-#             {
-#                 'name': 'Azure',
-#                 'path': 'azuread-oauth2'
-#             }
-#         ]
-#     },
-# ]
-
 GOOGLE_ANALYTICS_PROPERTY_ID = os.getenv('GOOGLE_ANALYTICS_PROPERTY_ID')
 
 
