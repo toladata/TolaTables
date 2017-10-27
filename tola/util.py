@@ -173,7 +173,9 @@ def saveDataToSilo(silo, data, read=-1, user=None):
             if not isinstance(key, tuple):
                 key = key.replace(".", "_").replace("$", "USD").replace(u'\u2026', "")
                 if isinstance(val, basestring): val = val.strip()
-                if key not in keys: keys.append(key)
+                # check for duplicate key
+                if key not in keys:
+                    keys.append(key)
                 setattr(lvs, key, val)
 
             counter += 1
