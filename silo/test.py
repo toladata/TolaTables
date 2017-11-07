@@ -26,6 +26,7 @@ from commcare.views import *
 from commcare.tasks import *
 
 
+""" 
 class ReadTest(TestCase):
     fixtures = ['../fixtures/read_types.json']
     show_read_url = '/show_read/'
@@ -68,7 +69,7 @@ class ReadTest(TestCase):
         self.assertEqual(response.status_code, 302)
 
 # TODO Adjust tests to work without mongodb as an instance is not available during testing.
-""" 
+
 class SiloTest(TestCase):
     fixtures = ['fixtures/read_types.json']
     silo_edit_url = "/silo_edit/"
