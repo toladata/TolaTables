@@ -626,7 +626,7 @@ def showRead(request, id):
         initial['type'] = ReadType.objects.get(read_type=read_type)
 
     try:
-        get_tables = Silo.objects.all().filter(reads__id__in=id)
+        get_tables = Silo.objects.all().filter(reads__id=id)
     except Silo.DoesNotExist:
         get_tables = None
 
