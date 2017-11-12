@@ -59,8 +59,6 @@ DATABASES = {
 
 import mongoengine
 
-import mongoengine
-
 MONGODB_CREDS = {
     'host': os.getenv('TOLATABLES_MONGODB_HOST'),
     'db': os.getenv('TOLATABLES_MONGODB_NAME'),

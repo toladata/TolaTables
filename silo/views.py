@@ -40,7 +40,7 @@ from django.db.models import Count
 
 from silo.custom_csv_dict_reader import CustomDictReader
 from .models import GoogleCredentialsModel
-#from gviews_v4 import import_from_gsheet_helper
+from gviews_v4 import import_from_gsheet_helper
 from tola.util import importJSON, saveDataToSilo, getSiloColumnNames,\
                         parseMathInstruction, calculateFormulaColumn, makeQueryForHiddenRow,\
                         getNewestDataDate, addColsToSilo, deleteSiloColumns, hideSiloColumns, \
@@ -57,7 +57,7 @@ import requests, os
 # from .models import siloHideFilter
 
 logger = logging.getLogger("silo")
-db = MongoClient(settings.MONGODB_URI).tola
+db = getattr(MongoClient(settings.MONGODB_URI), settings.TOLATABLES_MONGODB_NAME)
 
 # To preserve fields order when reading BSON from MONGO
 opts = CodecOptions(document_class=SON)

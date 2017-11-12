@@ -122,7 +122,7 @@ def storeCommCareData(data, silo_id, read_id, update):
 
         data_refined.append(row)
 
-    db = MongoClient(settings.MONGODB_URI).tola
+    db = getattr(MongoClient(settings.MONGODB_URI), settings.TOLATABLES_MONGODB_NAME)
     if not update:
         for row in data_refined:
             row["create_date"] = timezone.now()

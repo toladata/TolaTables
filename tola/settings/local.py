@@ -83,7 +83,8 @@ except KeyError:
         port=27017,
         alias='default'
     )
-    print("DATABASES: {}".format(DATABASES))
+
+TOLATABLES_MONGODB_NAME = os.environ['TOLATABLES_MONGODB_NAME']
 ################ END OF MONGO DB #######################
 
 ########## END DATABASE CONFIGURATION

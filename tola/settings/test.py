@@ -39,6 +39,7 @@ except ImportError:
 
 mongoengine.connect('tola', MONGODB_URI)
 
+TOLATABLES_MONGODB_NAME = os.environ['TOLATABLES_MONGODB_NAME']
 
 ################ END OF MONGO DB #######################
 
