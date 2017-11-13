@@ -1,0 +1,68 @@
+{% block content %}
+
+<div style="display:none;">{{ silo_id }}</div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">Identify Personally Identifiable Information Columns</h4>
+            </div>
+            <div class="modal-body">
+                <ul id = 'silo_columns' class="list-group">
+                    {% for col in columns %}
+                        <li class="list-group-item">{{ col }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="submitPIIFColsBtn" class="btn btn-success" data-dismiss="modal">Submit</button>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+
+{% endblock content %}
+
+
+{% block extra_js_in_body %}
+<script type-"text/javascript">
+
+    /*
+     * Takes the current columns selection to the next step of mapping them.
+     */
+    function select_columns() {
+        var $silo_columns = $('#silo_columns').children().not('.list-group-item-success');
+        $silo_columns.each(function () {
+            $(this).hide();
+        });
+
+        var $silo_columns = $('#silo_columns').children('.list-group-item-success');
+        $silo_columns.each(function() {
+            $(this).toggleClass('list-group-item-success');
+        });
+    }
+
+
+    $(document).ready(function() {
+
+        // Toggle background color as columns are clicked
+        $('ul#silo_columns').on('click', '.list-group-item', function() {
+            $(this).toggleClass("list-group-item-success");
+        });
+        var cols = [];
+        $("div.modal-footer").on("click", "#submitPIIFColsBtn", function(e){
+            e.preventDefault();
+            var silo_columns = $('#silo_columns').children('.list-group-item-success');
+            silo_columns.each(function() {
+                cols.push($(this).text());
+            });
+            $.post("/identifyPII/{{ silo_id }}/", {"cols": cols}, function( data ) {
+                console.log(data);
+                createAlert("success", data);
+            });
+        });
+    }); // end of document ready
+
+
+
+</script>
+{% endblock %}

@@ -1,0 +1,411 @@
+{% load staticfiles %}
+{% load topbartags %}
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="TolaData - TolaTables: Collect, Aggregate and Share Data">
+        <meta name="author" content="TolaData">
+
+        <title>{% block title %} TolaTrack - Collect, Aggregate and Share Data {% endblock %}</title>
+
+        <link rel="icon" href="{{ STATIC_URL }}img/favicon.ico?v=2" />
+
+        <!-- Bootstrap -->
+        <link href="{{ STATIC_URL}}css2/bootstrap.min.css" rel="stylesheet" type="text/css" />
+
+        <!-- JQuery UI CSS -->
+        <link href="{{ STATIC_URL }}css2/ui-lightness/jquery-ui-1.10.4.min.css" rel="stylesheet" type="text/css" />
+
+        <!-- Custom CSS -->
+        <link href="{{ STATIC_URL }}css2/app.css" rel="stylesheet" type="text/css">
+
+        <link href="{{ STATIC_URL }}css2/select2.min.css" rel="stylesheet" type="text/css">
+        <link href="{{ STATIC_URL }}css2/introjs.min.css" rel="stylesheet" type="text/css">
+
+        <link href="{{ STATIC_URL }}css2/datatables.min.css" rel="stylesheet" type="text/css" />
+
+        <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.11.1.min.js"></script>
+
+        <!-- App specific Javascript -->
+        <script type="text/javascript" src="{{ STATIC_URL }}js/app.js"></script>
+
+        {% block extra_js_in_header %}
+        <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+
+
+        {% endblock %}
+
+        {% block extra_css %}
+
+        {% endblock %}
+
+    </head>
+    <body>
+        <div class="navbar navbar-default navbar-tola2 navbar-fixed-top" role="navigation">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="{{ TABLES_URL }}">
+                    <tola-logo _ngcontent-c2="" _nghost-c23=""><svg _ngcontent-c23="" height="27" viewBox="0 0 21 27" width="21" xmlns="http://www.w3.org/2000/svg">
+                      <polygon _ngcontent-c23="" fill="#074054" fill-rule="evenodd" points="0 6.089 0 .659 20.621 .659 20.621 6.089 13.418 6.089 13.418 26.342 7.203 26.342 7.203 6.089"></polygon>
+                    </svg>
+                    </tola-logo>
+                </a>
+                 <ul class="nav navbar-nav navbar-right">
+                    <li class="nav-item">
+                        <a class="navbar" href="{{ ACTIVITY_URL }}">
+                            <tola-svg-activity _ngcontent-c2="" _nghost-c25="">
+                                <svg _ngcontent-c25="" height="28" viewBox="0 0 27 28" width="27" xmlns="http://www.w3.org/2000/svg">
+                                <g _ngcontent-c25="" fill="none" fill-rule="evenodd">
+                                <path _ngcontent-c25="" d="M17.86446,19.143945 C16.41816,20.366595 14.57901,20.948445 12.69576,20.794545 C8.80101,20.467845 5.89761,17.034795 6.22476,13.103595 C6.22476,12.975795 3.49866,8.541945 3.49866,8.541945 C3.49866,8.541945 0.04446,12.492495 0.04626,12.626145 C-0.56169,19.923795 4.88016,26.358795 12.17736,26.970795 C12.55671,27.002745 12.93426,27.018495 13.31001,27.018495 C16.44291,27.018495 19.44576,25.922745 21.86586,23.877495 L22.20921,23.586795 L18.20826,18.853245 L17.86446,19.143945 Z" fill="#3A46DD"></path>
+                                <path _ngcontent-c25="" d="M23.43366,5.160555 C21.14271,2.450205 17.93286,0.794205 14.39631,0.498555 C10.85391,0.198405 7.41861,1.300005 4.70871,3.591855 L4.36491,3.882105 L8.36676,8.615655 L9.67311,7.511355 C13.05891,5.855805 16.60176,6.679305 18.70011,9.162405 C19.92231,10.607355 20.50866,12.442455 20.34936,14.365305 C20.34936,14.493105 23.07546,18.927855 23.07546,18.927855 C23.07546,18.927855 26.48961,15.021855 26.51616,14.914755 L26.52786,14.843205 C26.82261,11.308455 25.72371,7.870005 23.43366,5.160555" fill="#13B0E5"></path>
+                                </g>
+                                </svg>
+                            </tola-svg-activity>
+                            <span class="header__nav__link__label">Activity</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        {% if user.is_authenticated  %}
+                            <a class="navbar-active" href="/">
+                                <tola-svg-track _ngcontent-c2="" _nghost-c26="">
+                                    <svg _ngcontent-c26="" height="28" viewBox="0 0 17 28" width="17" xmlns="http://www.w3.org/2000/svg">
+                                        <g _ngcontent-c26="" fill="none" fill-rule="evenodd">
+                                        <rect _ngcontent-c26="" fill="#016954" height="16.8" width="8.87" y="11.2"></rect>
+                                        <rect _ngcontent-c26="" fill="#02DAA6" height="28" width="8.87" x="8.13"></rect>
+                                        </g>
+                                    </svg>
+                                </tola-svg-track>
+                                <span class="header__nav__link__label">Track</span>
+                            </a>
+                        {% else %}
+                            <a class="navbar-active" href="{% url 'social:begin' 'tola' %}">
+                                <tola-svg-track _ngcontent-c2="" _nghost-c26="">
+                                    <svg _ngcontent-c26="" height="28" viewBox="0 0 17 28" width="17" xmlns="http://www.w3.org/2000/svg">
+                                        <g _ngcontent-c26="" fill="none" fill-rule="evenodd">
+                                        <rect _ngcontent-c26="" fill="#016954" height="16.8" width="8.87" y="11.2"></rect>
+                                        <rect _ngcontent-c26="" fill="#02DAA6" height="28" width="8.87" x="8.13"></rect>
+                                        </g>
+                                    </svg>
+                                </tola-svg-track>
+                                <span class="header__nav__link__label">Track</span>
+                            </a>
+                        {% endif %}
+                    </li>
+                    <!---
+                     <li class="nav-item">
+                        <a class="navbar" href="{% url 'social:begin' 'tola' %}">
+                            <tola-svg-login _ngcontent-c2="" _nghost-c26="">
+                                <img src="/static/img/user1.svg" height="30">
+                            </tola-svg-login>
+                            <span class="header__nav__link__label">Login</span>
+                        </a>
+                    </li>
+                    --->
+                     <li class="nav-item">
+                        <a class="navbar">
+                            <tola-svg-track>
+                            </tola-svg-track>
+                        &nbsp;</a>
+                    </li>
+                 </ul>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-1 navbar-left">
+            {% if user.is_authenticated  %}
+                <ul class="nav navbar-nav left">
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Import Data<b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="/onalogin"><span class="glyphicon glyphicon-list-alt"></span> Import from ONA</a></li>
+                            <li><a href="{% url 'newRead' %}?type=JSON"><span class="glyphicon glyphicon-list-alt"></span> Import JSON Feed</a></li>
+                            <li><a href="{% url 'newRead' %}?type=CSV"><span class="glyphicon glyphicon-list-alt"></span> Import From CSV</a></li>
+                            <li><a href="{% url 'newRead' %}?type=OneDrive"><span class="glyphicon glyphicon-list-alt"></span> Import From OneDrive</a></li>
+                            <li><a href="#" onclick="select_silo_for_importing_gsheet();"><span class="glyphicon glyphicon-list-alt"></span> Import from Google Spreadsheet</a></li>
+                            {%getDataImports as apps%}
+                            {%for app in apps%}
+                              <li><a href=/{{app.0}}><span class="glyphicon glyphicon-list-alt"></span> Import from {{app.1}}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    <li class="dropdown">
+                        <a href="{% url 'listSilos' %}" > Your Tables</a>
+                    </li>
+                    <li class="dropdown">
+                        <a href="{% url 'table_dashboard_list' %}" > Reports</a>
+                    </li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Help<b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="http://tola.work/documentation" target="blank">Documentation</a></li>
+                            <li><a href="http://tola.work/faq" target="blank">FAQ</a></li>
+                            <li><a href="http://tola.work/contact" target="blank">Contact</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            {% else %}
+                <ul class="nav navbar-nav">
+                    <li>
+
+                        &nbsp;
+
+                    </li><!-- .dropdown collapse -->
+                </ul>
+            {% endif %}
+            <div class="spacer">
+                &nbsp;
+            </div>
+        </div><!-- .navbar collapse -->
+            <!-- Main body content -->
+            <div class="col-md-11 container-fluid container-center" id="content">
+                <div class="breadcrumb">
+                    <div>{% block bread_crumb %}{% endblock %}</div>
+                    <div id = "alerts">
+                        <!-- Any messages for users -->
+                        {% block messages %}
+                            {% if messages %}
+                                    {% for message in messages %}
+                                            {% if 'safe' in message.tags %}
+                                                <div class="alert alert-{{message.tags}}">{{ message|safe }}</div>
+                                            {% else %}
+                                                <div class="alert alert-{{message.tags}}">{{ message|safe }}</div>
+                                            {% endif %}
+                                    {% endfor %}
+                            <br/>
+                            {% endif %}
+                        {% endblock messages %}
+                    </div>
+                </div>
+                <!-- Page title  -->
+                <h2>{% block page_title %}{% endblock %}</h2>
+
+                <!-- Main body content -->
+                {% block content %} {% endblock %}
+            </div>
+
+            <div id = "loading" class="modal"> </div>
+
+            <div class="modal fade" id="select_silo_for_gsheet_import_modal" tabindex="-1" role="dialog" aria-labelledby="select_silo_for_gsheet_import_modal" aria-hidden="true">
+                <div class="modal-dialog modal-md">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                            <h4 class="modal-title">Choose Destination for importing data from Google Spreadsheet.</h4>
+                        </div>
+                        <div class="modal-body" id="unique_cols_selection_modal_body_div">
+                            <label for="silo_cols">Existing Tables</label>
+                            <select id="silo_select" name="silo_cols" class="form-control input-sm" style="width: 100%;">
+                                    <option value="0">New Table</option>
+                                {% for silo in all_my_silos %}
+                                    <option value="{{ silo.id }}">{{ silo.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                            <button type="button" id="import_gsheet_btn" class="btn btn-primary" data-dismiss="modal">Import</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="select_gsheet_modal" tabindex="-1" role="dialog" aria-labelledby="select_gsheet_modal" aria-hidden="true">
+                <div class="modal-dialog modal-md">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            <label for="gsheets">Select a sheet to import its data</label>
+                            <select id="gsheet_select" name="gsheets" class="form-control input-sm" style="width: 100%;">
+                            </select>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                            <button type="button" id="select_gsheet_btn" class="btn btn-primary" data-dismiss="modal">Select</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="generic_modal" class="modal"></div>
+
+        </div>
+        <div id="footer">
+            <!-- Sticky Footer -->
+            <div class="container">
+                <div class="col-md-6 text-left">
+                    <a href="http://www.toladata.com" class="text-muted"><b>Tola</b>Data</a>
+                </div>
+                <div class="col-md-6 text-right">
+                    <a href="http://tola.work/documentation" class="text-muted">Documentation</a> | <a href="http://tola.work/faq" class="text-muted">FAQ</a> | <a href="http://tola.work/helpdesk/tickets/submit/" class="text-muted">Feedback</a> | <a href="https://github.com/toladata/TolaActivity/blob/master/LICENSE" class="text-muted">License</a>
+                </div>
+            </div>
+        </div><!-- .footer collapse -->
+
+        <!-- jQuery UI (necessary for datepicker as well as dataTables library -->
+        <script type="text/javascript" src="{{ STATIC_URL }}js/jquery-ui-1.10.4.min.js"></script>
+
+        <!-- data tables jquery javascript library -->
+        <script type="text/javascript" src="{{ STATIC_URL }}js/datatables.min.js"></script>
+
+        <!-- Bootstrap compiled javascript plugins -->
+        <script type="text/javascript" src="{{ STATIC_URL }}js/bootstrap.min.js"></script>
+
+        <script type="text/javascript" src="{{ STATIC_URL }}js/select2.min.js"></script>
+
+        <script type="text/javascript" src="{{ STATIC_URL }}js/intro.min.js"></script>
+
+        <!-- Typekit (Fonts) -->
+        <script src="https://use.typekit.net/shi4wqr.js"></script>
+        <script>try{Typekit.load({ async: true });}catch(e){}</script>
+
+        <script type="text/javascript">
+
+            // The Client ID obtained from the Google Developers Console.
+            var clientId = "445847194486-mah10ripofn1bl6q7pgi29ssvfhvq2uu.apps.googleusercontent.com"
+            // developerKey is the same as the Browser API key, at least, as of writing this code.
+            var developerKey = 'AIzaSyCwwfqoakFNLYHsWK1pMzVfYF9bhDTfOO0';
+            // The list of scopes to request access to is available at: https://developers.google.com/picker/docs/#otherviews
+            var scope = ['https://www.googleapis.com/auth/drive.readonly'];
+            var silo_id;
+            var pickerApiLoaded = false;
+            var oauthToken;
+            var actionType = null;
+            var doc = null;
+            var url = null;
+            var spreadsheet_id = null;
+
+            function select_silo_for_importing_gsheet() {
+                $("#select_silo_for_gsheet_import_modal").modal("show");
+            }
+
+            $("#select_silo_for_gsheet_import_modal").on("click", "#import_gsheet_btn", function(e) {
+                e.preventDefault();
+                silo_id =  $("select#silo_select").val();
+                actionType = "import";
+                onAuthApiLoad(silo_id);
+            });
+
+            // Use the API Loader script to load google.picker and gapi.auth.
+            function onApiLoad() {
+                gapi.load('auth');
+                gapi.load('picker', {'callback': onPickerApiLoad});
+            }
+
+            // After Google's auth library is loaded, this function is called
+            function onAuthApiLoad(siloId) {
+                silo_id = siloId;
+                window.gapi.auth.authorize( {
+                    'client_id': clientId,
+                    'scope': scope,
+                    'immediate': false
+                },
+                handleAuthResult);
+            }
+
+            function onPickerApiLoad() {
+                pickerApiLoaded = true;
+                //createPicker();
+            }
+
+            // After the authentication is complete, this method is called
+            function handleAuthResult(authResult) {
+                if (authResult && !authResult.error) {
+                    oauthToken = authResult.access_token;
+                    createPicker();
+                }
+            }
+
+            // Create and render a Picker object for picking user Photos.
+            function createPicker() {
+                if (pickerApiLoaded && oauthToken) {
+                    var view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS);
+                    view.setIncludeFolders(true);
+                    view.setOwnedByMe(true);
+                    view.setSelectFolderEnabled(false);
+                    view.setMode("DocsViewMode.LIST");
+                    var picker = new google.picker.PickerBuilder()
+                        .setOrigin(window.location.protocol + '//' + window.location.host)
+                        //.setOrigin('https://localhost:8000')
+                        .enableFeature(google.picker.Feature.NAV_HIDDEN)
+                        .addView(view)
+                        .setOAuthToken(oauthToken)
+                        .setDeveloperKey(developerKey)
+                        .setCallback(pickerCallback)
+                        .build();
+                    picker.setVisible(true);
+                }
+            }
+
+            // A simple callback implementation.
+            function pickerCallback(data) {
+                //console.log(JSON.stringify(data));
+                if (data[google.picker.Response.ACTION] == google.picker.Action.PICKED) {
+                    doc = data[google.picker.Response.DOCUMENTS][0];
+                    url = doc[google.picker.Document.URL];
+                    spreadsheet_id = doc[google.picker.Document.ID];
+                    if (actionType == "import") {
+                        //$(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + spreadsheet_id + "&name=" + doc['name']);
+
+                        $.get('/get_sheets_from_google_spredsheet/', { "spreadsheet_id": spreadsheet_id } )
+                            .done(function(data) {
+                                var sheets = data['sheets'];
+                                if (sheets == undefined) {
+                                    $(location).attr('href', data['redirect']);
+                                }
+                                $("#gsheet_select").empty();
+                                $.each(sheets, function(i, sheet) {
+                                    var item = sheet["properties"];
+
+                                    $("#gsheet_select").append($('<option>', {
+                                        value: item.sheetId,
+                                        text : item.title
+                                    }));
+                                });
+                                $("#select_gsheet_modal").modal("show");
+                            });
+                    } else {
+                        url = url + "&resource_id=" + spreadsheet_id + "&query=" + query;
+                        if (shown_cols != "") {
+                            url += "&shown_cols=" + shown_cols;
+                        }
+                        $(location).attr('href', '/export_to_gsheet/' + silo_id + "/?link=" + url);
+                    }
+                }
+            }
+
+            var query = {};
+            var shown_cols = "";
+
+            function setDatabaseQuery(query_new){
+                query = query_new;
+            }
+
+            function setShownCols(shown_cols_new){
+                shown_cols = shown_cols_new;
+            }
+
+
+            $("#select_gsheet_modal").on("click", "#select_gsheet_btn", function(e) {
+                e.preventDefault();
+                sheet_id = $("#gsheet_select").val();
+                $(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + spreadsheet_id + "&name=" + doc['name'] + "&sheet_id=" + sheet_id);
+            });
+
+        </script>
+        <script type="text/javascript" src="https://apis.google.com/js/api.js?onload=onApiLoad"></script>
+
+        {% block extra_js_in_body %}{% endblock %}
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-73736890-2', 'auto');
+          ga('send', 'pageview');
+
+        </script>
+    </body>
+</html>

@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 
 from silo.models import LabelValueStore, Read, Silo, ThirdPartyTokens
-from tola.util import siloToDict, combineColumns
+from tola.util import  saveDataToSilo
 
 class Command(BaseCommand):
     """
@@ -42,5 +42,5 @@ class Command(BaseCommand):
             ona_token = ThirdPartyTokens.objects.get(user=user.pk, name="ONA")
             response = requests.get(read.read_url, headers={'Authorization': 'Token %s' % ona_token.token})
             data = json.loads(response.content)
-            saveDataToSilo(silo, data)
+            saveDataToSilo(silo, data, read, user)
             self.stdout.write('Successfully fetched the READ_ID, "%s", from database' % read_id)

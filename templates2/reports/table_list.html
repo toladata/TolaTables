@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block page_title %}Table Dashboards{% endblock %}
+
+{% block content %}
+
+ <!-- Table -->
+<table class="table">
+    <tr>
+        <th>Date Created</th>
+        <th>Name</th>
+        <th>Description</th>
+        <th>Tags</th>
+        <th>Public Table</th>
+        <th>View Dashboard</th>
+    </tr>
+    {% for item in get_tables %}
+    <tr>
+        <td>{{ item.create_date}}</td>
+        <td>{{ item.name}}</td>
+        <td>{{ item.description}}</td>
+        <td>{{ item.tag_list}}</td>
+        <td>{% if item.public%}Public{% else %} Private {% endif %}</td>
+        {% if item.columns %}
+            <td><a href="/reports/table_dashboard/{{ item.id }}/">View Dashboard</a></td>
+        {% else %}
+            <td>No Data found for Table</td>
+        {% endif %}
+    </tr>
+    {% empty %}
+        <tr>
+            <td colspan="4">No Table Dashboards Yet.</td>
+        </tr>
+    {% endfor %}
+</table>
+
+<!-- Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        </div> <!-- /.modal-content -->
+    </div> <!-- /.modal-dialog -->
+</div> <!-- /.modal -->
+{% endblock content %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block extra_js_in_header %}
+<base href="/" />
+<meta name="tolaboard/config/environment" content="%7B%22modulePrefix%22%3A%22tolaboard%22%2C%22environment%22%3A%22production%22%2C%22baseURL%22%3A%22/%22%2C%22locationType%22%3A%22auto%22%2C%22contentSecurityPolicy%22%3A%7B%22connect-src%22%3A%5B%22%27self%27%22%2C%22https%3A//tola-tables-dev.mercycorps.org%22%5D%7D%2C%22EmberENV%22%3A%7B%22FEATURES%22%3A%7B%7D%7D%2C%22APP%22%3A%7B%22name%22%3A%22tolaboard%22%2C%22version%22%3A%220.0.0+a6499730%22%7D%2C%22API%22%3A%7B%22url%22%3A%22https%3A//tola-tables-dev.mercycorps.org%22%2C%22previewSize%22%3A20%7D%2C%22something%22%3A%22test%22%2C%22exportApplicationGlobal%22%3Afalse%7D" />
+
+
+
+{% endblock extra_js_in_header %}
+
+
+{% block extra_css %}
+    <link href="https://fonts.googleapis.com/css?family=Questrial" rel="stylesheet">
+
+     <link rel="stylesheet" href="/static/assets/vendor-23bb9f7d83e716811522081e8bc02142.css">
+    <link rel="stylesheet" href="/static/assets/tolaboard-bd857b2067436959fdc86b165ef2cd29.css">
+
+{% endblock extra_css %}
+{% block content %}
+
+    <div id="app-container">
+
+    <script src="/static/assets/vendor-dd3f2cc33b5a894c148a529cb29deab1.js"></script>
+        <script src="/static/assets/tolaboard-2e0bc16b7d08dcf4e4ba271b2653feeb.js"></script>
+    </div>
+
+{% endblock content %}
+
+
+
+

@@ -10,6 +10,7 @@ from django.dispatch import receiver
 from datetime import datetime
 from django.conf import settings
 from rest_framework.authtoken.models import Token
+import uuid
 
 #New user created generate a token
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
@@ -55,9 +56,14 @@ class TolaSitesAdmin(admin.ModelAdmin):
 
 
 class Organization(models.Model):
+    organization_uuid = models.CharField(max_length=255, verbose_name='Organization UUID', default=uuid.uuid4, unique=True)
     name = models.CharField("Organization Name", max_length=255, blank=True, default="TolaData")
     description = models.TextField("Description/Notes", max_length=765, null=True, blank=True)
     organization_url = models.CharField(blank=True, null=True, max_length=255)
+    level_1_label = models.CharField("Project/Program Organization Level 1 label", default="Program", max_length=255, blank=True)
+    level_2_label = models.CharField("Project/Program Organization Level 2 label", default="Project", max_length=255, blank=True)
+    level_3_label = models.CharField("Project/Program Organization Level 3 label", default="Component", max_length=255, blank=True)
+    level_4_label = models.CharField("Project/Program Organization Level 4 label", default="Activity", max_length=255, blank=True)
     create_date = models.DateTimeField(null=True, blank=True)
     edit_date = models.DateTimeField(null=True, blank=True)
 
@@ -109,8 +115,68 @@ class Country(models.Model):
 
 
 class CountryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'create_date', 'edit_date')
+    list_display = ('country', 'create_date', 'edit_date')
     display = 'Country'
+
+
+class WorkflowLevel1(models.Model):
+    country = models.ForeignKey(Country, blank=True, null=True)
+    organization = models.ForeignKey(Organization, blank=True, null=True)
+    level1_uuid = models.CharField(max_length=255, verbose_name='WorkflowLevel1 UUID', unique=True)
+    name = models.CharField("Name", max_length=255, blank=True)
+    create_date = models.DateTimeField(null=True, blank=True)
+    edit_date = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ('country',)
+        verbose_name_plural = "Workflowlevel 1"
+
+    #onsave add create date or update edit date
+    def save(self, *args, **kwargs):
+        if self.create_date == None:
+            self.create_date = datetime.now()
+        self.edit_date = datetime.now()
+        super(WorkflowLevel1, self).save()
+
+    #displayed in admin templates
+    def __unicode__(self):
+        return self.name
+
+
+class WorkflowLevel1Admin(admin.ModelAdmin):
+    list_display = ('country', 'organization', 'name')
+    display = 'Workflowlevel 1'
+
+
+class WorkflowLevel2(models.Model):
+    country = models.ForeignKey(Country, blank=True, null=True)
+    organization = models.ForeignKey(Organization, blank=True, null=True)
+    workflowlevel1 = models.ForeignKey(WorkflowLevel1)
+    level2_uuid = models.CharField(max_length=255, verbose_name='WorkflowLevel2 UUID', unique=True)
+    name = models.CharField("Name", max_length=255, blank=True)
+    activity_id = models.IntegerField("ID", blank=True, null=True)
+    create_date = models.DateTimeField(null=True, blank=True)
+    edit_date = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ('country',)
+        verbose_name_plural = "Workflowlevel 2"
+
+    #onsave add create date or update edit date
+    def save(self, *args, **kwargs):
+        if self.create_date == None:
+            self.create_date = datetime.now()
+        self.edit_date = datetime.now()
+        super(WorkflowLevel2, self).save()
+
+    #displayed in admin templates
+    def __unicode__(self):
+        return self.name
+
+
+class WorkflowLevel2Admin(admin.ModelAdmin):
+    list_display = ('country', 'organization', 'name')
+    display = 'Workflowlevel 2'
 
 
 TITLE_CHOICES = (
@@ -121,12 +187,14 @@ TITLE_CHOICES = (
 
 
 class TolaUser(models.Model):
+    tola_user_uuid = models.CharField(max_length=255, verbose_name='TolaUser UUID', default=uuid.uuid4, unique=True)
     title = models.CharField(blank=True, null=True, max_length=3, choices=TITLE_CHOICES)
     organization = models.ForeignKey(Organization, blank=True, null=True)
     name = models.CharField("Given Name", blank=True, null=True, max_length=100)
     employee_number = models.IntegerField("Employee Number", blank=True, null=True)
     user = models.OneToOneField(User, unique=True, related_name='tola_user')
     country = models.ForeignKey(Country, blank=True, null=True)
+    workflowlevel1 = models.ForeignKey(WorkflowLevel1, blank=True, null=True)
     tables_api_token = models.CharField(blank=True, null=True, max_length=255)
     activity_api_token = models.CharField(blank=True, null=True, max_length=255)
     privacy_disclaimer_accepted = models.BooleanField(default=False)
@@ -134,7 +202,7 @@ class TolaUser(models.Model):
     updated = models.DateTimeField(auto_now=False, blank=True, null=True)
 
     def __unicode__(self):
-        return self.name
+        return self.name if self.name is not None else '-'
 
     def save(self, *args, **kwargs):
         ''' On save, update timestamps as appropriate'''
@@ -160,6 +228,7 @@ class GoogleCredentialsModel(models.Model):
 class ThirdPartyTokens(models.Model):
     user = models.ForeignKey(User, related_name="tokens")
     name = models.CharField(max_length=60)
+    username = models.CharField(max_length=60, null=True)
     token = models.CharField(max_length=255)
     create_date = models.DateTimeField(null=True, blank=True, auto_now=False, auto_now_add=True)
     edit_date = models.DateTimeField(null=True, blank=True, auto_now=True, auto_now_add=False)
@@ -198,12 +267,15 @@ class Read(models.Model):
     read_url = models.CharField(max_length=250, blank=True, default='', verbose_name='source url')
     resource_id = models.CharField(max_length=200, null=True, blank=True)
     gsheet_id = models.CharField(max_length=200, null=True, blank=True) # sheetid within google spreadsheet
+    onedrive_file = models.CharField(max_length=200, null=True, blank=True) # File within OneDrive
     username = models.CharField(max_length=20, null=True, blank=True, help_text="Enter username only if the data at this source is protected by a login")
     password = models.CharField(max_length=40, null=True, blank=True, help_text="Enter password only if the data at this source is protected by a login")
     token = models.CharField(max_length=254, null=True, blank=True)
     file_data = models.FileField("Upload CSV File", upload_to='uploads', blank=True, null=True)
     autopull_frequency = models.CharField(max_length=25, choices=FREQUENCY_CHOICES, null=True, blank=True)
     autopush_frequency = models.CharField(max_length=25, choices=FREQUENCY_CHOICES, null=True, blank=True)
+    autopull_expiration = models.DateTimeField(null=True, blank=True)
+    autopush_expiration = models.DateTimeField(null=True, blank=True)
     create_date = models.DateTimeField(null=True, blank=True, auto_now=False, auto_now_add=True)
     edit_date = models.DateTimeField(null=True, blank=True, auto_now=True, auto_now_add=False)
 
@@ -235,6 +307,12 @@ class Tag(models.Model):
         return self.name
 
 
+class FormulaColumn(models.Model):
+    mapping = models.TextField() #stores a json document for mapping
+    operation = models.TextField()
+    column_name = models.TextField()
+
+
 # Create your models here.
 class Silo(models.Model):
     owner = models.ForeignKey(User)
@@ -245,9 +323,23 @@ class Silo(models.Model):
     description = models.CharField(max_length=255, blank=True, null=True)
     organization = models.ForeignKey(Organization, blank=True, null=True)
     country = models.ForeignKey(Country, blank=True, null=True)
-    program = models.CharField(max_length=255, blank=True, null=True)
+    workflowlevel1 = models.ManyToManyField(WorkflowLevel1, blank=True)
     public = models.BooleanField()
     create_date = models.DateTimeField(null=True, blank=True)
+
+    formulacolumns = models.ManyToManyField(FormulaColumn, related_name='silos', blank=True)
+    columns = models.TextField(default = "[]") #stores a json string of json objects
+    # json objects stores in the format of  {'name' : <col_name>, 'type' : <col_type>}
+
+    hidden_columns = models.TextField(default = "[]") #stores a Json string
+    rows_to_hide = models.TextField(default = "[]")
+    #Format of hidden rows:
+    #   [{"logic":<or, and, defineblank>,
+    #   "operation" : <empty, nempty, gt, etc>,
+    #   "conditional": [<list of rows to apply condition or the blank character>],
+    #   "number" : <number to perform operation>]}]
+    #   default blank characters: not exists, ""
+
     class Meta:
         ordering = ('create_date',)
 
@@ -260,6 +352,44 @@ class Silo(models.Model):
     @property
     def tag_list(self):
         return ', '.join([x.name for x in self.tags.all()])
+
+    def read_list(self):
+        return ', '.join([x.reads.name for x in self.tags.all()])
+
+    @property
+    def data_count(self):
+        return LabelValueStore.objects(silo_id=self.id).count()
+
+
+class Dashboard(models.Model):
+    table = models.ForeignKey(Silo)
+    name = models.CharField(max_length=255)
+    map_lat = models.CharField(max_length=100, blank=True, null=True)
+    map_long = models.CharField(max_length=100, blank=True, null=True)
+    map_zoom = models.CharField(max_length=10, blank=True, null=True)
+    column_charts = models.TextField(default="[]")
+    owner = models.ForeignKey(User, related_name='dashboard')
+    created = models.DateTimeField(auto_now=False, auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True, auto_now_add=False)
+
+    def __str__(self):
+        return self.name
+
+    def __unicode__(self):
+        return self.name
+
+
+
+class DeletedSilos(models.Model):
+    user = models.ForeignKey(User)
+    deleted_time = models.DateTimeField()
+    silo_name_id = models.CharField(max_length=255)
+    silo_description = models.CharField(max_length=255,blank=True,null=True)
+
+class DeletedSilosAdmin(admin.ModelAdmin):
+    list_display = ('user', 'silo_name_id', 'silo_description','deleted_time')
+    search_fields = ('user__last_name','user__first_name','silo_name_id')
+    display = 'Data Feeds'
 
 
 class SiloAdmin(admin.ModelAdmin):
@@ -321,6 +451,6 @@ class UniqueFields(models.Model):
 from mongoengine import *
 class LabelValueStore(DynamicDocument):
     silo_id = IntField()
+    read_id = IntField(default=-1)
     create_date = DateTimeField(help_text='date created')
     edit_date = DateTimeField(help_text='date editted')
-

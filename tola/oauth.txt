@@ -1,0 +1,166 @@
+import time
+
+from jwt import DecodeError, ExpiredSignature, decode as jwt_decode
+
+from ..exceptions import AuthTokenError
+from .oauth import BaseOAuth2
+
+"""
+Copyright (c) 2015 Microsoft Open Technologies, Inc.
+
+All rights reserved.
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
+"""
+Azure AD OAuth2 backend, docs at:
+    https://python-social-auth.readthedocs.io/en/latest/backends/azuread.html
+"""
+
+
+class MicrosoftOAuth2(BaseOAuth2):
+    name = 'microsoft'
+    SCOPE_SEPARATOR = ' '
+    AUTHORIZATION_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize'
+    ACCESS_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
+    RESOURCE = 'https://graph.microsoft.com/v1.0/'
+    ACCESS_TOKEN_METHOD = 'POST'
+    REDIRECT_STATE = False
+    DEFAULT_SCOPE = ['User.Read']
+
+    #from tola.settings import local
+    from django.conf import settings
+    """
+    SOCIAL_AUTH_MICROSOFT_OAUTH2_RESOURCE = 'https://graph.microsoft.com/v1.0/'
+    SOCIAL_AUTH_MICROSOFT_OAUTH2_KEY = 'fffa9abf-8d14-45a0-a97e-8059275810bf'
+    SOCIAL_AUTH_MICROSOFT_OAUTH2_SECRET = 'akVwMguj44Qgc68SUyOZGiw'
+    """
+    # TODO REMOVE THIS
+    def setting(self, name, default=None):
+        """Return setting value from strategy"""
+        if name == 'KEY':
+            s = 'fffa9abf-8d14-45a0-a97e-8059275810bf'
+        elif name == 'SECRET':
+            s = 'akVwMguj44Qgc68SUyOZGiw'
+        elif name == 'RESOURCE':
+            s = 'https://graph.microsoft.com/v1.0/'
+        else:
+            s = self.strategy.setting(name, default=default, backend=self)
+        #print(name, s)
+        return s
+
+
+    def get_redirect_uri(self, state=None):
+        """Build redirect with redirect_state parameter."""
+        # TODO Remove this atrocity
+        uri = self.redirect_uri
+        uri = uri.replace('http', 'https')
+        uri = uri.replace('127.0.0.1', 'tola.test')
+        uri = uri.replace(':8000', '')
+        uri = uri[:len(uri)-1]
+        #print(self.redirect_uri)
+        if self.REDIRECT_STATE and state:
+            uri = url_add_parameters(uri, {'redirect_state': state})
+        #print("Redirect URI "+uri)
+        return uri
+
+    from ..utils import url_add_parameters, parse_qs, handle_http_errors
+
+    def auth_complete(self, *args, **kwargs):
+        print("auth_complete called")
+        """Completes login process, must return user instance"""
+        print(self.data)
+        self.process_error(self.data)
+        state = self.validate_state()
+        print("state "+str(state))
+
+        try:
+            print(self.access_token_url(), self.auth_complete_params(state), self.auth_headers(),
+                  self.auth_complete_credentials(), self.ACCESS_TOKEN_METHOD)
+            response = self.request_access_token(
+                self.access_token_url(),
+                data=self.auth_complete_params(state),
+                headers=self.auth_headers(),
+                auth=self.auth_complete_credentials(),
+                method=self.ACCESS_TOKEN_METHOD
+            )
+
+        except Exception as inst:
+            print type(inst)  # the exception instance
+            print inst.args  # arguments stored in .args
+            print inst
+        print("response "+str(response))
+        self.process_error(response)
+        return self.do_auth(response['access_token'], response=response,
+                            *args, **kwargs)
+
+    def get_user_id(self, details, response):
+        """Use upn as unique id"""
+        return response.get('id')
+
+    def get_user_details(self, response):
+        """Return user details from Azure AD account"""
+        fullname, first_name, last_name = (
+            response.get('displayName', ''),
+            response.get('givenName', ''),
+            response.get('surname', '')
+        )
+        return {'username': fullname,
+                'email': response.get('userPrincipalName'),
+                'fullname': fullname,
+                'first_name': first_name,
+                'last_name': last_name}
+
+    def user_data(self, access_token, *args, **kwargs):
+        response = kwargs.get('response')
+        id_token = response.get('id_token')
+        try:
+            resp = self.get_json(
+                self.setting('RESOURCE')+'/me',
+                headers={
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'application/json',
+                    'Authorization': 'Bearer '+access_token
+                },
+                method='GET'
+            )
+            #resp['name'] = {'givenName': resp['givenName'], 'familyName': resp['surname']}
+            resp['name'] = resp['displayName']
+            resp['emails'] = [{'type': 'account', 'value': resp['userPrincipalName']}]
+            print(resp)
+            self.user = resp
+            #decoded_id_token = resp['id']
+            decoded_id_token = resp
+        except (DecodeError, ExpiredSignature) as de:
+            raise AuthTokenError(self, de)
+        return decoded_id_token
+
+    def get_auth_token(self, user_id):
+        """Return the access token for the given user, after ensuring that it
+        has not expired, or refreshing it if so."""
+        user = self.get_user(user_id=user_id)
+        access_token = user.social_user.access_token
+        expires_on = user.social_user.extra_data['expires_on']
+        if expires_on <= int(time.time()):
+            new_token_response = self.refresh_token(token=access_token)
+            access_token = new_token_response['access_token']
+        return access_token

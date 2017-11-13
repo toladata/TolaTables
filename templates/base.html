@@ -1,4 +1,6 @@
 {% load staticfiles %}
+{% load topbartags %}
+
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -48,7 +50,7 @@
             <div class="container">
             <div class="navbar-header">
                 <a class="navbar-brand" href="{% url 'index' %}">
-                    <img style="margin-top: -3px; max-width: 140px;" src="{{ STATIC_URL }}img/tola-tables-primary-mark-white.png" />
+                    <img style="margin-top: -15px; width: 52px;" src="{{ STATIC_URL }}img/TolaTables.svg" />
                 </a>
             </div>
             <div class="navbar-collapse collapse" role="navigation">
@@ -60,8 +62,12 @@
                                 <li><a href="/onalogin"><span class="glyphicon glyphicon-list-alt"></span> Import from ONA</a></li>
                                 <li><a href="{% url 'newRead' %}?type=JSON"><span class="glyphicon glyphicon-list-alt"></span> Import JSON Feed</a></li>
                                 <li><a href="{% url 'newRead' %}?type=CSV"><span class="glyphicon glyphicon-list-alt"></span> Import From CSV</a></li>
+                                <li><a href="{% url 'newRead' %}?type=OneDrive"><span class="glyphicon glyphicon-list-alt"></span> Import From OneDrive</a></li>
                                 <li><a href="#" onclick="select_silo_for_importing_gsheet();"><span class="glyphicon glyphicon-list-alt"></span> Import from Google Spreadsheet</a></li>
-
+                                {%getDataImports as apps%}
+                                {%for app in apps%}
+                                  <li><a href=/{{app.0}}><span class="glyphicon glyphicon-list-alt"></span> Import from {{app.1}}</a></li>
+                                {% endfor %}
                             </ul>
                         </li>
                          <li class="dropdown">
@@ -225,9 +231,9 @@
         <script type="text/javascript">
 
             // The Client ID obtained from the Google Developers Console.
-            var clientId = "859950034311-r6gsqnipugbtv6a2j4h4eo2tt2a1js2t.apps.googleusercontent.com"
+            var clientId = "445847194486-mah10ripofn1bl6q7pgi29ssvfhvq2uu.apps.googleusercontent.com"
             // developerKey is the same as the Browser API key, at least, as of writing this code.
-            var developerKey = 'AIzaSyCuDmq8DjGziPnfAl4bW7fEZtf25teO3x4';
+            var developerKey = 'AIzaSyCwwfqoakFNLYHsWK1pMzVfYF9bhDTfOO0';
             // The list of scopes to request access to is available at: https://developers.google.com/picker/docs/#otherviews
             var scope = ['https://www.googleapis.com/auth/drive.readonly'];
             var silo_id;
@@ -328,10 +334,26 @@
                                 $("#select_gsheet_modal").modal("show");
                             });
                     } else {
-                        $(location).attr('href', '/export_to_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + spreadsheet_id);
+                        url = url + "&resource_id=" + spreadsheet_id + "&query=" + query;
+                        if (shown_cols != "") {
+                            url += "&shown_cols=" + shown_cols;
+                        }
+                        $(location).attr('href', '/export_to_gsheet/' + silo_id + "/?link=" + url);
                     }
                 }
             }
+
+            var query = {};
+            var shown_cols = "";
+
+            function setDatabaseQuery(query_new){
+                query = query_new;
+            }
+
+            function setShownCols(shown_cols_new){
+                shown_cols = shown_cols_new;
+            }
+
 
             $("#select_gsheet_modal").on("click", "#select_gsheet_btn", function(e) {
                 e.preventDefault();
@@ -356,4 +378,3 @@
 
     </body>
 </html>
-

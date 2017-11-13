@@ -1,0 +1,48 @@
+{% extends "base.html" %} 
+{% block page_title %}
+    <a href="/silo_detail/{{ silo.id }}">{{ silo.name }}</a><p><small>{{ silo.description }}</small></p>
+{% endblock %}
+
+{% block content %}
+    {% csrf_token %}
+    {% load crispy_forms_tags %}
+    {% crispy form %}
+    <!--
+<br><br><br>
+<div class="well" id="console">
+     <h3>Tag events:</h3>
+</div>
+-->
+{% endblock content %}
+
+{% block extra_js_in_body %}
+    <script type="text/javascript">
+        $(document).ready(function() { 
+            $("#id_shared").select2({
+                allowClear: true,
+                placeholder: "Share with",
+            });
+            /* add select2 js library to the tags select box */
+            $("#id_tags").select2({
+                tags: true,
+                allowClear: true,
+                placeholder: "Add tags",
+                //tokenSeparators: [",", " "],
+                createTag: function(tag) {
+                    return {
+                        id: tag.term,
+                        text: tag.term,
+                        isNew: true
+                    };
+                },
+            }).on("change", function(e) {
+                var isNew = $(this).find('[data-select2-tag="true"]');
+                //console.log(isNew);
+                if(isNew.length){
+                    isNew.replaceWith('<option selected="selected" value="'+isNew.val()+'">'+isNew.text()+'</option>');
+                    //$('#console').append('<code>New tag: {"' + isNew.val() + '":"' + isNew.val() + '"}</code><br>');
+                }
+            });
+        });
+    </script>
+{% endblock %}

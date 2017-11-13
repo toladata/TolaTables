@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block page_title %}CommCare Forms{% endblock %}
+
+{% block content %}
+
+    {% if not data %}
+        <img src="{{ STATIC_URL }}/img/commcare_logo_white.png">
+        <p>Get access to your commcare data:</p>
+        {% crispy form %}
+        {% if auth == 1%} <!-- link to password -->
+          <p>If you wish to instead login using your password click <a href="/commcare/passform/">here</a>. This will not save your login information for next time and prevent Tola from being able to update your table. </p>
+        {% elif auth == 2 %} <!-- link to authorization -->
+          <p>If you wish to instead login using your authorization token click <a href="/commcare/">here</a>. This will not save your login information for next time and prevent Tola from being able to update your table. </p>
+        {% else %} <!-- link to logout -->
+          <p> You can also <a href="/commcare/logout/">Logout</a> of this CommCare account. </p>
+        {% endif %}
+    {% else %}
+      <!-- obsolete. this will be used as a basis for column operations form -->
+      <p>You can also do operations on these forms. These operations will allows you to delete data if certain conditions are not met. </p>
+      {% for col in data %}
+        <p> {{col}} </p>
+      {% endfor %}
+    {% endif %}
+    <!-- Modal -->
+    <div id="progress_modal" class="modal fade" role="dialog">
+      <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title">Your data is being fetched. This may take a while</h4>
+          </div>
+          <div class="modal-body">
+            <!-- <div id="progress_number">0/{{entries}} downloaded</div> -->
+            <div class="col-xs-12 col-sm-12 progress-container">
+                <div class="progress progress-striped active">
+                    <div class="progress-bar" style="width:0%"></div>
+                </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+{% endblock content %}
+
+{% block extra_js_in_body %}
+    <script type="text/javascript">
+        $(document).ready(function() {
+            //This jquery function controls the dropdown menu in crispy_forms
+            $("select").on("change", function() {
+                var select_obj = $("#" + this.id);
+                var silo_id =  select_obj.val();
+                if (silo_id < 0) {
+                    var new_silo_name = prompt("Enter the name of your name silo");
+                    if (new_silo_name) {
+                      var num_options = select_obj.children("option").length;
+                      select_obj.find('option:eq(0)').text(new_silo_name)
+                      console.log('form', select_obj.closest('form'))
+                      var form = select_obj.closest('form')
+                      form.append($('<input type="hidden">')
+                          .attr({name: 'new_silo_name', value: new_silo_name}))
+                      select_obj.val(0)
+                    }
+                }
+            });
+
+            //This jquery function controls the progress bar on the import screen
+            $('form[action="/commcare/"]').submit(function(e){
+                // $("#progress_modal").modal();
+                $("#progress_number").text(0+"/{{entries}} downloaded");
+                $("#progress_modal").modal();
+                // getSiloIdFromRead();
+                // getNumEntry();
+                // controls the progress bar
+                $(".progress-bar").animate({
+                    width: "100%"
+                }, {{entries}}*500);
+            });
+
+            //This jquery function controls the progress bar on the import from password screen
+            $('form[action="/commcare/passform/"]').submit(function(e){
+                // $("#progress_modal").modal();
+                $("#progress_number").text(0+"/{{entries}} downloaded");
+                $("#progress_modal").modal();
+                // getSiloIdFromRead();
+                // getNumEntry();
+                // controls the progress bar
+                $(".progress-bar").animate({
+                    width: "100%"
+                }, {{entries}}*500);
+            });
+
+        });
+
+        // this does it
+        // to impliment # of imports left
+        // function getSiloIdFromRead(){
+        //     var ajaxOpts = {
+        //         type: "GET",
+        //         url: "/api/silo",
+        //         success: function(data) {
+        //           //cycle through the different silos
+        //           for (var i = 0; i < data.data.length; i++) {
+        //             // cycle through the different reads in silos
+        //             for (var j = 0; j < data.data[i].reads.length; j++) {
+        //               // if (data.data[i].reads[j].edit_date-time<3600) {
+        //                 alert(data.data[i].reads[j].edit_date-10);
+        //               // }
+        //             }
+        //           }
+        //         }
+        //     };
+        //     $.ajax(ajaxOpts);
+        // }
+        //
+        // function getNumEntry() {
+        //     var ajaxOpts = {
+        //         type: "GET",
+        //         url: "/api/silo/{{silo_id}}",
+        //         success: function(data) {
+        //             $("#progress_number").text(data.data_count+"/{{entries}} downloaded");
+        //         }
+        //     };
+        //     $.ajax(ajaxOpts);
+        //     // setTimeout('getNumEntry()',10000);
+        // }
+    </script>
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Custom styles for this template -->
+<link href="{{ STATIC_URL}}css/tola-dashboard.css" rel="stylesheet" type="text/css" />
+
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+<script type="text/javascript" src="{{ STATIC_URL }}js/jquery-1.11.1.min.js"></script>
+<script src="{{ STATIC_URL }}js/Chart.min.js"></script>
+<link rel="borders" type="application/json" href="js/world_borders.geojson">
+<!-- Hosted Leaflet -->
+<script src="{{ STATIC_URL }}js/leaflet.js"></script>
+<!--- Hosted Leaflet CSS --->
+<link rel="stylesheet" href="{{ STATIC_URL }}css/leaflet.css"/>
+
+
+    <div class="main">
+        <div class="col-xs-12 header">
+            <div class="panel panel-default">
+                <div class="panel-heading center">
+                  <h4>{{ get_table.name|truncatechars:50}}</h4>
+                    <span class="table_link"><a href="/silo_detail/{{ get_table.id}}/">View/Edit Table</a></span>
+                </div>
+                <div class="panel-body">
+                    <div class="row dashboard">
+                        
+                        <div class="col-xs-3 well well-sm">
+                            <b>Entries:</b> {{ get_table.data_count }}
+                        </div>
+                        <div class="col-xs-3 well well-sm">
+                            <b>Create Date:</b> {{ get_table.create_date }}
+                        </div>
+                        <div class="col-xs-3 well well-sm">
+                            <b>Tags:</b> {{ get_table.tag_list }}
+                        </div>
+                        <div class="col-xs-3 well well-sm">
+                            <b>Public:</b> {{ get_table.public }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="well">
+                            <b>Column Names and Types</b>
+                            <div class="columns">
+                            {% for item in columns %}
+                                <span class="column">
+                                    <span class="column-name">{{ item.name }}</span>
+                                    <span class="column-type">{{ item.type }}</span>
+                                </span>
+                            {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xs-12 map-container">
+            <div class="panel panel-default">
+                <div class="panel-heading center">
+                    <h4>Map</h4>
+                </div>
+                <style>
+                  #map { height: 350px; }
+                </style>
+                <div id="map"></div>
+                <script>
+                var countries = new L.LayerGroup();
+                var bounds = new L.LatLngBounds();
+
+                // Define an icon called cssIcon
+                var countryIcon = L.divIcon({
+                  // Specify a class name we can refer to in CSS.
+                  // Set marker width and height
+                  html:'<div class="map-marker"></div>',
+                  iconSize: [0,0]
+                });
+
+                {% for item in lat_long.items %}
+                    marker = L.marker([{{ item.0 }} , {{ item.1 }}], {icon: countryIcon}).addTo(countries).bindPopup("" + "<b> {{ item.0 }} , {{ item.1 }} </b><br/>Location Entry <br/> ");
+                    bounds.extend(marker.getLatLng());
+                {% endfor %}
+
+                var mbAttr = 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+                '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+                'Imagery &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+                mbUrl = 'http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png';
+                var grayscale   = L.tileLayer(mbUrl, {id: 'mapbox.light', attribution: mbAttr}),
+                streets  = L.tileLayer(mbUrl, {id: 'mapbox.streets',   attribution: mbAttr});
+                var map = L.map('map', {
+
+                zoom: 5,
+                layers: [grayscale, countries]
+                });
+                var baseLayers = {
+                "Grayscale": grayscale,
+                "Streets": streets,
+                };
+                var overlays = {
+                "TolaData Countries": countries,
+                };
+                L.control.layers(baseLayers, overlays).addTo(map);
+
+                map.fitBounds(bounds);
+                </script>
+            </div>
+        </div>
+
+        <div class="col-xs-12 viz">
+            <div class="panel panel-default">
+                <div class="panel-heading center">
+                    <h4>Columns and Uniques</h4>
+                </div>
+                <div class="row dashboard">
+                    <br/>
+                    {% for question,answers in get_fields.items %}
+                    <div class="col-xs-3">
+                        <div class="panel panel-default">
+                          <div class="panel-heading center"><b>{{ question|truncatechars:30}}</b></div>
+                            <div class="panel-body">
+                                <canvas id="{{ question }}"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+
+        var dynamicColors = function() {
+        var r = Math.floor(Math.random() * 255);
+        var g = Math.floor(Math.random() * 255);
+        var b = Math.floor(Math.random() * 255);
+        return "rgba(" + r + "," + g + "," + b + ", 0.3)";
+        }
+
+        {% for name,value in get_fields.items %}
+            //render meaning on radar_chart
+            var data = {
+                labels : {% for x,y in value.items %} {{ y.label }} {% endfor %},
+                datasets : [
+                    {
+                        data : {% for x,y in value.items %}{{ y.count }} {% endfor %},
+                        backgroundColor: [{% for i in "xxxxxxxxxxxxxxxxxxxx" %}{{ "dynamicColors()," }}{% endfor %}],
+
+
+
+                    }
+                ]
+            }
+            var ctx = document.getElementById("{{ name }}").getContext("2d");
+            height = 75,
+            radar = new Chart(ctx, {
+                type: 'doughnut',
+                data: data,
+                options: {
+                            legend: {
+                                display: false,
+                                },
+
+                            }
+            });
+        {% endfor %}
+    </script>
+{% endblock %}

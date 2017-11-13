@@ -18,8 +18,13 @@ from os.path import join, normpath
 
 SECRET_KEY = r"!0^+)=t*ly6ycprf9@adsfsdfdfsdff#pa*3333*lp5k9ko7"
 
-#from mongoengine import connect
+"""
+We don't have a config for MONGO_CREDS 
+from local import MONGO_CREDS, MONGO_URI
+import mongoengine
+mongoengine.connect(**MONGO_CREDS)
 
+"""
 ########## MANAGER CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#admins
 ADMINS = (
@@ -70,7 +75,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 GOOGLE_STEP2_URI = ''
 GOOGLE_CLIENT_ID = ''
 GOOGLE_CLIENT_SECRET = ''
-
+GOOGLE_REDIRECT_URL = ''
 
 ########## CACHE CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#caches
@@ -81,7 +86,19 @@ CACHES = {
 }
 ########## END CACHE CONFIGURATION
 
+############ MONGO DB #####################
+import mongoengine
+from mongoengine import register_connection
+register_connection(alias='default', name='tola')
+
+mongoengine.connect(
+    "tola",
+    username="",
+    password="",
+    host="",
+    port=27017,
+    alias='default'
+)
 
 
-
-
+CORS_ORIGIN_ALLOW_ALL = True

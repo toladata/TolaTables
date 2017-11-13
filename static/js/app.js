@@ -1,10 +1,12 @@
 //App specific JavaScript//App specific JavaScript
+$(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+})
 
 //custom jquery to trigger dat picker, info pop-over and print category text
 $(document).ready(function() {
-    $('[data-toggle="tooltip"]').tooltip({delay: {show: 500, hide: 100}});
     $('.datepicker').datepicker();
-    $('body').on('click', '.btn-del', function(e) {
+    $('.btn-del').click(function(e) {
         e.preventDefault();
         var msg = e.currentTarget.title;
         if (msg == undefined || msg.length == 0) {
@@ -64,7 +66,7 @@ $(document).ready(function() {
     /*
      * Handle change in the province drop-down; updates the distirct drop-down accordingly.
      */
-
+    
     // A global ajaxComplete method that shows you any messages that are set in Django's view
     $( document )
         .ajaxComplete(function(e, xhr, settings) {
@@ -167,48 +169,7 @@ $.ajaxSetup({
 });
 
 
-/*
- * Create and show a Bootstrap alert.
- */
-function createAlert (type, message, fade, whereToAppend) {
-    if (whereToAppend == undefined ){
-        whereToAppend = "#alerts";
-    }
-    $(whereToAppend).append(
-        $(
-            "<div class='alert alert-" + type + " dynamic-alert alert-dismissable'>" +
-            "<button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>" +
-            "<p>" + message + "</p>" +
-            "</div>"
-        )
-    );
-    if (fade == true) {
-        // Remove the alert after 5 seconds if the user does not close it.
-        $(".dynamic-alert").delay(5000).fadeOut("slow", function () { $(this).remove(); });
-    }
-}
 
-
-function buildHtmlTable(myList, selector) {
-    var tableHeaders = "";
-    var json = {"data": []};
-
-    // Get column header
-    $.each(myList[0], function(k,v) {
-        tableHeaders += "<th>" + k + "</th>";
-    });
-
-    $(selector).empty();
-    $(selector).append('<table id="failed_pas_tbl" class="display table datatable table-bordered" cellspacing="0" width="100%"><thead><tr>' + tableHeaders + '</tr></thead></table>');
-
-    for (var i=0; i<myList.length; i++){
-        json["data"].push([]);
-        $.each(myList[i], function(k,v) {
-            json["data"][i].push(v);
-        });
-    }
-    $("#failed_pas_tbl").dataTable(json);
-}
 
 var tableObject = function (json, id) {
     var headerCount = new Object();

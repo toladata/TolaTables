@@ -8,6 +8,7 @@ from sys import path
 # Absolute filesystem path to the Django project directory:
 DJANGO_ROOT = dirname(dirname(abspath(__file__)))
 
+
 # Absolute filesystem path to the top-level project folder:
 SITE_ROOT = dirname(DJANGO_ROOT)
 
@@ -38,29 +39,23 @@ MANAGERS = ADMINS
 ########## END MANAGER CONFIGURATION
 
 
-########## DATABASE CONFIGURATION
-# See: https://docs.djangoproject.com/en/dev/ref/settings/#databases
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.',
-        'NAME': '',
-        'USER': '',
-        'PASSWORD': '',
-        'HOST': '',
-        'PORT': '',
-    }
-}
-########## END DATABASE CONFIGURATION
 
 ############ MONGO DB #####################
-import mongoengine
-from mongoengine import register_connection
-register_connection(alias='default',name='tola')
+### uncomment the settings below if you are using MongoDB without a password
 
-MONGODB_HOST = 'mongodb://localhost/tola'
-MONGODB_NAME = 'tola'
+# import mongoengine
+# from mongoengine import register_connection
+# register_connection(alias='default',name='tola')
+#
+# MONGO_CREDS = {
+#     'host': 'mongodb://localhost/tola',
+#     'db': 'tola',
+#     'alias': 'default'
+# }
+# MONGO_URI = MONGO_CREDS['host']
+#
+# mongoengine.connect(MONGO_CREDS['db'], host=MONGO_CREDS['host'], alias=MONGO_CREDS['alias'])
 
-mongoengine.connect(MONGODB_NAME, host = MONGODB_HOST, alias='default')
 ################ END OF MONGO DB #######################
 
 
@@ -148,6 +143,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.messages.context_processors.messages',
     'django.core.context_processors.request',
     'tola.context_processors.get_silos',
+    'tola.context_processors.get_servers',
 )
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#template-loaders
@@ -165,7 +161,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [normpath(join(SITE_ROOT, 'templates')),],
-        'APP_DIRS': True,
+        #'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
@@ -176,13 +172,16 @@ TEMPLATES = [
                 'django.template.context_processors.static',
                 'django.template.context_processors.tz',
                 'django.contrib.messages.context_processors.messages',
-                'django.core.context_processors.request',
                 'tola.context_processors.get_silos',
             ],
             'builtins': [
                 'django.contrib.staticfiles.templatetags.staticfiles',
                 'silo.templatetags.underscoretags',
             ],
+            'loaders': [
+                'django.template.loaders.filesystem.Loader',
+                'django.template.loaders.app_directories.Loader',
+            ]
         },
     },
 ]
@@ -231,8 +230,7 @@ DJANGO_APPS = (
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     'django.contrib.admindocs',
-    'social.apps.django_app.default',
-
+    'social_django',
 )
 
 THIRD_PARTY_APPS = (
@@ -241,43 +239,58 @@ THIRD_PARTY_APPS = (
     'crispy_forms',
     'django_extensions',
     'corsheaders',
+    'django_celery_results',
+    # required by restframework
+    'django_filters',
 )
+
+#to get a subdirectory to work
+path.insert(0, normpath(join(SITE_ROOT, 'datasources')))
 
 # Apps specific for this project go here.
 LOCAL_APPS = (
     'silo',
     'tola',
-    'board',
+)
+DATASOURCE_APPS = (
+    'commcare',
+    'fileuploadjson',
 )
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS + DATASOURCE_APPS
 ########## END APP CONFIGURATION
 
+"""
+Allowed for now from everyone
 CORS_ORIGIN_WHITELIST = (
     "localhost:8000",
     "localhost:4200"
 )
-
+"""
+CORS_ORIGIN_ALLOW_ALL=True
 
 ####### AUTHENTICATION BAKEND CONFIG ##################
 # https://github.com/django/django/blob/master/django/contrib/auth/backends.py
+
 AUTHENTICATION_BACKENDS = (
-    'social.backends.google.GoogleOAuth2',
+    #'social_core.backends.azuread.AzureADOAuth2',
+    #'social_core.backends.google.GoogleOAuth2',
+    #'social_core.backends.microsoft.MicrosoftOAuth2',
+    'social_core.backends.tola.TolaOAuth2',
     'django.contrib.auth.backends.ModelBackend',
 )
 
 SOCIAL_AUTH_PIPELINE = (
-    'social.pipeline.social_auth.social_details',
-    'social.pipeline.social_auth.social_uid',
-    'social.pipeline.social_auth.auth_allowed',
-    'social.pipeline.social_auth.social_user',
-    'social.pipeline.social_auth.associate_by_email',
-    'social.pipeline.user.get_username',
-    'social.pipeline.user.create_user',
-    'social.pipeline.social_auth.associate_user',
-    'social.pipeline.social_auth.load_extra_data',
-    'social.pipeline.user.user_details',
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.user.get_username',
+    'social_core.pipeline.user.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details',
+    'social_core.pipeline.social_auth.associate_by_email',
     'tola.util.user_to_tola',
 )
 
@@ -297,56 +310,24 @@ path.append(PROJECT_PATH)
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': "[%(asctime)s] %(levelname)s [%(name)s:%(lineno)s] %(message)s",
-            'datefmt': "%d/%b/%Y %H:%M:%S"
-        },
-        'simple': {
-            'format': '%(levelname)s %(message)s'
-        },
-    },
     'handlers': {
         'file': {
-            'level': 'WARNING',
+            'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(PROJECT_PATH, 'error.log'),
-            'formatter': 'verbose'
+            'filename': 'error.log',
         },
-        'console':{
-            'level': 'INFO',
+        'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'simple'
-        },
-        'mail_admins': {
-            'class': 'django.utils.log.AdminEmailHandler',
         },
     },
     'loggers': {
         'django': {
-            'handlers': ['file'],
+            'handlers': ['file', 'console'],
             'level': 'INFO',
             'propagate': True,
         },
-        'django.db.backends': {
-            'handlers': ['console'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
-        'silo': {
-            'handlers': ['file'],
-            'level': 'WARNING',
-            'propagate': True,
-        },
-        'silo_mail': {
-            'handlers': ['file', 'mail_admins',],
-            'level': 'ERROR',
-            'propagate': True,
-            'include_html': True,
-        },
-    }
+    },
 }
-
 
 ########## END LOGGING CONFIGURATION
 
@@ -386,3 +367,12 @@ MESSAGE_TAGS = {message.DEBUG: 'debug',
 
 
 GOOGLE_REDIRECT_URL = 'http://localhost:8000/oauth2callback/'
+
+########## Celery CONFIGURATION
+CELERY_RESULT_BACKEND = 'amqp'
+CELERY_CACHE_BACKEND = 'django-cache'
+
+ACTIVITY_URL = "http://master.toladatav2.app.tola.io"
+TABLES_URL = "http://master.tolatables.app.tola.io"
+
+
