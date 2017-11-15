@@ -406,7 +406,6 @@ def ona_parse_type_group(data, form_data, parent_name, silo, read):
     """
     for field in form_data:
 
-
         if field["type"] == "group":
             ona_parse_type_group(data,field['children'],parent_name + field['name']+"/",silo,read)
         else:
@@ -419,6 +418,8 @@ def ona_parse_type_group(data, form_data, parent_name, silo, read):
                     try:
                         entry[field['label']] = entry.pop(parent_name + field['name'])
                     except KeyError as e:
+                        pass
+                    except TypeError:
                         pass
 
         #add an asociation between a column, label and its type to the columnType database
