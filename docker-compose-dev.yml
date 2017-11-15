@@ -5,9 +5,9 @@ services:
     container_name: postgres
     image: postgres:9.6
     environment:
-      POSTGRES_DB: tolatables
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: root
+      - POSTGRES_DB=tolatables
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
     volumes:
       - /var/lib/postgresql/data/
     ports:
@@ -18,11 +18,10 @@ services:
     container_name: mongo
     image: mongo:3.4.6
     environment:
-      MONGODB_DATABASE: tolatables
-      MONGODB_USER: root
-      MONGODB_PASS: root
-      MONGO_DATA_DIR: /var/lib/mongodb/data/
-      MONGO_LOG_DIR: /var/lib/mongodb/dev/null
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=root
+      - MONGO_DATA_DIR=/var/lib/mongodb/data/
+      - MONGO_LOG_DIR=/var/lib/mongodb/dev/null
     volumes:
       - /var/lib/mongodb/data/
     ports:
@@ -44,14 +43,14 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=tola.settings.dev
       - TOLA_DEBUG=True
-      - TOLA_HOSTNAME=localhost
+      - TOLA_HOSTNAME=127.0.0.1,localhost
       - TOLATABLES_DB_ENGINE=django.db.backends.postgresql_psycopg2
       - TOLATABLES_DB_NAME=tolatables
       - TOLATABLES_DB_USER=root
       - TOLATABLES_DB_PASS=root
       - TOLATABLES_DB_HOST=postgres
       - TOLATABLES_DB_PORT=5432
-      - TOLATABLES_MONGODB_NAME=tolatables
+      - TOLATABLES_MONGODB_NAME=admin
       - TOLATABLES_MONGODB_USER=root
       - TOLATABLES_MONGODB_PASS=root
       - TOLATABLES_MONGODB_HOST=mongo

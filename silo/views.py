@@ -1,60 +1,54 @@
 import datetime
 import time
-import json
+import requests
 import csv
 import base64
-import requests
 import re
-from requests.auth import HTTPDigestAuth
 import logging
-from operator import and_, or_
+import os
+import json
 from collections import OrderedDict
+from requests.auth import HTTPDigestAuth
 
-import pymongo
 from pymongo import MongoClient
-# from mongoengine.queryset.visitor import Q
 
-from bson.objectid import ObjectId
 from bson import CodecOptions, SON
 from bson.json_util import dumps
 
-from django.core.urlresolvers import reverse, reverse_lazy
-from django.http import HttpResponseForbidden,\
-    HttpResponseRedirect, HttpResponseNotFound, HttpResponseBadRequest,\
+from django.core.urlresolvers import reverse_lazy
+from django.http import HttpResponseBadRequest,\
     HttpResponse, HttpResponseRedirect, JsonResponse
-from django.shortcuts import render_to_response, get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.utils.encoding import smart_str, smart_text
 from django.utils.text import Truncator
-from django.db.models import Max, F, Q
+from django.db.models import Q
 from django.views.decorators.csrf import csrf_protect
-from django.template import RequestContext, Context
-from django.conf import settings
-
-from celery import Celery
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
 from django.db.models import Count
+from django.contrib.auth import logout
+
+from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.renderers import JSONRenderer
 
 from silo.custom_csv_dict_reader import CustomDictReader
-from .models import GoogleCredentialsModel
-#from gviews_v4 import import_from_gsheet_helper
-from tola.util import importJSON, saveDataToSilo, getSiloColumnNames,\
-                        parseMathInstruction, calculateFormulaColumn, makeQueryForHiddenRow,\
-                        getNewestDataDate, addColsToSilo, deleteSiloColumns, hideSiloColumns, \
-                        getCompleteSiloColumnNames, setSiloColumnType, getColToTypeDict
-
+from tola.util import importJSON, saveDataToSilo, getSiloColumnNames, \
+    parseMathInstruction, calculateFormulaColumn, makeQueryForHiddenRow, \
+    getNewestDataDate, addColsToSilo, deleteSiloColumns, hideSiloColumns,  \
+    getCompleteSiloColumnNames, setSiloColumnType, getColToTypeDict
 
 from commcare.tasks import fetchCommCareData
+from .serializers import *
+from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, \
+    Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, \
+    DeletedSilos, FormulaColumn, WorkflowLevel1
+from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, \
+    NewColumnForm, EditColumnForm, OnaLoginForm
 
-from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeletedSilos, FormulaColumn
-from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
-import requests, os
-
-#to delete soon
-# from .models import siloHideFilter
 
 logger = logging.getLogger("silo")
 db = MongoClient(os.getenv('TOLA_MONGODB_NAME')).tola
@@ -62,6 +56,7 @@ db = MongoClient(os.getenv('TOLA_MONGODB_NAME')).tola
 # To preserve fields order when reading BSON from MONGO
 opts = CodecOptions(document_class=SON)
 store = db.label_value_store.with_options(codec_options=opts)
+
 
 # fix now that not all mongo rows need to have the same column
 def mergeTwoSilos(mapping_data, lsid, rsid, msid):
@@ -603,9 +598,6 @@ def deleteSilo(request, id):
         messages.error(request, "You do not have permission to delete this silo")
         return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
-from django.contrib.auth import logout
-from django.shortcuts import redirect
-
 
 @login_required
 def showRead(request, id):
@@ -898,6 +890,51 @@ def listSilos(request):
 
     public_silos = Silo.objects.filter(Q(public=True) & ~Q(owner=user)).prefetch_related("reads")
     return render(request, 'display/silos.html',{'own_silos':own_silos, "shared_silos": shared_silos, "public_silos": public_silos})
+
+
+@api_view(['POST'])
+def create_customform(request):
+    """
+    Create a table for the form instance in Activity
+    """
+    try:
+        table_name = request.data['name'].lower().replace(' ', '_')
+        wkflvl1 = WorkflowLevel1.objects.get(level1_uuid=request.data['level1_uuid'])
+        read_name = request.data['name']
+        description = request.data.get('description', '')
+        public = request.data['is_public']
+        columns = request.data['fields']
+    except KeyError:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    read = Read.objects.create(
+        owner=request.user,
+        type=ReadType.objects.get(read_type='CustomForm'),
+        read_name=read_name,
+    )
+    silo = Silo.objects.create(
+        owner=request.user,
+        name=table_name,
+        description=description,
+        organization=request.user.tola_user.organization,
+        public=public,
+        columns=json.dumps(columns),
+    )
+
+    silo.reads.add(read)
+    silo.workflowlevel1.add(wkflvl1)
+    read_source_id = read.id
+
+    lvs = LabelValueStore()
+    lvs.silo_id = silo.pk
+    lvs.create_date = timezone.now()
+    lvs.read_id = read_source_id
+    lvs.save()
+
+    serializer = SiloSerializer(silo, context={'request': request})
+    content = JSONRenderer().render(serializer.data)
+
+    return Response(content, status=status.HTTP_201_CREATED)
 
 
 def addUniqueFiledsToSilo(request):
