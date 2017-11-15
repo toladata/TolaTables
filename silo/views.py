@@ -30,13 +30,13 @@ from django.db.models import Max, F, Q
 from django.views.decorators.csrf import csrf_protect
 from django.template import RequestContext, Context
 from django.conf import settings
-
-from celery import Celery
-
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db.models import Count
+
+from rest_framework.authtoken.models import Token
+from celery import Celery
 
 from silo.custom_csv_dict_reader import CustomDictReader
 from .models import GoogleCredentialsModel
@@ -531,7 +531,7 @@ def getOnaForms(request):
     if ona_token and auth_success:
         onaforms = requests.get(url_user_forms, headers={'Authorization': 'Token %s' % ona_token.token})
         data = json.loads(onaforms.content)
-        print data
+        # print data
         if data:
             has_data = True
 
@@ -691,7 +691,7 @@ def oneDriveImport(request, id):
     """
     read_obj = Read.objects.get(pk=id)
 
-    print(read_obj.onedrive_file)
+    # print(read_obj.onedrive_file)
     user = User.objects.get(username__exact=request.user)
     social = user.social_auth.get(provider='microsoft-graph')
     access_token = social.extra_data['access_token']

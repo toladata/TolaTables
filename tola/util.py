@@ -171,7 +171,13 @@ def saveDataToSilo(silo, data, read=-1, user=None):
                     continue
 
             if not isinstance(key, tuple):
-                key = key.replace(".", "_").replace("$", "USD").replace(u'\u2026', "")
+                key = key.replace(".", "_").replace("$", "USD")
+                try:
+                    key = key.replace(u'\u2026', "")
+                except UnicodeDecodeError:
+                    key = key.decode('utf8').replace(u'\u2026', "").encode('utf8')
+                except:
+                    raise
                 if isinstance(val, basestring): val = val.strip()
                 # check for duplicate key
                 if key not in keys:
@@ -325,7 +331,7 @@ def getColToTypeDict(silo):
 
 
 def user_to_tola(backend, user, response, *args, **kwargs):
-    print(user, response, args, kwargs)
+    # print(user, response, args, kwargs)
 
     # Add a google auth user to the tola profile
     default_country = Country.objects.first()

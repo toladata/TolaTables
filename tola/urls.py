@@ -60,7 +60,7 @@ urlpatterns =[
     url(r'^source/new/', views.showRead, kwargs={'id': 0}, name='newRead'),
     url(r'^onedrive', views.oneDrive, name='oneDriveRedirect'),
     url(r'^import_onedrive/(?P<id>\d+)/$', views.oneDriveImport, name='import_onedrive'),
-    url(r'^source/FormulaColumnF/', views.showRead, kwargs={'id': 0}, name='newRead'),
+    # url(r'^source/FormulaColumnF/', views.showRead, kwargs={'id': 0}, name='newRead'),
 
     url(r'^show_read/(?P<id>\w+)/$', views.showRead, name='showRead'),
 
