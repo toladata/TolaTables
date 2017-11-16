@@ -104,7 +104,6 @@ def saveDataToSilo(silo, data, read=-1, user=None):
         read_source_id = read.id
     except AttributeError as e:
         read_source_id = read
-
     unique_fields = silo.unique_fields.all()
     skipped_rows = set()
     enc = "latin-1"
@@ -148,6 +147,9 @@ def saveDataToSilo(silo, data, read=-1, user=None):
 
         counter = 0
         # set the fields in the curernt document and save it
+        # print 'row before', row
+        row = cleanDataObj(row)
+        # print 'row after', row
         for key, val in row.iteritems():
             if key == "" or key is None or key == "silo_id": continue
             elif key == "id" or key == "_id": key = "user_assigned_id"
@@ -169,28 +171,64 @@ def saveDataToSilo(silo, data, read=-1, user=None):
                     # skip this one
                     # add message that this is skipped
                     continue
-
+            # print 'problem key', key
             if not isinstance(key, tuple):
-                key = key.replace(".", "_").replace("$", "USD")
-                try:
-                    key = key.replace(u'\u2026', "")
-                except UnicodeDecodeError:
-                    key = key.decode('utf8').replace(u'\u2026', "").encode('utf8')
-                except:
-                    raise
-                if isinstance(val, basestring): val = val.strip()
-                # check for duplicate key
+                # print 'not tuple'
+                # key = key.replace(".", "_").replace("$", "USD")
+                # print 'post-replace', key
+                # try:
+                #     key = key.replace(u'\u2026', "")
+                # except UnicodeDecodeError:
+                #     key = key.decode('utf8').replace(u'\u2026', "").encode('utf8')
+                # except:
+                #     raise
+                # if isinstance(val, basestring): val = val.strip()
+                # # check for duplicate key
                 if key not in keys:
                     keys.append(key)
+                # print 'final key', key
                 setattr(lvs, key, val)
 
             counter += 1
         lvs = calculateFormulaCell(lvs,silo)
         lvs.save()
-
     addColsToSilo(silo, keys)
     res = {"skipped_rows": skipped_rows, "num_rows": counter}
     return res
+
+
+def cleanDataObj(obj):
+    if isinstance(obj, dict):
+        newDict = {}
+        for key, val in obj.iteritems():
+            if isinstance(key, basestring):
+                key = cleanKey(key)
+            if isinstance(val, basestring):
+                val = val.strip()
+            else:
+                val = cleanDataObj(val)
+            newDict.update({key: val})
+        return newDict
+    elif isinstance(obj, list):
+        newList = []
+        for item in obj:
+            newList.append(cleanDataObj(item))
+        return newList
+    else:
+        return obj
+
+
+def cleanKey(key):
+    key = ' '.join(key.split())
+    key = key.replace(".", "_").replace("$", "USD")
+    try:
+        key = key.replace(u'\u2026', "")
+    except UnicodeDecodeError:
+        key = key.decode('utf8').replace(u'\u2026', "").encode('utf8')
+    except:
+        raise
+
+    return key
 
 
 #IMPORT JSON DATA
@@ -404,6 +442,7 @@ def ona_parse_type_group(data, form_data, parent_name, silo, read):
     form_data -- the children of an ONA object of type group
     parent_name -- the name of the parent of the ona object
     """
+
     for field in form_data:
 
         if field["type"] == "group":

@@ -53,7 +53,6 @@ DATABASES = {
         'NAME': 'tolatables',
     }
 }"""
-print("DATABASES: {}".format(DATABASES))
 
 ############ MONGO DB #####################
 import mongoengine
