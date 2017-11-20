@@ -1,12 +1,12 @@
+import json
 from django.test import TestCase, RequestFactory
 
-import json
 import factories
+from silo.tests import MongoTestCase
 from silo.views import create_customform
 
-"""
-class ReadTest(TestCase):
 
+class ReadTest(TestCase, MongoTestCase):
     def setUp(self):
         factories.ReadType()
         self.tola_user = factories.TolaUser(user=factories.User())
@@ -45,4 +45,3 @@ class ReadTest(TestCase):
         response = create_customform(request)
 
         self.assertEqual(response.status_code, 201)
-"""

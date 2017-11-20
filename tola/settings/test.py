@@ -12,19 +12,24 @@ DATABASES = {
         "PORT": "",
     },
 }
-"""Development settings and globals."""
+################ END OF IN-MEMORY TEST DATABASE #######################
+
+############ MONGO DB #####################
+MONGODB_DATABASES = {
+    "default": {
+        "name": "test",
+        "host": os.getenv("TOLATABLES_MONGODB_HOST", '127.0.0.1'),
+        "port": int(os.getenv("TOLATABLES_MONGODB_PORT", 27017)),
+        "username": "test",
+        "password": "test",
+    },
+}
+################ END OF MONGO DB #######################
 
 from os.path import join, normpath
 
 SECRET_KEY = r"!0^+)=t*ly6ycprf9@adsfsdfdfsdff#pa*3333*lp5k9ko7"
 
-"""
-We don't have a config for MONGO_CREDS 
-from local import MONGO_CREDS, MONGO_URI
-import mongoengine
-mongoengine.connect(**MONGO_CREDS)
-
-"""
 ########## MANAGER CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#admins
 ADMINS = (
@@ -64,13 +69,6 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 ########## END EMAIL SETTINGS
 
-
-########## MongoDB Connect
-
-#connect('feeds')
-
-########## END DATABASE CONFIGURATION
-
 ########## GOOGLE CLIENT CONFIG ###########
 GOOGLE_STEP2_URI = ''
 GOOGLE_CLIENT_ID = ''
@@ -85,20 +83,5 @@ CACHES = {
     }
 }
 ########## END CACHE CONFIGURATION
-
-############ MONGO DB #####################
-import mongoengine
-from mongoengine import register_connection
-register_connection(alias='default', name='tola')
-
-mongoengine.connect(
-    "tola",
-    username="",
-    password="",
-    host="",
-    port=27017,
-    alias='default'
-)
-
 
 CORS_ORIGIN_ALLOW_ALL = True

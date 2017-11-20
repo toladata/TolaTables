@@ -15,6 +15,7 @@ from pymongo import MongoClient
 from bson import CodecOptions, SON
 from bson.json_util import dumps
 
+from django.conf import settings
 from django.core.urlresolvers import reverse_lazy
 from django.http import HttpResponseBadRequest,\
     HttpResponse, HttpResponseRedirect, JsonResponse
@@ -49,14 +50,9 @@ from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, \
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, \
     NewColumnForm, EditColumnForm, OnaLoginForm
 
-
 logger = logging.getLogger("silo")
-db = MongoClient(os.getenv('TOLA_MONGODB_NAME')).tola
-
-# To preserve fields order when reading BSON from MONGO
-opts = CodecOptions(document_class=SON)
-store = db.label_value_store.with_options(codec_options=opts)
-
+client = MongoClient(settings.MONGO_URI)
+db = client.get_database("tola")
 
 # fix now that not all mongo rows need to have the same column
 def mergeTwoSilos(mapping_data, lsid, rsid, msid):
@@ -1451,6 +1447,10 @@ def valueDelete(request,id):
 
 
 def export_silo(request, id):
+    # To preserve fields order when reading BSON from MONGO
+    opts = CodecOptions(document_class=SON)
+    store = db.label_value_store.with_options(codec_options=opts)
+
     silo_name = Silo.objects.get(id=id).name
 
     response = HttpResponse(content_type='text/csv')

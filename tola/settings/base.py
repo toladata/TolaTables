@@ -1,8 +1,8 @@
-"""Common settings and globals."""
-
+import os
 from os.path import abspath, basename, dirname, join, normpath
-from django.contrib.messages import constants as message
 from sys import path
+
+from django.contrib.messages import constants as message
 
 ########## PATH CONFIGURATION
 # Absolute filesystem path to the Django project directory:
@@ -41,21 +41,22 @@ MANAGERS = ADMINS
 
 
 ############ MONGO DB #####################
-### uncomment the settings below if you are using MongoDB without a password
-
-# import mongoengine
-# from mongoengine import register_connection
-# register_connection(alias='default',name='tola')
-#
-# MONGO_CREDS = {
-#     'host': 'mongodb://localhost/tola',
-#     'db': 'tola',
-#     'alias': 'default'
-# }
-# MONGO_URI = MONGO_CREDS['host']
-#
-# mongoengine.connect(MONGO_CREDS['db'], host=MONGO_CREDS['host'], alias=MONGO_CREDS['alias'])
-
+MONGODB_DATABASES = {
+    "default": {
+        "name": os.getenv("TOLATABLES_MONGODB_NAME"),
+        "host": os.getenv("TOLATABLES_MONGODB_HOST", '127.0.0.1'),
+        "port": int(os.getenv("TOLATABLES_MONGODB_PORT", 27017)),
+        "username": os.getenv("TOLATABLES_MONGODB_USER"),
+        "password": os.getenv("TOLATABLES_MONGODB_PASS"),
+    },
+}
+MONGO_URI = 'mongodb://{username}:{password}@{host}:{port}/{db}'.format(
+    db=MONGODB_DATABASES['default']['name'],
+    username=MONGODB_DATABASES['default']['username'],
+    password=MONGODB_DATABASES['default']['password'],
+    host=MONGODB_DATABASES['default']['host'],
+    port=MONGODB_DATABASES['default']['port'],
+)
 ################ END OF MONGO DB #######################
 
 
@@ -324,6 +325,11 @@ LOGGING = {
         'django': {
             'handlers': ['file', 'console'],
             'level': 'INFO',
+            'propagate': True,
+        },
+        'silo.tests': {
+            'handlers': ['file', 'console'],
+            'level': 'ERROR',
             'propagate': True,
         },
     },
