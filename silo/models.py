@@ -381,12 +381,12 @@ class Dashboard(models.Model):
         return self.name
 
 
-
 class DeletedSilos(models.Model):
     user = models.ForeignKey(User)
     deleted_time = models.DateTimeField()
     silo_name_id = models.CharField(max_length=255)
     silo_description = models.CharField(max_length=255,blank=True,null=True)
+
 
 class DeletedSilosAdmin(admin.ModelAdmin):
     list_display = ('user', 'silo_name_id', 'silo_description','deleted_time')
