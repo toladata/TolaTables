@@ -53,38 +53,6 @@ except KeyError:
         }
     }
     print("DATABASES: {}".format(DATABASES))
-
-############ MONGO DB #####################
-import mongoengine
-from mongoengine import register_connection
-register_connection(alias='default', name='tola')
-
-
-try:
-    MONGODB_HOST = os.environ['TOLATABLES_DB_HOST']
-    mongoengine.connect(
-        os.environ['TOLATABLES_MONGODB_NAME'],
-        username=os.environ['TOLATABLES_MONGODB_USER'],
-        password=os.environ['TOLATABLES_MONGODB_PASS'],
-        host=os.environ['TOLATABLES_MONGODB_HOST'],
-        port=int(os.getenv('TOLATABLES_MONGODB_PORT', 27017)),
-        alias='default'
-    )
-except KeyError:
-    # Fallback for tests without environment variables configured
-    # Depends on os.environ for correct functionality
-    MONGODB_HOST = "localhost"
-    mongoengine.connect(
-        "tola",
-        username="",
-        password="",
-        host="",
-        port=27017,
-        alias='default'
-    )
-    print("DATABASES: {}".format(DATABASES))
-################ END OF MONGO DB #######################
-
 ########## END DATABASE CONFIGURATION
 
 # Hosts/domain names that are valid for this site
