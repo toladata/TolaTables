@@ -106,7 +106,6 @@ def saveDataToSilo(silo, data, read=-1, user=None):
         read_source_id = read
     unique_fields = silo.unique_fields.all()
     skipped_rows = set()
-    enc = "latin-1"
     keys = []
     fieldToType = getColToTypeDict(silo)
     for counter, row in enumerate(data):
@@ -126,67 +125,53 @@ def saveDataToSilo(silo, data, read=-1, user=None):
         # document instead of updating an existing one.
         if filter_criteria:
             filter_criteria.update({'silo_id': silo.id})
-        else:
-            filter_criteria.update({"nonexistentkey":"NEVER0101010101010NEVER"})
+            # else:
+            #     filter_criteria.update({"nonexistentkey":"NEVER0101010101010NEVER"})
 
-        try:
-            lvs = LabelValueStore.objects.get(**filter_criteria)
-            #print("updating")
-            setattr(lvs, "edit_date", timezone.now())
-            lvs.read_id = read_source_id
-        except LabelValueStore.DoesNotExist as e:
+            try:
+                lvs = LabelValueStore.objects.get(**filter_criteria)
+                #print("updating")
+                setattr(lvs, "edit_date", timezone.now())
+                lvs.read_id = read_source_id
+            except LabelValueStore.DoesNotExist as e:
+                lvs = LabelValueStore()
+                lvs.silo_id = silo.pk
+                lvs.create_date = timezone.now()
+                lvs.read_id = read_source_id
+            except LabelValueStore.MultipleObjectsReturned as e:
+                for k,v in filter_criteria.iteritems():
+                    skipped_rows.add("%s=%s" % (str(k),str(v)))
+                #print("skipping")
+                continue
+        else:
             lvs = LabelValueStore()
-            lvs.silo_id = silo.pk
-            lvs.create_date = timezone.now()
-            lvs.read_id = read_source_id
-        except LabelValueStore.MultipleObjectsReturned as e:
-            for k,v in filter_criteria.iteritems():
-                skipped_rows.add("%s=%s" % (str(k),str(v)))
-            #print("skipping")
-            continue
 
         counter = 0
         # set the fields in the curernt document and save it
-        # print 'row before', row
+
         row = cleanDataObj(row)
-        # print 'row after', row
+
         for key, val in row.iteritems():
             if key == "" or key is None or key == "silo_id": continue
             elif key == "id" or key == "_id": key = "user_assigned_id"
             elif key == "edit_date": key = "editted_date"
             elif key == "create_date": key = "created_date"
             if type(val) == str or type(val) == unicode:
-                val = smart_str(val, strings_only=True)
+                val = smart_str(val, strings_only=True).strip()
             if fieldToType.get(key, 'string') == 'int':
                 try:
                     val = int(val)
                 except ValueError as e:
-                    # skip this one
-                    # add message that this is skipped
                     continue
             if fieldToType.get(key, 'string') == 'double':
                 try:
                     val = float(val)
                 except ValueError as e:
-                    # skip this one
-                    # add message that this is skipped
                     continue
-            # print 'problem key', key
+
             if not isinstance(key, tuple):
-                # print 'not tuple'
-                # key = key.replace(".", "_").replace("$", "USD")
-                # print 'post-replace', key
-                # try:
-                #     key = key.replace(u'\u2026', "")
-                # except UnicodeDecodeError:
-                #     key = key.decode('utf8').replace(u'\u2026', "").encode('utf8')
-                # except:
-                #     raise
-                # if isinstance(val, basestring): val = val.strip()
-                # # check for duplicate key
                 if key not in keys:
                     keys.append(key)
-                # print 'final key', key
                 setattr(lvs, key, val)
 
             counter += 1
@@ -198,24 +183,14 @@ def saveDataToSilo(silo, data, read=-1, user=None):
 
 
 def cleanDataObj(obj):
-    if isinstance(obj, dict):
-        newDict = {}
-        for key, val in obj.iteritems():
-            if isinstance(key, basestring):
-                key = cleanKey(key)
-            if isinstance(val, basestring):
-                val = val.strip()
-            else:
-                val = cleanDataObj(val)
-            newDict.update({key: val})
-        return newDict
-    elif isinstance(obj, list):
-        newList = []
-        for item in obj:
-            newList.append(cleanDataObj(item))
-        return newList
-    else:
+    if not isinstance(obj, (dict, list)):
+        if isinstance(obj, basestring): return obj.strip()
         return obj
+
+    if isinstance(obj, list):
+        return [cleanDataObj(v) for v in obj]
+
+    return {cleanKey(k): cleanDataObj(v) for k,v in obj.items()}
 
 
 def cleanKey(key):
