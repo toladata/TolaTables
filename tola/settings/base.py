@@ -275,9 +275,6 @@ CORS_ORIGIN_ALLOW_ALL=True
 # https://github.com/django/django/blob/master/django/contrib/auth/backends.py
 
 AUTHENTICATION_BACKENDS = (
-    #'social_core.backends.azuread.AzureADOAuth2',
-    #'social_core.backends.google.GoogleOAuth2',
-    #'social_core.backends.microsoft.MicrosoftOAuth2',
     'social_core.backends.tola.TolaOAuth2',
     'django.contrib.auth.backends.ModelBackend',
 )
