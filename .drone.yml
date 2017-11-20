@@ -1,14 +1,23 @@
 ---
 pipeline:
+  mongo-setup:
+    image: mongo:3.0
+    commands:
+      - sleep 15
+      - 'mongo --host mongo --eval "db.getSiblingDB(''test'').createUser({user:''test'', pwd:''test'', roles:[{role:''dbOwner'', db:''test''}]});"'
+
   build:
     image: python:${PYTHON_VERSION}
+    environment:
+      - TOLATABLES_MONGODB_HOST=mongo
     secrets: [SECRET_PASS]
     commands:
-      - pip install -r requirements.txt
+      - pip install -r requirements-ci.txt
       - openssl aes-256-cbc -d -a -in client_secrets.json.enc -out silo/client_secrets.json -k $SECRET_PASS
       - python manage.py test
     when:
       event: [push, pull_request, tag]
+
   build-docker-image:
     image: plugins/docker
     insecure: true
@@ -47,6 +56,10 @@ pipeline:
       status: [failure]
       event: [push, tag]
       branches: [master, dev-v2]
+
+services:
+  mongo:
+    image: mongo:3.4.10
 
 matrix:
   PYTHON_VERSION:
