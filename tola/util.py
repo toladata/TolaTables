@@ -4,6 +4,7 @@ import urllib2
 import json
 import base64
 import requests
+from collections import OrderedDict
 
 from django.utils.encoding import smart_text
 from django.utils import timezone
@@ -108,6 +109,11 @@ def saveDataToSilo(silo, data, read=-1, user=None):
     skipped_rows = set()
     enc = "latin-1"
     keys = []
+    try:
+        keys = data.fieldnames
+        keys = [cleanKey(key) for key in keys]
+    except AttributeError:
+        pass
     fieldToType = getColToTypeDict(silo)
     for counter, row in enumerate(data):
         # reseting filter_criteria for each row
@@ -139,39 +145,30 @@ def saveDataToSilo(silo, data, read=-1, user=None):
             lvs.silo_id = silo.pk
             lvs.create_date = timezone.now()
             lvs.read_id = read_source_id
-        except LabelValueStore.MultipleObjectsReturned as e:
-            for k,v in filter_criteria.iteritems():
-                skipped_rows.add("%s=%s" % (str(k),str(v)))
-            #print("skipping")
-            continue
 
         counter = 0
         # set the fields in the curernt document and save it
-        # print 'row before', row
-        row = cleanDataObj(row)
-        # print 'row after', row
+
+        row = cleanDataObj(row, silo)
+
         for key, val in row.iteritems():
-            if key == "" or key is None or key == "silo_id": continue
-            elif key == "id" or key == "_id": key = "user_assigned_id"
-            elif key == "edit_date": key = "editted_date"
-            elif key == "create_date": key = "created_date"
-            if type(val) == str or type(val) == unicode:
-                val = smart_str(val, strings_only=True)
-            if fieldToType.get(key, 'string') == 'int':
-                try:
-                    val = int(val)
-                except ValueError as e:
-                    # skip this one
-                    # add message that this is skipped
-                    continue
-            if fieldToType.get(key, 'string') == 'double':
-                try:
-                    val = float(val)
-                except ValueError as e:
-                    # skip this one
-                    # add message that this is skipped
-                    continue
-            # print 'problem key', key
+            # if key == "" or key is None or key == "silo_id": continue
+            # elif key == "id" or key == "_id": key = "user_assigned_id"
+            # elif key == "edit_date": key = "editted_date"
+            # elif key == "create_date": key = "created_date"
+            # if type(val) == str or type(val) == unicode:
+            #     val = smart_str(val, strings_only=True).strip()
+            # if fieldToType.get(key, 'string') == 'int':
+            #     try:
+            #         val = int(val)
+            #     except ValueError as e:
+            #         continue
+            # if fieldToType.get(key, 'string') == 'double':
+            #     try:
+            #         val = float(val)
+            #     except ValueError as e:
+            #         continue
+
             if not isinstance(key, tuple):
                 # print 'not tuple'
                 # key = key.replace(".", "_").replace("$", "USD")
@@ -189,7 +186,7 @@ def saveDataToSilo(silo, data, read=-1, user=None):
                 # print 'final key', key
                 setattr(lvs, key, val)
 
-            counter += 1
+        counter += 1
         lvs = calculateFormulaCell(lvs,silo)
         lvs.save()
     addColsToSilo(silo, keys)
@@ -197,28 +194,35 @@ def saveDataToSilo(silo, data, read=-1, user=None):
     return res
 
 
-def cleanDataObj(obj):
-    if isinstance(obj, dict):
-        newDict = {}
-        for key, val in obj.iteritems():
-            if isinstance(key, basestring):
-                key = cleanKey(key)
-            if isinstance(val, basestring):
-                val = val.strip()
-            else:
-                val = cleanDataObj(val)
-            newDict.update({key: val})
-        return newDict
-    elif isinstance(obj, list):
-        newList = []
-        for item in obj:
-            newList.append(cleanDataObj(item))
-        return newList
-    else:
+def cleanDataObj(obj, silo):
+    if not isinstance(obj, (dict, list, OrderedDict)):
+        fieldToType = getColToTypeDict(silo)
+        if type(obj) == str or type(obj) == unicode:
+            obj = smart_str(obj, strings_only=True).strip()
+        if fieldToType.get(obj, 'string') == 'int':
+            try:
+                obj = int(obj)
+            except ValueError as e:
+                pass
+        if fieldToType.get(obj, 'string') == 'double':
+            try:
+                obj = float(obj)
+            except ValueError as e:
+                pass
         return obj
+
+    if isinstance(obj, list):
+        return [cleanDataObj(v, silo) for v in obj]
+
+    return {cleanKey(k): cleanDataObj(v, silo) for k,v in obj.items()}
 
 
 def cleanKey(key):
+    if key == "" or key is None or key == "silo_id":
+        return key
+    elif key == "id" or key == "_id": key = "user_assigned_id"
+    elif key == "edit_date": key = "editted_date"
+    elif key == "create_date": key = "created_date"
     key = ' '.join(key.split())
     key = key.replace(".", "_").replace("$", "USD")
     try:
