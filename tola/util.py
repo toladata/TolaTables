@@ -151,17 +151,13 @@ def saveDataToSilo(silo, data, read=-1, user=None):
                 continue
         else:
             lvs = LabelValueStore()
-<<<<<<< HEAD
+
             lvs.silo_id = silo.pk
             lvs.create_date = timezone.now()
             lvs.read_id = read_source_id
-=======
->>>>>>> 0caf78513c95399d98571af053064da67d0ebcce
 
         counter = 0
-        # set the fields in the curernt document and save it
 
-<<<<<<< HEAD
         row = cleanDataObj(row, silo)
 
         for key, val in row.iteritems():
@@ -181,27 +177,6 @@ def saveDataToSilo(silo, data, read=-1, user=None):
             #         val = float(val)
             #     except ValueError as e:
             #         continue
-=======
-        row = cleanDataObj(row)
-
-        for key, val in row.iteritems():
-            if key == "" or key is None or key == "silo_id": continue
-            elif key == "id" or key == "_id": key = "user_assigned_id"
-            elif key == "edit_date": key = "editted_date"
-            elif key == "create_date": key = "created_date"
-            if type(val) == str or type(val) == unicode:
-                val = smart_str(val, strings_only=True).strip()
-            if fieldToType.get(key, 'string') == 'int':
-                try:
-                    val = int(val)
-                except ValueError as e:
-                    continue
-            if fieldToType.get(key, 'string') == 'double':
-                try:
-                    val = float(val)
-                except ValueError as e:
-                    continue
->>>>>>> 0caf78513c95399d98571af053064da67d0ebcce
 
             if not isinstance(key, tuple):
                 if key not in keys:
@@ -216,7 +191,7 @@ def saveDataToSilo(silo, data, read=-1, user=None):
     return res
 
 
-<<<<<<< HEAD
+
 def cleanDataObj(obj, silo):
     if not isinstance(obj, (dict, list, OrderedDict)):
         fieldToType = getColToTypeDict(silo)
@@ -238,17 +213,6 @@ def cleanDataObj(obj, silo):
         return [cleanDataObj(v, silo) for v in obj]
 
     return {cleanKey(k): cleanDataObj(v, silo) for k,v in obj.items()}
-=======
-def cleanDataObj(obj):
-    if not isinstance(obj, (dict, list)):
-        if isinstance(obj, basestring): return obj.strip()
-        return obj
-
-    if isinstance(obj, list):
-        return [cleanDataObj(v) for v in obj]
-
-    return {cleanKey(k): cleanDataObj(v) for k,v in obj.items()}
->>>>>>> 0caf78513c95399d98571af053064da67d0ebcce
 
 
 def cleanKey(key):
