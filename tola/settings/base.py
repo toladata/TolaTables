@@ -324,9 +324,14 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
-        'silo.tests': {
+        'silo': {
             'handlers': ['file', 'console'],
-            'level': 'ERROR',
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'tola': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
             'propagate': True,
         },
     },
