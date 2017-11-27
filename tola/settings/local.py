@@ -53,38 +53,6 @@ except KeyError:
         }
     }
     print("DATABASES: {}".format(DATABASES))
-
-############ MONGO DB #####################
-import mongoengine
-from mongoengine import register_connection
-register_connection(alias='default', name='tola')
-
-
-try:
-    MONGODB_HOST = os.environ['TOLATABLES_DB_HOST']
-    mongoengine.connect(
-        os.environ['TOLATABLES_MONGODB_NAME'],
-        username=os.environ['TOLATABLES_MONGODB_USER'],
-        password=os.environ['TOLATABLES_MONGODB_PASS'],
-        host=os.environ['TOLATABLES_MONGODB_HOST'],
-        port=int(os.getenv('TOLATABLES_MONGODB_PORT', 27017)),
-        alias='default'
-    )
-except KeyError:
-    # Fallback for tests without environment variables configured
-    # Depends on os.environ for correct functionality
-    MONGODB_HOST = "localhost"
-    mongoengine.connect(
-        "tola",
-        username="",
-        password="",
-        host="",
-        port=27017,
-        alias='default'
-    )
-    print("DATABASES: {}".format(DATABASES))
-################ END OF MONGO DB #######################
-
 ########## END DATABASE CONFIGURATION
 
 # Hosts/domain names that are valid for this site
@@ -164,15 +132,6 @@ TEMPLATES = [
     },
 ]
 
-
-########## GOOGLE AUTH
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.getenv('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.getenv('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET')
-
-SOCIAL_AUTH_MICROSOFT_GRAPH_RESOURCE = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_RESOURCE')
-SOCIAL_AUTH_MICROSOFT_GRAPH_KEY = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_KEY')
-SOCIAL_AUTH_MICROSOFT_GRAPH_SECRET = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_SECRET')
-SOCIAL_AUTH_MICROSOFT_GRAPH_REDIRECT_URL = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_REDIRECT_URL')
 
 ACTIVITY_URL = os.getenv('ACTIVITY_URL')
 TABLES_URL = os.getenv('TABLES_URL')

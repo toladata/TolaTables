@@ -72,6 +72,8 @@ urlpatterns =[
     url(r'^identifyPII/(?P<silo_id>\w+)/$', views.identifyPII, name='identifyPII'),
     url(r'^source_remove/(?P<silo_id>\w+)/(?P<read_id>\w+)/$', views.removeSource, name='removeSource'),
 
+    url(r'^create_customform', views.create_customform, name='createCustomForm'),
+
     url(r'^merge/(?P<id>\w+)/$', views.mergeForm, name='mergeForm'),
     url(r'^merge_columns', views.mergeColumns, name='mergeColumns'),
     url(r'^doMerge', views.doMerge, name='doMerge'),

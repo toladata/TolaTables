@@ -9,8 +9,10 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from datetime import datetime
 from django.conf import settings
+from mongoengine import DynamicDocument, IntField, DateTimeField
 from rest_framework.authtoken.models import Token
 import uuid
+
 
 #New user created generate a token
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
@@ -379,12 +381,12 @@ class Dashboard(models.Model):
         return self.name
 
 
-
 class DeletedSilos(models.Model):
     user = models.ForeignKey(User)
     deleted_time = models.DateTimeField()
     silo_name_id = models.CharField(max_length=255)
     silo_description = models.CharField(max_length=255,blank=True,null=True)
+
 
 class DeletedSilosAdmin(admin.ModelAdmin):
     list_display = ('user', 'silo_name_id', 'silo_description','deleted_time')
@@ -448,7 +450,6 @@ class UniqueFields(models.Model):
         return self.name
 
 
-from mongoengine import *
 class LabelValueStore(DynamicDocument):
     silo_id = IntField()
     read_id = IntField(default=-1)
