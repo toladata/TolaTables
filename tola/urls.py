@@ -117,6 +117,8 @@ urlpatterns =[
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
+urlpatterns
+
 #add app domains and add the data types to the read_type.json
 folders = getImportApps()
 for app in folders:
