@@ -1184,6 +1184,13 @@ def editColumns(request,id):
                             },
                         False
                     )
+                    columnObj = json.loads(silo.columns)
+                    for column in columnObj:
+                        if column['name'] == label:
+                            column['name'] = value
+                            break
+                    silo.columns = json.dumps(columnObj)
+                    silo.save()
                 #if we see delete then it's a check box to delete that column
                 elif "_delete" in label and value == 1:
                     column = label.replace("_delete", "")
