@@ -12,4 +12,4 @@ RUN pip install -r requirements.txt
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py migrate; nginx; python manage.py runserver 127.0.0.1:8888"]
+CMD ["sh", "-c", "python manage.py migrate; nginx; python manage.py runserver --insecure 127.0.0.1:8888"]
