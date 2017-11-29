@@ -379,8 +379,3 @@ GOOGLE_REDIRECT_URL = 'http://localhost:8000/oauth2callback/'
 ########## Celery CONFIGURATION
 CELERY_RESULT_BACKEND = 'amqp'
 CELERY_CACHE_BACKEND = 'django-cache'
-
-ACTIVITY_URL = "http://master.toladatav2.app.tola.io"
-TABLES_URL = "http://master.tolatables.app.tola.io"
-
-

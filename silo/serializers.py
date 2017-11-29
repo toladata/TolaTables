@@ -1,20 +1,29 @@
-from django.forms import widgets
 from rest_framework import serializers
-from silo.models import Silo, Read, ReadType, Tag, Organization, Country, WorkflowLevel1, WorkflowLevel2
+
+from django.contrib.auth.models import User, Group
+
 from tola.models import LoggedUser
-from django.contrib.auth.models import User
-import json
+from silo.models import (Silo, Read, ReadType, Tag, Organization, Country,
+                         TolaUser, WorkflowLevel1, WorkflowLevel2)
+
+
+class GroupSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Group
+        fields = '__all__'
 
 
 class PublicSiloSerializer(serializers.HyperlinkedModelSerializer):
     data = serializers.SerializerMethodField()
+
     class Meta:
         model = Silo
         fields = ('owner', 'name', 'reads', 'description', 'create_date', 'id', 'data','shared','tags','public')
 
     def get_data(self, obj):
         link = "/api/public_tables/" + str(obj.id) + "/data"
-        return (self.context['request'].build_absolute_uri(link))
+        return self.context['request'].build_absolute_uri(link)
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
@@ -22,6 +31,14 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = User
         fields = ('url', 'username', 'email', 'is_staff')
+
+
+class TolaUserSerializer(serializers.HyperlinkedModelSerializer):
+
+    class Meta:
+        model = TolaUser
+        fields = '__all__'
+        depth = 1
 
 
 class SiloSerializer(serializers.HyperlinkedModelSerializer):
@@ -37,20 +54,13 @@ class SiloSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_data(self, obj):
         link = "/api/silo/" + str(obj.id) + "/data"
-        return (self.context['request'].build_absolute_uri(link))
+        return self.context['request'].build_absolute_uri(link)
 
 
 class TagSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Tag
         fields = ('name', 'owner')
-
-
-class UserSerializer(serializers.HyperlinkedModelSerializer):
-
-    class Meta:
-        model = User
-        fields = ('url', 'username', 'email', 'is_staff')
 
 
 class ReadSerializer(serializers.HyperlinkedModelSerializer):
@@ -72,7 +82,7 @@ class SiloModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Silo
         fields = ('name', 'description', 'create_date', 'public')
-        depth =1
+        depth = 1
 
 
 class LoggedUserSerializer(serializers.ModelSerializer):
@@ -108,10 +118,3 @@ class WorkflowLevel2Serializer(serializers.ModelSerializer):
     class Meta:
         model = WorkflowLevel2
         fields = '__all__'
-
-
-class LoggedUserSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = LoggedUser
-        fields = ('username', 'country', 'email')

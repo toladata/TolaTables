@@ -1,21 +1,24 @@
 from django.shortcuts import get_object_or_404
 from django.contrib import messages
-from django import forms
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import logout
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from django.contrib import auth
-
+from django.contrib.auth.models import Group
 from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from silo.models import TolaUser,TolaSites
+from silo.views import ROLE_VIEW_ONLY
+from silo.serializers import TolaUserSerializer
 from tola.forms import RegistrationForm, NewUserRegistrationForm, NewTolaUserRegistrationForm
 
 from rest_framework_swagger.renderers import OpenAPIRenderer, SwaggerUIRenderer
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework import response, schemas
+from rest_framework.response import Response
+from rest_framework.renderers import JSONRenderer
+from rest_framework import status
+
 
 @api_view()
 @renderer_classes([OpenAPIRenderer, SwaggerUIRenderer])
@@ -24,32 +27,33 @@ def schema_view(request):
     return response.Response(generator.get_schema(request=request))
 
 
+@api_view(['POST'])
 def register(request):
     """
     Register a new User profile using built in Django Users Model
     """
-    privacy = TolaSites.objects.get(id=1)
-    if request.method == 'POST':
-        uf = NewUserRegistrationForm(request.POST)
-        tf = NewTolaUserRegistrationForm(request.POST)
+    if request.user.is_superuser:
+        form_user = NewUserRegistrationForm(request.POST)
+        form_tolauser = NewTolaUserRegistrationForm(request.POST)
 
-        if uf.is_valid() * tf.is_valid():
-            user = uf.save()
-            user.groups.add(Group.objects.get(name='ViewOnly'))
+        if form_user.is_valid() and form_tolauser.is_valid() and \
+                request.POST.get('tola_user_uuid'):
+            user = form_user.save()
+            user.groups.add(Group.objects.get(name=ROLE_VIEW_ONLY))
 
-            tolauser = tf.save(commit=False)
+            tolauser = form_tolauser.save(commit=False)
             tolauser.user = user
+            tolauser.organization = form_tolauser.cleaned_data.get('org')
+            tolauser.name = ' '.join([user.first_name, user.last_name]).strip()
+            tolauser.tola_user_uuid = request.POST.get('tola_user_uuid')
             tolauser.save()
-            messages.error(request, 'Thank you, You have been registered as a new user.', fail_silently=False)
-            return HttpResponseRedirect("/")
-    else:
-        uf = NewUserRegistrationForm()
-        tf = NewTolaUserRegistrationForm()
+            serializer = TolaUserSerializer(
+                tolauser, context={'request': request})
+            content = JSONRenderer().render(serializer.data)
+            return Response(content, status=status.HTTP_201_CREATED)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
-    return render(request, "registration/register.html", {
-        'userform': uf,'tolaform': tf, 'helper': NewTolaUserRegistrationForm.helper,'privacy':privacy
-    })
-
+    return Response(status=status.HTTP_403_FORBIDDEN)
 
 
 def profile(request):
