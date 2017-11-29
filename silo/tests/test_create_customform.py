@@ -6,7 +6,7 @@ from silo.tests import MongoTestCase
 from silo.views import create_customform
 
 
-class ReadTest(TestCase, MongoTestCase):
+class CustomFormTest(TestCase, MongoTestCase):
     def setUp(self):
         factories.ReadType()
         self.tola_user = factories.TolaUser(user=factories.User())
