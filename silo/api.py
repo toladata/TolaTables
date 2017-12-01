@@ -1,29 +1,22 @@
 import json
+import django_filters
 
 from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
-from django.contrib.auth.models import User
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 
-from rest_framework import renderers, viewsets,filters,permissions
-
-from .models import Silo, LabelValueStore, Country, WorkflowLevel1, WorkflowLevel2, TolaUser
-from .serializers import *
-from silo.permissions import *
-from django.contrib.auth.models import User
-from rest_framework.decorators import detail_route, list_route
+from rest_framework import viewsets, filters, permissions
+from rest_framework.decorators import detail_route
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import pagination
-from rest_framework.views import APIView
 from rest_framework_json_api.parsers import JSONParser
 from rest_framework_json_api.renderers import JSONRenderer
 
-from django_filters.rest_framework import DjangoFilterBackend
-import django_filters
-
+from .serializers import *
+from .models import (Silo, LabelValueStore, Country, WorkflowLevel1,
+                     WorkflowLevel2, TolaUser)
+from silo.permissions import *
 from tola.util import getSiloColumnNames, getCompleteSiloColumnNames
 
-
-import django_filters
 
 """
 def silo_data_api(request, id):
@@ -34,6 +27,43 @@ def silo_data_api(request, id):
     json_data = json.loads(data)
     return JsonResponse(json_data, safe=False)
 """
+
+
+class GroupViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    A ViewSet for listing or retrieving users.
+    """
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+
+
+class TolaUserViewSet(viewsets.ModelViewSet):
+    """
+    A ViewSet for listing or retrieving TolaUsers.
+    """
+    def list(self, request):
+        # Use this queryset or the django-filters lib will not work
+        queryset = self.filter_queryset(self.get_queryset())
+        if not request.user.is_superuser:
+            organization_id = TolaUser.objects.\
+                values_list('organization_id', flat=True).\
+                get(user=request.user)
+            queryset = queryset.filter(organization_id=organization_id)
+        serializer = TolaUserSerializer(
+            instance=queryset, context={'request': request}, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, pk=None):
+        queryset = self.queryset
+        user = get_object_or_404(queryset, pk=pk)
+        serializer = TolaUserSerializer(instance=user,
+                                        context={'request': request})
+        return Response(serializer.data)
+
+    filter_fields = ('organization__id',)
+    filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
+    queryset = TolaUser.objects.all()
+    serializer_class = TolaUserSerializer
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
