@@ -3,6 +3,7 @@ import django_filters
 
 from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 from django.db.models import Q
+from django.utils import timezone
 from django.shortcuts import get_object_or_404
 
 from rest_framework import viewsets, filters, permissions
@@ -10,10 +11,11 @@ from rest_framework.decorators import detail_route
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_json_api.parsers import JSONParser
 from rest_framework_json_api.renderers import JSONRenderer
+from rest_framework import mixins, status
 
 from .serializers import *
 from .models import (Silo, LabelValueStore, Country, WorkflowLevel1,
-                     WorkflowLevel2, TolaUser)
+                     WorkflowLevel2, TolaUser, Read, ReadType)
 from silo.permissions import *
 from tola.util import getSiloColumnNames, getCompleteSiloColumnNames
 
@@ -144,6 +146,99 @@ class PublicSiloViewSet(viewsets.ReadOnlyModelViewSet):
         return JsonResponse(json_data, safe=False)
 
 
+class CustomFormViewSet(mixins.CreateModelMixin,
+                        mixins.UpdateModelMixin,
+                        viewsets.GenericViewSet):
+    serializer_class = SiloSerializer
+    queryset = Silo.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        """
+        Create a table for the form instance in Activity
+        """
+        if not request.user.is_superuser:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            level1_uuid = request.POST['level1_uuid']
+            tola_user_uuid = request.POST['tola_user_uuid']
+            wkflvl1 = WorkflowLevel1.objects.get(level1_uuid=level1_uuid)
+            tola_user = TolaUser.objects.get(tola_user_uuid=tola_user_uuid)
+            table_name = request.POST['name'].lower().replace(' ', '_')
+            table_name += '_' + wkflvl1.name.lower().replace(' ', '_')
+            read_name = request.POST['name']
+            columns = request.POST['fields']
+        except (WorkflowLevel1.DoesNotExist, TolaUser.DoesNotExist, KeyError) \
+                as e:
+            return Response(e, status=status.HTTP_400_BAD_REQUEST)
+        description = request.POST.get('description', '')
+
+        read = Read.objects.create(
+            owner=tola_user.user,
+            type=ReadType.objects.get(read_type='CustomForm'),
+            read_name=read_name,
+        )
+        silo = Silo.objects.create(
+            owner=tola_user.user,
+            name=table_name,
+            description=description,
+            organization=tola_user.organization,
+            public=False,
+            columns=columns,
+        )
+
+        silo.reads.add(read)
+        silo.workflowlevel1.add(wkflvl1)
+        read_source_id = read.id
+
+        lvs = LabelValueStore()
+        lvs.silo_id = silo.pk
+        lvs.create_date = timezone.now()
+        lvs.read_id = read_source_id
+        lvs.save()
+
+        serializer = self.serializer_class(silo, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Update only some specific info from silo
+        """
+        if not request.user.is_superuser:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        silo = self.get_object()
+        wkflvl1 = silo.workflowlevel1.first()
+        read = silo.reads.first()
+
+        try:
+            table_name = request.data['name'].lower().replace(' ', '_')
+            table_name += '_' + wkflvl1.name.lower().replace(' ', '_')
+            read_name = request.data['name']
+            columns = request.data['fields']
+        except KeyError as e:
+            return Response(e, status=status.HTTP_400_BAD_REQUEST)
+        description = request.data.get('description', '')
+
+        read.read_name = read_name
+        read.save()
+
+        silo.name = table_name
+        silo.description = description
+        silo.columns = columns
+        silo.save()
+
+        serializer = self.get_serializer(silo)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @detail_route(methods=['get'],)
+    def has_data(self, request, pk):
+        if not request.user.is_superuser:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        silo = self.get_object()
+        return Response(silo.data_count > 1, status=status.HTTP_200_OK)
+
+
 class SilosByUser(viewsets.ReadOnlyModelViewSet):
     """
     Lists all silos by a user; returns data in a format
@@ -189,8 +284,6 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
                 return Silo.objects.all()
 
             return Silo.objects.filter(Q(owner=user) | Q(public=True))
-
-
 
     @detail_route()
     def data(self, request, id):
