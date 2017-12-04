@@ -16,6 +16,7 @@ from bson import CodecOptions, SON
 from bson.json_util import dumps
 
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse_lazy
 from django.http import HttpResponseBadRequest,\
     HttpResponse, HttpResponseRedirect, JsonResponse
@@ -837,7 +838,13 @@ def index(request):
         get_reads = ReadType.objects.annotate(num_type=Count('read')).order_by('-num_type')[:4].values('read','num_type')
         get_tags = Tag.objects.filter(owner=user).annotate(num_tag=Count('silos')).order_by('-num_tag')[:8].values('silos','num_tag')
     else:
-        return HttpResponseRedirect(settings.ACTIVITY_URL)
+        if settings.ACTIVITY_URL:
+            return HttpResponseRedirect(settings.ACTIVITY_URL)
+        else:
+            raise ImproperlyConfigured(
+                "ACTIVITY_URL variable not set. Please, set a value so the "
+                "user can log in. If you are in a Dev environment, go to "
+                "/login/ in order to sign in.")
     get_public = Silo.objects.filter(public=1)
     site = TolaSites.objects.get(site_id=1)
     response = render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_shared':count_shared, 'count_public': count_public, 'get_reads': get_reads, 'get_tags': get_tags, 'site': site})
