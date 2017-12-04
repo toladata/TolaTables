@@ -2,6 +2,13 @@ from django.conf import settings
 from silo.models import Silo
 
 
+def google_oauth_settings(self):
+    return {
+        'GOOGLE_API_CLIENT_ID': settings.GOOGLE_API_CLIENT_ID,
+        'GOOGLE_API_KEY': settings.GOOGLE_API_KEY,
+    }
+
+
 def get_silos(self):
     if self.user.is_authenticated():
         all_my_silos = Silo.objects.filter(owner=self.user)
