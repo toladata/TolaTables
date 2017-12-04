@@ -8,6 +8,7 @@ import logging
 import json
 from collections import OrderedDict
 from requests.auth import HTTPDigestAuth
+import tempfile
 
 from pymongo import MongoClient
 
@@ -22,18 +23,12 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.utils.encoding import smart_str, smart_text
 from django.utils.text import Truncator
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.views.decorators.csrf import csrf_protect
-
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count
 from django.contrib.auth import logout
-
-from rest_framework import status
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework.renderers import JSONRenderer
+from django.core import files
 
 from silo.custom_csv_dict_reader import CustomDictReader
 from tola.util import importJSON, saveDataToSilo, getSiloColumnNames, \
@@ -45,7 +40,7 @@ from commcare.tasks import fetchCommCareData
 from .serializers import *
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, \
     Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, \
-    DeletedSilos, FormulaColumn, WorkflowLevel1
+    DeletedSilos, FormulaColumn
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, \
     NewColumnForm, EditColumnForm, OnaLoginForm
 
@@ -561,7 +556,7 @@ def providerLogout(request,provider):
     return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
 
-#DELETE-SILO
+# DELETE-SILO
 @csrf_protect
 def deleteSilo(request, id):
     owner = Silo.objects.get(id = id).owner
@@ -689,9 +684,6 @@ def showRead(request, id):
         'get_tables': get_tables,
         'access_token': access_token
     })
-
-import tempfile
-from django.core import files
 
 
 @login_required
@@ -878,51 +870,6 @@ def listSilos(request):
 
     public_silos = Silo.objects.filter(Q(public=True) & ~Q(owner=user)).prefetch_related("reads")
     return render(request, 'display/silos.html',{'own_silos':own_silos, "shared_silos": shared_silos, "public_silos": public_silos})
-
-
-@api_view(['POST'])
-def create_customform(request):
-    """
-    Create a table for the form instance in Activity
-    """
-    try:
-        table_name = request.data['name'].lower().replace(' ', '_')
-        wkflvl1 = WorkflowLevel1.objects.get(level1_uuid=request.data['level1_uuid'])
-        read_name = request.data['name']
-        description = request.data.get('description', '')
-        public = request.data['is_public']
-        columns = request.data['fields']
-    except KeyError:
-        return Response(status=status.HTTP_400_BAD_REQUEST)
-
-    read = Read.objects.create(
-        owner=request.user,
-        type=ReadType.objects.get(read_type='CustomForm'),
-        read_name=read_name,
-    )
-    silo = Silo.objects.create(
-        owner=request.user,
-        name=table_name,
-        description=description,
-        organization=request.user.tola_user.organization,
-        public=public,
-        columns=json.dumps(columns),
-    )
-
-    silo.reads.add(read)
-    silo.workflowlevel1.add(wkflvl1)
-    read_source_id = read.id
-
-    lvs = LabelValueStore()
-    lvs.silo_id = silo.pk
-    lvs.create_date = timezone.now()
-    lvs.read_id = read_source_id
-    lvs.save()
-
-    serializer = SiloSerializer(silo, context={'request': request})
-    content = JSONRenderer().render(serializer.data)
-
-    return Response(content, status=status.HTTP_201_CREATED)
 
 
 def addUniqueFiledsToSilo(request):
