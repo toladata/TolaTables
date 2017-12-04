@@ -56,7 +56,7 @@ def profile(request):
     Update a User profile using built in Django Users Model if the user is logged in
     otherwise redirect them to registration version
     """
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         obj = get_object_or_404(TolaUser, user=request.user)
         form = RegistrationForm(request.POST or None, instance=obj,initial={'username': request.user})
 
@@ -86,6 +86,6 @@ class BoardView(LoginRequiredMixin, TemplateView):
 
     def render_to_response(self, context, **response_kwargs):
         response = super(BoardView, self).render_to_response(context, **response_kwargs)
-        if self.request.user.is_authenticated():
+        if self.request.user.is_authenticated:
             response.set_cookie(key='token', value=self.request.user.auth_token)
         return response
