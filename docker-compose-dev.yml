@@ -1,0 +1,73 @@
+version: "2.1"
+
+services:
+  postgres:
+    image: postgres:9.6
+    healthcheck:
+      test: "pg_isready -h localhost -p 5432 -q -U postgres"
+      interval: 3s
+      timeout: 5s
+      retries: 5
+    environment:
+      - POSTGRES_DB=tolatables
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+    volumes:
+      - /var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+    restart: always
+
+  mongo:
+    container_name: mongo
+    healthcheck:
+      test: "mongo 127.0.0.1:27017 --eval 'db.stats().ok'  --quiet || exit 1"
+      interval: 3s
+      timeout: 10s
+      retries: 3
+    image: mongo:3.4.10
+    environment:
+      - MONGO_LOG_DIR=/dev/null
+    command: mongod
+    ports:
+      - "27017:27017"
+
+  mongoClientTemp:
+   image: mongo:3.4.10
+   container_name: mongoClientTemp
+   command: mongo --host mongo --eval "db.getSiblingDB('tolatables').createUser({user:'tolatables', pwd:'tolatables', roles:[{role:'dbOwner', db:'tolatables'}]}); db.getSiblingDB('test').createUser({user:'test', pwd:'test', roles:[{role:'dbOwner', db:'test'}]});"
+   depends_on:
+    - mongo
+
+  tables:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: tables
+    image: tables
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - mongoClientTemp
+    environment:
+      - DJANGO_SETTINGS_MODULE=tola.settings.dev
+      - TOLA_DEBUG=True
+      - TOLA_HOSTNAME=127.0.0.1,localhost
+      - TOLATABLES_DB_ENGINE=django.db.backends.postgresql_psycopg2
+      - TOLATABLES_DB_NAME=tolatables
+      - TOLATABLES_DB_USER=root
+      - TOLATABLES_DB_PASS=root
+      - TOLATABLES_DB_HOST=postgres
+      - TOLATABLES_DB_PORT=5432
+      - TOLATABLES_MONGODB_NAME=tolatables
+      - TOLATABLES_MONGODB_USER=tolatables
+      - TOLATABLES_MONGODB_PASS=tolatables
+      - TOLATABLES_MONGODB_HOST=mongo
+      - TOLATABLES_MONGODB_PORT=27017
+      - TOLA_ACTIVITY_API_URL=
+      - TOLA_ACTIVITY_API_TOKEN=
+      - GOOGLE_API_CLIENT_ID=1090285679254-sle9dnkig5lv0gvnvgo5bd7js2i2u9cl.apps.googleusercontent.com
+      - GOOGLE_API_KEY=AIzaSyCnXYlzg5GBjOOk-_Mh8s36aF7OqIalyqE

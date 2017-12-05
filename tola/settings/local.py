@@ -1,8 +1,4 @@
-from os.path import join, normpath
-import os
 from base import *
-
-#from mongoengine import connect
 
 ########## MANAGER CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#admins
@@ -17,7 +13,7 @@ MANAGERS = ADMINS
 
 ########## DEBUG CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#debug
-DEBUG = True
+DEBUG = True if os.getenv('TOLA_DEBUG') == 'True' else False
 
 ########## END DEBUG CONFIGURATION
 
@@ -36,56 +32,27 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 ########## DATABASE CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#databases
-DATABASES = {
-    'default': {
-        'ENGINE': os.getenv('TOLATABLES_DB_ENGINE'),
-        'NAME': os.getenv('TOLATABLES_DB_NAME'),
-        'USER': os.getenv('TOLATABLES_DB_USER'),
-        'PASSWORD': os.getenv('TOLATABLES_DB_PASS'),
-        'HOST': os.getenv('TOLATABLES_DB_HOST'),
-        'PORT': int(os.getenv('TOLATABLES_DB_PORT')),
-    }
-}
-"""
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'tolatables',
-    }
-}"""
-
-############ MONGO DB #####################
-import mongoengine
-from mongoengine import register_connection
-register_connection(alias='default', name='tola')
-
-
 try:
-    MONGODB_HOST = os.environ['TOLATABLES_DB_HOST']
-    mongoengine.connect(
-        os.environ['TOLATABLES_MONGODB_NAME'],
-        username=os.environ['TOLATABLES_MONGODB_USER'],
-        password=os.environ['TOLATABLES_MONGODB_PASS'],
-        host=os.environ['TOLATABLES_MONGODB_HOST'],
-        port=int(os.getenv('TOLATABLES_MONGODB_PORT', 27017)),
-        alias='default'
-    )
+    DATABASES = {
+        'default': {
+            'ENGINE': os.environ["TOLATABLES_DB_ENGINE"],
+            'NAME': os.environ["TOLATABLES_DB_NAME"],
+            'USER': os.environ["TOLATABLES_DB_USER"],
+            'PASSWORD': os.environ["TOLATABLES_DB_PASS"],
+            'HOST': os.environ["TOLATABLES_DB_HOST"],
+            'PORT': os.getenv('TOLATABLES_DB_PORT', 5432),
+        }
+    }
 except KeyError:
     # Fallback for tests without environment variables configured
     # Depends on os.environ for correct functionality
-    MONGODB_HOST = "localhost"
-    mongoengine.connect(
-        "tola",
-        username="",
-        password="",
-        host="",
-        port=27017,
-        alias='default'
-    )
-
-TOLATABLES_MONGODB_NAME = os.environ['TOLATABLES_MONGODB_NAME']
-################ END OF MONGO DB #######################
-
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': 'tolatables',
+        }
+    }
+    print("DATABASES: {}".format(DATABASES))
 ########## END DATABASE CONFIGURATION
 
 # Hosts/domain names that are valid for this site
@@ -130,10 +97,15 @@ LDAP_USER_GROUP = 'xxxx'
 LDAP_ADMIN_GROUP = 'xxxx-xxx'
 #ERTB_ADMIN_URL = 'https://xxxx.example.org/xx-xx-dev/'
 
+try:
+    template_dir = os.environ['TOLATABLES_TEMPLATE_DIR']
+except KeyError:
+    template_dir ="templates2"
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [normpath(join(SITE_ROOT, os.getenv('TOLATABLES_TEMPLATE_DIR'))),],
+        'DIRS': [normpath(join(SITE_ROOT, 'templates2')), ],
         #'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -147,8 +119,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'tola.context_processors.get_silos',
                 'tola.context_processors.get_servers',
-                'tola.context_processors.get_google_credentials',
-                'tola.context_processors.google_analytics',
+                'tola.context_processors.google_oauth_settings',
             ],
             'builtins': [
                 'django.contrib.staticfiles.templatetags.staticfiles',
@@ -163,30 +134,11 @@ TEMPLATES = [
 ]
 
 
-########## GOOGLE AUTH
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.getenv('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.getenv('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET')
-
-SOCIAL_AUTH_MICROSOFT_GRAPH_RESOURCE = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_RESOURCE')
-SOCIAL_AUTH_MICROSOFT_GRAPH_KEY = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_KEY')
-SOCIAL_AUTH_MICROSOFT_GRAPH_SECRET = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_SECRET')
-SOCIAL_AUTH_MICROSOFT_GRAPH_REDIRECT_URL = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_REDIRECT_URL')
-
-ACTIVITY_URL = "http://master.toladatav2.app.tola.io"
-TABLES_URL = "http://master.tolatables.app.tola.io"
+ACTIVITY_URL = os.getenv('ACTIVITY_URL')
+TABLES_URL = os.getenv('TABLES_URL')
 
 SOCIAL_AUTH_TOLA_KEY = os.getenv('SOCIAL_AUTH_TOLA_KEY')
 SOCIAL_AUTH_TOLA_SECRET = os.getenv('SOCIAL_AUTH_TOLA_SECRET')
 
-GOOGLE_API_KEY = "ReplaceThisWithARealKey"
-
-########## OTHER SETTINGS ###
-
-GOOGLE_ANALYTICS_PROPERTY_ID = os.getenv('GOOGLE_ANALYTICS_PROPERTY_ID')
-
-
-# This allows for additional settings to be kept in a local file
-try:
-    from local_secret import *
-except ImportError:
-    pass
+GOOGLE_API_CLIENT_ID = os.getenv('GOOGLE_API_CLIENT_ID')
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')

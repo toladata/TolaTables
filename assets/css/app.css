@@ -39,12 +39,11 @@ button:focus,
 
 .navbar-tola {
   /* TolaTables Brand Color: */
-  background-color: rgb(77, 178, 209);
-  border: none;
+  background-color: #f5f5f5;
 }
 
 .navbar-tola .navbar-nav > li > a {
-  color: #fff;
+  color: #15A0B2;
 }
 
 .navbar-tola .navbar-nav > li > a:hover,
@@ -53,7 +52,7 @@ button:focus,
 .navbar-tola .navbar-nav > li.active > a:hover,
 .navbar-tola .navbar-nav > li.active > a:focus,
 .navbar-tola .navbar-nav .dropdown.open a.dropdown-toggle {
-  color: #fff;
+  color: #15A0B2;
   background-color: rgba(0, 0, 0, .15);
 }
 

@@ -315,6 +315,7 @@ def addColsToSilo(silo, columns, col_types = {}):
     """
     #make sure there are no duplicate columns
     columns_set = set(columns)
+    print columns
     if len(columns_set) != len(columns):
         raise ValueError('Duplicate columns are not allowed')
     silo_cols = json.loads(silo.columns)
@@ -376,30 +377,20 @@ def user_to_tola(backend, user, response, *args, **kwargs):
     # Add a google auth user to the tola profile
     default_country = Country.objects.first()
 
-    if response.get('tola_user'):
-        remote_user = response.get('tola_user')
+    # Only import fields to Tables that are required
+    tola_user_defaults = {}
+    tola_user_defaults['tola_user_uuid'] = remote_user['tola_user_uuid']
+    tola_user_defaults['name'] = remote_user['name']
+    tola_user_defaults['employee_number'] = remote_user['employee_number']
+    tola_user_defaults['title'] = remote_user['title']
+    tola_user_defaults['privacy_disclaimer_accepted'] = remote_user['privacy_disclaimer_accepted']
 
-        remote_country = response.get('country')
-
-        # Only import fields to Tables that are required
-        tola_user_defaults = {}
-        tola_user_defaults['tola_user_uuid'] = remote_user['tola_user_uuid']
-        tola_user_defaults['name'] = remote_user['name']
-        tola_user_defaults['employee_number'] = remote_user['employee_number']
-        tola_user_defaults['title'] = remote_user['title']
-        tola_user_defaults['privacy_disclaimer_accepted'] = remote_user['privacy_disclaimer_accepted']
-
-        remote_org = response.get('organization')
-        del remote_org['url']
-        del remote_org['industry']  # ignore for now
-        del remote_org['sector']  # ignore for now
-        organization, org_created = Organization.objects.update_or_create(remote_org,
-                                                                          organization_uuid=remote_org['organization_uuid'])
-        if type(remote_country) == dict:
-            del remote_country['zoom']
-            country, org_created = Country.objects.update_or_create(remote_country,
-                                                                  organization=organization)
-            tola_user_defaults['country'] = country
+    remote_org = response.get('organization')
+    del remote_org['url']
+    del remote_org['industry']  # ignore for now
+    del remote_org['sector']  # ignore for now
+    organization, org_created = Organization.objects.update_or_create(remote_org,
+                                                                      organization_uuid=remote_org['organization_uuid'])
 
 
         tola_user_defaults['organization'] = organization

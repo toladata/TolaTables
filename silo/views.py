@@ -1,67 +1,58 @@
 import datetime
 import time
-import json
+import requests
 import csv
 import base64
-import requests
 import re
-from requests.auth import HTTPDigestAuth
 import logging
-from operator import and_, or_
+import json
 from collections import OrderedDict
+from requests.auth import HTTPDigestAuth
 
-import pymongo
 from pymongo import MongoClient
-# from mongoengine.queryset.visitor import Q
 
-from bson.objectid import ObjectId
 from bson import CodecOptions, SON
 from bson.json_util import dumps
 
-from django.core.urlresolvers import reverse, reverse_lazy
-from django.http import HttpResponseForbidden,\
-    HttpResponseRedirect, HttpResponseNotFound, HttpResponseBadRequest,\
+from django.conf import settings
+from django.core.urlresolvers import reverse_lazy
+from django.http import HttpResponseBadRequest,\
     HttpResponse, HttpResponseRedirect, JsonResponse
-from django.shortcuts import render_to_response, get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.utils.encoding import smart_str, smart_text
 from django.utils.text import Truncator
-from django.db.models import Max, F, Q
+from django.db.models import Q
 from django.views.decorators.csrf import csrf_protect
-from django.template import RequestContext, Context
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
 from django.db.models import Count
+from django.contrib.auth import logout
 
-from rest_framework.authtoken.models import Token
-from celery import Celery
+from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.renderers import JSONRenderer
 
 from silo.custom_csv_dict_reader import CustomDictReader
-from .models import GoogleCredentialsModel
-from gviews_v4 import import_from_gsheet_helper
-from tola.util import importJSON, saveDataToSilo, getSiloColumnNames,\
-                        parseMathInstruction, calculateFormulaColumn, makeQueryForHiddenRow,\
-                        getNewestDataDate, addColsToSilo, deleteSiloColumns, hideSiloColumns, \
-                        getCompleteSiloColumnNames, setSiloColumnType, getColToTypeDict
-
+from tola.util import importJSON, saveDataToSilo, getSiloColumnNames, \
+    parseMathInstruction, calculateFormulaColumn, makeQueryForHiddenRow, \
+    getNewestDataDate, addColsToSilo, deleteSiloColumns, hideSiloColumns,  \
+    getCompleteSiloColumnNames, setSiloColumnType, getColToTypeDict
 
 from commcare.tasks import fetchCommCareData
-
-from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, DeletedSilos, FormulaColumn
-from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, NewColumnForm, EditColumnForm, OnaLoginForm
-import requests, os
-
-#to delete soon
-# from .models import siloHideFilter
+from .serializers import *
+from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, \
+    Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, \
+    DeletedSilos, FormulaColumn, WorkflowLevel1
+from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, \
+    NewColumnForm, EditColumnForm, OnaLoginForm
 
 logger = logging.getLogger("silo")
-db = getattr(MongoClient(settings.MONGODB_URI), settings.TOLATABLES_MONGODB_NAME)
+client = MongoClient(settings.MONGO_URI)
+db = client.get_database("tola")
+ROLE_VIEW_ONLY = 'ViewOnly'
 
-# To preserve fields order when reading BSON from MONGO
-opts = CodecOptions(document_class=SON)
-store = db.label_value_store.with_options(codec_options=opts)
 
 # fix now that not all mongo rows need to have the same column
 def mergeTwoSilos(mapping_data, lsid, rsid, msid):
@@ -531,7 +522,24 @@ def getOnaForms(request):
     if ona_token and auth_success:
         onaforms = requests.get(url_user_forms, headers={'Authorization': 'Token %s' % ona_token.token})
         data = json.loads(onaforms.content)
-        # print data
+        # check for records (very slow) may need to cache somehow or request count from Ona API endpoint
+        for x in data:
+            data_count = 0
+            ona_data = requests.get(x['url'], headers={'Authorization': 'Token %s' % ona_token.token})
+            data_to_count = json.loads(ona_data.content)
+            # check for existing read source
+            try:
+                check_read = Read.objects.all().filter(read_url=x['url'])
+                if check_read:
+                    x['silo'] = check_read
+                    print check_read
+                    print x['url']
+            except Read.DoesNotExist:
+                x['silo'] = None
+            # do count
+            for y in data_to_count:
+                data_count = data_count + 1
+            x['count'] = data_count
         if data:
             has_data = True
 
@@ -586,9 +594,6 @@ def deleteSilo(request, id):
         messages.error(request, "You do not have permission to delete this silo")
         return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
-from django.contrib.auth import logout
-from django.shortcuts import redirect
-
 
 @login_required
 def showRead(request, id):
@@ -607,6 +612,11 @@ def showRead(request, id):
         read_instance = None
         read_type = request.GET.get("type", "CSV")
         initial['type'] = ReadType.objects.get(read_type=read_type)
+
+    try:
+        get_tables = Silo.objects.all().filter(reads__id=id)
+    except Silo.DoesNotExist:
+        get_tables = None
 
     if read_type == "GSheet Import" or read_type == "ONA":
         excluded_fields = excluded_fields + ['username', 'password', 'file_data','autopush_frequency']
@@ -675,6 +685,7 @@ def showRead(request, id):
         'form': form,
         'read_id': id,
         'data': data,
+        'get_tables': get_tables,
         'access_token': access_token
     })
 
@@ -816,13 +827,10 @@ def getJSON(request):
         return render(request, 'read/file.html', {
             'form_action': reverse_lazy("getJSON"), 'get_silo': silos
         })
-#display
 
 
-#INDEX
+# INDEX
 def index(request):
-    #if request.COOKIES.get('auth_token', None):
-
     # get all of the table(silo) info for logged in user and public data
     if request.user.is_authenticated():
         user = User.objects.get(username__exact=request.user)
@@ -833,17 +841,10 @@ def index(request):
         count_public = Silo.objects.filter(owner=user).filter(public=1).count()
         count_shared = Silo.objects.filter(owner=user).filter(shared=1).count()
         # top 4 data sources and tags
-        get_reads = ReadType.objects.annotate(num_type=Count('read')).order_by('-num_type')[:4]
-        get_tags = Tag.objects.filter(owner=user).annotate(num_tag=Count('silos')).order_by('-num_tag')[:8]
+        get_reads = ReadType.objects.annotate(num_type=Count('read')).order_by('-num_type')[:4].values('read','num_type')
+        get_tags = Tag.objects.filter(owner=user).annotate(num_tag=Count('silos')).order_by('-num_tag')[:8].values('silos','num_tag')
     else:
-        get_silos = None
-        # count all public and private data sets
-        count_all = Silo.objects.count()
-        count_public = Silo.objects.filter(public=1).count()
-        count_shared = Silo.objects.filter(shared=1).count()
-        # top 4 data sources and tags
-        get_reads = ReadType.objects.annotate(num_type=Count('read')).order_by('-num_type')[:4]
-        get_tags = Tag.objects.annotate(num_tag=Count('silos')).order_by('-num_tag')[:8]
+        return HttpResponseRedirect(settings.ACTIVITY_URL)
     get_public = Silo.objects.filter(public=1)
     site = TolaSites.objects.get(site_id=1)
 
@@ -869,7 +870,8 @@ def toggle_silo_publicity(request):
     silo.save()
     return HttpResponse("Your change has been saved")
 
-#SILOS
+
+# SILOS
 @login_required
 def listSilos(request):
     """
@@ -884,6 +886,51 @@ def listSilos(request):
 
     public_silos = Silo.objects.filter(Q(public=True) & ~Q(owner=user)).prefetch_related("reads")
     return render(request, 'display/silos.html',{'own_silos':own_silos, "shared_silos": shared_silos, "public_silos": public_silos})
+
+
+@api_view(['POST'])
+def create_customform(request):
+    """
+    Create a table for the form instance in Activity
+    """
+    try:
+        table_name = request.data['name'].lower().replace(' ', '_')
+        wkflvl1 = WorkflowLevel1.objects.get(level1_uuid=request.data['level1_uuid'])
+        read_name = request.data['name']
+        description = request.data.get('description', '')
+        public = request.data['is_public']
+        columns = request.data['fields']
+    except KeyError:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    read = Read.objects.create(
+        owner=request.user,
+        type=ReadType.objects.get(read_type='CustomForm'),
+        read_name=read_name,
+    )
+    silo = Silo.objects.create(
+        owner=request.user,
+        name=table_name,
+        description=description,
+        organization=request.user.tola_user.organization,
+        public=public,
+        columns=json.dumps(columns),
+    )
+
+    silo.reads.add(read)
+    silo.workflowlevel1.add(wkflvl1)
+    read_source_id = read.id
+
+    lvs = LabelValueStore()
+    lvs.silo_id = silo.pk
+    lvs.create_date = timezone.now()
+    lvs.read_id = read_source_id
+    lvs.save()
+
+    serializer = SiloSerializer(silo, context={'request': request})
+    content = JSONRenderer().render(serializer.data)
+
+    return Response(content, status=status.HTTP_201_CREATED)
 
 
 def addUniqueFiledsToSilo(request):
@@ -1407,6 +1454,10 @@ def valueDelete(request,id):
 
 
 def export_silo(request, id):
+    # To preserve fields order when reading BSON from MONGO
+    opts = CodecOptions(document_class=SON)
+    store = db.label_value_store.with_options(codec_options=opts)
+
     silo_name = Silo.objects.get(id=id).name
 
     response = HttpResponse(content_type='text/csv')

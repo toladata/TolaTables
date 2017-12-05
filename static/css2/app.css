@@ -13,7 +13,6 @@ body {
 }
 #footer {
     position: absolute;
-    bottom: 0px;
     width: 100%;
     /* Set the fixed height of the footer here */
     height: 40px;
@@ -39,60 +38,99 @@ button:focus,
 }
 
 .header-image{
-    width: 50px;
-    height: 50px;
-    margin-left: -15px;
-    margin-top: -15px;
+    width: 60px;
+    height: 60px;
 }
 
 .navbar-right{
     float: right;
+    vertical-align: top;
+    padding-bottom: -20px;
+}
 
+.navbar-brand{
+    padding-left: 25px;
+    padding-top: 18px;
+}
+
+.navbar-nav>li {
+    height: 60px;
+    width: 65px;
+    align-items: center;
+    padding-left: 15px;
+}
+
+.navbar-nav>li>a {
+    padding-top: 5px;
+    padding-bottom: 1px;
+}
+
+.navbar-nav.left>li {
+    width: 100%;
+    align-items: center;
+    padding-left: 15px;
+}
+
+.navbar-active{
+   background-color: #FFFFFF;
 }
 
 .navbar-header{
     width: 100%;
 }
 
+.header__nav__link__label{
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.07s;
+    font-size: 12px;
+    color: #0B607D;
+    vertical-align: top;
+    margin-left: -5px;
+    margin-top: -5px;
+}
+
+
 .navbar-tola {
   /* TolaTables Brand Color: */
-  background-color: #526f7e;
-  margin-top: 50px;
+  background-color: #0B607D;
   font-color: #FFFFFF;
   border: 0px;
-
 }
 
-.navbar-tola .navbar-nav > li > a {
+.navbar-left {
   color: #FFFFFF;
-      position: relative;
-    z-index: 2;
+  background-color: #0B607D;
+  float: left;
+  height: 100%;
+  min-height: 1000px;
+  display: inline-block;
+  margin-top: 60px;
+  padding-top: 5px;
+  max-width: 130px;
 }
 
-.navbar-tola .navbar-nav > li > a:hover,
-.navbar-tola .navbar-nav > li > a:focus,
-.navbar-tola .navbar-nav > li.active > a,
-.navbar-tola .navbar-nav > li.active > a:hover,
-.navbar-tola .navbar-nav > li.active > a:focus,
-.navbar-tola .navbar-nav .dropdown.open a.dropdown-toggle {
-  color: #FFFFFF;
-  background-color: rgba(0, 0, 0, .15);
+.spacer {
+    min-height: 100%;
+    height:100%;
 }
 
-dropdown{
-    position: relative;
-    z-index: 1;
-
+.breadcrumb {
+    background-color: transparent;
 }
-/* - End Bootstrap Overrides */
 
 
 /* Custom page CSS
 -------------------------------------------------- */
 /* Not required for template or sticky footer method. */
 
-body > .container {
+.container-center {
     height: 100%;
+    vertical-align: top;
+    align-items: stretch;
+    display: inline-block;
+    vertical-align: top;
+    float: left;
     margin-top: 40px;
 }
 

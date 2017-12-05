@@ -1,8 +1,8 @@
-"""Common settings and globals."""
-
+import os
 from os.path import abspath, basename, dirname, join, normpath
-from django.contrib.messages import constants as message
 from sys import path
+
+from django.contrib.messages import constants as message
 
 ########## PATH CONFIGURATION
 # Absolute filesystem path to the Django project directory:
@@ -37,6 +37,27 @@ ADMINS = (
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#managers
 MANAGERS = ADMINS
 ########## END MANAGER CONFIGURATION
+
+
+
+############ MONGO DB #####################
+MONGODB_DATABASES = {
+    "default": {
+        "name": os.getenv("TOLATABLES_MONGODB_NAME"),
+        "host": os.getenv("TOLATABLES_MONGODB_HOST", '127.0.0.1'),
+        "port": int(os.getenv("TOLATABLES_MONGODB_PORT", 27017)),
+        "username": os.getenv("TOLATABLES_MONGODB_USER"),
+        "password": os.getenv("TOLATABLES_MONGODB_PASS"),
+    },
+}
+MONGO_URI = 'mongodb://{username}:{password}@{host}:{port}/{db}'.format(
+    db=MONGODB_DATABASES['default']['name'],
+    username=MONGODB_DATABASES['default']['username'],
+    password=MONGODB_DATABASES['default']['password'],
+    host=MONGODB_DATABASES['default']['host'],
+    port=MONGODB_DATABASES['default']['port'],
+)
+################ END OF MONGO DB #######################
 
 
 ########## GENERAL CONFIGURATION
@@ -112,31 +133,6 @@ FIXTURE_DIRS = (
 
 ########## TEMPLATE CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#template-context-processors
-"""
-TEMPLATE_CONTEXT_PROCESSORS = (
-    'django.contrib.auth.context_processors.auth',
-    'django.core.context_processors.debug',
-    'django.core.context_processors.i18n',
-    'django.core.context_processors.media',
-    'django.core.context_processors.static',
-    'django.core.context_processors.tz',
-    'django.contrib.messages.context_processors.messages',
-    'django.core.context_processors.request',
-    'tola.context_processors.get_silos',
-    'tola.context_processors.get_servers',
-)
-
-# See: https://docs.djangoproject.com/en/dev/ref/settings/#template-loaders
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader',
-)
-
-# See: https://docs.djangoproject.com/en/dev/ref/settings/#template-dirs
-TEMPLATE_DIRS = (
-    normpath(join(SITE_ROOT, 'templates')),
-)
-"""
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -233,7 +229,6 @@ path.insert(0, normpath(join(SITE_ROOT, 'datasources')))
 LOCAL_APPS = (
     'silo',
     'tola',
-    'board',
 )
 DATASOURCE_APPS = (
     'commcare',
@@ -244,19 +239,19 @@ DATASOURCE_APPS = (
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS + DATASOURCE_APPS
 ########## END APP CONFIGURATION
 
+"""
+Allowed for now from everyone
 CORS_ORIGIN_WHITELIST = (
     "localhost:8000",
     "localhost:4200"
 )
-
+"""
+CORS_ORIGIN_ALLOW_ALL=True
 
 ####### AUTHENTICATION BAKEND CONFIG ##################
 # https://github.com/django/django/blob/master/django/contrib/auth/backends.py
 
 AUTHENTICATION_BACKENDS = (
-    #'social_core.backends.azuread.AzureADOAuth2',
-    #'social_core.backends.google.GoogleOAuth2',
-    #'social_core.backends.microsoft.MicrosoftOAuth2',
     'social_core.backends.tola.TolaOAuth2',
     'django.contrib.auth.backends.ModelBackend',
 )
@@ -306,6 +301,16 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
+        'silo': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'tola': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
     },
 }
 
@@ -351,6 +356,3 @@ GOOGLE_REDIRECT_URL = 'http://localhost:8000/oauth2callback/'
 ########## Celery CONFIGURATION
 CELERY_RESULT_BACKEND = 'amqp'
 CELERY_CACHE_BACKEND = 'django-cache'
-
-ACTIVITY_URL = "http://master.toladatav2.app.tola.io"
-TABLES_URL = "http://master.tolatables.app.tola.io"

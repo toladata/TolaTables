@@ -1,7 +1,5 @@
 from django.db import models
 from django.contrib import admin
-from django.db import models
-from django.contrib import admin
 from django.contrib.auth.models import User
 from oauth2client.contrib.django_orm import CredentialsField
 from django.contrib.sites.models import Site
@@ -9,10 +7,12 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from datetime import datetime
 from django.conf import settings
+from mongoengine import DynamicDocument, IntField, DateTimeField
 from rest_framework.authtoken.models import Token
 import uuid
 
-#New user created generate a token
+
+# New user created generate a token
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
@@ -185,6 +185,7 @@ TITLE_CHOICES = (
     ('ms', 'Ms.'),
 )
 
+
 class TolaUser(models.Model):
     tola_user_uuid = models.CharField(max_length=255, verbose_name='TolaUser UUID', default=uuid.uuid4, unique=True)
     title = models.CharField(blank=True, null=True, max_length=3, choices=TITLE_CHOICES)
@@ -352,6 +353,9 @@ class Silo(models.Model):
     def tag_list(self):
         return ', '.join([x.name for x in self.tags.all()])
 
+    def read_list(self):
+        return ', '.join([x.reads.name for x in self.tags.all()])
+
     @property
     def data_count(self):
         return LabelValueStore.objects(silo_id=self.id).count()
@@ -375,12 +379,12 @@ class Dashboard(models.Model):
         return self.name
 
 
-
 class DeletedSilos(models.Model):
     user = models.ForeignKey(User)
     deleted_time = models.DateTimeField()
     silo_name_id = models.CharField(max_length=255)
     silo_description = models.CharField(max_length=255,blank=True,null=True)
+
 
 class DeletedSilosAdmin(admin.ModelAdmin):
     list_display = ('user', 'silo_name_id', 'silo_description','deleted_time')
@@ -444,7 +448,6 @@ class UniqueFields(models.Model):
         return self.name
 
 
-from mongoengine import *
 class LabelValueStore(DynamicDocument):
     silo_id = IntField()
     read_id = IntField(default=-1)

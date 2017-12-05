@@ -2,10 +2,12 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import *
 from crispy_forms.bootstrap import *
 from crispy_forms.layout import Layout, Submit, Reset, Div
+
 from django import forms
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
-from silo.models import TolaUser
 from django.contrib.auth.models import User
+
+from silo.models import Organization, TolaUser
 
 
 class RegistrationForm(UserChangeForm):
@@ -53,7 +55,6 @@ class NewUserRegistrationForm(UserCreationForm):
     def __init__(self, *args, **kwargs):
         super(NewUserRegistrationForm, self).__init__(*args, **kwargs)
 
-
     helper = FormHelper()
     helper.form_method = 'post'
     helper.form_class = 'form-horizontal'
@@ -72,7 +73,17 @@ class NewTolaUserRegistrationForm(forms.ModelForm):
     """
     class Meta:
         model = TolaUser
-        fields = ['title', 'country', 'privacy_disclaimer_accepted']
+        fields = ['title', 'privacy_disclaimer_accepted']
+
+    org = forms.CharField()
+
+    def clean_org(self):
+        try:
+            org = Organization.objects.get(name=self.cleaned_data['org'])
+        except Organization.DoesNotExist:
+            raise forms.ValidationError("The Organization was not found.")
+        else:
+            return org
 
     def __init__(self, *args, **kwargs):
         super(NewTolaUserRegistrationForm, self).__init__(*args, **kwargs)
@@ -88,10 +99,7 @@ class NewTolaUserRegistrationForm(forms.ModelForm):
     helper.html5_required = True
     helper.form_tag = False
     helper.layout = Layout(
-        Fieldset('Information','title', 'country'),
-        Fieldset('Privacy Statement','privacy_disclaimer_accepted',),
+        Fieldset('Information', 'title', 'org'),
+        Fieldset('Privacy Statement', 'privacy_disclaimer_accepted',),
 
     )
-
-
-

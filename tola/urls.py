@@ -7,43 +7,31 @@ from silo import tola_activity_views
 
 from django.contrib import auth
 from django.conf.urls import include, url
-from django.views.generic import TemplateView
-from django.contrib.auth.models import User
-from rest_framework.routers import DefaultRouter
-from rest_framework.urlpatterns import format_suffix_patterns
-from rest_framework import routers, serializers, viewsets
+from rest_framework import routers
 from django.conf import settings
 from django.conf.urls.static import static
-from django.contrib.auth.views import login, logout
+from django.contrib.auth.views import login
 from silo.api import *
-from board.api import *
 
 from util import getImportApps
-import json
 
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
 admin.autodiscover()
 
-#REST FRAMEWORK
+# REST FRAMEWORK
 router = routers.DefaultRouter(trailing_slash=False)
 router.register(r'silo', SiloViewSet, base_name="silos")
 router.register(r'usersilos', SilosByUser, base_name='usersilos')
 router.register(r'public_tables', PublicSiloViewSet, base_name="public_tables")
 router.register(r'users', UserViewSet)
+router.register(r'groups', GroupViewSet)
 router.register(r'read', ReadViewSet, base_name='read')
 router.register(r'readtype', ReadTypeViewSet)
 router.register(r'tag', TagViewSet)
-
-router.register(r'owners', OwnerViewSet)
-router.register(r'boards', BoardViewSet)
-router.register(r'graphs', GraphViewSet)
-router.register(r'graphmodels', GraphModelViewSet)
-router.register(r'items', ItemViewSet)
-router.register(r'graphinputs', GraphInputViewSet)
-router.register(r'boardsilos', SiloBoardViewSet)
 router.register(r'country', CountryViewSet)
 router.register(r'organization', OrganizationViewSet)
+router.register(r'tolauser', TolaUserViewSet)
 router.register(r'workflowlevel1', WorkflowLevel1ViewSet)
 router.register(r'workflowlevel2', WorkflowLevel2ViewSet)
 
@@ -81,6 +69,8 @@ urlpatterns =[
     url(r'^identifyPII/(?P<silo_id>\w+)/$', views.identifyPII, name='identifyPII'),
     url(r'^source_remove/(?P<silo_id>\w+)/(?P<read_id>\w+)/$', views.removeSource, name='removeSource'),
 
+    url(r'^create_customform', views.create_customform, name='createCustomForm'),
+
     url(r'^merge/(?P<id>\w+)/$', views.mergeForm, name='mergeForm'),
     url(r'^merge_columns', views.mergeColumns, name='mergeColumns'),
     url(r'^doMerge', views.doMerge, name='doMerge'),
@@ -109,6 +99,7 @@ urlpatterns =[
 
     url(r'^accounts/login/$', auth.views.login, name='login'),
     url(r'^accounts/logout/$', tola_views.logout_view, name='logout'),
+    url(r'^accounts/register/$', tola_views.register, name='register'),
 
     url(r'^accounts/profile/$', tola_views.profile, name='profile'),
     url(r'^board/$', tola_views.BoardView.as_view(), name='board'),
