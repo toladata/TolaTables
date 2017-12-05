@@ -6,7 +6,6 @@ from tola.views import register
 
 class RegisterViewTest(TestCase):
     def setUp(self):
-        factories.Group()
         self.tola_user = factories.TolaUser(user=factories.User())
         self.factory = RequestFactory()
 
