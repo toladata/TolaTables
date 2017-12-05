@@ -28,6 +28,7 @@ router.register(r'read', ReadViewSet, base_name='read')
 router.register(r'readtype', ReadTypeViewSet)
 router.register(r'tag', TagViewSet)
 router.register(r'country', CountryViewSet)
+router.register(r'customform', CustomFormViewSet, base_name='customform')
 router.register(r'organization', OrganizationViewSet)
 router.register(r'tolauser', TolaUserViewSet)
 router.register(r'workflowlevel1', WorkflowLevel1ViewSet)
@@ -66,8 +67,6 @@ urlpatterns =[
     url(r'^anonymize_silo/(?P<id>\w+)/$', views.anonymizeTable, name='anonymize_table'),
     url(r'^identifyPII/(?P<silo_id>\w+)/$', views.identifyPII, name='identifyPII'),
     url(r'^source_remove/(?P<silo_id>\w+)/(?P<read_id>\w+)/$', views.removeSource, name='removeSource'),
-
-    url(r'^create_customform', views.create_customform, name='createCustomForm'),
 
     url(r'^merge/(?P<id>\w+)/$', views.mergeForm, name='mergeForm'),
     url(r'^merge_columns', views.mergeColumns, name='mergeColumns'),
