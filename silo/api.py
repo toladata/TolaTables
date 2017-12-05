@@ -20,25 +20,6 @@ from silo.permissions import *
 from tola.util import getSiloColumnNames, getCompleteSiloColumnNames
 
 
-"""
-def silo_data_api(request, id):
-    if id <= 0:
-        return HttpResponseBadRequest("The silo_id = %s is invalid" % id)
-
-    data = LabelValueStore.objects(silo_id=id).to_json()
-    json_data = json.loads(data)
-    return JsonResponse(json_data, safe=False)
-"""
-
-
-class GroupViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    A ViewSet for listing or retrieving users.
-    """
-    queryset = Group.objects.all()
-    serializer_class = GroupSerializer
-
-
 class TolaUserViewSet(viewsets.ModelViewSet):
     """
     A ViewSet for listing or retrieving TolaUsers.
