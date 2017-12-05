@@ -19,7 +19,8 @@ from pymongo import MongoClient
 from tola.util import *
 from silo.models import *
 
-db = getattr(MongoClient(settings.MONGODB_URI), settings.TOLATABLES_MONGODB_NAME)
+client = MongoClient(settings.MONGO_URI)
+db = client.get_database(settings.MONGODB_DATABASES['default']['name'])
 
 class onaParserTest(TestCase):
 

@@ -149,7 +149,7 @@ TEMPLATES = [
                 'django.template.context_processors.tz',
                 'django.contrib.messages.context_processors.messages',
                 'tola.context_processors.get_silos',
-                'tola.context_processors.get_google_credentials',
+                'tola.context_processors.google_oauth_settings',
                 'tola.context_processors.google_analytics',
             ],
             'builtins': [

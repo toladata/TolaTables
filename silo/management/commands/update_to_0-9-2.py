@@ -20,8 +20,10 @@ class Command(BaseCommand):
     """
 
     def handle(self, *args, **options):
+
+        client = MongoClient(settings.MONGO_URI)
+        db = client.get_database(settings.MONGODB_DATABASES['default']['name'])
         #get every column for each silo
-        db = getattr(pymongo.MongoClient(settings.MONGODB_URI), settings.TOLATABLES_MONGODB_NAME)
         #index by silo
         db.label_value_store.create_index('silo_id')
 

@@ -33,7 +33,9 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
+from rest_framework.authtoken.models import Token
 
+from gviews_v4 import import_from_gsheet_helper
 from silo.custom_csv_dict_reader import CustomDictReader
 from tola.util import importJSON, saveDataToSilo, getSiloColumnNames, \
     parseMathInstruction, calculateFormulaColumn, makeQueryForHiddenRow, \
@@ -848,12 +850,13 @@ def index(request):
     get_public = Silo.objects.filter(public=1)
     site = TolaSites.objects.get(site_id=1)
 
-    gCreds = {'clientid': settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY, 'apikey': settings.GOOGLE_API_KEY}
+    #gCreds = {'clientid': settings.GOOGLE_API_CLIENT_ID, 'apikey': settings.GOOGLE_API_KEY}
     try:
         login_types = settings.LOGIN_METHODS
     except AttributeError:
         login_types = None
-    response = render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_shared':count_shared, 'count_public': count_public, 'get_reads': get_reads, 'get_tags': get_tags, 'site': site, 'gCreds': gCreds, 'logintypes': login_types})
+    #response = render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_shared':count_shared, 'count_public': count_public, 'get_reads': get_reads, 'get_tags': get_tags, 'site': site, 'gCreds': gCreds, 'logintypes': login_types})
+    response = render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_shared':count_shared, 'count_public': count_public, 'get_reads': get_reads, 'get_tags': get_tags, 'site': site, 'logintypes': login_types})
     if request.COOKIES.get('auth_token', None) is None and request.user.is_authenticated():
         try:
             user.auth_token

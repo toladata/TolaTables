@@ -26,7 +26,7 @@ from commcare.views import *
 from commcare.tasks import *
 
 
-""" 
+
 class ReadTest(TestCase):
     fixtures = ['../fixtures/read_types.json']
     show_read_url = '/show_read/'

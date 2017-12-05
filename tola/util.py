@@ -378,19 +378,20 @@ def user_to_tola(backend, user, response, *args, **kwargs):
     default_country = Country.objects.first()
 
     # Only import fields to Tables that are required
-    tola_user_defaults = {}
-    tola_user_defaults['tola_user_uuid'] = remote_user['tola_user_uuid']
-    tola_user_defaults['name'] = remote_user['name']
-    tola_user_defaults['employee_number'] = remote_user['employee_number']
-    tola_user_defaults['title'] = remote_user['title']
-    tola_user_defaults['privacy_disclaimer_accepted'] = remote_user['privacy_disclaimer_accepted']
+    if response.get('tola_user'):
+        tola_user_defaults = {}
+        tola_user_defaults['tola_user_uuid'] = remote_user['tola_user_uuid']
+        tola_user_defaults['name'] = remote_user['name']
+        tola_user_defaults['employee_number'] = remote_user['employee_number']
+        tola_user_defaults['title'] = remote_user['title']
+        tola_user_defaults['privacy_disclaimer_accepted'] = remote_user['privacy_disclaimer_accepted']
 
-    remote_org = response.get('organization')
-    del remote_org['url']
-    del remote_org['industry']  # ignore for now
-    del remote_org['sector']  # ignore for now
-    organization, org_created = Organization.objects.update_or_create(remote_org,
-                                                                      organization_uuid=remote_org['organization_uuid'])
+        remote_org = response.get('organization')
+        del remote_org['url']
+        del remote_org['industry']  # ignore for now
+        del remote_org['sector']  # ignore for now
+        organization, org_created = Organization.objects.update_or_create(remote_org,
+                                                                          organization_uuid=remote_org['organization_uuid'])
 
 
         tola_user_defaults['organization'] = organization
@@ -674,7 +675,8 @@ def getNewestDataDate(silo_id):
     """
     finds the newest date of data in a silo
     """
-    db = getattr(MongoClient(settings.MONGODB_URI), settings.TOLATABLES_MONGODB_NAME)
+    client = MongoClient(settings.MONGO_URI)
+    db = client.get_database(settings.MONGODB_DATABASES['default']['name'])
     newest_record = db.label_value_store.find({'silo_id' : silo_id}).sort([("create_date", -1)]).limit(1)
 
     return newest_record[0]['create_date']
@@ -698,7 +700,8 @@ def setSiloColumnType(silo_pk, column, column_type):
 
     # TO DO: check if all entries could comply
 
-    db = getattr(MongoClient(settings.MONGODB_URI), settings.TOLATABLES_MONGODB_NAME)
+    client = MongoClient(settings.MONGO_URI)
+    db = client.get_database(settings.MONGODB_DATABASES['default']['name'])
     bulk = db.label_value_store.initialize_ordered_bulk_op()
 
     if (db.label_value_store.find({'silo_id' : silo_pk, column : {'$not' : {'$exists' : True}}}).count() > 0):
