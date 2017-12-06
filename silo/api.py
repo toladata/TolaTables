@@ -1,14 +1,18 @@
 import json
 import django_filters
 
-from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
+from django.http import (HttpResponseBadRequest, JsonResponse, HttpResponse,
+                         QueryDict)
 from django.db.models import Q
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 
 from rest_framework import viewsets, filters, permissions
-from rest_framework.decorators import detail_route
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import (detail_route, list_route, api_view,
+                                       authentication_classes,
+                                       permission_classes)
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 from rest_framework_json_api.parsers import JSONParser
 from rest_framework_json_api.renderers import JSONRenderer
 from rest_framework import mixins, status
@@ -17,7 +21,8 @@ from .serializers import *
 from .models import (Silo, LabelValueStore, Country, WorkflowLevel1,
                      WorkflowLevel2, TolaUser, Read, ReadType)
 from silo.permissions import *
-from tola.util import getSiloColumnNames, getCompleteSiloColumnNames
+from tola.util import (getSiloColumnNames, getCompleteSiloColumnNames,
+                       saveDataToSilo)
 
 
 class TolaUserViewSet(viewsets.ModelViewSet):
@@ -170,12 +175,11 @@ class CustomFormViewSet(mixins.CreateModelMixin,
 
         silo.reads.add(read)
         silo.workflowlevel1.add(wkflvl1)
-        read_source_id = read.id
 
         lvs = LabelValueStore()
         lvs.silo_id = silo.pk
         lvs.create_date = timezone.now()
-        lvs.read_id = read_source_id
+        lvs.read_id = read.pk
         lvs.save()
 
         serializer = self.serializer_class(silo, context={'request': request})
@@ -212,12 +216,40 @@ class CustomFormViewSet(mixins.CreateModelMixin,
         serializer = self.get_serializer(silo)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @detail_route(methods=['get'],)
+    @detail_route(methods=['GET'],)
     def has_data(self, request, pk):
+        """
+        Check if the data was added to the custom form instance
+        """
         if not request.user.is_superuser:
             return Response(status=status.HTTP_403_FORBIDDEN)
         silo = self.get_object()
         return Response(silo.data_count > 1, status=status.HTTP_200_OK)
+
+    @list_route(methods=['POST'], permission_classes=[AllowAny])
+    def save_data(self, request):
+        """
+        Persist user input data
+        """
+        if not request.data:
+            return Response({'detail': 'No data sent.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if 'silo_id' in request.data and 'data' in request.data:
+            silo_id = request.data['silo_id']
+            data = request.data['data']
+        else:
+            return Response({'detail': 'Missing data.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        silo = Silo.objects.get(pk=silo_id)
+        lvs = LabelValueStore.objects(silo_id=silo_id).count()
+        if not lvs or not silo:
+            return Response({'detail': 'Not found.'},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        saveDataToSilo(silo, [data], silo.reads.first())
+        return Response(status=status.HTTP_200_OK)
 
 
 class SilosByUser(viewsets.ReadOnlyModelViewSet):
@@ -269,23 +301,18 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
     @detail_route()
     def data(self, request, id):
         # calling get_object applies the permission classes to this query
-        silo = self.get_object()
+        self.get_object()
 
         draw = int(request.GET.get("draw", 1))
         offset = int(request.GET.get('start', -1))
         length = int(request.GET.get('length', 10))
-        #filtering syntax is the mongodb syntax
+
+        # filtering syntax is the mongodb syntax
         query = request.GET.get('query',"{}")
         filter_fields = json.loads(query)
 
         recordsTotal = LabelValueStore.objects(silo_id=id, **filter_fields).count()
 
-
-        #print("offset=%s length=%s" % (offset, length))
-        #page_size = 100
-        #page = int(request.GET.get('page', 1))
-        #offset = (page - 1) * page_size
-        #if page > 0:
         # workaround until the problem of javascript not increasing the value of length is fixed
         if offset >= 0:
             length = offset + length
@@ -332,21 +359,19 @@ class ReadTypeViewSet(viewsets.ModelViewSet):
     serializer_class = ReadTypeSerializer
 
 
-#####-------API Views to Feed Data to Tolawork API requests-----####
+# ####-------API Views to Feed Data to Tolawork API requests-----### #
 '''
     This view responds to the 'GET' request from TolaWork
 '''
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.response import Response
 
 
 @api_view(['GET'])
 @authentication_classes(())
 @permission_classes(())
-
 def tables_api_view(request):
     """
-   Get TolaTables Tables owned by a user logged in Tolawork & a list of logged in Users,
+    Get TolaTables Tables owned by a user logged in Tolawork & a list of
+    logged in Users,
     """
     if request.method == 'GET':
         user = request.GET.get('email')
@@ -361,18 +386,13 @@ def tables_api_view(request):
 
         users = user_serializer.data
         tables = table_serializer.data
-
-
         tables_data = {'tables':tables, 'table_logged_users': users}
-
 
         return Response(tables_data)
 
-#return users logged into TolaActivity
+
+# return users logged into TolaActivity
 def logged_in_users():
-
-    logged_users = {}
-
     logged_users = LoggedUser.objects.order_by('username')
     for logged_user in logged_users:
         logged_user.queue = 'TolaTables'
