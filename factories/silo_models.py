@@ -1,6 +1,7 @@
 import random
-from factory import DjangoModelFactory, LazyAttribute, SubFactory, \
-    post_generation
+
+from factory import (DjangoModelFactory, LazyAttribute, SubFactory,
+                     post_generation, Iterator)
 
 from silo.models import (
     Country as CountryM,
@@ -9,6 +10,7 @@ from silo.models import (
     ReadType as ReadTypeM,
     Silo as SiloM,
     Tag as TagM,
+    TolaSites as TolaSitesM,
     TolaUser as TolaUserM,
     WorkflowLevel1 as WorkflowLevel1M,
 )
@@ -51,8 +53,9 @@ class WorkflowLevel1(DjangoModelFactory):
 class ReadType(DjangoModelFactory):
     class Meta:
         model = ReadTypeM
+        django_get_or_create = ('read_type',)
 
-    read_type = 'CustomForm'
+    read_type = Iterator(['CustomForm', 'OneDrive', 'CommCare', 'JSON'])
 
 
 class Read(DjangoModelFactory):
@@ -63,9 +66,18 @@ class Read(DjangoModelFactory):
     type = SubFactory(ReadType)
 
 
+class TolaSites(DjangoModelFactory):
+    class Meta:
+        model = TolaSitesM
+
+    name = 'Track'
+    site_id = '1'
+
+
 class Tag(DjangoModelFactory):
     class Meta:
         model = TagM
+        django_get_or_create = ('name', 'owner')
 
     name = 'Test'
 
@@ -74,9 +86,11 @@ class Silo(DjangoModelFactory):
     class Meta:
         model = SiloM
 
-    name = 'Silo Test A'
+    owner = SubFactory(User)
+    name = 'Syria Security Incidences'
+    description = 'Reports from police and private security agents'
     organization = SubFactory(Organization)
-    country = SubFactory(Country)
+    country = SubFactory(Country, country='Syria', code='SY')
     public = False
 
     @post_generation
@@ -85,7 +99,7 @@ class Silo(DjangoModelFactory):
             # Simple build, do nothing.
             return
 
-        if extracted:
+        if type(extracted) is list:
             # A list of reads were passed in, use them
             for reads in extracted:
                 self.reads.add(reads)
@@ -103,14 +117,21 @@ class Silo(DjangoModelFactory):
             for tags in extracted:
                 self.tags.add(tags)
 
+        if type(extracted) is list:
+            for tag in extracted:
+                self.tags.add(tag)
+        else:
+            self.tags.add(Tag(name='security', owner=self.owner))
+            self.tags.add(Tag(name='report', owner=self.owner))
+
+
     @post_generation
     def shared(self, create, extracted, **kwargs):
         if not create:
             # Simple build, do nothing.
             return
 
-        if extracted:
-            # A list of shared were passed in, use them
+        if type(extracted) is list:
             for shared in extracted:
                 self.shared.add(shared)
 

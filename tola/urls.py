@@ -40,7 +40,7 @@ urlpatterns =[
     url(r'^api/docs/', tola_views.schema_view),
 
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^$', views.index, name='index'),
+    url(r'^$', views.IndexView.as_view(), name='index'),
 
 
     url(r'^source/new/', views.showRead, kwargs={'id': 0}, name='newRead'),

@@ -1,4 +1,11 @@
 language: python
+branches:
+  only:
+    - "demo"
+    - "dev"
+    - "dev-v2"
+    - "master"
+    - "staging"
 python:
   - '2.7'
 install:

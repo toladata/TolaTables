@@ -16,6 +16,8 @@ from bson import CodecOptions, SON
 from bson.json_util import dumps
 
 from django.conf import settings
+from django.core import files
+from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse_lazy
 from django.http import HttpResponseBadRequest,\
     HttpResponse, HttpResponseRedirect, JsonResponse
@@ -28,7 +30,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
-from django.core import files
+from django.views.generic import View
 
 from silo.custom_csv_dict_reader import CustomDictReader
 from tola.util import importJSON, saveDataToSilo, getSiloColumnNames, \
@@ -48,6 +50,51 @@ logger = logging.getLogger("silo")
 client = MongoClient(settings.MONGO_URI)
 db = client.get_database("tola")
 ROLE_VIEW_ONLY = 'ViewOnly'
+
+
+class IndexView(View):
+    template_name = 'index.html'
+
+    def _get_context_data(self, request):
+        # Because of the M2M 'tags' field we can't make it more performant
+        # selecting just the values we want.
+        silos_user = list(Silo.objects.prefetch_related('tags', 'shared').\
+            filter(owner=request.user))
+        silos_user_public_total = len([s for s in silos_user if s.public])
+        silos_user_shared_total = len([s for s in silos_user if s.shared.all()])
+        readtypes = ReadType.objects.all().values_list('read_type', flat=True)
+        tags = Tag.objects.filter(owner=request.user).\
+                   annotate(times_tagged=Count('silos')).\
+                   values('name', 'times_tagged').order_by('-times_tagged')[:8]
+        site_name = TolaSites.objects.values_list('name', flat=True).get(site_id=1)
+
+        context = {
+            'silos_user': silos_user,
+            'silos_user_public_total': silos_user_public_total,
+            'silos_user_shared_total': silos_user_shared_total,
+            'silos_public_total': Silo.objects.filter(public=1),
+            'readtypes': readtypes,
+            'tags': tags,
+            'site_name': site_name,
+        }
+        return context
+
+    def get(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            context = self._get_context_data(request)
+            response = render(request, self.template_name, context)
+            if (request.COOKIES.get('auth_token', None) is None and
+                    request.user.is_authenticated):
+                response.set_cookie('auth_token', request.user.auth_token)
+            return response
+        else:
+            if settings.ACTIVITY_URL:
+                return HttpResponseRedirect(settings.ACTIVITY_URL)
+            else:
+                raise ImproperlyConfigured(
+                    "ACTIVITY_URL variable not set. Please, set a value so the "
+                    "user can log in. If you are in a Dev environment, go to "
+                    "/login/ in order to sign in.")
 
 
 # fix now that not all mongo rows need to have the same column
@@ -820,31 +867,6 @@ def getJSON(request):
         return render(request, 'read/file.html', {
             'form_action': reverse_lazy("getJSON"), 'get_silo': silos
         })
-
-
-# INDEX
-def index(request):
-    # get all of the table(silo) info for logged in user and public data
-    if request.user.is_authenticated():
-        user = User.objects.get(username__exact=request.user)
-
-        get_silos = Silo.objects.filter(owner=user)
-        # count all public and private data sets
-        count_all = Silo.objects.filter(owner=user).count()
-        count_public = Silo.objects.filter(owner=user).filter(public=1).count()
-        count_shared = Silo.objects.filter(owner=user).filter(shared=1).count()
-        # top 4 data sources and tags
-        get_reads = ReadType.objects.annotate(num_type=Count('read')).order_by('-num_type')[:4].values('read','num_type')
-        get_tags = Tag.objects.filter(owner=user).annotate(num_tag=Count('silos')).order_by('-num_tag')[:8].values('silos','num_tag')
-    else:
-        return HttpResponseRedirect(settings.ACTIVITY_URL)
-    get_public = Silo.objects.filter(public=1)
-    site = TolaSites.objects.get(site_id=1)
-    response = render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_shared':count_shared, 'count_public': count_public, 'get_reads': get_reads, 'get_tags': get_tags, 'site': site})
-
-    if request.COOKIES.get('auth_token', None) is None and request.user.is_authenticated():
-        response.set_cookie('auth_token', user.auth_token)
-    return response
 
 
 def toggle_silo_publicity(request):
