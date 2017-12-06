@@ -10,6 +10,7 @@ def google_oauth_settings(self):
 
 
 def get_silos(self):
+    # TODO improve query not to select *
     if self.user.is_authenticated:
         all_my_silos = Silo.objects.filter(owner=self.user)
     else:
