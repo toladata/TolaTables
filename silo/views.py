@@ -62,6 +62,8 @@ class IndexView(View):
             filter(owner=request.user))
         silos_user_public_total = len([s for s in silos_user if s.public])
         silos_user_shared_total = len([s for s in silos_user if s.shared.all()])
+        silos_public = Silo.objects.prefetch_related('tags').filter(public=1).\
+            exclude(owner=request.user)
         readtypes = ReadType.objects.all().values_list('read_type', flat=True)
         tags = Tag.objects.filter(owner=request.user).\
                    annotate(times_tagged=Count('silos')).\
@@ -72,7 +74,7 @@ class IndexView(View):
             'silos_user': silos_user,
             'silos_user_public_total': silos_user_public_total,
             'silos_user_shared_total': silos_user_shared_total,
-            'silos_public_total': Silo.objects.filter(public=1),
+            'silos_public': silos_public,
             'readtypes': readtypes,
             'tags': tags,
             'site_name': site_name,

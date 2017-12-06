@@ -34,10 +34,8 @@ class IndexViewTest(TestCase):
         self.assertEqual(context['silos_user'][2].name, 'priv_1')
         self.assertEqual(context['silos_user_public_total'], 2)
         self.assertEqual(context['silos_user_shared_total'], 1)
-        self.assertEqual(context['silos_public_total'][0].name, 'open')
-        self.assertEqual(context['silos_public_total'][1].name, 'pub_1')
-        self.assertEqual(context['silos_public_total'][2].name, 'pub_2')
-        self.assertEqual(len(context['silos_public_total']), 3)
+        self.assertEqual(context['silos_public'][0].name, 'open')
+        self.assertEqual(len(context['silos_public']), 1)
         self.assertEqual(len(context['readtypes']), 4)
         self.assertEqual(sorted(list(context['readtypes'])),
                          [u'CommCare', u'CustomForm', u'JSON', u'OneDrive'])
@@ -45,6 +43,43 @@ class IndexViewTest(TestCase):
                          [{'name': u'security', 'times_tagged': 4},
                           {'name': u'report', 'times_tagged': 4}]),
         self.assertEqual(context['site_name'], 'Track'),
+
+    def test_index_template_authenticated_user(self):
+        user_stranger = factories.User(username='stranger')
+        factories.Silo(owner=user_stranger, name='open', public=True)
+
+        user = factories.User()
+        silo_pub_1 = factories.Silo(owner=user, name='pub_1', public=True)
+        silo_pub_2 = factories.Silo(owner=user, name='pub_2', public=True)
+        silo_priv_1 = factories.Silo(owner=user, name='priv_1', public=False)
+        silo_shared_1 = factories.Silo(owner=user, name='shared_1', public=False,
+                       shared=[user_stranger])
+
+        request = self.factory.get('', follow=True)
+        request.user = user
+        view = views.IndexView.as_view()
+        response = view(request)
+        template_content = response.content
+
+        match = '<a href="{}">{}</a>'.format(
+            reverse('siloDetail', kwargs={'silo_id': silo_pub_1.pk}),
+            silo_pub_1.name)
+        self.assertEqual(template_content.count(match), 1)
+
+        match = '<a href="{}">{}</a>'.format(
+            reverse('siloDetail', kwargs={'silo_id': silo_pub_2.pk}),
+            silo_pub_2.name)
+        self.assertEqual(template_content.count(match), 1)
+
+        match = '<a href="{}">{}</a>'.format(
+            reverse('siloDetail', kwargs={'silo_id': silo_priv_1.pk}),
+            silo_priv_1.name)
+        self.assertEqual(template_content.count(match), 1)
+
+        match = '<a href="{}">{}</a>'.format(
+            reverse('siloDetail', kwargs={'silo_id': silo_shared_1.pk}),
+            silo_shared_1.name)
+        self.assertEqual(template_content.count(match), 1)
 
     def test_index_get_authenticated(self):
         silo = factories.Silo()

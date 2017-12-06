@@ -73,19 +73,19 @@
                   {% for silo in silos_user %}
                   <tr>
                       <td>{{ silo.tag_list }}</td>
-                      <td><a href="/silo_detail/{{ silo.id }}/">{{ silo.name }}</a></td>
+                      <td><a href="{% url 'siloDetail' silo.id %}">{{ silo.name }}</a></td>
                       <td>{{ silo.description }}</td>
                       <td>{{ silo.public }}</td>
                       <td>{{ silo.created }}</td>
                   </tr>
                   {% endfor %}
-                  {% for item in get_public %}
+                  {% for silo in silos_public %}
                   <tr>
-                      <td>{{ item.tag_list }}</td>
-                      <td><a href="/silo_detail/{{ item.id }}/">{{ item.name }}</a></td>
-                      <td>{{ item.description }}</td>
-                      <td>{{ item.public }}</td>
-                      <td>{{ item.created }}</td>
+                      <td>{{ silo.tag_list }}</td>
+                      <td><a href="{% url 'siloDetail' silo.id %}">{{ silo.name }}</a></td>
+                      <td>{{ silo.description }}</td>
+                      <td>{{ silo.public }}</td>
+                      <td>{{ silo.created }}</td>
                   </tr>
                   {% endfor %}
               </table>
