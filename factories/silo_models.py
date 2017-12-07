@@ -1,10 +1,16 @@
 import random
 
+from django.utils import timezone
+
+from factory import DjangoModelFactory, LazyAttribute, SubFactory, \
+    post_generation
+
 from factory import (DjangoModelFactory, LazyAttribute, SubFactory,
                      post_generation, Iterator)
 
 from silo.models import (
     Country as CountryM,
+    LabelValueStore as LabelValueStoreM,
     Organization as OrganizationM,
     Read as ReadM,
     ReadType as ReadTypeM,
@@ -156,3 +162,10 @@ class Silo(DjangoModelFactory):
             # A list of formulacolumns were passed in, use them
             for formulacolumns in extracted:
                 self.formulacolumns.add(formulacolumns)
+
+
+class LabelValueStore(DjangoModelFactory):
+    class Meta:
+        model = LabelValueStoreM
+
+    create_date = timezone.now()
