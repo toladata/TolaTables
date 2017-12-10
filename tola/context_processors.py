@@ -1,6 +1,12 @@
-from silo.models import *
-from settings.local import ACTIVITY_URL
-from settings.local import TABLES_URL
+from django.conf import settings
+from silo.models import Silo
+
+
+def google_oauth_settings(self):
+    return {
+        'GOOGLE_API_CLIENT_ID': settings.GOOGLE_API_CLIENT_ID,
+        'GOOGLE_API_KEY': settings.GOOGLE_API_KEY,
+    }
 
 
 def get_silos(self):
@@ -11,15 +17,8 @@ def get_silos(self):
     return {"all_my_silos": all_my_silos}
 
 
-# get the organization labels from the user for each level of workflow for display in templates
 def get_servers(request):
-
-    try:
-        activity_url = ACTIVITY_URL
-        tables_url = TABLES_URL
-    except Exception, e:
-        activity_url = "http://activity.toladata.io"
-        tables_url = "http://tables.toladata.io"
-
-
-    return {'ACTIVITY_URL': activity_url, 'TABLES_URL': tables_url}
+    return {
+        'ACTIVITY_URL': settings.ACTIVITY_URL,
+        'TABLES_URL': settings.TABLES_URL,
+    }

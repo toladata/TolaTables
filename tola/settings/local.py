@@ -119,6 +119,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'tola.context_processors.get_silos',
                 'tola.context_processors.get_servers',
+                'tola.context_processors.google_oauth_settings',
             ],
             'builtins': [
                 'django.contrib.staticfiles.templatetags.staticfiles',
@@ -139,6 +140,7 @@ TABLES_URL = os.getenv('TABLES_URL')
 SOCIAL_AUTH_TOLA_KEY = os.getenv('SOCIAL_AUTH_TOLA_KEY')
 SOCIAL_AUTH_TOLA_SECRET = os.getenv('SOCIAL_AUTH_TOLA_SECRET')
 
+
 from fabric.api import *
 
 # Hosts to deploy onto
@@ -150,3 +152,7 @@ env.project_root = DJANGO_ROOT
 def deploy_static():
     with cd(env.project_root):
         run('./manage.py collectstatic -v0 --noinput')
+
+GOOGLE_API_CLIENT_ID = os.getenv('GOOGLE_API_CLIENT_ID')
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
+

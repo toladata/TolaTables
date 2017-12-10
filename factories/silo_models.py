@@ -34,7 +34,6 @@ class TolaUser(DjangoModelFactory):
     name = LazyAttribute(lambda o: o.user.first_name + " " + o.user.last_name)
     organization = SubFactory(Organization)
     country = SubFactory(Country, country='Germany', code='DE')
-    tola_user_uuid = random.randint(1, 9999)
 
 
 class WorkflowLevel1(DjangoModelFactory):

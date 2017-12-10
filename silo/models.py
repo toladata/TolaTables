@@ -1,7 +1,5 @@
 from django.db import models
 from django.contrib import admin
-from django.db import models
-from django.contrib import admin
 from django.contrib.auth.models import User
 from oauth2client.contrib.django_orm import CredentialsField
 from django.contrib.sites.models import Site
@@ -14,7 +12,7 @@ from rest_framework.authtoken.models import Token
 import uuid
 
 
-#New user created generate a token
+# New user created generate a token
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:

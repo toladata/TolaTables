@@ -5,7 +5,6 @@ import csv
 import base64
 import re
 import logging
-import os
 import json
 from collections import OrderedDict
 from requests.auth import HTTPDigestAuth
@@ -53,6 +52,8 @@ from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, \
 logger = logging.getLogger("silo")
 client = MongoClient(settings.MONGO_URI)
 db = client.get_database("tola")
+ROLE_VIEW_ONLY = 'ViewOnly'
+
 
 # fix now that not all mongo rows need to have the same column
 def mergeTwoSilos(mapping_data, lsid, rsid, msid):
@@ -827,13 +828,10 @@ def getJSON(request):
         return render(request, 'read/file.html', {
             'form_action': reverse_lazy("getJSON"), 'get_silo': silos
         })
-#display
 
 
-#INDEX
+# INDEX
 def index(request):
-    #if request.COOKIES.get('auth_token', None):
-
     # get all of the table(silo) info for logged in user and public data
     if request.user.is_authenticated():
         user = User.objects.get(username__exact=request.user)
@@ -847,14 +845,7 @@ def index(request):
         get_reads = ReadType.objects.annotate(num_type=Count('read')).order_by('-num_type')[:4].values('read','num_type')
         get_tags = Tag.objects.filter(owner=user).annotate(num_tag=Count('silos')).order_by('-num_tag')[:8].values('silos','num_tag')
     else:
-        get_silos = None
-        # count all public and private data sets
-        count_all = Silo.objects.count()
-        count_public = Silo.objects.filter(public=1).count()
-        count_shared = Silo.objects.filter(shared=1).count()
-        # top 4 data sources and tags
-        get_reads = ReadType.objects.annotate(num_type=Count('read')).order_by('-num_type')[:4].values('read','num_type')
-        get_tags = Tag.objects.annotate(num_tag=Count('silos')).order_by('-num_tag')[:8].values('silos','num_tag')
+        return HttpResponseRedirect(settings.ACTIVITY_URL)
     get_public = Silo.objects.filter(public=1)
     site = TolaSites.objects.get(site_id=1)
     response = render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_shared':count_shared, 'count_public': count_public, 'get_reads': get_reads, 'get_tags': get_tags, 'site': site})
@@ -871,7 +862,8 @@ def toggle_silo_publicity(request):
     silo.save()
     return HttpResponse("Your change has been saved")
 
-#SILOS
+
+# SILOS
 @login_required
 def listSilos(request):
     """
