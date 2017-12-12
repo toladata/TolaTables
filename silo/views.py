@@ -28,6 +28,7 @@ from django.utils.text import Truncator
 from django.db.models import Count, Q
 from django.views.decorators.csrf import csrf_protect
 from django.contrib import messages
+from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from django.views.generic import View
@@ -90,13 +91,19 @@ class IndexView(View):
                 response.set_cookie('auth_token', request.user.auth_token)
             return response
         else:
+            # If users are accessing Track from Activity but they're not
+            # logged in, redirect them to the login process
             if settings.ACTIVITY_URL:
-                return HttpResponseRedirect(settings.ACTIVITY_URL)
+                if settings.ACTIVITY_URL in request.META.get(
+                        'HTTP_REFERER', ''):
+                    return redirect('/login/tola')
+                else:
+                    return HttpResponseRedirect(settings.ACTIVITY_URL)
             else:
                 raise ImproperlyConfigured(
-                    "ACTIVITY_URL variable not set. Please, set a value so the "
-                    "user can log in. If you are in a Dev environment, go to "
-                    "/login/ in order to sign in.")
+                    "ACTIVITY_URL variable not set. Please, set a value so "
+                    "the user can log in. If you are in a Dev environment,"
+                    " go to /login/ in order to sign in.")
 
 
 # fix now that not all mongo rows need to have the same column
