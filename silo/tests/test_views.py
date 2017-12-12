@@ -90,7 +90,7 @@ class IndexViewTest(TestCase):
         response = views.IndexView.as_view()(request)
         self.assertEqual(response.status_code, 200)
 
-    @override_settings(ACTIVITY_URL='https://api.toladata.io')
+    @override_settings(TOLA_ACTIVITY_API_URL='https://api.toladata.io')
     def test_index_get_unauthenticated(self):
         request = self.factory.get('', follow=True)
         request.user = AnonymousUser()
@@ -98,7 +98,7 @@ class IndexViewTest(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn('https://api.toladata.io', response.url)
 
-    @override_settings(ACTIVITY_URL='https://api.toladata.io')
+    @override_settings(TOLA_ACTIVITY_API_URL='https://api.toladata.io')
     def test_index_get_login_process(self):
         request = self.factory.get('', follow=True)
         request.user = AnonymousUser()
@@ -107,8 +107,8 @@ class IndexViewTest(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn('login/tola', response.url)
 
-    @override_settings(ACTIVITY_URL=None)
-    def test_index_get_unauthenticated_no_activity_url(self):
+    @override_settings(TOLA_ACTIVITY_API_URL=None)
+    def test_index_get_unauthenticated_no_activity_api_url(self):
         request = self.factory.get('')
         request.user = AnonymousUser()
         with self.assertRaises(ImproperlyConfigured):
