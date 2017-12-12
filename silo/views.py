@@ -93,17 +93,19 @@ class IndexView(View):
         else:
             # If users are accessing Track from Activity but they're not
             # logged in, redirect them to the login process
-            if settings.TOLA_ACTIVITY_API_URL:
-                if settings.TOLA_ACTIVITY_API_URL in request.META.get(
-                        'HTTP_REFERER', ''):
+            if settings.TOLA_ACTIVITY_API_URL and settings.TOLA_ACTIVITY_URL:
+                referer = request.META.get('HTTP_REFERER', '')
+                if settings.TOLA_ACTIVITY_API_URL in referer or \
+                        settings.TOLA_ACTIVITY_URL in referer:
                     return redirect('/login/tola')
                 else:
                     return HttpResponseRedirect(settings.TOLA_ACTIVITY_API_URL)
             else:
                 raise ImproperlyConfigured(
-                    "TOLA_ACTIVITY_API_URL variable not set. Please, set a "
-                    "value so the user can log in. If you are in a Dev "
-                    "environment, go to /login/ in order to sign in.")
+                    "TOLA_ACTIVITY_API_URL and/or TOLA_ACTIVITY_URL variable(s)"
+                    " not set. Please, set a value so the user can log in. If "
+                    "you are in a Dev environment, go to /login/ in order to "
+                    "sign in.")
 
 
 # fix now that not all mongo rows need to have the same column
