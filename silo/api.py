@@ -1,40 +1,28 @@
 import json
 import django_filters
 
-from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
+from django.http import (HttpResponseBadRequest, JsonResponse, HttpResponse,
+                         QueryDict)
 from django.db.models import Q
+from django.utils import timezone
 from django.shortcuts import get_object_or_404
 
 from rest_framework import viewsets, filters, permissions
-from rest_framework.decorators import detail_route
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import (detail_route, list_route, api_view,
+                                       authentication_classes,
+                                       permission_classes)
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 from rest_framework_json_api.parsers import JSONParser
 from rest_framework_json_api.renderers import JSONRenderer
+from rest_framework import mixins, status
 
 from .serializers import *
 from .models import (Silo, LabelValueStore, Country, WorkflowLevel1,
-                     WorkflowLevel2, TolaUser)
+                     WorkflowLevel2, TolaUser, Read, ReadType)
 from silo.permissions import *
-from tola.util import getSiloColumnNames, getCompleteSiloColumnNames
-
-
-"""
-def silo_data_api(request, id):
-    if id <= 0:
-        return HttpResponseBadRequest("The silo_id = %s is invalid" % id)
-
-    data = LabelValueStore.objects(silo_id=id).to_json()
-    json_data = json.loads(data)
-    return JsonResponse(json_data, safe=False)
-"""
-
-
-class GroupViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    A ViewSet for listing or retrieving users.
-    """
-    queryset = Group.objects.all()
-    serializer_class = GroupSerializer
+from tola.util import (getSiloColumnNames, getCompleteSiloColumnNames,
+                       saveDataToSilo)
 
 
 class TolaUserViewSet(viewsets.ModelViewSet):
@@ -144,6 +132,126 @@ class PublicSiloViewSet(viewsets.ReadOnlyModelViewSet):
         return JsonResponse(json_data, safe=False)
 
 
+class CustomFormViewSet(mixins.CreateModelMixin,
+                        mixins.UpdateModelMixin,
+                        viewsets.GenericViewSet):
+    serializer_class = SiloSerializer
+    queryset = Silo.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        """
+        Create a table for the form instance in Activity
+        """
+        if not request.user.is_superuser:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            level1_uuid = request.POST['level1_uuid']
+            tola_user_uuid = request.POST['tola_user_uuid']
+            wkflvl1 = WorkflowLevel1.objects.get(level1_uuid=level1_uuid)
+            tola_user = TolaUser.objects.get(tola_user_uuid=tola_user_uuid)
+            table_name = request.POST['name'].lower().replace(' ', '_')
+            table_name += '_' + wkflvl1.name.lower().replace(' ', '_')
+            read_name = request.POST['name']
+            columns = request.POST['fields']
+        except (WorkflowLevel1.DoesNotExist, TolaUser.DoesNotExist, KeyError) \
+                as e:
+            return Response(e, status=status.HTTP_400_BAD_REQUEST)
+        description = request.POST.get('description', '')
+
+        read = Read.objects.create(
+            owner=tola_user.user,
+            type=ReadType.objects.get(read_type='CustomForm'),
+            read_name=read_name,
+        )
+        silo = Silo.objects.create(
+            owner=tola_user.user,
+            name=table_name,
+            description=description,
+            organization=tola_user.organization,
+            public=False,
+            columns=columns,
+        )
+
+        silo.reads.add(read)
+        silo.workflowlevel1.add(wkflvl1)
+
+        lvs = LabelValueStore()
+        lvs.silo_id = silo.pk
+        lvs.create_date = timezone.now()
+        lvs.read_id = read.pk
+        lvs.save()
+
+        serializer = self.serializer_class(silo, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Update only some specific info from silo
+        """
+        if not request.user.is_superuser:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        silo = self.get_object()
+        wkflvl1 = silo.workflowlevel1.first()
+        read = silo.reads.first()
+
+        try:
+            table_name = request.data['name'].lower().replace(' ', '_')
+            table_name += '_' + wkflvl1.name.lower().replace(' ', '_')
+            read_name = request.data['name']
+            columns = request.data['fields']
+        except KeyError as e:
+            return Response(e, status=status.HTTP_400_BAD_REQUEST)
+        description = request.data.get('description', '')
+
+        read.read_name = read_name
+        read.save()
+
+        silo.name = table_name
+        silo.description = description
+        silo.columns = columns
+        silo.save()
+
+        serializer = self.get_serializer(silo)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @detail_route(methods=['GET'],)
+    def has_data(self, request, pk):
+        """
+        Check if the data was added to the custom form instance
+        """
+        if not request.user.is_superuser:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        silo = self.get_object()
+        return Response(silo.data_count > 1, status=status.HTTP_200_OK)
+
+    @list_route(methods=['POST'], permission_classes=[AllowAny])
+    def save_data(self, request):
+        """
+        Persist user input data
+        """
+        if not request.data:
+            return Response({'detail': 'No data sent.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if 'silo_id' in request.data and 'data' in request.data:
+            silo_id = request.data['silo_id']
+            data = request.data['data']
+        else:
+            return Response({'detail': 'Missing data.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        silo = Silo.objects.get(pk=silo_id)
+        lvs = LabelValueStore.objects(silo_id=silo_id).count()
+        if not lvs or not silo:
+            return Response({'detail': 'Not found.'},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        saveDataToSilo(silo, [data], silo.reads.first())
+        return Response(status=status.HTTP_200_OK)
+
+
 class SilosByUser(viewsets.ReadOnlyModelViewSet):
     """
     Lists all silos by a user; returns data in a format
@@ -190,28 +298,21 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
 
             return Silo.objects.filter(Q(owner=user) | Q(public=True))
 
-
-
     @detail_route()
     def data(self, request, id):
         # calling get_object applies the permission classes to this query
-        silo = self.get_object()
+        self.get_object()
 
         draw = int(request.GET.get("draw", 1))
         offset = int(request.GET.get('start', -1))
         length = int(request.GET.get('length', 10))
-        #filtering syntax is the mongodb syntax
+
+        # filtering syntax is the mongodb syntax
         query = request.GET.get('query',"{}")
         filter_fields = json.loads(query)
 
         recordsTotal = LabelValueStore.objects(silo_id=id, **filter_fields).count()
 
-
-        #print("offset=%s length=%s" % (offset, length))
-        #page_size = 100
-        #page = int(request.GET.get('page', 1))
-        #offset = (page - 1) * page_size
-        #if page > 0:
         # workaround until the problem of javascript not increasing the value of length is fixed
         if offset >= 0:
             length = offset + length
@@ -258,21 +359,19 @@ class ReadTypeViewSet(viewsets.ModelViewSet):
     serializer_class = ReadTypeSerializer
 
 
-#####-------API Views to Feed Data to Tolawork API requests-----####
+# ####-------API Views to Feed Data to Tolawork API requests-----### #
 '''
     This view responds to the 'GET' request from TolaWork
 '''
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.response import Response
 
 
 @api_view(['GET'])
 @authentication_classes(())
 @permission_classes(())
-
 def tables_api_view(request):
     """
-   Get TolaTables Tables owned by a user logged in Tolawork & a list of logged in Users,
+    Get TolaTables Tables owned by a user logged in Tolawork & a list of
+    logged in Users,
     """
     if request.method == 'GET':
         user = request.GET.get('email')
@@ -287,18 +386,13 @@ def tables_api_view(request):
 
         users = user_serializer.data
         tables = table_serializer.data
-
-
         tables_data = {'tables':tables, 'table_logged_users': users}
-
 
         return Response(tables_data)
 
-#return users logged into TolaActivity
+
+# return users logged into TolaActivity
 def logged_in_users():
-
-    logged_users = {}
-
     logged_users = LoggedUser.objects.order_by('username')
     for logged_user in logged_users:
         logged_user.queue = 'TolaTables'

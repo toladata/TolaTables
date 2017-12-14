@@ -3,12 +3,10 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from django.contrib.auth.models import Group
 from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from silo.models import TolaUser,TolaSites
-from silo.views import ROLE_VIEW_ONLY
 from silo.serializers import TolaUserSerializer
 from tola.forms import RegistrationForm, NewUserRegistrationForm, NewTolaUserRegistrationForm
 
@@ -16,7 +14,6 @@ from rest_framework_swagger.renderers import OpenAPIRenderer, SwaggerUIRenderer
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework import response, schemas
 from rest_framework.response import Response
-from rest_framework.renderers import JSONRenderer
 from rest_framework import status
 
 
@@ -39,7 +36,6 @@ def register(request):
         if form_user.is_valid() and form_tolauser.is_valid() and \
                 request.POST.get('tola_user_uuid'):
             user = form_user.save()
-            user.groups.add(Group.objects.get(name=ROLE_VIEW_ONLY))
 
             tolauser = form_tolauser.save(commit=False)
             tolauser.user = user
@@ -49,8 +45,7 @@ def register(request):
             tolauser.save()
             serializer = TolaUserSerializer(
                 tolauser, context={'request': request})
-            content = JSONRenderer().render(serializer.data)
-            return Response(content, status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
     return Response(status=status.HTTP_403_FORBIDDEN)
@@ -61,7 +56,7 @@ def profile(request):
     Update a User profile using built in Django Users Model if the user is logged in
     otherwise redirect them to registration version
     """
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         obj = get_object_or_404(TolaUser, user=request.user)
         form = RegistrationForm(request.POST or None, instance=obj,initial={'username': request.user})
 
@@ -91,6 +86,6 @@ class BoardView(LoginRequiredMixin, TemplateView):
 
     def render_to_response(self, context, **response_kwargs):
         response = super(BoardView, self).render_to_response(context, **response_kwargs)
-        if self.request.user.is_authenticated():
+        if self.request.user.is_authenticated:
             response.set_cookie(key='token', value=self.request.user.auth_token)
         return response
