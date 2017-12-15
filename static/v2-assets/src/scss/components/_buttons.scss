@@ -1,0 +1,26 @@
+.btn{
+  border: none;
+}
+.list_silos{
+  .input-group-btn>.btn{
+    border: 1px solid #ccc;
+  }
+}
+.btn-warning{
+  background-color: #bfbfbf;
+  border-color: #bfbfbf;
+  color: #fff;
+  &:hover{
+    background-color: darken(#bfbfbf, 4);
+    border-color: darken(#bfbfbf, 4);
+  }
+}
+.btn-primary, .btn-success{
+  background-color: $green;
+  border-color: $green;
+  color: #fff;
+  &:hover{
+    background-color: darken($green, 4);
+    border-color: darken($green, 4);
+  }
+}

@@ -8,6 +8,7 @@ import logging
 import json
 from collections import OrderedDict
 from requests.auth import HTTPDigestAuth
+import tempfile
 
 from pymongo import MongoClient
 
@@ -15,6 +16,8 @@ from bson import CodecOptions, SON
 from bson.json_util import dumps
 
 from django.conf import settings
+from django.core import files
+from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse_lazy
 from django.http import HttpResponseBadRequest,\
     HttpResponse, HttpResponseRedirect, JsonResponse
@@ -22,18 +25,13 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.utils.encoding import smart_str, smart_text
 from django.utils.text import Truncator
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.views.decorators.csrf import csrf_protect
-
 from django.contrib import messages
+from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count
 from django.contrib.auth import logout
-
-from rest_framework import status
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework.renderers import JSONRenderer
+from django.views.generic import View
 
 from silo.custom_csv_dict_reader import CustomDictReader
 from tola.util import importJSON, saveDataToSilo, getSiloColumnNames, \
@@ -45,7 +43,7 @@ from commcare.tasks import fetchCommCareData
 from .serializers import *
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, \
     Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, \
-    DeletedSilos, FormulaColumn, WorkflowLevel1
+    DeletedSilos, FormulaColumn
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, \
     NewColumnForm, EditColumnForm, OnaLoginForm
 
@@ -53,6 +51,61 @@ logger = logging.getLogger("silo")
 client = MongoClient(settings.MONGO_URI)
 db = client.get_database("tola")
 ROLE_VIEW_ONLY = 'ViewOnly'
+
+
+class IndexView(View):
+    template_name = 'index.html'
+
+    def _get_context_data(self, request):
+        # Because of the M2M 'tags' field we can't make it more performant
+        # selecting just the values we want.
+        silos_user = list(Silo.objects.prefetch_related('tags', 'shared').\
+            filter(owner=request.user))
+        silos_user_public_total = len([s for s in silos_user if s.public])
+        silos_user_shared_total = len([s for s in silos_user if s.shared.all()])
+        silos_public = Silo.objects.prefetch_related('tags').filter(public=1).\
+            exclude(owner=request.user)
+        readtypes = ReadType.objects.all().values_list('read_type', flat=True)
+        tags = Tag.objects.filter(owner=request.user).\
+                   annotate(times_tagged=Count('silos')).\
+                   values('name', 'times_tagged').order_by('-times_tagged')[:8]
+        site_name = TolaSites.objects.values_list('name', flat=True).get(site_id=1)
+
+        context = {
+            'silos_user': silos_user,
+            'silos_user_public_total': silos_user_public_total,
+            'silos_user_shared_total': silos_user_shared_total,
+            'silos_public': silos_public,
+            'readtypes': readtypes,
+            'tags': tags,
+            'site_name': site_name,
+        }
+        return context
+
+    def get(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            context = self._get_context_data(request)
+            response = render(request, self.template_name, context)
+            if (request.COOKIES.get('auth_token', None) is None and
+                    request.user.is_authenticated):
+                response.set_cookie('auth_token', request.user.auth_token)
+            return response
+        else:
+            # If users are accessing Track from Activity but they're not
+            # logged in, redirect them to the login process
+            if settings.TOLA_ACTIVITY_API_URL and settings.ACTIVITY_URL:
+                referer = request.META.get('HTTP_REFERER', '')
+                if settings.TOLA_ACTIVITY_API_URL in referer or \
+                        settings.ACTIVITY_URL in referer:
+                    return redirect('/login/tola')
+                else:
+                    return HttpResponseRedirect(settings.TOLA_ACTIVITY_API_URL)
+            else:
+                raise ImproperlyConfigured(
+                    "TOLA_ACTIVITY_API_URL and/or ACTIVITY_URL variable(s)"
+                    " not set. Please, set a value so the user can log in. If "
+                    "you are in a Dev environment, go to /login/ in order to "
+                    "sign in.")
 
 
 # fix now that not all mongo rows need to have the same column
@@ -561,7 +614,7 @@ def providerLogout(request,provider):
     return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
 
-#DELETE-SILO
+# DELETE-SILO
 @csrf_protect
 def deleteSilo(request, id):
     owner = Silo.objects.get(id = id).owner
@@ -689,9 +742,6 @@ def showRead(request, id):
         'get_tables': get_tables,
         'access_token': access_token
     })
-
-import tempfile
-from django.core import files
 
 
 @login_required
@@ -830,31 +880,6 @@ def getJSON(request):
         })
 
 
-# INDEX
-def index(request):
-    # get all of the table(silo) info for logged in user and public data
-    if request.user.is_authenticated():
-        user = User.objects.get(username__exact=request.user)
-
-        get_silos = Silo.objects.filter(owner=user)
-        # count all public and private data sets
-        count_all = Silo.objects.filter(owner=user).count()
-        count_public = Silo.objects.filter(owner=user).filter(public=1).count()
-        count_shared = Silo.objects.filter(owner=user).filter(shared=1).count()
-        # top 4 data sources and tags
-        get_reads = ReadType.objects.annotate(num_type=Count('read')).order_by('-num_type')[:4].values('read','num_type')
-        get_tags = Tag.objects.filter(owner=user).annotate(num_tag=Count('silos')).order_by('-num_tag')[:8].values('silos','num_tag')
-    else:
-        return HttpResponseRedirect(settings.ACTIVITY_URL)
-    get_public = Silo.objects.filter(public=1)
-    site = TolaSites.objects.get(site_id=1)
-    response = render(request, 'index.html',{'get_silos':get_silos,'get_public':get_public, 'count_all':count_all, 'count_shared':count_shared, 'count_public': count_public, 'get_reads': get_reads, 'get_tags': get_tags, 'site': site})
-
-    if request.COOKIES.get('auth_token', None) is None and request.user.is_authenticated():
-        response.set_cookie('auth_token', user.auth_token)
-    return response
-
-
 def toggle_silo_publicity(request):
     silo_id = request.GET.get('silo_id', None)
     silo = Silo.objects.get(pk=silo_id)
@@ -878,51 +903,6 @@ def listSilos(request):
 
     public_silos = Silo.objects.filter(Q(public=True) & ~Q(owner=user)).prefetch_related("reads")
     return render(request, 'display/silos.html',{'own_silos':own_silos, "shared_silos": shared_silos, "public_silos": public_silos})
-
-
-@api_view(['POST'])
-def create_customform(request):
-    """
-    Create a table for the form instance in Activity
-    """
-    try:
-        table_name = request.data['name'].lower().replace(' ', '_')
-        wkflvl1 = WorkflowLevel1.objects.get(level1_uuid=request.data['level1_uuid'])
-        read_name = request.data['name']
-        description = request.data.get('description', '')
-        public = request.data['is_public']
-        columns = request.data['fields']
-    except KeyError:
-        return Response(status=status.HTTP_400_BAD_REQUEST)
-
-    read = Read.objects.create(
-        owner=request.user,
-        type=ReadType.objects.get(read_type='CustomForm'),
-        read_name=read_name,
-    )
-    silo = Silo.objects.create(
-        owner=request.user,
-        name=table_name,
-        description=description,
-        organization=request.user.tola_user.organization,
-        public=public,
-        columns=json.dumps(columns),
-    )
-
-    silo.reads.add(read)
-    silo.workflowlevel1.add(wkflvl1)
-    read_source_id = read.id
-
-    lvs = LabelValueStore()
-    lvs.silo_id = silo.pk
-    lvs.create_date = timezone.now()
-    lvs.read_id = read_source_id
-    lvs.save()
-
-    serializer = SiloSerializer(silo, context={'request': request})
-    content = JSONRenderer().render(serializer.data)
-
-    return Response(content, status=status.HTTP_201_CREATED)
 
 
 def addUniqueFiledsToSilo(request):
