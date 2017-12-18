@@ -66,9 +66,9 @@ class IndexView(View):
         silos_public = Silo.objects.prefetch_related('tags').filter(public=1).\
             exclude(owner=request.user)
         readtypes = ReadType.objects.all().values_list('read_type', flat=True)
-        tags = Tag.objects.filter(owner=request.user).\
-                   annotate(times_tagged=Count('silos')).\
-                   values('name', 'times_tagged').order_by('-times_tagged')[:8]
+        # tags = Tag.objects.filter(owner=request.user).\
+        #            annotate(times_tagged=Count('silos')).\
+        #            values('name', 'times_tagged').order_by('-times_tagged')[:8]
         site_name = TolaSites.objects.values_list('name', flat=True).get(site_id=1)
 
         context = {
@@ -77,7 +77,7 @@ class IndexView(View):
             'silos_user_shared_total': silos_user_shared_total,
             'silos_public': silos_public,
             'readtypes': readtypes,
-            'tags': tags,
+            # 'tags': tags,
             'site_name': site_name,
         }
         return context
