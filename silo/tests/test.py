@@ -143,7 +143,7 @@ class SiloTest(TestCase):
 
     def test_root_url_resolves_to_home_page(self):
         found = resolve('/')
-        self.assertEqual(found.func, index)
+        self.assertEqual(found.func.view_class, IndexView)
 
     def test_read_form(self):
         read_type = ReadType.objects.get(read_type="CSV")

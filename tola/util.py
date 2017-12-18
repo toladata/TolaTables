@@ -201,7 +201,7 @@ def cleanKey(key):
 
 
 #IMPORT JSON DATA
-def importJSON(read_obj, user, remote_user=None, password=None, silo_id=None, silo_name=None, return_dat=False):
+def importJSON(read_obj, user, remote_user=None, password=None, silo_id=None, silo_name=None, return_data=False):
     # set date time stamp
     today = datetime.date.today()
     today.strftime('%Y-%m-%d')

@@ -34,6 +34,14 @@ MONGODB_DATABASES = {
         "password": "test",
     },
 }
+
+MONGO_URI = 'mongodb://{username}:{password}@{host}:{port}/{db}'.format(
+    db=MONGODB_DATABASES['default']['name'],
+    username=MONGODB_DATABASES['default']['username'],
+    password=MONGODB_DATABASES['default']['password'],
+    host=MONGODB_DATABASES['default']['host'],
+    port=MONGODB_DATABASES['default']['port'],
+)
 ################ END OF MONGO DB #######################
 
 from os.path import join, normpath
