@@ -1,7 +1,7 @@
 Tola Tables [![Build Status](https://travis-ci.org/toladata/TolaTables.svg?branch=master)](https://travis-ci.org/toladata/TolaTables)
 ====
 
-Share, load, edit and display data from various mobile data collection platforms.
+Share, edit and display data from various mobile data collection platforms.
 The data itself is stored in MongoDB but metadata and dashboarding is done through
 Django and a relational database.  The Silo app provides most of the functionality.
 It stores data source and destination locations, manages the data import process,
