@@ -4,6 +4,9 @@
 html, html a {
   text-shadow: 1px 1px 1px rgba(0,0,0,0.004);
 }
+html a{
+  color: $blue-darker;
+}
 
 body {
   margin: 0;
