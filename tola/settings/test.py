@@ -1,4 +1,4 @@
-from base import *
+from local import *
 
 ########## GOOGLE AUTH
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.getenv('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')

@@ -45,6 +45,12 @@ To run the tests:
 docker-compose -f docker-compose-dev.yml run --entrypoint '/usr/bin/env' --rm tables python manage.py test
 ```
 
+To run the webserver with pdb support:
+
+```bash
+docker-compose -f docker-compose-dev.yml run --rm --service-ports tables
+```
+
 To run bash:
 
 ```bash

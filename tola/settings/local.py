@@ -70,7 +70,7 @@ GOOGLE_REDIRECT_URL = 'http://localhost:8000/oauth2callback/'
 
 
 ####### Tola Activity API #######
-TOLA_ACTIVITY_API_URL = os.getenv('TOLA_ACTIVITY_API_URL')
+TOLA_ACTIVITY_API_URL = os.getenv('TOLA_ACTIVITY_API_URL', '')
 TOLA_ACTIVITY_API_TOKEN = os.getenv('TOLA_ACTIVITY_API_TOKEN')
 
 ########## CACHE CONFIGURATION
