@@ -231,9 +231,9 @@
         <script type="text/javascript">
 
             // The Client ID obtained from the Google Developers Console.
-            var clientId = "445847194486-mah10ripofn1bl6q7pgi29ssvfhvq2uu.apps.googleusercontent.com"
+            var clientId = "{{ google_creds.clientid }}"
             // developerKey is the same as the Browser API key, at least, as of writing this code.
-            var developerKey = 'AIzaSyCwwfqoakFNLYHsWK1pMzVfYF9bhDTfOO0';
+            var developerKey = "{{ google_creds.apikey }}"
             // The list of scopes to request access to is available at: https://developers.google.com/picker/docs/#otherviews
             var scope = ['https://www.googleapis.com/auth/drive.readonly'];
             var silo_id;
@@ -265,7 +265,7 @@
             function onAuthApiLoad(siloId) {
                 silo_id = siloId;
                 window.gapi.auth.authorize( {
-                    'client_id': clientId,
+                    'client_id': '{{ google_creds.clientid }}',
                     'scope': scope,
                     'immediate': false
                 },
@@ -364,17 +364,11 @@
         </script>
         <script type="text/javascript" src="https://apis.google.com/js/api.js?onload=onApiLoad"></script>
 
+        {% if google_prop_id %}
+          {% include "google_analytics.html" %}
+        {% endif %}
+
         {% block extra_js_in_body %}{% endblock %}
-        <script>
-          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
-
-          ga('create', 'UA-73736890-2', 'auto');
-          ga('send', 'pageview');
-
-        </script>
 
     </body>
 </html>

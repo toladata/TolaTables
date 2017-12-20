@@ -46,15 +46,24 @@
                         <a href="/silos/" class="btn btn-lg btn-success">View My Data</a>
                     {% else %}
                         <div class="social-buttons">
-                            <p>Login with your {{ site.name }} Tola Account.</p>
-                            <a href="{% url 'social:begin' 'tola' %}" class="btn btn-go"><i class="fa fa-key"></i> Tola Login </a>
+                          {% if logintypes is not None %}
+                              {% for category in logintypes %}
+                                  <p>Login with your {{ site.name }} {{ category.category_name }} Account.</p>
+                                  {% for target in category.targets %}
+                                      <a href="{% url 'social:begin' target.path %}" class="btn btn-go"><i class="fa fa-key"></i> {{ target.name }} Login </a>
+                                  {% endfor %}
+                              {% endfor %}
+                          {% else %}
+                              <p>Login with your {{ site.name }} Tola Account.</p>
+                              <a href="{% url 'social:begin' 'tola' %}" class="btn btn-go"><i class="fa fa-key"></i> Tola Login </a>
 
-                            <p>Login with your {{ site.name }} Google Account.</p>
-                            <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-go"><i class="fa fa-google"></i> Google Login </a>
+                              <p>Login with your {{ site.name }} Google Account.</p>
+                              <a href="{% url 'social:begin' 'google-oauth2' %}" class="btn btn-go"><i class="fa fa-google"></i> Google Login </a>
 
-                            <p>Login with your {{ site.name }} Microsoft Account.</p>
-                            <a href="{% url 'social:begin' 'microsoft-graph' %}" class="btn btn-go"><i class="fa fa-key"></i> Microsoft Login </a>
-                            <a href="{% url 'social:begin' 'azuread-oauth2' %}" class="btn btn-go"><i class="fa fa-key"></i> Azure Login </a>
+                              <p>Login with your {{ site.name }} Microsoft Account.</p>
+                              <a href="{% url 'social:begin' 'microsoft-graph' %}" class="btn btn-go"><i class="fa fa-key"></i> Microsoft Login </a>
+                              <a href="{% url 'social:begin' 'azuread-oauth2' %}" class="btn btn-go"><i class="fa fa-key"></i> Azure Login </a>
+                          {% endif %}
                         </div>
                     {% endif %}
                 </div>

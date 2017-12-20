@@ -172,7 +172,8 @@ def getCommCareFormPass(request):
                 # except Exception as e:
                 #     return HttpResponse("Invalid name and/or URL")
 
-                silo, silo_created = Silo.objects.get_or_create(id=silo_id, defaults={"name": "%s cases" % project, "public": False, "owner": request.user})
+                silo_name = request.POST.get('new_silo_name', "%s cases" % (project))
+                silo, silo_created = Silo.objects.get_or_create(id=silo_id, defaults={"name": silo_name, "public": False, "owner": request.user})
                 if silo_created or read_created:
                     silo.reads.add(read)
                 elif read not in silo.reads.all():

@@ -1,5 +1,15 @@
 from local import *
 
+########## GOOGLE AUTH
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.getenv('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.getenv('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET')
+GOOGLE_API_KEY = "ReplaceThisWithARealKey"
+
+########## MICROSOFT AUTH
+SOCIAL_AUTH_MICROSOFT_GRAPH_RESOURCE = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_RESOURCE')
+SOCIAL_AUTH_MICROSOFT_GRAPH_KEY = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_KEY')
+SOCIAL_AUTH_MICROSOFT_GRAPH_SECRET = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_SECRET')
+SOCIAL_AUTH_MICROSOFT_GRAPH_REDIRECT_URL = os.getenv('SOCIAL_AUTH_MICROSOFT_GRAPH_REDIRECT_URL')
 
 ########## IN-MEMORY TEST DATABASE
 DATABASES = {
@@ -24,6 +34,14 @@ MONGODB_DATABASES = {
         "password": "test",
     },
 }
+
+MONGO_URI = 'mongodb://{username}:{password}@{host}:{port}/{db}'.format(
+    db=MONGODB_DATABASES['default']['name'],
+    username=MONGODB_DATABASES['default']['username'],
+    password=MONGODB_DATABASES['default']['password'],
+    host=MONGODB_DATABASES['default']['host'],
+    port=MONGODB_DATABASES['default']['port'],
+)
 ################ END OF MONGO DB #######################
 
 from os.path import join, normpath
@@ -85,3 +103,5 @@ CACHES = {
 ########## END CACHE CONFIGURATION
 
 CORS_ORIGIN_ALLOW_ALL = True
+
+GOOGLE_API_CLIENT_ID = False

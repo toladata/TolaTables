@@ -120,6 +120,7 @@ TEMPLATES = [
                 'tola.context_processors.get_silos',
                 'tola.context_processors.get_servers',
                 'tola.context_processors.google_oauth_settings',
+                'tola.context_processors.google_analytics',
             ],
             'builtins': [
                 'django.contrib.staticfiles.templatetags.staticfiles',
@@ -142,3 +143,11 @@ SOCIAL_AUTH_TOLA_SECRET = os.getenv('SOCIAL_AUTH_TOLA_SECRET')
 
 GOOGLE_API_CLIENT_ID = os.getenv('GOOGLE_API_CLIENT_ID')
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
+
+# GOOGLE_ANALYTICS_PROPERTY_ID = 'A Google Analytics Property ID'
+
+# This allows for additional settings to be kept in a local file
+try:
+    from local_secret import *
+except ImportError:
+    pass

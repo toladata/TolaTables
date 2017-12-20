@@ -32,7 +32,9 @@ from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from django.views.generic import View
+from rest_framework.authtoken.models import Token
 
+from gviews_v4 import import_from_gsheet_helper
 from silo.custom_csv_dict_reader import CustomDictReader
 from tola.util import importJSON, saveDataToSilo, getSiloColumnNames, \
     parseMathInstruction, calculateFormulaColumn, makeQueryForHiddenRow, \
@@ -700,7 +702,7 @@ def showRead(request, id):
         if response.status_code == 401:
             logout(request)
             redirect('/')
-        
+
         print(data)
         """
         excluded_fields = excluded_fields + ['username', 'password', 'file_data','autopush_frequency']
@@ -753,7 +755,7 @@ def oneDriveImport(request, id):
     """
     read_obj = Read.objects.get(pk=id)
 
-    print(read_obj.onedrive_file)
+    # print(read_obj.onedrive_file)
     user = User.objects.get(username__exact=request.user)
     social = user.social_auth.get(provider='microsoft-graph')
     access_token = social.extra_data['access_token']
@@ -1203,6 +1205,13 @@ def editColumns(request,id):
                             },
                         False
                     )
+                    columnObj = json.loads(silo.columns)
+                    for column in columnObj:
+                        if column['name'] == label:
+                            column['name'] = value
+                            break
+                    silo.columns = json.dumps(columnObj)
+                    silo.save()
                 #if we see delete then it's a check box to delete that column
                 elif "_delete" in label and value == 1:
                     column = label.replace("_delete", "")
