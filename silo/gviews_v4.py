@@ -326,18 +326,30 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id, query, headers):
     for y, row in enumerate(silo_data):
         values = [] # Get all of the values of a single mongodb document into this array
         for x, header in enumerate(headers):
-            if type(row[header]) == list:
-                try:
-                    repeat_data[header].append(row[header])
-                except KeyError as e:
-                    repeat_data[header] = [row[header]]
-                repeat_cells[header] = (x,y+1)
-                values.append({"userEnteredValue": {"stringValue": smart_text(header)}})
-                if header not in repeat_headers and header not in other_title:
-                    repeat_headers.append(header)
-            else:
-                values.append({"userEnteredValue": {"stringValue": smart_text(row[header])}})
+            try:
+                if type(row[header]) == list:
+                    if header == 'sys__geolocation':
+                        geoString = ",".join([str(h) for h in list(row[header])])
+                        values.append({"userEnteredValue": {"stringValue": smart_text(geoString)}})
+
+                    elif len(row[header]) > 0:
+                        try:
+                            repeat_data[header].append(row[header])
+                        except KeyError as e:
+                            repeat_data[header] = [row[header]]
+                        repeat_cells[header] = (x,y+1)
+                        values.append({"userEnteredValue": {"stringValue": smart_text(header)}})
+                        if header not in repeat_headers and header not in other_title:
+                            repeat_headers.append(header)
+                    else:
+                        values.append({"userEnteredValue": {"stringValue": ""}})
+                else:
+                    values.append({"userEnteredValue": {"stringValue": smart_text(row[header])}})
+            #handles a header in the SQL isn't found in Mongo
+            except KeyError:
+                values.append({"userEnteredValue": {"stringValue": ""}})
         rows.append({"values": values})
+
 
     # prepare column names as a header row in spreadsheet
     values = []
