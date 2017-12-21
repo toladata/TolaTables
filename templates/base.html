@@ -231,9 +231,9 @@
         <script type="text/javascript">
 
             // The Client ID obtained from the Google Developers Console.
-            var clientId = "{{ google_creds.clientid }}"
+            var clientId = "{{ GOOGLE_API_CLIENT_ID }}"
             // developerKey is the same as the Browser API key, at least, as of writing this code.
-            var developerKey = "{{ google_creds.apikey }}"
+            var developerKey = "{{ GOOGLE_API_KEY }}"
             // The list of scopes to request access to is available at: https://developers.google.com/picker/docs/#otherviews
             var scope = ['https://www.googleapis.com/auth/drive.readonly'];
             var silo_id;
@@ -265,7 +265,7 @@
             function onAuthApiLoad(siloId) {
                 silo_id = siloId;
                 window.gapi.auth.authorize( {
-                    'client_id': '{{ google_creds.clientid }}',
+                    'client_id': '{{ GOOGLE_API_CLIENT_ID }}',
                     'scope': scope,
                     'immediate': false
                 },
