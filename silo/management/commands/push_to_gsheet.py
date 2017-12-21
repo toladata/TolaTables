@@ -35,7 +35,8 @@ class Command(BaseCommand):
         for silo in silos:
             reads = silo.reads.filter(reduce(or_, [Q(type=read.id) for read in readtypes])).filter(autopush_frequency__isnull=False, autopush_frequency = frequency)
             cols_to_export = getSiloColumnNames(silo.id)
-            query = json.loads(makeQueryForHiddenRow(json.loads(silo.rows_to_hide)))
+            # query = json.loads(makeQueryForHiddenRow(json.loads(silo.rows_to_hide)))
+            query = json.loads('{}')
             for read in reads:
                 msgs = export_to_gsheet_helper(silo.owner, read.resource_id, silo.pk, query, cols_to_export)
                 for msg in msgs:
