@@ -51,3 +51,6 @@ error.log
 *.secret
 *.secret.yml
 src/
+
+#Templates
+login_types.html
