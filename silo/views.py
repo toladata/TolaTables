@@ -68,7 +68,6 @@ class IndexView(View):
         silos_public = Silo.objects.prefetch_related('tags').filter(public=1).\
             exclude(owner=request.user)
         readtypes = ReadType.objects.all().values_list('read_type', flat=True)
-        print 'readytyes', readtypes
         # tags = Tag.objects.filter(owner=request.user).\
         #            annotate(times_tagged=Count('silos')).\
         #            values('name', 'times_tagged').order_by('-times_tagged')[:8]

@@ -418,6 +418,7 @@ def ona_parse_type_group(data, form_data, parent_name, silo, read):
         if field["type"] == "group":
             ona_parse_type_group(data, field['children'], parent_name + field['name']+"/", silo, read)
         else:
+            warnings = set()
             for entry in data:
                 if field['type'] == "repeat":
                     ona_parse_type_repeat(entry.get(parent_name + field['name'], []), field['children'], parent_name + field['name']+"/", silo, read)
@@ -425,9 +426,11 @@ def ona_parse_type_group(data, form_data, parent_name, silo, read):
                     try:
                         entry[field['label']] = entry.pop(parent_name + field['name'])
                     except KeyError as e:
-                        logger.warning(e)
+                        warnings.add("Warn: ona_parse_type_group for silo %s, %s" % (silo.pk, e))
                     except TypeError:
                         pass
+            for warn in warnings:
+                logger.warning(warn)
 
         # add an association between a column, label and its type to the
         # columnType database
@@ -448,6 +451,7 @@ def ona_parse_type_repeat(data, form_data, parent_name, silo, read):
     form_data -- the children of an ONA object of type repeat
     parent_name -- the name of the parent of the ona object
     """
+    warnings = set()
     for field in form_data:
         if field["type"] == "group":
             ona_parse_type_group(data, field['children'], parent_name + field['name']+"/", silo, read)
@@ -459,8 +463,9 @@ def ona_parse_type_repeat(data, form_data, parent_name, silo, read):
                     try:
                         entry[field['label']] = entry.pop(parent_name + field['name'])
                     except KeyError as e:
-                        logger.warning(e)
-
+                        warnings.add("Warn: ona_parse_type_repeat for silo %s, %s" % (silo.pk, e))
+    for warn in warnings:
+        logger.warning(warn)
 
 def saveOnaDataToSilo(silo, data, read, user):
     """
