@@ -26,7 +26,7 @@ from commcare.views import *
 from commcare.tasks import *
 
 
-""" 
+
 class ReadTest(TestCase):
     fixtures = ['../fixtures/read_types.json']
     show_read_url = '/show_read/'
@@ -75,8 +75,6 @@ class SiloTest(TestCase):
     silo_edit_url = "/silo_edit/"
     upload_csv_url = "/file/"
     silo_detail_url = "/silo_detail/"
-
-
 
     def setUp(self):
         self.client = Client()
@@ -145,7 +143,7 @@ class SiloTest(TestCase):
 
     def test_root_url_resolves_to_home_page(self):
         found = resolve('/')
-        self.assertEqual(found.func, index)
+        self.assertEqual(found.func.view_class, IndexView)
 
     def test_read_form(self):
         read_type = ReadType.objects.get(read_type="CSV")
@@ -500,20 +498,32 @@ class parseCommCareDataTest(TestCase):
                 self.assert_(False)
             try:
                 lvs = LabelValueStore.objects.get(f_=1, user_assigned_id=5, editted_date=7, created_date=8, user_case_id=9, case_id=4, read_id=-97, silo_id = -87)
+            except LabelValueStore.DoesNotExist as e:
+                self.assert_(False)
+            LabelValueStore.objects.filter(read_id=-97, silo_id = -87).delete()
+
+        except LabelValueStore.MultipleObjectsReturned as e:
+            LabelValueStore.objects.filter(read_id=-97, silo_id = -87).delete()
+            print 'Needed to delete some temporary data, running the tests again should work'
+            #if this happens run the test again and it should work
+            self.assert_(False)
 
     def test_delete_silo(self):
         pass
-"""
-"""
+
 from django.test import Client
 from django.conf import settings
+
+"""
+This test doesn't appear to be working yet
 
 class Microsoft(TestCase):
 
     def test_social_auth(self):
 
+
         Test social auth login with Microsoft online
-        :return: 
+        :return:
 
         driver = Client()
         response = driver.get('/login/microsoft-graph', follow=True)
@@ -535,14 +545,15 @@ class Microsoft(TestCase):
         self.assertEqual(redir_options['client_id'], str(getattr(settings, 'SOCIAL_AUTH_MICROSOFT_OAUTH2_KEY', None)))
         self.assertTrue('state' in redir_options)
         self.assertTrue('response_type' in redir_options)
+
             except LabelValueStore.DoesNotExist as e:
                 self.assert_(False)
             LabelValueStore.objects.filter(read_id=-97, silo_id = -87).delete()
-        except LabelValueStore.MultipleObjectsReturned as e:
-            LabelValueStore.objects.filter(read_id=-97, silo_id = -87).delete()
-            #if this happens run the test again and it should work
-            self.assert_(False)
-
+            except LabelValueStore.MultipleObjectsReturned as e:
+                LabelValueStore.objects.filter(read_id=-97, silo_id = -87).delete()
+                #if this happens run the test again and it should work
+                self.assert_(False)
+"""
 
 class Test_ImportJson(TestCase):
     def setUp(self):
@@ -585,5 +596,3 @@ class Test_DeleteSilo(TestCase):
         self.assertFalse(Silo.objects.filter(pk=silo_id).exists())
         self.assertFalse(Read.objects.filter(pk=read_id).exists())
         self.assertTrue(DeletedSilos.objects.filter(silo_name_id="test_silo1 with id %i" % silo_id).exists())
-
-"""

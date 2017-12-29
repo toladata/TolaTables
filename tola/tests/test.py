@@ -19,16 +19,10 @@ from pymongo import MongoClient
 from tola.util import *
 from silo.models import *
 
-# This fails in testing and doesn't appear to be used
-# db = MongoClient(settings.MONGODB_HOST).tola
-"""
-Most Tests are Failing becasue they need to be rewritten.
-=======
-db = MongoClient(settings.MONGO_URI).tola
+client = MongoClient(settings.MONGO_URI)
+db = client.get_database(settings.MONGODB_DATABASES['default']['name'])
 
 class onaParserTest(TestCase):
-
-
 
     def setUp(self):
         self.factory = RequestFactory()
@@ -812,4 +806,3 @@ class test_setSiloColumnType(TestCase):
             pass
         lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
         self.assertTrue({'name' : 'a', 'type' : 'int'} in json.loads(self.silo.columns))
-"""

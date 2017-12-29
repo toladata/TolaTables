@@ -31,7 +31,7 @@ from oauth2client.contrib import xsrfutil
 
 from .models import GoogleCredentialsModel
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag
-from tola.util import  getSiloColumnNames, parseMathInstruction, calculateFormulaCell, makeQueryForHiddenRow, addColsToSilo
+from tola.util import  getSiloColumnNames, parseMathInstruction, calculateFormulaCell, makeQueryForHiddenRow, addColsToSilo, cleanKey
 logger = logging.getLogger("silo")
 
 CLIENT_SECRETS = os.path.join(os.path.dirname(__file__), 'client_secrets.json')
@@ -166,7 +166,11 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
     lvss = []
     for r, row in enumerate(data):
         if r == 0:
-            headers = [" ".join(x.split()) for x in row]
+            headers = []
+            for header in row:
+                header = cleanKey(header)
+                headers.append(header)
+
             addColsToSilo(silo, headers)
             continue
         filter_criteria = {}
@@ -322,18 +326,30 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id, query, headers):
     for y, row in enumerate(silo_data):
         values = [] # Get all of the values of a single mongodb document into this array
         for x, header in enumerate(headers):
-            if type(row[header]) == list:
-                try:
-                    repeat_data[header].append(row[header])
-                except KeyError as e:
-                    repeat_data[header] = [row[header]]
-                repeat_cells[header] = (x,y+1)
-                values.append({"userEnteredValue": {"stringValue": smart_text(header)}})
-                if header not in repeat_headers and header not in other_title:
-                    repeat_headers.append(header)
-            else:
-                values.append({"userEnteredValue": {"stringValue": smart_text(row[header])}})
+            try:
+                if type(row[header]) == list:
+                    if header == 'sys__geolocation':
+                        geoString = ",".join([str(h) for h in list(row[header])])
+                        values.append({"userEnteredValue": {"stringValue": smart_text(geoString)}})
+
+                    elif len(row[header]) > 0:
+                        try:
+                            repeat_data[header].append(row[header])
+                        except KeyError as e:
+                            repeat_data[header] = [row[header]]
+                        repeat_cells[header] = (x,y+1)
+                        values.append({"userEnteredValue": {"stringValue": smart_text(header)}})
+                        if header not in repeat_headers and header not in other_title:
+                            repeat_headers.append(header)
+                    else:
+                        values.append({"userEnteredValue": {"stringValue": ""}})
+                else:
+                    values.append({"userEnteredValue": {"stringValue": smart_text(row[header])}})
+            #handles a header in the SQL isn't found in Mongo
+            except KeyError:
+                values.append({"userEnteredValue": {"stringValue": ""}})
         rows.append({"values": values})
+
 
     # prepare column names as a header row in spreadsheet
     values = []
