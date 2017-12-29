@@ -86,7 +86,7 @@
                       <th>Public</th>
                       <th>Date Created</th>
                   </tr>
-                  {% for item in get_silos %}
+                  {% for item in silos_user %}
                   <tr>
                       <td>{{ item.tag_list }}</td>
                       <td><a href="/silo_detail/{{ item.id }}/">{{ item.name }}</a></td>
@@ -140,7 +140,7 @@
 
 <script id="doughnutchart">
 //render tables in a doughnut chart
-var private = {{ count_all }} - {{ count_public }} - {{ count_shared }}
+var private = {{ silos_user|length }} - {{ silos_user_public_total }} - {{ silos_user_shared_total }}
 var options = {
     padding: 10,
     // single tooltip
@@ -162,8 +162,8 @@ var data = {
     datasets: [{
         data: [
             private,
-            {{ count_public }},
-            {{ count_shared }}
+            {{ silos_user_public_total }},
+            {{ silos_user_shared_total }}
         ],
         backgroundColor: [
             "rgb(77, 178, 209)",
@@ -174,8 +174,8 @@ var data = {
     }],
     labels: [
         "Private - " + private,
-        "Public - {{ count_public }}",
-        "Shared - {{ count_shared }}",
+        "Public - {{ silos_user_public_total }}",
+        "Shared - {{ silos_user_shared_total }}",
     ]
 };
 
@@ -196,7 +196,7 @@ var options = {
     tooltipTemplate: "<%=label + ' Sources' %>",
     legend: {
         display: true,
-        position: 'top',
+        position: 'bottom',
         labels: {
             fontColor: 'rgb(77, 178, 209)',
             boxWidth: 15,
@@ -206,20 +206,20 @@ var options = {
 var data = {
     datasets: [{
         data: [
-           {% for read in get_reads %}
-                {{ read.num_type }},
+           {% for read_type in readtypes %}
+                1,
            {% endfor%}
         ],
         backgroundColor: [
-           {% for read in get_reads %}
+           {% for read_type in readtypes %}
                 dynamicColors(),
            {% endfor%}
         ],
         label: 'My dataset' // for legend
     }],
     labels: [
-        {% for read in get_reads %}
-            " {{ read.read_type }}",
+        {% for read_type in readtypes %}
+            " {{ read_type }}",
         {% endfor%}
     ]
 };

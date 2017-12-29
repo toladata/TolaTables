@@ -68,6 +68,7 @@ class IndexView(View):
         silos_public = Silo.objects.prefetch_related('tags').filter(public=1).\
             exclude(owner=request.user)
         readtypes = ReadType.objects.all().values_list('read_type', flat=True)
+        print 'readytyes', readtypes
         # tags = Tag.objects.filter(owner=request.user).\
         #            annotate(times_tagged=Count('silos')).\
         #            values('name', 'times_tagged').order_by('-times_tagged')[:8]
@@ -101,13 +102,18 @@ class IndexView(View):
                         settings.ACTIVITY_URL in referer:
                     return redirect('/login/tola')
                 else:
-                    return HttpResponseRedirect(settings.TOLA_ACTIVITY_API_URL)
+                    return HttpResponseRedirect(settings.TABLES_LOGIN_URL)
             else:
                 raise ImproperlyConfigured(
                     "TOLA_ACTIVITY_API_URL and/or ACTIVITY_URL variable(s)"
                     " not set. Please, set a value so the user can log in. If "
                     "you are in a Dev environment, go to /login/ in order to "
                     "sign in.")
+
+
+def tablesLogin(request):
+    return render(request, 'tables_login.html')
+
 
 
 # fix now that not all mongo rows need to have the same column
