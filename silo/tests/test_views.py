@@ -98,7 +98,7 @@ class IndexViewTest(TestCase):
         request.META['HTTP_REFERER'] = 'https://api.toladata.io'
         response = views.IndexView.as_view()(request)
         self.assertEqual(response.status_code, 302)
-        self.assertIn('https://api.toladata.io', response.url)
+        self.assertIn('login/tola', response.url)
 
     @override_settings(TOLA_ACTIVITY_API_URL='https://api.toladata.io')
     @override_settings(ACTIVITY_URL='https://toladata.io')
