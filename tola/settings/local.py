@@ -62,9 +62,9 @@ if os.getenv('TOLA_HOSTNAME') is not None:
 USE_X_FORWARDED_HOST = True if os.getenv('TOLA_USE_X_FORWARDED_HOST') == 'True' else False
 
 ########## GOOGLE CLIENT CONFIG ###########
-try:
+if os.getenv('TABLES_URL') is not None:
     GOOGLE_REDIRECT_URL = os.getenv('TABLES_URL') + '/oauth2callback/'
-except KeyError:
+else:
     GOOGLE_REDIRECT_URL = 'http://localhost:8000/oauth2callback/'
 #GOOGLE_STEP2_URI = 'http://tola.mercycorps.org/gwelcome'
 #GOOGLE_CLIENT_ID = 'xxxxxxx.apps.googleusercontent.com'
