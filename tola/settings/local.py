@@ -145,7 +145,6 @@ TABLES_LOGIN_URL = TOLA_ACTIVITY_API_URL
 SOCIAL_AUTH_TOLA_KEY = os.getenv('SOCIAL_AUTH_TOLA_KEY')
 SOCIAL_AUTH_TOLA_SECRET = os.getenv('SOCIAL_AUTH_TOLA_SECRET')
 
-
 from fabric.api import *
 
 # Hosts to deploy onto
