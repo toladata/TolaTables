@@ -21,7 +21,7 @@
               <tr>
           {% endfor %}
         </table>
-        <p> This form below allows you to pick under what condition to export a row</p>
+        <!-- <p> This form below allows you to pick under what condition to export a row</p>
         <button id="addcondition">Add Condition</button>
         <button id="addblankchar">Add Blank Character</button>
         <table id="listconditions" class="table table-bordered table-hover table-striped">
@@ -41,7 +41,7 @@
                 <td><button class="removeRow glyphicon glyphicon-trash btn  btn-sm btn-danger"></button></td>
               </tr>
           {% endfor %}
-        </table>
+        </table> -->
         <input id="ERA" type="button" value="Export as REST API" class="btn btn-sm btn-primary">
         <input id="EJF" type="button" value="Export as JSON FEED" class="btn btn-sm btn-primary">
         <input id="EC" type="button" value="Export as CSV" class="btn btn-sm btn-primary">
@@ -50,10 +50,11 @@
     </form>
 
     <!-- Modal -->
-    <div id="add_condition_modal" class="modal fade modal-lg" role="dialog">
-      <div class="modal-dialog">
+
+    <!-- <div id="add_condition_modal" class="modal fade modal-lg" role="dialog">
+      <div class="modal-dialog"> -->
         <!-- Modal content-->
-        <div class="modal-content">
+        <!--<div class="modal-content">
           <div class="modal-header">
             <h4 class="modal-title">Add a condition to filter rows</h4>
           </div>
@@ -70,7 +71,7 @@
                   <option value="lt">&lt;</option>
                   <option value="gte">&ge;</option>
                   <option value="lte">&le;</option> -->
-                  <option value="eq">=</option>
+                  <!-- <option value="eq">=</option>
                   <option value="neq">&ne;</option>
                   <option value="empty">empty</option>
                   <option value="nempty">not empty</option>
@@ -97,7 +98,8 @@
           </div>
         </div>
       </div>
-    </div>
+    </div> -->
+
     <!-- Modal -->
     <div id="add_blankchar_modal" class="modal fade modal-lg" role="dialog">
       <div class="modal-dialog">
@@ -131,52 +133,52 @@
 
 
             var hide_rows=[];
-            var j = 0;
-            $("#listconditions").find('tr').each(function() {
-              var i = 0;
-              if (j!=0) {
-                var logic;
-                var operation;
-                var number;
-                var conditional;
-                $(this).find('td').each(function(){
-                  if(i==0){
-                    logic = $(this).text();
-                  }
-                  else if(i==1){
-                    operation = $(this).text();
-                  }
-                  else if(i==2){
-                    number = $(this).text();
-                  }
-                  else if(i==3){
-                    conditional = JSON.parse($(this).text());
-                  }
-                  else if(i==5){
-                    row_id = $(this).text();
-                  }
-                  i+=1;
-                });
-                row = {"logic":logic,
-                      "operation":operation,
-                      "number":number,
-                      "conditional":conditional,
-                      "row_id": j};
-                hide_rows.push(row);
-              }
-              j+=1;
-
-            });
-
-
-            $("#addcondition").on('click', function(e){
-                e.preventDefault();
-                $("#add_condition_modal").modal();
-            });
-            $("#addblankchar").on('click', function(e){
-                e.preventDefault();
-                $("#add_blankchar_modal").modal();
-            });
+            // var j = 0;
+            // $("#listconditions").find('tr').each(function() {
+            //   var i = 0;
+            //   if (j!=0) {
+            //     var logic;
+            //     var operation;
+            //     var number;
+            //     var conditional;
+            //     $(this).find('td').each(function(){
+            //       if(i==0){
+            //         logic = $(this).text();
+            //       }
+            //       else if(i==1){
+            //         operation = $(this).text();
+            //       }
+            //       else if(i==2){
+            //         number = $(this).text();
+            //       }
+            //       else if(i==3){
+            //         conditional = JSON.parse($(this).text());
+            //       }
+            //       else if(i==5){
+            //         row_id = $(this).text();
+            //       }
+            //       i+=1;
+            //     });
+            //     row = {"logic":logic,
+            //           "operation":operation,
+            //           "number":number,
+            //           "conditional":conditional,
+            //           "row_id": j};
+            //     hide_rows.push(row);
+            //   }
+            //   j+=1;
+            //
+            // });
+            //
+            //
+            // $("#addcondition").on('click', function(e){
+            //     e.preventDefault();
+            //     $("#add_condition_modal").modal();
+            // });
+            // $("#addblankchar").on('click', function(e){
+            //     e.preventDefault();
+            //     $("#add_blankchar_modal").modal();
+            // });
             $("#checkall").on('click', function(e){
                 e.preventDefault();
                 $("#listcolumns").find('td input:checkbox').each(function() {
@@ -189,109 +191,110 @@
                     this.checked = false;
                 });
             });
-            $("#checkall_condition").on('click', function(e){
-                e.preventDefault();
-                $("#listcolumns_conditions").find('td input:checkbox').each(function() {
-                    this.checked = true;
-                });
-            });
-            $("#uncheckall_condition").on('click', function(e){
-                e.preventDefault();
-                $("#listcolumns_conditions").find('td input:checkbox').each(function() {
-                    this.checked = false;
-                });
-            });
-            $("#math").on("change", function(e){
-              if (this.value == "gt" ||
-                  this.value == "lt" ||
-                  this.value == "gte" ||
-                  this.value == "lte" ||
-                  this.value == "eq" ||
-                  this.value == "neq") {
-                    $("#number").show();
-              }
-              else{
-                $("#number").hide();
-              }
-            });
+            // $("#checkall_condition").on('click', function(e){
+            //     e.preventDefault();
+            //     $("#listcolumns_conditions").find('td input:checkbox').each(function() {
+            //         this.checked = true;
+            //     });
+            // });
+            // $("#uncheckall_condition").on('click', function(e){
+            //     e.preventDefault();
+            //     $("#listcolumns_conditions").find('td input:checkbox').each(function() {
+            //         this.checked = false;
+            //     });
+            // });
+            // $("#math").on("change", function(e){
+            //   if (this.value == "gt" ||
+            //       this.value == "lt" ||
+            //       this.value == "gte" ||
+            //       this.value == "lte" ||
+            //       this.value == "eq" ||
+            //       this.value == "neq") {
+            //         $("#number").show();
+            //   }
+            //   else{
+            //     $("#number").hide();
+            //   }
+            // });
 
-            $(document.body).on('click',".removeRow", function(e) {
-                e.preventDefault();
-                var logic;
-                var operation;
-                var number;
-                var conditional;
-                var i = 0;
-                $(this).closest('tr').find('td').each(function(){
-                  if(i==0){
-                    logic = $(this).text();
-                  }
-                  else if(i==1){
-                    operation = $(this).text();
-                  }
-                  else if(i==2){
-                    number = $(this).text();
-                  }
-                  else if(i==3){
-                    try {
-                        conditional = JSON.parse($(this).text());
-                    } catch (e) {
-                        conditional = $(this).text().replace(" ","").split(",");
-                    }
-                  }
-                  i+=1;
-                });
-                var index = -1;
-                for (var i = 0; i < hide_rows.length; i++) {
-                    if (hide_rows[i].logic == logic &&
-                        hide_rows[i].operation == operation &&
-                        hide_rows[i].number == number &&
-                        JSON.stringify(hide_rows[i].conditional) == JSON.stringify(conditional)) {
-                        index=i;
-                        break;
-                    }
-                }
-                if (index>-1) {
-                  hide_rows.splice(index,1);
-                }
-                $(this).closest('tr').remove();
-            });
+            // $(document.body).on('click',".removeRow", function(e) {
+            //     e.preventDefault();
+            //     var logic;
+            //     var operation;
+            //     var number;
+            //     var conditional;
+            //     var i = 0;
+            //     $(this).closest('tr').find('td').each(function(){
+            //       if(i==0){
+            //         logic = $(this).text();
+            //       }
+            //       else if(i==1){
+            //         operation = $(this).text();
+            //       }
+            //       else if(i==2){
+            //         number = $(this).text();
+            //       }
+            //       else if(i==3){
+            //         try {
+            //             conditional = JSON.parse($(this).text());
+            //         } catch (e) {
+            //             conditional = $(this).text().replace(" ","").split(",");
+            //         }
+            //       }
+            //       i+=1;
+            //     });
+            //     var index = -1;
+            //     for (var i = 0; i < hide_rows.length; i++) {
+            //         if (hide_rows[i].logic == logic &&
+            //             hide_rows[i].operation == operation &&
+            //             hide_rows[i].number == number &&
+            //             JSON.stringify(hide_rows[i].conditional) == JSON.stringify(conditional)) {
+            //             index=i;
+            //             break;
+            //         }
+            //     }
+            //     if (index>-1) {
+            //       hide_rows.splice(index,1);
+            //     }
+            //     $(this).closest('tr').remove();
+            // });
 
-            $("#blankcharform").submit(function(e){
-                e.preventDefault();
-                $("#add_blankchar_modal").modal('toggle');
-                var table = document.getElementById('listconditions').getElementsByTagName('tbody')[0];
-                var newRow = table.insertRow(table.rows.length);
-                var newCell = newRow.insertCell(0);
-                var newText = document.createTextNode('Additional blank');
-                newCell.appendChild(newText);
-
-                newCell = newRow.insertCell(1);
-                newText = document.createTextNode('');
-                newCell.appendChild(newText);
-
-                newCell = newRow.insertCell(2);
-                newText = document.createTextNode('');
-                newCell.appendChild(newText);
-
-                newCell = newRow.insertCell(3);
-                newText = document.createTextNode($("#new_blank_char").val());
-                newCell.appendChild(newText);
-
-                hide_rows.push({"logic":"BLANKCHAR",
-                                "operation":"",
-                                "number":"",
-                                "conditional":$("#new_blank_char").val(),
-                                "row_id": hide_rows.length });
-
-                newCell = newRow.insertCell(4);
-                newCell.innerHTML = '<button class="removeRow glyphicon glyphicon-trash btn  btn-sm btn-danger"></button>';
-
-
-                $("#new_blank_char").val("");
-
-
-            });
+            // $("#blankcharform").submit(function(e){
+            //     e.preventDefault();
+            //     $("#add_blankchar_modal").modal('toggle');
+            //     var table = document.getElementById('listconditions').getElementsByTagName('tbody')[0];
+            //     var newRow = table.insertRow(table.rows.length);
+            //     var newCell = newRow.insertCell(0);
+            //     var newText = document.createTextNode('Additional blank');
+            //     newCell.appendChild(newText);
+            //
+            //     newCell = newRow.insertCell(1);
+            //     newText = document.createTextNode('');
+            //     newCell.appendChild(newText);
+            //
+            //     newCell = newRow.insertCell(2);
+            //     newText = document.createTextNode('');
+            //     newCell.appendChild(newText);
+            //
+            //     newCell = newRow.insertCell(3);
+            //     newText = document.createTextNode($("#new_blank_char").val());
+            //     newCell.appendChild(newText);
+            //
+            //     hide_rows.push({"logic":"BLANKCHAR",
+            //                     "operation":"",
+            //                     "number":"",
+            //                     "conditional":$("#new_blank_char").val(),
+            //                     "row_id": hide_rows.length });
+            //
+            //     newCell = newRow.insertCell(4);
+            //     newCell.innerHTML = '<button class="removeRow glyphicon glyphicon-trash btn  btn-sm btn-danger"></button>';
+            //
+            //
+            //     $("#new_blank_char").val("");
+            //
+            //
+            // });
+            /*
             $("#conditionform").submit(function(e){
                 e.preventDefault();
                 $("#add_condition_modal").modal('toggle');
@@ -337,7 +340,7 @@
                 $("#listcolumns_conditions").find('td input:checkbox').each(function() {
                     this.checked = false;
                 });
-            });
+            }); */
 
             $("#ERA").on('click', function(e){
                 e.preventDefault();

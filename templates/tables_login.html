@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% load includetags %}
+
+{% block page_title %}<h2>TolaTables</h2>{% endblock %}
+
+{% block content %}
+
+<h3> Please Log In To Access Tola Tables </h3>
+
+
+{% if 'login_types.html'|template_exists %}
+  {% include 'login_types.html' %}
+{% else %}
+  Login types have not been configured yet.
+  <br/>
+  As per the README file, please create a login_types.html template.
+{% endif %}
+{% endblock content %}

@@ -32,6 +32,7 @@ conf/awstats.conf
 conf/
 djangocosign/
 local-dev.py
+local_secret.py
 
 #fixtures
 read_types_local.json
