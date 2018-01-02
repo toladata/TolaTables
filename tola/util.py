@@ -3,8 +3,8 @@ import urllib2
 import json
 import base64
 import requests
+from collections import OrderedDict
 import logging
-
 from django.utils import timezone
 from django.utils.encoding import smart_str
 from django.conf import settings
@@ -71,11 +71,15 @@ def saveDataToSilo(silo, data, read=-1, user=None):
             saveOnaDataToSilo(silo, data, read, user)
         read_source_id = read.id
     except AttributeError as e:
-        read_source_id = read.id
-
+        read_source_id = read
     unique_fields = silo.unique_fields.all()
     skipped_rows = set()
     keys = []
+    try:
+        keys = data.fieldnames
+        keys = [cleanKey(key) for key in keys]
+    except AttributeError:
+        pass
     fieldToType = getColToTypeDict(silo)
     for counter, row in enumerate(data):
         # reseting filter_criteria for each row
@@ -94,68 +98,113 @@ def saveDataToSilo(silo, data, read=-1, user=None):
         # document instead of updating an existing one.
         if filter_criteria:
             filter_criteria.update({'silo_id': silo.id})
-        else:
-            filter_criteria.update({"nonexistentkey": "NEVER0101010101010NEVER"})
+            # else:
+            #     filter_criteria.update({"nonexistentkey":"NEVER0101010101010NEVER"})
 
-        try:
-            lvs = LabelValueStore.objects.get(**filter_criteria)
-            setattr(lvs, "edit_date", timezone.now())
-            lvs.read_id = read_source_id
-        except LabelValueStore.DoesNotExist as e:
-            logger.info(e)
+            try:
+                lvs = LabelValueStore.objects.get(**filter_criteria)
+                #print("updating")
+                setattr(lvs, "edit_date", timezone.now())
+                lvs.read_id = read_source_id
+            except LabelValueStore.DoesNotExist as e:
+                lvs = LabelValueStore()
+                lvs.silo_id = silo.pk
+                lvs.create_date = timezone.now()
+                lvs.read_id = read_source_id
+            except LabelValueStore.MultipleObjectsReturned as e:
+                for k,v in filter_criteria.iteritems():
+                    skipped_rows.add("%s=%s" % (str(k),str(v)))
+                #print("skipping")
+                continue
+        else:
             lvs = LabelValueStore()
+
             lvs.silo_id = silo.pk
             lvs.create_date = timezone.now()
             lvs.read_id = read_source_id
-        except LabelValueStore.MultipleObjectsReturned as e:
-            logger.info(e)
-            for k, v in filter_criteria.iteritems():
-                skipped_rows.add("%s=%s" % (str(k), str(v)))
-            continue
 
         counter = 0
-        # set the fields in the current document and save it
+
+        row = cleanDataObj(row, silo)
+
         for key, val in row.iteritems():
-            if key == "" or key is None or key == "silo_id": continue
-            elif key == "id" or key == "_id": key = "user_assigned_id"
-            elif key == "edit_date": key = "editted_date"
-            elif key == "create_date": key = "created_date"
-            if type(val) == str or type(val) == unicode:
-                val = smart_str(val, strings_only=True)
-            if fieldToType.get(key, 'string') == 'int':
-                try:
-                    val = int(val)
-                except ValueError as e:
-                    logger.warning(e)
-                    # skip this one
-                    # add message that this is skipped
-                    continue
-            if fieldToType.get(key, 'string') == 'double':
-                try:
-                    val = float(val)
-                except ValueError as e:
-                    logger.warning(e)
-                    # skip this one
-                    # add message that this is skipped
-                    continue
-            # if key is not a list save it to the keys
+            # if key == "" or key is None or key == "silo_id": continue
+            # elif key == "id" or key == "_id": key = "user_assigned_id"
+            # elif key == "edit_date": key = "editted_date"
+            # elif key == "create_date": key = "created_date"
+            # if type(val) == str or type(val) == unicode:
+            #     val = smart_str(val, strings_only=True).strip()
+            # if fieldToType.get(key, 'string') == 'int':
+            #     try:
+            #         val = int(val)
+            #     except ValueError as e:
+            #         continue
+            # if fieldToType.get(key, 'string') == 'double':
+            #     try:
+            #         val = float(val)
+            #     except ValueError as e:
+            #         continue
+
             if not isinstance(key, tuple):
-                key = key.replace(".", "_").replace("$", "USD").replace(u'\u2026', "")
-                if isinstance(val, basestring): val = val.strip()
-                # check for duplicate key
                 if key not in keys:
                     keys.append(key)
                 setattr(lvs, key, val)
-            counter += 1
+
+        counter += 1
         lvs = calculateFormulaCell(lvs,silo)
         lvs.save()
-
     addColsToSilo(silo, keys)
     res = {"skipped_rows": skipped_rows, "num_rows": counter}
     return res
 
 
-# IMPORT JSON DATA
+
+def cleanDataObj(obj, silo):
+    if not isinstance(obj, (dict, list, OrderedDict)):
+        fieldToType = getColToTypeDict(silo)
+        if type(obj) == str or type(obj) == unicode:
+            obj = smart_str(obj, strings_only=True).strip()
+        if fieldToType.get(obj, 'string') == 'int':
+            try:
+                obj = int(obj)
+            except ValueError as e:
+                pass
+        if fieldToType.get(obj, 'string') == 'double':
+            try:
+                obj = float(obj)
+            except ValueError as e:
+                pass
+        return obj
+
+    if isinstance(obj, list):
+        return [cleanDataObj(v, silo) for v in obj]
+
+    return {cleanKey(k): cleanDataObj(v, silo) for k,v in obj.items()}
+
+
+def cleanKey(key):
+    if key == "" or key is None or key == "silo_id":
+        return key
+    elif key == "id" or key == "_id": key = "user_assigned_id"
+    elif key == "edit_date": key = "editted_date"
+    elif key == "create_date": key = "created_date"
+    key = ' '.join(key.split())
+    key = key.replace(".", "_").replace("$", "USD")
+    try:
+        key = key.replace(u'\u2026', "")
+    except UnicodeDecodeError:
+        key = key.decode('utf8').replace(u'\u2026', "").encode('utf8')
+    except:
+        raise
+    # Mongoengine doesn't seem to be able to save keys with leading underscores
+    # The underscore in sys_ makes collisions with user defined headers less likely
+    if key.startswith('_'):
+        key = 'sys_'+key
+
+    return key
+
+
+#IMPORT JSON DATA
 def importJSON(read_obj, user, remote_user=None, password=None, silo_id=None, silo_name=None, return_data=False):
     # set date time stamp
     today = datetime.date.today()
@@ -299,26 +348,37 @@ def getColToTypeDict(silo):
 def user_to_tola(backend, user, response, *args, **kwargs):
 
     # Add a google auth user to the tola profile
-    remote_user = response.get('tola_user')
+
 
     # Only import fields to Tables that are required
-    tola_user_defaults = {}
-    tola_user_defaults['tola_user_uuid'] = remote_user['tola_user_uuid']
-    tola_user_defaults['name'] = remote_user['name']
-    tola_user_defaults['employee_number'] = remote_user['employee_number']
-    tola_user_defaults['title'] = remote_user['title']
-    tola_user_defaults['privacy_disclaimer_accepted'] = remote_user['privacy_disclaimer_accepted']
+    if response.get('tola_user'):
+        remote_user = response.get('tola_user')
+        tola_user_defaults = {}
+        tola_user_defaults['tola_user_uuid'] = remote_user['tola_user_uuid']
+        tola_user_defaults['name'] = remote_user['name']
+        tola_user_defaults['employee_number'] = remote_user['employee_number']
+        tola_user_defaults['title'] = remote_user['title']
+        tola_user_defaults['privacy_disclaimer_accepted'] = remote_user['privacy_disclaimer_accepted']
 
-    remote_org = response.get('organization')
-    del remote_org['url']
-    del remote_org['industry']  # ignore for now
-    del remote_org['sector']  # ignore for now
-    organization, org_created = Organization.objects.update_or_create(
-        remote_org, organization_uuid=remote_org['organization_uuid'])
+        remote_org = response.get('organization')
+        del remote_org['url']
+        del remote_org['industry']  # ignore for now
+        del remote_org['sector']  # ignore for now
+        organization, org_created = Organization.objects.update_or_create(
+                remote_org, organization_uuid=remote_org['organization_uuid'])
 
-    tola_user_defaults['organization'] = organization
 
-    TolaUser.objects.update_or_create(tola_user_defaults, user=user)
+        tola_user_defaults['organization'] = organization
+
+        TolaUser.objects.update_or_create(tola_user_defaults, user=user)
+
+    else:
+        default_country = Country.objects.first()
+        userprofile, created = TolaUser.objects.get_or_create(user = user)
+        userprofile.country = default_country
+        userprofile.name = response.get('displayName')
+        userprofile.email = response.get('emails["value"]')
+        userprofile.save()
 
 
 # gets the list of apps to import data
@@ -352,6 +412,7 @@ def ona_parse_type_group(data, form_data, parent_name, silo, read):
     form_data -- the children of an ONA object of type group
     parent_name -- the name of the parent of the ona object
     """
+
     for field in form_data:
 
         if field["type"] == "group":
@@ -362,11 +423,11 @@ def ona_parse_type_group(data, form_data, parent_name, silo, read):
                     ona_parse_type_repeat(entry.get(parent_name + field['name'], []), field['children'], parent_name + field['name']+"/", silo, read)
                 if 'label' in field:
                     try:
-                        key = frozenset(field['label'].items())
-                        for x in key:
-                            entry[x] = entry.pop(parent_name + field['name'])
+                        entry[field['label']] = entry.pop(parent_name + field['name'])
                     except KeyError as e:
                         logger.warning(e)
+                    except TypeError:
+                        pass
 
         # add an association between a column, label and its type to the
         # columnType database
@@ -594,7 +655,8 @@ def getNewestDataDate(silo_id):
     """
     finds the newest date of data in a silo
     """
-    db = MongoClient(settings.MONGO_URI).tola
+    client = MongoClient(settings.MONGO_URI)
+    db = client.get_database(settings.MONGODB_DATABASES['default']['name'])
     newest_record = db.label_value_store.find({'silo_id' : silo_id}).sort([("create_date", -1)]).limit(1)
 
     return newest_record[0]['create_date']
@@ -620,7 +682,8 @@ def setSiloColumnType(silo_pk, column, column_type):
 
     # TO DO: check if all entries could comply
 
-    db = MongoClient(settings.MONGO_URI).tola
+    client = MongoClient(settings.MONGO_URI)
+    db = client.get_database(settings.MONGODB_DATABASES['default']['name'])
     bulk = db.label_value_store.initialize_ordered_bulk_op()
 
     if db.label_value_store.find({'silo_id' : silo_pk, column : {'$not' : {'$exists' : True}}}).count() > 0:

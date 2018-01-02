@@ -32,7 +32,9 @@ from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from django.views.generic import View
+from rest_framework.authtoken.models import Token
 
+from gviews_v4 import import_from_gsheet_helper
 from silo.custom_csv_dict_reader import CustomDictReader
 from tola.util import importJSON, saveDataToSilo, getSiloColumnNames, \
     parseMathInstruction, calculateFormulaColumn, makeQueryForHiddenRow, \
@@ -66,6 +68,7 @@ class IndexView(View):
         silos_public = Silo.objects.prefetch_related('tags').filter(public=1).\
             exclude(owner=request.user)
         readtypes = ReadType.objects.all().values_list('read_type', flat=True)
+        print 'readytyes', readtypes
         # tags = Tag.objects.filter(owner=request.user).\
         #            annotate(times_tagged=Count('silos')).\
         #            values('name', 'times_tagged').order_by('-times_tagged')[:8]
@@ -99,13 +102,18 @@ class IndexView(View):
                         settings.ACTIVITY_URL in referer:
                     return redirect('/login/tola')
                 else:
-                    return HttpResponseRedirect(settings.TOLA_ACTIVITY_API_URL)
+                    return HttpResponseRedirect(settings.TABLES_LOGIN_URL)
             else:
                 raise ImproperlyConfigured(
                     "TOLA_ACTIVITY_API_URL and/or ACTIVITY_URL variable(s)"
                     " not set. Please, set a value so the user can log in. If "
                     "you are in a Dev environment, go to /login/ in order to "
                     "sign in.")
+
+
+def tablesLogin(request):
+    return render(request, 'tables_login.html')
+
 
 
 # fix now that not all mongo rows need to have the same column
@@ -700,7 +708,7 @@ def showRead(request, id):
         if response.status_code == 401:
             logout(request)
             redirect('/')
-        
+
         print(data)
         """
         excluded_fields = excluded_fields + ['username', 'password', 'file_data','autopush_frequency']
@@ -753,7 +761,7 @@ def oneDriveImport(request, id):
     """
     read_obj = Read.objects.get(pk=id)
 
-    print(read_obj.onedrive_file)
+    # print(read_obj.onedrive_file)
     user = User.objects.get(username__exact=request.user)
     social = user.social_auth.get(provider='microsoft-graph')
     access_token = social.extra_data['access_token']
@@ -1203,6 +1211,13 @@ def editColumns(request,id):
                             },
                         False
                     )
+                    columnObj = json.loads(silo.columns)
+                    for column in columnObj:
+                        if column['name'] == label:
+                            column['name'] = value
+                            break
+                    silo.columns = json.dumps(columnObj)
+                    silo.save()
                 #if we see delete then it's a check box to delete that column
                 elif "_delete" in label and value == 1:
                     column = label.replace("_delete", "")

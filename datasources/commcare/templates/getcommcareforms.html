@@ -12,7 +12,7 @@
         {% if auth == 1%} <!-- link to password -->
           <p>If you wish to instead login using your password click <a href="/commcare/passform/">here</a>. This will not save your login information for next time and prevent Tola from being able to update your table. </p>
         {% elif auth == 2 %} <!-- link to authorization -->
-          <p>If you wish to instead login using your authorization token click <a href="/commcare/">here</a>. This will not save your login information for next time and prevent Tola from being able to update your table. </p>
+          <!-- <p>If you wish to instead login using your authorization token click <a href="/commcare/">here</a>. This will not save your login information for next time and prevent Tola from being able to update your table. </p> -->
         {% else %} <!-- link to logout -->
           <p> You can also <a href="/commcare/logout/">Logout</a> of this CommCare account. </p>
         {% endif %}
@@ -56,7 +56,7 @@
                     if (new_silo_name) {
                       var num_options = select_obj.children("option").length;
                       select_obj.find('option:eq(0)').text(new_silo_name)
-                      console.log('form', select_obj.closest('form'))
+                      // console.log('form', select_obj.closest('form'))
                       var form = select_obj.closest('form')
                       form.append($('<input type="hidden">')
                           .attr({name: 'new_silo_name', value: new_silo_name}))
