@@ -95,6 +95,7 @@ class IndexViewTest(TestCase):
     def test_index_get_unauthenticated(self):
         request = self.factory.get('', follow=True)
         request.user = AnonymousUser()
+        request.META['HTTP_REFERER'] = 'https://api.toladata.io'
         response = views.IndexView.as_view()(request)
         self.assertEqual(response.status_code, 302)
         self.assertIn('https://api.toladata.io', response.url)
