@@ -3,7 +3,7 @@ This file demonstrates writing tests using the unittest module. These will pass
 when you run "manage.py test".
 
 Replace this with more appropriate tests for your application.
-"""
+
 
 from django.utils import timezone
 from datetime import datetime
@@ -806,3 +806,4 @@ class test_setSiloColumnType(TestCase):
             pass
         lvs = LabelValueStore.objects.filter(silo_id=self.silo.pk).delete()
         self.assertTrue({'name' : 'a', 'type' : 'int'} in json.loads(self.silo.columns))
+"""

@@ -5,7 +5,7 @@ This file demonstrates writing tests using the unittest module. These will pass
 when you run "manage.py test".
 
 Replace this with more appropriate tests for your application.
-"""
+
 import datetime
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import resolve, reverse
@@ -514,8 +514,6 @@ class parseCommCareDataTest(TestCase):
 from django.test import Client
 from django.conf import settings
 
-"""
-This test doesn't appear to be working yet
 
 class Microsoft(TestCase):
 
@@ -553,7 +551,6 @@ class Microsoft(TestCase):
                 LabelValueStore.objects.filter(read_id=-97, silo_id = -87).delete()
                 #if this happens run the test again and it should work
                 self.assert_(False)
-"""
 
 class Test_ImportJson(TestCase):
     def setUp(self):
@@ -596,3 +593,4 @@ class Test_DeleteSilo(TestCase):
         self.assertFalse(Silo.objects.filter(pk=silo_id).exists())
         self.assertFalse(Read.objects.filter(pk=read_id).exists())
         self.assertTrue(DeletedSilos.objects.filter(silo_name_id="test_silo1 with id %i" % silo_id).exists())
+"""
