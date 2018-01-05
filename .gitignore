@@ -44,7 +44,6 @@ tolasites_local.json
 .idea/
 .DS_Store
 media/
-client_secrets.json
 *.crt
 *.key
 error.log
