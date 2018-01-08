@@ -34,7 +34,12 @@ from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag
 from tola.util import  getSiloColumnNames, parseMathInstruction, calculateFormulaCell, makeQueryForHiddenRow, addColsToSilo, cleanKey
 logger = logging.getLogger("silo")
 
+
 CLIENT_SECRETS = os.path.join(os.path.dirname(__file__), 'client_secrets.json')
+if not os.path.isfile(CLIENT_SECRETS):
+    CLIENT_SECRETS = os.path.join(os.path.dirname(__file__),
+                                  'client_secrets_test.json')
+
 SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
 BASE_URL = "https://sheets.googleapis.com/v4/spreadsheets/"
 discoveryUrl = ('https://sheets.googleapis.com/$discovery/rest?version=v4')
