@@ -9,11 +9,9 @@
 <h3> Please Log In To Access Tola Tables </h3>
 
 
-{% if 'login_types.html'|template_exists %}
-  {% include 'login_types.html' %}
+{% if 'custom/login_types.html'|template_exists %}
+  {% include 'custom/login_types.html' %}
 {% else %}
-  Login types have not been configured yet.
-  <br/>
-  As per the README file, please create a login_types.html template.
+  {% include 'custom/login_types_default.html' %}
 {% endif %}
 {% endblock content %}
