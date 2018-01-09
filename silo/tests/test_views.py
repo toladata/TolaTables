@@ -44,6 +44,9 @@ class IndexViewTest(TestCase):
         #                   {'name': u'report', 'times_tagged': 4}]),
         self.assertEqual(context['site_name'], 'Track'),
 
+    """
+    Index removed for logged in user with re-direct to silo list
+    remove or rewrite test GWL 9-1-2017
     def test_index_template_authenticated_user(self):
         user_stranger = factories.User(username='stranger')
         factories.Silo(owner=user_stranger, name='open', public=True)
@@ -88,8 +91,8 @@ class IndexViewTest(TestCase):
         request = self.factory.get('', follow=True)
         request.user = user
         response = views.IndexView.as_view()(request)
-        self.assertEqual(response.status_code, 200)
-
+        self.assertEqual(response.status_code, 302)
+    """
     @override_settings(TOLA_ACTIVITY_API_URL='https://api.toladata.io')
     @override_settings(ACTIVITY_URL='https://toladata.io')
     def test_index_get_unauthenticated(self):
