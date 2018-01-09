@@ -42,7 +42,8 @@ urlpatterns =[
     url(r'^api/docs/', tola_views.schema_view),
 
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^$', views.IndexView.as_view(), name='index'),
+    # change default home page to be the silo list
+    url(r'^$', views.listSilos, name='listSilos'),
 
 
     url(r'^source/new/', views.showRead, kwargs={'id': 0}, name='newRead'),
