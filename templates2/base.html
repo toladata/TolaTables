@@ -304,7 +304,7 @@
                     if (actionType == "import") {
                         //$(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + spreadsheet_id + "&name=" + doc['name']);
 
-                        $.get('/get_sheets_from_google_spredsheet/', { "spreadsheet_id": spreadsheet_id } )
+                        $.get('/get_sheets_from_google_spreadsheet/', { "spreadsheet_id": spreadsheet_id } )
                             .done(function(data) {
                                 var sheets = data['sheets'];
                                 if (sheets == undefined) {
