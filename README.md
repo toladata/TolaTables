@@ -42,6 +42,8 @@ To run the webserver:
 docker-compose -f docker-compose-dev.yml up #-d for detached
 ```
 
+Go to http://localhost:8000/login
+
 User: `admin`
 Password: `admin`.
 
