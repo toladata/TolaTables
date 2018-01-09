@@ -92,7 +92,8 @@ class IndexView(View):
             if (request.COOKIES.get('auth_token', None) is None and
                     request.user.is_authenticated):
                 response.set_cookie('auth_token', request.user.auth_token)
-            return response
+            # if logged in redirect user to there list of tables
+            return redirect('/silos')
         else:
             # If users are accessing Track from Activity but they're not
             # logged in, redirect them to the login process
