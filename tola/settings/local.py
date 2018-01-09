@@ -158,7 +158,7 @@ def deploy_static():
         run('./manage.py collectstatic -v0 --noinput')
 
 GOOGLE_API_CLIENT_ID = os.getenv('GOOGLE_API_CLIENT_ID')
-GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')  # a.k.a. client secret
 
 # GOOGLE_ANALYTICS_PROPERTY_ID = 'A Google Analytics Property ID'
 
