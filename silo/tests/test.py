@@ -141,10 +141,6 @@ class SiloTest(TestCase):
         LabelValueStore.objects.filter(First_Name="Joe", Last_Name="Schmoe", silo_id="1", read_id="1").delete()
         LabelValueStore.objects.filter(First_Name="جان", Last_Name="ډو", silo_id="1", read_id="1").delete()
 
-    def test_root_url_resolves_to_home_page(self):
-        found = resolve('/')
-        self.assertEqual(found.func.view_class, IndexView)
-
     def test_read_form(self):
         read_type = ReadType.objects.get(read_type="CSV")
         upload_file = open('test.csv', 'rb')
