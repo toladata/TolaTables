@@ -22,6 +22,7 @@ def get_servers(request):
     return {
         'ACTIVITY_URL': settings.ACTIVITY_URL,
         'TABLES_URL': settings.TABLES_URL,
+        'GOOGLE_ANALYTICS': settings.GOOGLE_ANALYTICS,
     }
 
 def google_analytics(request):

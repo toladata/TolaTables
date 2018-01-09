@@ -101,6 +101,9 @@
         {% if user.is_authenticated  %}
             <ul class="nav navbar-nav left main-sidebar__menu">
                 <li class="dropdown main-sidebar__menu__level1">
+                    <a href="{% url 'listSilos' %}" > Your Tables</a>
+                </li>
+                <li class="dropdown main-sidebar__menu__level1">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">Import Data<b class="caret"></b></a>
                     <ul class="dropdown-menu main-sidebar__menu__submenu">
                         <li><a href="/onalogin"><span class="glyphicon glyphicon-list-alt"></span> Import from ONA</a></li>
@@ -115,18 +118,7 @@
                     </ul>
                 </li>
                 <li class="dropdown main-sidebar__menu__level1">
-                    <a href="{% url 'listSilos' %}" > Your Tables</a>
-                </li>
-                <li class="dropdown main-sidebar__menu__level1">
                     <a href="{% url 'table_dashboard_list' %}" > Reports</a>
-                </li>
-                <li class="dropdown main-sidebar__menu__level1">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Help<b class="caret"></b></a>
-                    <ul class="dropdown-menu main-sidebar__menu__submenu">
-                        <li><a href="http://tola.work/documentation" target="blank">Documentation</a></li>
-                        <li><a href="http://tola.work/faq" target="blank">FAQ</a></li>
-                        <li><a href="http://tola.work/contact" target="blank">Contact</a></li>
-                    </ul>
                 </li>
             </ul>
         {% else %}
@@ -367,7 +359,7 @@
           m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
           })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
-          ga('create', 'UA-73736890-2', 'auto');
+          ga('create', '{{ GOOGLE_ANALYTICS }}', 'auto');
           ga('send', 'pageview');
 
         </script>

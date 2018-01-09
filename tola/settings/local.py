@@ -71,6 +71,11 @@ else:
 #GOOGLE_CLIENT_SECRET = 'xxxxxxxxx'
 
 
+if os.getenv('GOOGLE_ANALYTICS') is not None:
+    GOOGLE_ANALYTICS = os.getenv('GOOGLE_ANALYTICS')
+else:
+    GOOGLE_ANALYTICS = None
+
 
 ####### Tola Activity API #######
 TOLA_ACTIVITY_API_URL = os.getenv('TOLA_ACTIVITY_API_URL', '')
