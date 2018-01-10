@@ -45,10 +45,10 @@ def _get_spreadsheet_url(spreadsheet_id):
 def _get_oauth_flow():
     client_secrets = os.path.join(os.path.dirname(__file__),
                                   CLIENT_SECRETS_FILENAME)
-    if settings.GOOGLE_API_CLIENT_ID and settings.GOOGLE_API_KEY:
+    if settings.GOOGLE_OAUTH_CLIENT_ID and settings.GOOGLE_OAUTH_CLIENT_SECRET:
         flow = OAuth2WebServerFlow(
-            client_id=settings.GOOGLE_API_CLIENT_ID,
-            client_secret=settings.GOOGLE_API_KEY,
+            client_id=settings.GOOGLE_OAUTH_CLIENT_ID,
+            client_secret=settings.GOOGLE_OAUTH_CLIENT_SECRET,
             scope=SCOPE,
             redirect_uri=settings.GOOGLE_REDIRECT_URL)
     elif os.path.isfile(client_secrets):
@@ -58,7 +58,8 @@ def _get_oauth_flow():
             redirect_uri=settings.GOOGLE_REDIRECT_URL)
     else:
         raise ImproperlyConfigured(
-            'GOOGLE_API_CLIENT_ID and GOOGLE_API_KEY settings are missing')
+            'GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET settings '
+            'are missing')
     return flow
 
 
