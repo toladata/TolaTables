@@ -209,8 +209,8 @@
         <script>try{Typekit.load({ async: true });}catch(e){}</script>
 
         <script type="text/javascript">
-            {% if GOOGLE_API_CLIENT_ID %}
-            var clientId = "{{ GOOGLE_API_CLIENT_ID }}"
+            {% if GOOGLE_OAUTH_CLIENT_ID %}
+            var clientId = "{{ GOOGLE_OAUTH_CLIENT_ID }}"
             {% else %}
             var clientId = "445847194486-mah10ripofn1bl6q7pgi29ssvfhvq2uu.apps.googleusercontent.com"
             {% endif %}
@@ -249,7 +249,6 @@
                 gapi.load('picker', {'callback': onPickerApiLoad});
             }
 
-            // After Google's auth library is loaded, this function is called
             function onAuthApiLoad(siloId) {
                 silo_id = siloId;
                 window.gapi.auth.authorize( {
@@ -262,7 +261,6 @@
 
             function onPickerApiLoad() {
                 pickerApiLoaded = true;
-                //createPicker();
             }
 
             // After the authentication is complete, this method is called
@@ -283,7 +281,6 @@
                     view.setMode("DocsViewMode.LIST");
                     var picker = new google.picker.PickerBuilder()
                         .setOrigin(window.location.protocol + '//' + window.location.host)
-                        //.setOrigin('https://localhost:8000')
                         .enableFeature(google.picker.Feature.NAV_HIDDEN)
                         .addView(view)
                         .setOAuthToken(oauthToken)

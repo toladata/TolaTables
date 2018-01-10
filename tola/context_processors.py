@@ -4,7 +4,7 @@ from silo.models import Silo
 
 def google_oauth_settings(self):
     return {
-        'GOOGLE_API_CLIENT_ID': settings.GOOGLE_API_CLIENT_ID,
+        'GOOGLE_OAUTH_CLIENT_ID': settings.GOOGLE_OAUTH_CLIENT_ID,
         'GOOGLE_API_KEY': settings.GOOGLE_API_KEY,
     }
 
