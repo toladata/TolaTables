@@ -20,27 +20,28 @@ build
 # Logs:
 *.log
 
-#virtualenv
+# Virtualenv
 frds-venv/
 
-#allvritualenv
+# Allvritualenv
 venv/
 venv-tt/
 
-#conf
+# Conf
 conf/awstats.conf
 conf/
 djangocosign/
 local-dev.py
 local_secret.py
+client_secrets.json
 
-#fixtures
+# Fixtures
 read_types_local.json
 sites_local.json
 tags_local.json
 tolasites_local.json
 
-#Misc.
+# Misc.
 .idea/
 .DS_Store
 media/
@@ -51,5 +52,5 @@ error.log
 *.secret.yml
 src/
 
-#Templates
+# Templates
 login_types.html
