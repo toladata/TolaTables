@@ -2,17 +2,17 @@ from django.conf import settings
 from silo.models import Silo
 
 
-def google_oauth_settings(self):
+def google_oauth_settings(request):
     return {
         'GOOGLE_OAUTH_CLIENT_ID': settings.GOOGLE_OAUTH_CLIENT_ID,
         'GOOGLE_API_KEY': settings.GOOGLE_API_KEY,
     }
 
 
-def get_silos(self):
+def get_silos(request):
     # TODO improve query not to select *
-    if self.user.is_authenticated:
-        all_my_silos = Silo.objects.filter(owner=self.user)
+    if request.user.is_authenticated:
+        all_my_silos = Silo.objects.filter(owner=request.user)
     else:
         all_my_silos = Silo.objects.none()
     return {"all_my_silos": all_my_silos}
