@@ -12,9 +12,6 @@ import tempfile
 
 from pymongo import MongoClient
 
-from bson import CodecOptions, SON
-from bson.json_util import dumps
-
 from django.conf import settings
 from django.core import files
 from django.core.exceptions import ImproperlyConfigured
@@ -1435,27 +1432,26 @@ def valueDelete(request,id):
 
 
 def export_silo(request, id):
-    # To preserve fields order when reading BSON from MONGO
-    opts = CodecOptions(document_class=SON)
-    store = db.label_value_store.with_options(codec_options=opts)
-
     silo_name = Silo.objects.get(id=id).name
 
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="%s.csv"' % silo_name
     writer = csv.writer(response)
 
-    #get the query and the columns to export
-    query = json.loads(request.GET.get('query',"{}"))
-    cols = json.loads(request.GET.get('shown_cols',json.dumps(getSiloColumnNames(id))))
+    # get the query and the columns to export
+    query = json.loads(request.GET.get('query', "{}"))
+    cols = json.loads(request.GET.get('shown_cols', json.dumps(
+        getSiloColumnNames(id))))
 
-    # Loads the bson objects from mongo
-    query["silo_id"] = int(id)
-    bsondata = store.find(query)
-    # Now convert bson to json string using OrderedDict to main fields order
-    json_string = dumps(bsondata)
-    # Now decode the json string into python object
-    silo_data = json.loads(json_string)
+    # Loads the data from mongo
+    data = LabelValueStore.objects(silo_id=int(id), **query).exclude(
+        'create_date', 'edit_date', 'silo_id', 'read_id')
+
+    # Sort the data and convert it into JSON
+    sort = str(request.GET.get('sort', ''))
+    data = data.order_by(sort)
+    silo_data = json.loads(data.to_json())
+
     data = []
     num_cols = len(cols)
     if silo_data:
@@ -1465,7 +1461,8 @@ def export_silo(request, id):
         writer.writerow(cols)
 
         # Populate a 2x2 list structure that corresponds to the number of rows and cols in silo_data
-        for i in xrange(num_rows): data += [[0]*num_cols]
+        for i in xrange(num_rows):
+            data += [[0]*num_cols]
 
         for r, row in enumerate(silo_data):
             for col in cols:
@@ -1478,8 +1475,8 @@ def export_silo(request, id):
                         try:
                             val = smart_text(val['$oid'])
                         except KeyError as e:
-                            val  = val.popitem()
-                #val = val.decode("latin-1").encode("utf8")
+                            val = val.popitem()
+
                 val = smart_text(val).decode("latin-1").encode("utf8")
                 data[r][cols.index(col)] = val
             writer.writerow(data[r])
