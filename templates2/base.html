@@ -84,16 +84,21 @@
                             </a>
                         {% endif %}
                     </li>
-                    <!---
-                     <li class="nav-item">
-                        <a class="navbar" href="{% url 'social:begin' 'tola' %}">
-                            <tola-svg-login _ngcontent-c2="" _nghost-c26="">
-                                <img src="/static/img/user1.svg" height="30">
-                            </tola-svg-login>
-                            <span class="header__nav__link__label">Login</span>
-                        </a>
-                    </li>
-                    --->
+                    {% if user.is_authenticated  %}
+                       <li class="nav-item">
+                          <a class="navbar" href="{% url 'logout' %}">
+                             <span style="display:inline-block;height:100%;width:100%;line-height:28px;border-radius:50%;background-color:#0B607D;color:#fff;text-align:center;font-weight:600;font-size:0.75rem;">
+                                 {% if user.first_name|length >= 1 %}
+                                    {{ user.first_name.0 }}
+                                 {% endif %}
+                                 {% if user.last_name|length >= 1 %}
+                                    {{ user.last_name.0 }}
+                                 {% endif %}
+                             </span>
+                             <span class="header__nav__link__label">Logout</span>
+                          </a>
+                       </li>
+                    {% endif %}
                  </ul>
             </div>
         </div>

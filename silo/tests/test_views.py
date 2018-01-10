@@ -218,3 +218,19 @@ class ExportViewsTest(TestCase, MongoTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('color,type', response.content)
         self.assertIn('black,primary', response.content)
+
+
+class SiloViewsTest(TestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+
+    def test_silo_template_authenticated_user(self):
+        user = factories.User()
+
+        request = self.factory.get('', follow=True)
+        request.user = user
+        response = views.listSilos(request)
+        template_content = response.content
+
+        match = '<span class="header__nav__link__label">Logout</span>'
+        self.assertEqual(template_content.count(match), 1)
