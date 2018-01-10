@@ -162,7 +162,6 @@ def deploy_static():
     with cd(env.project_root):
         run('./manage.py collectstatic -v0 --noinput')
 
-GOOGLE_API_CLIENT_ID = os.getenv('GOOGLE_API_CLIENT_ID')
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 
 GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID')
