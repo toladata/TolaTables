@@ -13,12 +13,26 @@ import silo.gviews_v4 as gviews_v4
 
 
 class GetOauthFlowTest(PythonTestCase):
-    @override_settings(GOOGLE_API_CLIENT_ID=None, GOOGLE_API_KEY=None)
+    @override_settings(GOOGLE_OAUTH_CLIENT_ID=None,
+                       GOOGLE_OAUTH_CLIENT_SECRET=None)
     def test_get_oauth_flow_no_conf(self):
         with self.assertRaises(ImproperlyConfigured):
             gviews_v4._get_oauth_flow()
 
-    @override_settings(GOOGLE_API_CLIENT_ID='123', GOOGLE_API_KEY='pass',
+    @override_settings(GOOGLE_OAUTH_CLIENT_ID=None,
+                       GOOGLE_OAUTH_CLIENT_SECRET='pass')
+    def test_get_oauth_flow_no_conf_client_var(self):
+        with self.assertRaises(ImproperlyConfigured):
+            gviews_v4._get_oauth_flow()
+
+    @override_settings(GOOGLE_OAUTH_CLIENT_ID='123',
+                       GOOGLE_OAUTH_CLIENT_SECRET=None)
+    def test_get_oauth_flow_no_conf_secret_var(self):
+        with self.assertRaises(ImproperlyConfigured):
+            gviews_v4._get_oauth_flow()
+
+    @override_settings(GOOGLE_OAUTH_CLIENT_ID='123',
+                       GOOGLE_OAUTH_CLIENT_SECRET='pass',
                        GOOGLE_REDIRECT_URL='url')
     def test_get_oauth_flow_with_conf(self):
         flow = gviews_v4._get_oauth_flow()
@@ -27,7 +41,9 @@ class GetOauthFlowTest(PythonTestCase):
         self.assertEqual(flow.scope, gviews_v4.SCOPE)
         self.assertEqual(flow.redirect_uri, 'url')
 
-    @override_settings(GOOGLE_REDIRECT_URL='url')
+    @override_settings(GOOGLE_OAUTH_CLIENT_ID=None,
+                       GOOGLE_OAUTH_CLIENT_SECRET=None,
+                       GOOGLE_REDIRECT_URL='url')
     def test_get_oauth_flow_with_file(self):
         gviews_v4.CLIENT_SECRETS_FILENAME = os.path.join(
             'tests', 'client_secrets_test.json')
@@ -56,7 +72,8 @@ class GetSheetsFromGoogleTest(TestCase):
 
 
 class GetCredentialObjectTest(TestCase):
-    @override_settings(GOOGLE_API_CLIENT_ID='123', GOOGLE_API_KEY='pass',
+    @override_settings(GOOGLE_OAUTH_CLIENT_ID='123',
+                       GOOGLE_OAUTH_CLIENT_SECRET='pass',
                        GOOGLE_REDIRECT_URL='url')
     def test_get_credential_object_non_existing(self):
         user = User.objects.create_user(username='johnlennon', password='yok0')
