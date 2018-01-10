@@ -581,7 +581,7 @@ def get_sheets_from_google_spreadsheet(request):
     except Exception as e:
         error = json.loads(e.content).get("error")
         msg = "%s: %s" % (error.get("status"), error.get("message"))
-        return JsonResponse({"level": messages.ERROR, "msg": msg})
+        return JsonResponse({"level": messages.ERROR, "msg": msg}, status=403)
     return JsonResponse(spreadsheet)
 
 

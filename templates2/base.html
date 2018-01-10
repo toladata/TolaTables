@@ -296,14 +296,11 @@
 
             // A simple callback implementation.
             function pickerCallback(data) {
-                //console.log(JSON.stringify(data));
                 if (data[google.picker.Response.ACTION] == google.picker.Action.PICKED) {
                     doc = data[google.picker.Response.DOCUMENTS][0];
                     url = doc[google.picker.Document.URL];
                     spreadsheet_id = doc[google.picker.Document.ID];
                     if (actionType == "import") {
-                        //$(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + spreadsheet_id + "&name=" + doc['name']);
-
                         $.get('/get_sheets_from_google_spreadsheet/', { "spreadsheet_id": spreadsheet_id } )
                             .done(function(data) {
                                 var sheets = data['sheets'];
@@ -320,6 +317,13 @@
                                     }));
                                 });
                                 $("#select_gsheet_modal").modal("show");
+                            }).fail(function(data) {
+                                var error = data.responseJSON.msg;
+                                if (error == "PERMISSION_DENIED: The caller does not have permission") {
+                                    error += ". Check that the spreadsheet has not private access. " +
+                                             "Go to the spreadsheet's Sharing settings and make it public.";
+                                }
+                                alert(error);
                             });
                     } else {
                         url = url + "&resource_id=" + spreadsheet_id + "&query=" + query;
