@@ -118,13 +118,6 @@ LDAP_ADMIN_GROUP = 'xxxx-xxx'
 #ERTB_ADMIN_URL = 'https://xxxx.example.org/xx-xx-dev/'
 
 
-########## GOOGLE AUTH
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = "xxxx.apps.googleusercontent.com"
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = "xxxx"
-SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS = "yourDomain.org"
-GOOGLE_OAUTH2_CLIENT_SECRETS_JSON = "silo/client_secrets.json"
-
-
 #Turn On at: https://www.google.com/settings/security/lesssecureapps
 # You may also need to unlock captcha: https://accounts.google.com/DisplayUnlockCaptcha
 EMAIL_USE_TLS = True
