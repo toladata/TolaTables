@@ -85,18 +85,16 @@
                         {% endif %}
                     </li>
                     {% if user.is_authenticated  %}
-                       <li class="nav-item">
-                          <a class="navbar" href="{% url 'logout' %}">
-                             <span style="display:inline-block;height:100%;width:100%;line-height:28px;border-radius:50%;background-color:#0B607D;color:#fff;text-align:center;font-weight:600;font-size:0.75rem;">
-                                 {% if user.first_name|length >= 1 %}
-                                    {{ user.first_name.0 }}
-                                 {% endif %}
-                                 {% if user.last_name|length >= 1 %}
-                                    {{ user.last_name.0 }}
-                                 {% endif %}
-                             </span>
-                             <span class="header__nav__link__label">Logout</span>
-                          </a>
+                       <li class="header__navbar__user-drop dropdown" role="button" onclick="profileDropDown()">
+                           <span id="user_init"
+                                 style="display:inline-block;height:70%;width:70%;line-height:42px;border-radius:50%;background-color:#0B607D;color:#fff;text-align:center;font-weight:600;font-size:1.0rem;">
+                               {% if user.first_name|length >= 1 and user.last_name|length >= 1 %}
+                                  {{ user.first_name.0|add:user.last_name.0 }}
+                               {% endif %}
+                           </span>
+                           <div id="profileDropDown" class="dropdown-menu dropdown-menu-right">
+                             <a class="dropdown-item" href="{% url 'logout' %}">Log out</a>
+                           </div>
                        </li>
                     {% endif %}
                  </ul>

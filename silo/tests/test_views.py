@@ -222,15 +222,18 @@ class ExportViewsTest(TestCase, MongoTestCase):
 
 class SiloViewsTest(TestCase):
     def setUp(self):
+        self.tola_user = factories.TolaUser()
         self.factory = APIRequestFactory()
 
     def test_silo_template_authenticated_user(self):
-        user = factories.User()
-
         request = self.factory.get('', follow=True)
-        request.user = user
+        request.user = self.tola_user.user
         response = views.listSilos(request)
         template_content = response.content
 
-        match = '<span class="header__nav__link__label">Logout</span>'
+        match = '<span id="user_init"'
+        self.assertEqual(template_content.count(match), 1)
+
+        match = '<div id="profileDropDown" ' \
+                'class="dropdown-menu dropdown-menu-right">'
         self.assertEqual(template_content.count(match), 1)
