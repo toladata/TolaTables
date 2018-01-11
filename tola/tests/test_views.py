@@ -1,7 +1,10 @@
-from django.test import TestCase, RequestFactory
+from django.test import Client, TestCase, RequestFactory
+from django.conf import settings
+from django.contrib import auth
 
 import factories
 from tola.views import register
+from urlparse import urljoin
 
 
 class RegisterViewTest(TestCase):
@@ -113,3 +116,36 @@ class RegisterViewTest(TestCase):
         response = register(request)
 
         self.assertEqual(response.status_code, 403)
+
+
+class LogoutViewTest(TestCase):
+    def setUp(self):
+        self.user = factories.User()
+        self.user.set_password(12345)
+        self.user.save()
+        self.tola_user = factories.TolaUser(user=self.user)
+        self.factory = RequestFactory()
+
+    def test_logout_redirect_logout_activity(self):
+        c = Client()
+        c.post('/accounts/login/', {'username': self.user.username,
+                                    'password': '12345'})
+        self.user = auth.get_user(c)
+        self.assertEqual(self.user.is_authenticated(), True)
+
+        response = c.post('/accounts/logout/')
+        self.user = auth.get_user(c)
+        self.assertEqual(self.user.is_authenticated(), False)
+        self.assertEqual(response.status_code, 302)
+
+        url_subpath = 'accounts/logout/'
+        redirect_url = urljoin(settings.TABLES_LOGIN_URL, url_subpath)
+        self.assertEqual(response.url, redirect_url)
+
+    def test_logout_redirect_to_activity(self):
+        c = Client()
+        response = c.post('/accounts/logout/')
+        self.user = auth.get_user(c)
+        self.assertEqual(self.user.is_authenticated(), False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, settings.TABLES_LOGIN_URL)
