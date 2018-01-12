@@ -1,5 +1,7 @@
 from tola import views as tola_views
 from silo import views
+from silo import gviews_v4
+#from silo import google_views
 
 from silo import tola_activity_views
 
@@ -42,11 +44,10 @@ urlpatterns =[
     url(r'^admin/', include(admin.site.urls)),
     url(r'^$', views.IndexView.as_view(), name='index'),
 
-
     url(r'^source/new/', views.showRead, kwargs={'id': 0}, name='newRead'),
     url(r'^onedrive', views.oneDrive, name='oneDriveRedirect'),
     url(r'^import_onedrive/(?P<id>\d+)/$', views.oneDriveImport, name='import_onedrive'),
-    url(r'^source/FormulaColumnF/', views.showRead, kwargs={'id': 0}, name='newRead'),
+    # url(r'^source/FormulaColumnF/', views.showRead, kwargs={'id': 0}, name='newRead'),
 
     url(r'^show_read/(?P<id>\w+)/$', views.showRead, name='showRead'),
 
@@ -87,11 +88,11 @@ urlpatterns =[
     url(r'^export_silo_form/(?P<id>\w+)/$', views.export_silo_form, name='export_silo_form'),
     url(r'^export/(?P<id>\w+)/$', views.export_silo, name='export_silo'),
 
-    #url(r'^export_to_gsheet/(?P<id>\d+)/$', gviews_v4.export_to_gsheet, name='export_new_gsheet'),
-    #url(r'^export_to_gsheet/(?P<id>\d+)/$', gviews_v4.export_to_gsheet, name='export_existing_gsheet'),
-    #url(r'^oauth2callback/$', gviews_v4.oauth2callback, name='oauth2callback'),
-    #url(r'^import_gsheet/(?P<id>\d+)/$', gviews_v4.import_from_gsheet, name='import_gsheet'),
-    #url(r'^get_sheets_from_google_spredsheet/$', gviews_v4.get_sheets_from_google_spredsheet, name='get_sheets'),
+    url(r'^export_to_gsheet/(?P<id>\d+)/$', gviews_v4.export_to_gsheet, name='export_new_gsheet'),
+    url(r'^export_to_gsheet/(?P<id>\d+)/$', gviews_v4.export_to_gsheet, name='export_existing_gsheet'),
+    url(r'^oauth2callback/$', gviews_v4.oauth2callback, name='oauth2callback'),
+    url(r'^import_gsheet/(?P<id>\d+)/$', gviews_v4.import_from_gsheet, name='import_gsheet'),
+    url(r'^get_sheets_from_google_spreadsheet/$', gviews_v4.get_sheets_from_google_spreadsheet, name='get_sheets'),
 
     url(r'^accounts/login/$', auth.views.login, name='login'),
     url(r'^accounts/logout/$', tola_views.logout_view, name='logout'),
@@ -99,6 +100,8 @@ urlpatterns =[
 
     url(r'^accounts/profile/$', tola_views.profile, name='profile'),
     url(r'^board/$', tola_views.BoardView.as_view(), name='board'),
+
+    url(r'^tables_login/$', views.tablesLogin, name='tables_login'),
 
     url(r'^renew_auto/(?P<read_pk>\d+)/(?P<operation>(pull|push))/$', views.renewAutoJobs, name='renewsAutoJobs'),
 
@@ -110,6 +113,7 @@ urlpatterns =[
     url(r'^reports/', include('reports.urls')),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
 
 #add app domains and add the data types to the read_type.json
 folders = getImportApps()
