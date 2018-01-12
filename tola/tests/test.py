@@ -3,7 +3,7 @@ This file demonstrates writing tests using the unittest module. These will pass
 when you run "manage.py test".
 
 Replace this with more appropriate tests for your application.
-"""
+
 
 from django.utils import timezone
 from datetime import datetime
@@ -19,16 +19,10 @@ from pymongo import MongoClient
 from tola.util import *
 from silo.models import *
 
-# This fails in testing and doesn't appear to be used
-# db = MongoClient(settings.MONGODB_HOST).tola
-"""
-Most Tests are Failing becasue they need to be rewritten.
-=======
-db = MongoClient(settings.MONGO_URI).tola
+client = MongoClient(settings.MONGO_URI)
+db = client.get_database(settings.MONGODB_DATABASES['default']['name'])
 
 class onaParserTest(TestCase):
-
-
 
     def setUp(self):
         self.factory = RequestFactory()

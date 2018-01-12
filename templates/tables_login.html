@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% load includetags %}
+
+{% block page_title %}<h2>TolaTables</h2>{% endblock %}
+
+{% block content %}
+
+<h3> Please Log In To Access Tola Tables </h3>
+
+
+{% if 'custom/login_types.html'|template_exists %}
+  {% include 'custom/login_types.html' %}
+{% else %}
+  {% include 'custom/login_types_default.html' %}
+{% endif %}
+{% endblock content %}

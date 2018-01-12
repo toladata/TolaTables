@@ -20,6 +20,12 @@ Location of settings:
 * Development: `tola/settings/dev.py`
 * Test runner: `tola/settings/test.py`
 * Staging/Production: `tola/settings/local.py`
+* Login Configuration: `templates/login_types.html`
+
+Settings in the local.py file can be overridden using the file local_secret.py.
+If you would prefer to use a local login page, you can configure which
+authentication services are available by modifying login_types_example.html and
+changing its name to login_types.html.
 
 
 ## Deploy locally via Docker
@@ -35,6 +41,8 @@ To run the webserver:
 ```bash
 docker-compose -f docker-compose-dev.yml up #-d for detached
 ```
+
+Go to http://localhost:8000/login
 
 User: `admin`
 Password: `admin`.

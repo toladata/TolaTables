@@ -9,18 +9,18 @@ import uuid
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('silo', '0031_auto_20170915_0828'),
+        ('silo', '0033_tolauser_tola_user_uuid'),
     ]
 
     operations = [
-        migrations.AddField(
+        migrations.AlterField(
             model_name='tolauser',
             name='tola_user_uuid',
-            field=models.CharField(default=uuid.uuid4, max_length=255, null=True, verbose_name=b'TolaUser UUID'),
+            field=models.CharField(default=uuid.uuid4, max_length=255, unique=True, verbose_name=b'TolaUser UUID'),
         ),
-        migrations.AddField(
+        migrations.AlterField(
             model_name='organization',
             name='organization_uuid',
-            field=models.CharField(default=uuid.uuid4, max_length=255, null=True, verbose_name=b'Organization UUID'),
+            field=models.CharField(default=uuid.uuid4, max_length=255, unique=True, verbose_name=b'Organization UUID'),
         ),
     ]

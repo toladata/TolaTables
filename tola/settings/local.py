@@ -62,11 +62,19 @@ if os.getenv('TOLA_HOSTNAME') is not None:
 USE_X_FORWARDED_HOST = True if os.getenv('TOLA_USE_X_FORWARDED_HOST') == 'True' else False
 
 ########## GOOGLE CLIENT CONFIG ###########
-GOOGLE_REDIRECT_URL = 'http://localhost:8000/oauth2callback/'
+if os.getenv('TABLES_URL') is not None:
+    GOOGLE_REDIRECT_URL = os.getenv('TABLES_URL') + '/oauth2callback/'
+else:
+    GOOGLE_REDIRECT_URL = 'http://localhost:8000/oauth2callback/'
 #GOOGLE_STEP2_URI = 'http://tola.mercycorps.org/gwelcome'
 #GOOGLE_CLIENT_ID = 'xxxxxxx.apps.googleusercontent.com'
 #GOOGLE_CLIENT_SECRET = 'xxxxxxxxx'
 
+
+if os.getenv('GOOGLE_ANALYTICS') is not None:
+    GOOGLE_ANALYTICS = os.getenv('GOOGLE_ANALYTICS')
+else:
+    GOOGLE_ANALYTICS = None
 
 
 ####### Tola Activity API #######
@@ -120,6 +128,7 @@ TEMPLATES = [
                 'tola.context_processors.get_silos',
                 'tola.context_processors.get_servers',
                 'tola.context_processors.google_oauth_settings',
+                'tola.context_processors.google_analytics',
             ],
             'builtins': [
                 'django.contrib.staticfiles.templatetags.staticfiles',
@@ -136,10 +145,10 @@ TEMPLATES = [
 
 ACTIVITY_URL = os.getenv('ACTIVITY_URL')
 TABLES_URL = os.getenv('TABLES_URL')
+TABLES_LOGIN_URL = TOLA_ACTIVITY_API_URL
 
 SOCIAL_AUTH_TOLA_KEY = os.getenv('SOCIAL_AUTH_TOLA_KEY')
 SOCIAL_AUTH_TOLA_SECRET = os.getenv('SOCIAL_AUTH_TOLA_SECRET')
-
 
 from fabric.api import *
 
@@ -153,6 +162,16 @@ def deploy_static():
     with cd(env.project_root):
         run('./manage.py collectstatic -v0 --noinput')
 
-GOOGLE_API_CLIENT_ID = os.getenv('GOOGLE_API_CLIENT_ID')
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
+
+GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID')
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET')
+
+# GOOGLE_ANALYTICS_PROPERTY_ID = 'A Google Analytics Property ID'
+
+# This allows for additional settings to be kept in a local file
+try:
+    from local_secret import *
+except ImportError:
+    pass
 

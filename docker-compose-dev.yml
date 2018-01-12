@@ -69,5 +69,6 @@ services:
       - TOLATABLES_MONGODB_PORT=27017
       - TOLA_ACTIVITY_API_URL=
       - TOLA_ACTIVITY_API_TOKEN=
-      - GOOGLE_API_CLIENT_ID=1090285679254-sle9dnkig5lv0gvnvgo5bd7js2i2u9cl.apps.googleusercontent.com
       - GOOGLE_API_KEY=AIzaSyCnXYlzg5GBjOOk-_Mh8s36aF7OqIalyqE
+      - GOOGLE_OAUTH_CLIENT_ID=1090285679254-sle9dnkig5lv0gvnvgo5bd7js2i2u9cl.apps.googleusercontent.com
+      - GOOGLE_OAUTH_CLIENT_SECRET=bZ6NaORHhmAfeZ_s-s9WuLVh
