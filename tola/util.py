@@ -1,4 +1,3 @@
-import datetime
 import urllib2
 import json
 import base64
@@ -206,10 +205,6 @@ def cleanKey(key):
 
 #IMPORT JSON DATA
 def importJSON(read_obj, user, remote_user=None, password=None, silo_id=None, silo_name=None, return_data=False):
-    # set date time stamp
-    today = datetime.date.today()
-    today.strftime('%Y-%m-%d')
-    today = str(today)
     try:
         request2 = urllib2.Request(read_obj.read_url)
         # If the read_obj has token then use it; otherwise, check for login info
@@ -224,7 +219,8 @@ def importJSON(read_obj, user, remote_user=None, password=None, silo_id=None, si
         json_file = urllib2.urlopen(request2)
 
         if silo_name:
-            silo = Silo(name=silo_name, owner=user, public=False, create_date=today)
+            silo = Silo(name=silo_name, owner=user, public=False,
+                        create_date=timezone.now())
             silo.save()
         else:
             silo = Silo.objects.get(id=silo_id)
