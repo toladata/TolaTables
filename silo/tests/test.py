@@ -1,29 +1,25 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime
+import json
 
-
-# This file demonstrates writing tests using the unittest module. These will pass
-# when you run "manage.py test".
-#
-# Replace this with more appropriate tests for your application.
-
-import datetime
+from django.contrib import messages
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import resolve, reverse
 from django.template.loader import render_to_string
-
-from django.contrib import messages
-
 from django.test import TestCase
 from django.test import Client
 from django.test import RequestFactory
+from django.utils import timezone
 
-from silo.views import *
-from silo.models import *
-from silo.forms import *
-
-from commcare.util import *
-from commcare.views import *
-from commcare.tasks import *
+from commcare.tasks import parseCommCareData
+from commcare.util import getProjects
+from silo.forms import get_read_form
+from silo.models import (User, DeletedSilos, LabelValueStore, Silo, ReadType,
+                         Read)
+from silo.views import (addColumnFilter, editColumnOrder, newFormulaColumn,
+                        showRead, editSilo, uploadFile, siloDetail)
+from tola.util import (addColsToSilo, hideSiloColumns, getColToTypeDict,
+                       getSiloColumnNames)
 
 
 
@@ -80,13 +76,11 @@ class SiloTest(TestCase):
         self.client = Client()
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="bob", email="bob@email.com", password="tola123")
-        self.today = datetime.today()
-        self.today.strftime('%Y-%m-%d')
-        self.today = str(self.today)
 
     def test_new_silo(self):
         # Create a New Silo
-        silo = Silo.objects.create(name="Test Silo", owner=self.user, public=False, create_date=self.today)
+        silo = Silo.objects.create(name="Test Silo", owner=self.user,
+                                   public=False, create_date=timezone.now())
         self.assertEqual(silo.pk, 1)
 
         # Fetch the silo that just got created above
@@ -178,19 +172,20 @@ class SiloTest(TestCase):
 class FormulaColumn(TestCase):
     new_formula_columh_url = "/new_formula_column/"
 
-
     def setUp(self):
         self.client = Client()
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
         self.silo = self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
         self.client.login(username='joe', password='tola123')
+
     def test_getNewFormulaColumn(self):
         request = self.factory.get(self.new_formula_columh_url)
         request.user = self.user
         request._dont_enforce_csrf_checks = True
         response = newFormulaColumn(request, self.silo.pk)
         self.assertEqual(response.status_code, 200)
+
     def test_postNewFormulaColumn(self):
         response = self.client.post('/new_formula_column/%s/' % str(self.silo.pk), data={'math_operation' : 'sum', 'column_name' : '', 'columns' : []})
         self.assertEqual(response.status_code, 302)
@@ -215,7 +210,6 @@ class FormulaColumn(TestCase):
         lvs.c = "hi"
         lvs.silo_id = self.silo.pk
         lvs.save()
-
 
         response = self.client.post('/new_formula_column/%s/' % str(self.silo.pk), data={'math_operation' : 'sum', 'column_name' : '', 'columns' : ['a', 'b', 'c']})
         self.assertEqual(response.status_code, 302)
@@ -242,6 +236,7 @@ class FormulaColumn(TestCase):
         except LabelValueStore.DoesNotExist as e:
             self.assert_(False)
 
+
 class ColumnOrder(TestCase):
     url = "/edit_column_order/"
 
@@ -267,6 +262,7 @@ class ColumnOrder(TestCase):
         self.assertEqual(getSiloColumnNames(self.silo.pk), ['c','f','a','d'] )
         response = self.client.post('/edit_column_order/0/', data={'columns' : cols_ordered})
         self.assertEqual(response.status_code, 302)
+
 
 class ColumnFilter(TestCase):
     url = "/edit_filter/"
@@ -364,7 +360,7 @@ class removeSourceTest(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(self.silo.reads.all().count(),0)
 
-class getCommCareProjectsTest(TestCase):
+class GetCommCareProjectsTest(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
@@ -382,7 +378,7 @@ class getCommCareProjectsTest(TestCase):
         self.read = Read.objects.create(read_name="test_read4", owner = self.user2, type=self.read_type, read_url="https://www.commcarehq.org/a/c/")
         self.assertEqual(getProjects(self.user.id), ['a','b'])
 
-class parseCommCareDataTest(TestCase):
+class ParseCommCareDataTest(TestCase):
     def test_commcaredataparser(self):
         data = [
             {
@@ -507,47 +503,7 @@ class parseCommCareDataTest(TestCase):
     def test_delete_silo(self):
         pass
 
-from django.test import Client
-from django.conf import settings
 
-"""
-class Microsoft(TestCase):
-
-    def test_social_auth(self):
-
-
-        # Test social auth login with Microsoft online
-        # :return:
-
-        driver = Client()
-        response = driver.get('/login/microsoft-graph', follow=True)
-        #print(response.redirect_chain, response.status_code)
-
-        # check http redirect
-        steps = response.redirect_chain
-        self.assertEqual(steps[0][1], 301)
-
-        redir_target, redir_options = steps[1][0].split('?')
-        redir_options = dict(map(lambda x: x.split('='), redir_options.split('&')))
-
-        # check redirect target
-        self.assertEqual(redir_target, 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize')
-
-        # check parameters
-        self.assertEqual(redir_options['scope'], 'User.Read')
-        self.assertTrue('/complete/microsoft' in redir_options['redirect_uri'])
-        self.assertEqual(redir_options['client_id'], str(getattr(settings, 'SOCIAL_AUTH_MICROSOFT_OAUTH2_KEY', None)))
-        self.assertTrue('state' in redir_options)
-        self.assertTrue('response_type' in redir_options)
-
-            except LabelValueStore.DoesNotExist as e:
-                self.assert_(False)
-            LabelValueStore.objects.filter(read_id=-97, silo_id = -87).delete()
-            except LabelValueStore.MultipleObjectsReturned as e:
-                LabelValueStore.objects.filter(read_id=-97, silo_id = -87).delete()
-                #if this happens run the test again and it should work
-                self.assert_(False)
-"""
 class Test_ImportJson(TestCase):
     def setUp(self):
         self.client = Client()

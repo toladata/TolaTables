@@ -1,15 +1,16 @@
-from django.db import models
+import uuid
+
+from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.models import User
-from oauth2client.contrib.django_orm import CredentialsField
 from django.contrib.sites.models import Site
+from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from datetime import datetime
-from django.conf import settings
+from django.utils import timezone
 from mongoengine import DynamicDocument, IntField, DateTimeField
+from oauth2client.contrib.django_orm import CredentialsField
 from rest_framework.authtoken.models import Token
-import uuid
 
 
 # New user created generate a token
@@ -42,9 +43,9 @@ class TolaSites(models.Model):
     def save(self, *args, **kwargs):
         ''' On save, update timestamps as appropriate'''
         if kwargs.pop('new_entry', True):
-            self.created = datetime.now()
+            self.created = timezone.now()
         else:
-            self.updated = datetime.now()
+            self.updated = timezone.now()
         return super(TolaSites, self).save(*args, **kwargs)
 
 
@@ -74,8 +75,8 @@ class Organization(models.Model):
     # on save add create date or update edit date
     def save(self, *args, **kwargs):
         if self.create_date == None:
-            self.create_date = datetime.now()
-        self.edit_date = datetime.now()
+            self.create_date = timezone.now()
+        self.edit_date = timezone.now()
         super(Organization, self).save()
 
     # displayed in admin templates
@@ -105,8 +106,8 @@ class Country(models.Model):
     #onsave add create date or update edit date
     def save(self, *args, **kwargs):
         if self.create_date == None:
-            self.create_date = datetime.now()
-        self.edit_date = datetime.now()
+            self.create_date = timezone.now()
+        self.edit_date = timezone.now()
         super(Country, self).save()
 
     #displayed in admin templates
@@ -134,8 +135,8 @@ class WorkflowLevel1(models.Model):
     #onsave add create date or update edit date
     def save(self, *args, **kwargs):
         if self.create_date == None:
-            self.create_date = datetime.now()
-        self.edit_date = datetime.now()
+            self.create_date = timezone.now()
+        self.edit_date = timezone.now()
         super(WorkflowLevel1, self).save()
 
     #displayed in admin templates
@@ -165,8 +166,8 @@ class WorkflowLevel2(models.Model):
     #onsave add create date or update edit date
     def save(self, *args, **kwargs):
         if self.create_date == None:
-            self.create_date = datetime.now()
-        self.edit_date = datetime.now()
+            self.create_date = timezone.now()
+        self.edit_date = timezone.now()
         super(WorkflowLevel2, self).save()
 
     #displayed in admin templates
@@ -207,9 +208,9 @@ class TolaUser(models.Model):
     def save(self, *args, **kwargs):
         ''' On save, update timestamps as appropriate'''
         if kwargs.pop('new_entry', True):
-            self.created = datetime.now()
+            self.created = timezone.now()
         else:
-            self.updated = datetime.now()
+            self.updated = timezone.now()
         return super(TolaUser, self).save(*args, **kwargs)
 
 
