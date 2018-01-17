@@ -266,7 +266,7 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.load_extra_data',
     'social_core.pipeline.user.user_details',
     'social_core.pipeline.social_auth.associate_by_email',
-    'tola.util.user_to_tola',
+    'tola.auth_pipeline.user_to_tola',
 )
 
 ############ END OF AUTHENTICATION BACKEND ##############
