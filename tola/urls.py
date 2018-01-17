@@ -1,23 +1,18 @@
-from tola import views as tola_views
-from silo import views
-from silo import gviews_v4
-#from silo import google_views
-
-from silo import tola_activity_views
-
 from django.contrib import auth
 from django.conf.urls import include, url
 from rest_framework import routers
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth.views import login
-from silo.api import *
+from django.contrib import admin
 
 from util import getImportApps
+from silo import views, gviews_v4, tola_activity_views
+from silo.api import *
+from tola import views as tola_views
 
-# Uncomment the next two lines to enable the admin:
-from django.contrib import admin
 admin.autodiscover()
+
 
 # REST FRAMEWORK
 router = routers.DefaultRouter(trailing_slash=False)

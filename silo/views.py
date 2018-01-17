@@ -821,15 +821,10 @@ def uploadFile(request, id):
         form = UploadForm(request.POST)
         if form.is_valid():
             read_obj = Read.objects.get(pk=id)
-            today = datetime.date.today()
-            today.strftime('%Y-%m-%d')
-            today = str(today)
-
-            silo = None
             user = User.objects.get(username__exact=request.user)
-
             if request.POST.get("new_silo", None):
-                silo = Silo(name=request.POST['new_silo'], owner=user, public=False, create_date=today)
+                silo = Silo(name=request.POST['new_silo'], owner=user,
+                            public=False, create_date=timezone.now())
                 silo.save()
             else:
                 silo = Silo.objects.get(id = request.POST["silo_id"])
@@ -837,15 +832,11 @@ def uploadFile(request, id):
             silo.reads.add(read_obj)
             silo_id = silo.id
 
-            #create object from JSON String
-            #data = csv.reader(read_obj.file_data)
-            #reader = csv.DictReader(read_obj.file_data)
             reader = CustomDictReader(read_obj.file_data)
-            res = saveDataToSilo(silo, reader, read_obj)
+            saveDataToSilo(silo, reader, read_obj)
             return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
         else:
             messages.error(request, "There was a problem with reading the contents of your file" + form.errors)
-            #print form.errors
 
     user = User.objects.get(username__exact=request.user)
     # get all of the silo info to pass to the form
@@ -1334,7 +1325,7 @@ def doMerge(request):
         if res['status'] == "danger":
             new_silo.delete()
             return JsonResponse(res)
-    except Exception as e:
+    except Exception:
         pass
 
     mapping = MergedSilosFieldMapping(from_silo=left_table, to_silo=right_table, merged_silo=new_silo, merge_type=mergeType, mapping=data)
