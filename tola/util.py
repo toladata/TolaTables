@@ -8,8 +8,7 @@ from django.utils import timezone
 from django.utils.encoding import smart_str
 from django.conf import settings
 
-from silo.models import (Read, Silo, LabelValueStore, TolaUser, Country,
-                         ThirdPartyTokens, Organization)
+from silo.models import (Read, Silo, LabelValueStore, ThirdPartyTokens)
 from django.contrib import messages
 from pymongo import MongoClient
 
@@ -339,42 +338,6 @@ def getColToTypeDict(silo):
     else:
         column_types = {x: 'string' for x in columns}
     return column_types
-
-
-def user_to_tola(backend, user, response, *args, **kwargs):
-
-    # Add a google auth user to the tola profile
-
-
-    # Only import fields to Tables that are required
-    if response.get('tola_user'):
-        remote_user = response.get('tola_user')
-        tola_user_defaults = {}
-        tola_user_defaults['tola_user_uuid'] = remote_user['tola_user_uuid']
-        tola_user_defaults['name'] = remote_user['name']
-        tola_user_defaults['employee_number'] = remote_user['employee_number']
-        tola_user_defaults['title'] = remote_user['title']
-        tola_user_defaults['privacy_disclaimer_accepted'] = remote_user['privacy_disclaimer_accepted']
-
-        remote_org = response.get('organization')
-        del remote_org['url']
-        del remote_org['industry']  # ignore for now
-        del remote_org['sector']  # ignore for now
-        organization, org_created = Organization.objects.update_or_create(
-                remote_org, organization_uuid=remote_org['organization_uuid'])
-
-
-        tola_user_defaults['organization'] = organization
-
-        TolaUser.objects.update_or_create(tola_user_defaults, user=user)
-
-    else:
-        default_country = Country.objects.first()
-        userprofile, created = TolaUser.objects.get_or_create(user = user)
-        userprofile.country = default_country
-        userprofile.name = response.get('displayName')
-        userprofile.email = response.get('emails["value"]')
-        userprofile.save()
 
 
 # gets the list of apps to import data
