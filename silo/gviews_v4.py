@@ -38,8 +38,7 @@ CLIENT_SECRETS_FILENAME = 'client_secrets.json'  # Mercy Corps feature
 
 
 def _get_spreadsheet_url(spreadsheet_id):
-    return ("https://docs.google.com/a/mercycorps.org/spreadsheets/d/%s/" %
-            str(spreadsheet_id))
+    return "https://docs.google.com//spreadsheets/d/%s/" % str(spreadsheet_id)
 
 
 def _get_oauth_flow():
