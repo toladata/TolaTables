@@ -249,7 +249,8 @@ class CustomFormViewSet(mixins.CreateModelMixin,
                             status=status.HTTP_404_NOT_FOUND)
 
         saveDataToSilo(silo, [data], silo.reads.first())
-        return Response(status=status.HTTP_200_OK)
+        return Response({'detail': 'It was successfully saved.'},
+                        status=status.HTTP_200_OK)
 
 
 class SilosByUser(viewsets.ReadOnlyModelViewSet):
