@@ -490,8 +490,8 @@ def saveAndImportRead(request):
     Saves ONA read if not already in the db and then imports its data
     """
     if request.method != 'POST':
-        return HttpResponseBadRequest("HTTP method, %s, is not supported" % request.method)
-
+        return HttpResponseBadRequest("HTTP method, {}, is not supported".
+                                      format(request.method))
 
     read_type = ReadType.objects.get(read_type="ONA")
     name = request.POST.get('read_name', None)
@@ -499,39 +499,50 @@ def saveAndImportRead(request):
     silo_name = request.POST.get('silo_name', None)
     owner = request.user
     description = request.POST.get('description', None)
-    silo_id = None
-    read = None
-    silo = None
-    provider = "ONA"
+    provider = 'ONA'
 
     # Fetch the data from ONA
     ona_token = ThirdPartyTokens.objects.get(user=request.user, name=provider)
-    response = requests.get(url, headers={'Authorization': 'Token %s' % ona_token.token})
+    header = {
+        'Authorization': 'Token {}'.format(ona_token.token)
+    }
+    response = requests.get(url, headers=header)
     data = json.loads(response.content)
 
     if len(data) == 0:
-        return HttpResponse("There is not data for the selected form, %s" % name)
+        return HttpResponse('There is not data for the selected form, '
+                            '{}'.format(name))
 
     try:
-        silo_id = int(request.POST.get("silo_id", None))
-        if silo_id == 0: silo_id = None
+        silo_id = int(request.POST.get('silo_id', None))
+        if silo_id == 0:
+            silo_id = None
     except Exception as e:
-         return HttpResponse("Silo ID can only be an integer")
+        return HttpResponse('Silo ID can only be an integer')
 
     try:
-        read, read_created = Read.objects.get_or_create(read_name=name, owner=owner,
-            defaults={'read_url': url, 'type': read_type, 'description': description})
-        if read_created: read.save()
+        read, read_created = Read.objects.get_or_create(
+            read_name=name,
+            owner=owner,
+            defaults={
+                'read_url': url,
+                'type': read_type,
+                'description': description
+            }
+        )
+        if read_created:
+            read.save()
     except Exception as e:
-        return HttpResponse("Invalid name and/or URL")
+        return HttpResponse('Invalid name and/or URL')
 
-    existing_silo_cols = []
-    new_cols = []
-    show_mapping = False
-
-    silo, silo_created = Silo.objects.get_or_create(id=silo_id, defaults={"name": silo_name,
-                                      "public": False,
-                                      "owner": owner})
+    silo, silo_created = Silo.objects.get_or_create(
+        id=silo_id,
+        defaults={
+            'name': silo_name,
+            'public': False,
+            'owner': owner
+        }
+    )
 
     if silo_created or read_created:
         silo.reads.add(read)
@@ -539,8 +550,9 @@ def saveAndImportRead(request):
         silo.reads.add(read)
 
     # import data into this silo
-    res = saveDataToSilo(silo, data, read, request.user)
-    return HttpResponse("View table data at <a href='/silo_detail/%s' target='_blank'>See your data</a>" % silo.pk)
+    saveDataToSilo(silo, data, read, request.user)
+    return HttpResponse("View table data at <a href='/silo_detail/%s' "
+                        "target='_blank'>See your data</a>" % silo.pk)
 
 
 @login_required
@@ -561,39 +573,46 @@ def getOnaForms(request):
     if request.method == 'POST':
         form = OnaLoginForm(request.POST)
         if form.is_valid():
-            response = requests.get(url_user_token, auth=HTTPDigestAuth(request.POST['username'], request.POST['password']))
+            response = requests.get(url_user_token, auth=HTTPDigestAuth(
+                request.POST['username'], request.POST['password']))
             if response.status_code == 401:
                 messages.error(request, "Invalid username or password.")
             elif response.status_code == 200:
                 auth_success = True
                 token = json.loads(response.content)['api_token']
-                ona_token, created = ThirdPartyTokens.objects.get_or_create(user=request.user, name=provider, token=token)
-                if created: ona_token.save()
+                ona_token, created = ThirdPartyTokens.objects.get_or_create(
+                    user=request.user, name=provider, token=token)
+                if created:
+                    ona_token.save()
             else:
-                messages.error(request, "A %s error has occured: %s " % (response.status_code, response.text))
+                messages.error(request, "A {} error has occured: {} ".format(
+                    response.status_code, response.text))
     else:
         try:
             auth_success = True
-            ona_token = ThirdPartyTokens.objects.get(name=provider, user=request.user)
+            ona_token = ThirdPartyTokens.objects.get(name=provider,
+                                                     user=request.user)
         except Exception as e:
             auth_success = False
             form = OnaLoginForm()
 
     if ona_token and auth_success:
-        onaforms = requests.get(url_user_forms, headers={'Authorization': 'Token %s' % ona_token.token})
+        header = {
+                'Authorization': 'Token {}'.format(ona_token.token)
+        }
+        onaforms = requests.get(url_user_forms, headers=header)
         data = json.loads(onaforms.content)
-        # check for records (very slow) may need to cache somehow or request count from Ona API endpoint
+        # check for records (very slow) may need to cache somehow or
+        # request count from Ona API endpoint
         for x in data:
             data_count = 0
-            ona_data = requests.get(x['url'], headers={'Authorization': 'Token %s' % ona_token.token})
+            ona_data = requests.get(x['url'], headers=header)
             data_to_count = json.loads(ona_data.content)
             # check for existing read source
             try:
                 check_read = Read.objects.all().filter(read_url=x['url'])
                 if check_read:
                     x['silo'] = check_read
-                    print check_read
-                    print x['url']
             except Read.DoesNotExist:
                 x['silo'] = None
             # do count
@@ -602,7 +621,6 @@ def getOnaForms(request):
             x['count'] = data_count
         if data:
             has_data = True
-
 
     silos = Silo.objects.filter(owner=request.user)
     return render(request, 'silo/getonaforms.html', {
