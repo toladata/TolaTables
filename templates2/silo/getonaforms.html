@@ -121,8 +121,7 @@
                        // addMessage(data, "error ");
                     })
                     .done(function(data, xhr) {
-                        //alert(xhr.status);
-
+                        window.location.replace(data);
                     })
                     .complete(function(data, xhr) {
                         //show_column_mapping();

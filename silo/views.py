@@ -551,8 +551,8 @@ def saveAndImportRead(request):
 
     # import data into this silo
     saveDataToSilo(silo, data, read, request.user)
-    return HttpResponse("View table data at <a href='/silo_detail/%s' "
-                        "target='_blank'>See your data</a>" % silo.pk)
+    silo_detail_url = reverse_lazy('siloDetail', args=[silo.pk])
+    return HttpResponse(silo_detail_url)
 
 
 @login_required

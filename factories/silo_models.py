@@ -2,9 +2,6 @@ import random
 
 from django.utils import timezone
 
-from factory import DjangoModelFactory, LazyAttribute, SubFactory, \
-    post_generation
-
 from factory import (DjangoModelFactory, LazyAttribute, SubFactory,
                      post_generation, Iterator)
 
@@ -16,6 +13,7 @@ from silo.models import (
     ReadType as ReadTypeM,
     Silo as SiloM,
     Tag as TagM,
+    ThirdPartyTokens as ThirdPartyTokensM,
     TolaSites as TolaSitesM,
     TolaUser as TolaUserM,
     WorkflowLevel1 as WorkflowLevel1M,
@@ -169,3 +167,11 @@ class LabelValueStore(DjangoModelFactory):
         model = LabelValueStoreM
 
     create_date = timezone.now()
+
+
+class ThirdPartyTokens(DjangoModelFactory):
+    class Meta:
+        model = ThirdPartyTokensM
+
+    user = SubFactory(User)
+    token = str(random.randint(1, 9999))
