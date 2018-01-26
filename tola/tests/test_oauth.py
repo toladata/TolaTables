@@ -59,7 +59,9 @@ class OAuthTest(TestCase):
                 'url': '',
                 'industry': '',
                 'sector': '',
-                'organization_uuid': self.org.organization_uuid
+                'organization_uuid': self.org.organization_uuid,
+                'chargebee_subscription_id': '',
+                'chargebee_used_seats': ''
             }
         }
 
