@@ -660,7 +660,7 @@ def showRead(request, id):
     """
     Show a read data source and allow user to edit it
     """
-    excluded_fields = ['gsheet_id', 'resource_id', 'token', 'create_date', 'edit_date', 'token', 'autopush_expiration', 'autopull_expiration']
+    excluded_fields = ['gsheet_id', 'resource_id', 'token', 'create_date', 'edit_date', 'token', 'autopush_expiration', 'autopull_expiration', 'task_id']
     initial = {'owner': request.user}
     data = None
     access_token = None
@@ -685,7 +685,7 @@ def showRead(request, id):
     elif read_type == "Google Spreadsheet":
         excluded_fields = excluded_fields + ['username', 'password', 'file_data', 'autopull_frequency']
     elif read_type == "CSV":
-        excluded_fields = excluded_fields + ['username', 'password', 'autopush_frequency', 'autopull_frequency', 'read_url']
+        excluded_fields = excluded_fields + ['username', 'password', 'autopush_frequency', 'autopull_frequency', 'read_url', 'onedrive_file']
     elif read_type == "OneDrive":
         user = User.objects.get(username__exact=request.user)
         social = user.social_auth.get(provider='microsoft-graph')
@@ -811,6 +811,7 @@ def oneDrive(request):
     return render(request, 'silo/onedrive.html', {
     })
 
+from .tasks import process_silo, process_silo_error
 
 @login_required
 def uploadFile(request, id):
@@ -832,8 +833,14 @@ def uploadFile(request, id):
             silo.reads.add(read_obj)
             silo_id = silo.id
 
-            reader = CustomDictReader(read_obj.file_data)
-            saveDataToSilo(silo, reader, read_obj)
+            async_res = process_silo.apply_async(
+                (silo.id, read_obj.id),
+                link_error=process_silo_error.s(read_obj.id)
+            )
+
+            read_obj.task_id = async_res.id
+            read_obj.save()
+
             return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
         else:
             messages.error(request, "There was a problem with reading the contents of your file" + form.errors)
@@ -958,12 +965,35 @@ def siloDetail(request, silo_id):
     data = []
     query = makeQueryForHiddenRow(json.loads(silo.rows_to_hide))
 
+    """
+    TODO: Add highlight in view template to the specific read that failed 
+    Note:    There is a chance a service gets stuck in "tasks_running" if a service worker terminates unexpectedly and the task id
+    could not be removed from the task.
+    """
+
+    tasks_running = 0
+    tasks_failed = 0
+
+    for read in silo.reads.all():
+        if read.task_id is not None:
+            print(read.task_id)
+            if read.task_id != "FAILED":
+                tasks_running = tasks_running + 1
+            else:
+                tasks_failed = tasks_failed + 1
+
     if silo.owner == request.user or silo.public == True or request.user in silo.shared.all():
         cols.append('_id')
         cols.extend(getSiloColumnNames(silo_id))
     else:
         messages.warning(request,"You do not have permission to view this table.")
-    return render(request, "display/silo.html", {"silo": silo, "cols": cols, "query": query})
+    return render(request, "display/silo.html", {
+        "tasks_running": tasks_running,
+        "tasks_failed": tasks_failed,
+        "silo": silo,
+        "cols": cols,
+        "query": query
+    })
 
 
 @login_required
