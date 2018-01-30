@@ -18,19 +18,4 @@ class Migration(migrations.Migration):
             name='task_id',
             field=models.CharField(blank=True, default=None, max_length=50, null=True, verbose_name=b'Celery task id'),
         ),
-        migrations.AlterField(
-            model_name='silo',
-            name='workflowlevel1',
-            field=models.ManyToManyField(blank=True, to='silo.WorkflowLevel1'),
-        ),
-        migrations.AlterField(
-            model_name='tolauser',
-            name='workflowlevel1',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='silo.WorkflowLevel1'),
-        ),
-        migrations.AlterField(
-            model_name='workflowlevel2',
-            name='workflowlevel1',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='silo.WorkflowLevel1'),
-        ),
     ]

@@ -4,7 +4,6 @@ echo "Collect static files"
 python manage.py collectstatic -v 0 --noinput
 
 echo "Migrate"
-python manage.py makemigrations
 python manage.py migrate
 
 echo "Starting celery worker"
