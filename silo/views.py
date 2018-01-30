@@ -966,7 +966,6 @@ def siloDetail(request, silo_id):
     query = makeQueryForHiddenRow(json.loads(silo.rows_to_hide))
 
     """
-    TODO: Add highlight in view template to the specific read that failed 
     Note:    There is a chance a service gets stuck in "tasks_running" if a service worker terminates unexpectedly and the task id
     could not be removed from the task.
     """
@@ -974,10 +973,9 @@ def siloDetail(request, silo_id):
     tasks_running = 0
     tasks_failed = 0
 
-    for read in silo.reads.all():
-        if read.task_id is not None:
-            print(read.task_id)
-            if read.task_id != "FAILED":
+    for task_id in silo.reads.all().values_list('task_id', flat=True):
+        if task_id is not None:
+            if task_id != "FAILED":
                 tasks_running = tasks_running + 1
             else:
                 tasks_failed = tasks_failed + 1

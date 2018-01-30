@@ -208,9 +208,6 @@
         <div class="panel-heading">
             <h3 class="panel-title"><a href="/silo_edit/{{ silo.id }}">{{silo.name}}</a></h3>
             <small>{{ silo.description|default:"" }}</small>
-            {% if tasks_running %}
-                <h4 style="color:#ff3019">One or more Tasks are still running in the background.</h4>
-            {% endif %}
         </div>
         <div class="panel panel-body" style="padding: 5px 0px 5px 0px;">
             <table id="data_table" class="table table-hover table table-striped table-bordered" style="overflow-x: scroll; display:inline-block; width:100%;" width="100%">

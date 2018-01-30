@@ -12,6 +12,5 @@ celery_cmd="celery -A tola worker -l info"
 $celery_cmd &
 
 echo "Running the server"
-python manage.py migrate
 nginx
 PYTHONUNBUFFERED=1 python manage.py runserver --insecure 127.0.0.1:8888

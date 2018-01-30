@@ -13,13 +13,6 @@ import logging
 
 logger = logging.getLogger("tola")
 
-#@shared_task(bind=True, max_retries=3)
-@app.task(bind=True, max_retries=3)
-def async_rand(self, nr):
-    n = randint(0, 100)
-    print("Celery Task Called")
-    return (nr, n)
-
 
 @shared_task(bind=True, retry=False)
 def process_silo(self, silo_id, read_id):
@@ -45,9 +38,6 @@ def process_silo(self, silo_id, read_id):
 def process_silo_error(uuid, read_id):
     result = AsyncResult(uuid)
     exc = result.get(propagate=False)
-
-    print('Task {0} raised exception: {1!r}\n{2!r}'.format(
-          uuid, exc, result.traceback))
 
     logger.error(exc)
 
