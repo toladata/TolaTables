@@ -24,7 +24,7 @@ from tola.util import (addColsToSilo, hideSiloColumns, getColToTypeDict,
 
 from celery.exceptions import Retry
 from mock import patch
-from silo.tasks import async_rand, process_silo
+from silo.tasks import process_silo
 
 
 class CeleryTest(TestCase):
