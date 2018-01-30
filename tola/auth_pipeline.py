@@ -85,6 +85,8 @@ def user_to_tola(backend, user, response, *args, **kwargs):
         del remote_org['url']
         del remote_org['industry']  # ignore for now
         del remote_org['sector']  # ignore for now
+        del remote_org['chargebee_subscription_id']  # ignore for now
+        del remote_org['chargebee_used_seats']  # ignore for now
         organization, org_created = Organization.objects.update_or_create(
                 remote_org, organization_uuid=remote_org['organization_uuid'])
 

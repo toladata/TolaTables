@@ -1,16 +1,10 @@
-from django.views.generic.list import ListView
-from django.http import HttpResponse
-
 from django.shortcuts import render
-from silo.models import WorkflowLevel2, WorkflowLevel1, Country, TolaSites, Silo, User, TolaUser, LabelValueStore, UniqueFields
-from django.db.models import Sum
+from silo.models import Country, Silo, User, TolaUser, LabelValueStore, UniqueFields
 from django.db.models import Q
 
-from django.contrib.auth.decorators import login_required
-import requests
 import json
 import ast
-from math import *
+
 
 
 def listTableDashboards(request,id=0):
@@ -24,9 +18,9 @@ def listTableDashboards(request,id=0):
 
 def tableDashboard(request,id=0):
     """
-    DEMO only survey for Tola survey for use with public talks about TolaData
-    Share URL to survey and data will be aggregated in tolatables
-    then imported to this dashboard
+    Dynamic Dashboard report based on Table Data
+    find lat and long fields
+
     :return:
     """
     # get all countires
@@ -38,7 +32,10 @@ def tableDashboard(request,id=0):
         get_fields = None
     doc = LabelValueStore.objects(silo_id=id).to_json()
 
-    data = ast.literal_eval(doc)
+    try:
+        data = ast.literal_eval(doc)
+    except ValueError:
+        data = json.loads(doc)
 
     from collections import Counter
     latitude = []
@@ -58,7 +55,7 @@ def tableDashboard(request,id=0):
             map_country_string = ['countries','country']
             if field not in exclude_string:
                 get_fields[field] = {} # create a dict with fields as the key
-                cnt = Counter()
+                cnt = 0
                 answers = [] # a list for the answers
                 for idx, col in enumerate(data):
                     # get_fields[field][idx] = col[field] # append list of all answers
@@ -67,23 +64,26 @@ def tableDashboard(request,id=0):
                     except KeyError:
                         answers.append(None)  # no answer
                 # loop and count each unique answer
+                """
+                TODO: Needs to be moved to a recurssive function that checks each level for
+                list or dict and continues to parse until it can be counted
+                """
                 for a in answers:
-                    # if answer has a dict in it loop over that
-                    if isinstance(a, dict):
-                        for x in a: cnt[x] +=1
-                    else:
-                        cnt[a] += 1
-                    unique_count = cnt
+                    # if answer has a dict or list count each element
+                    cnt = cnt + 1
+
+                unique_count = cnt
                 # append unique answer plus count to dict
-                get_fields[field][idx] = unique_count.most_common()
+                get_fields[field][idx] = unique_count
 
                 from django.utils.safestring import SafeString
 
                 temp = []
                 temp2 = []
-                for letter, count in get_fields[field][idx]:
-                    temp.append(str(letter))
-                    temp2.append(str(count))
+                for letter in get_fields[field]:
+                    # u' '.join((agent_contact, agent_telno)).encode('utf-8').strip()
+                    temp.append(letter)
+                    temp2.append(get_fields[field][idx])
 
                 get_fields[field][idx] = {"label": SafeString(temp), "count": SafeString(temp2)}
 
@@ -97,6 +97,14 @@ def tableDashboard(request,id=0):
                 for idx, col in enumerate(data):
                     longitude.append(col[field])
 
+            # if a country name
+            if field in map_country_string:
+                for idx, col in enumerate(data):
+                    country_obj=Country.objects.get(country=col[field])
+                    longitude.append(country_obj.longitude)
+                    latitude.append(country_obj.latitude)
+                    country.append(country_obj.country)
+
             # merge lat and long
             lat_long = dict(zip(latitude,longitude))
 
@@ -107,7 +115,7 @@ def tableDashboard(request,id=0):
 
     return render(request, "reports/table_dashboard.html",
                   {'data': data, 'get_table': get_table, 'countries': countries, 'get_fields': get_fields,
-                   'lat_long': lat_long, 'columns': columns})
+                   'lat_long': lat_long,'country': country, 'columns': columns})
 
 
 
