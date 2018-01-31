@@ -19,17 +19,12 @@ def process_silo(self, silo_id, read_id):
     silo = Silo.objects.get(id=silo_id)
     read_obj = Read.objects.get(pk=read_id)
 
-    try:
-        reader = CustomDictReader(read_obj.file_data)
-        saveDataToSilo(silo, reader, read_obj)
+    reader = CustomDictReader(read_obj.file_data)
+    saveDataToSilo(silo, reader, read_obj)
 
-        # Todo add notification when done
-        read_obj.task_id = None
-        read_obj.save()
-    except Exception, e:
-        logger.error(e)
-        read_obj.task_id = "FAILED"
-        read_obj.save()
+    # Todo add notification when done
+    read_obj.task_id = None
+    read_obj.save()
 
     return True
 

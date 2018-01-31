@@ -24,7 +24,7 @@ from tola.util import (addColsToSilo, hideSiloColumns, getColToTypeDict,
 
 from celery.exceptions import Retry
 from mock import patch
-from silo.tasks import process_silo
+from silo.tasks import process_silo, process_silo_error
 
 
 class CeleryTest(TestCase):
@@ -33,31 +33,49 @@ class CeleryTest(TestCase):
         self.client = Client()
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="bob", email="bob@email.com", password="tola123")
-        self.silo = Silo.objects.create(name="Test Silo", owner=self.user,
+
+    def test_celery_success(self):
+        silo = Silo.objects.create(name="Test Silo", owner=self.user,
                                    public=False, create_date=timezone.now())
 
-        self.read_type = ReadType.objects.create(read_type="CSV")
+        read_type = ReadType.objects.create(read_type="CSV")
         upload_file = open('test.csv', 'rb')
-        self.read = Read.objects.create(owner=self.user, type=self.read_type,
+        read = Read.objects.create(owner=self.user, type=read_type,
                                    read_name="TEST CSV IMPORT", description="unittest",
                                    create_date='2015-06-24 20:33:47',
                                    file_data=SimpleUploadedFile(upload_file.name, upload_file.read())
                                    )
+        process_done = process_silo(silo.id, read.id)
 
-    def test_celery_success(self):
-        process_done = process_silo(self.silo.id, self.read.id)
         self.assertTrue(process_done)
-    
-    @patch('silo.tasks.process_silo.retry')
-    def test_celery_failure(self, process_silo_retry):
-        process_silo_retry.side_effect = Retry()
 
-        try:
-            process_done = process_silo(self.silo.id, -1)
-        except Retry:
-            self.fail()
-        except ObjectDoesNotExist:
-            pass
+    @patch('silo.tasks.process_silo_error')
+    def test_celery_failure(self, process_silo_error):
+        silo = Silo.objects.create(name="Test Broken Silo", owner=self.user,
+                                   public=False, create_date=timezone.now())
+
+        read_type = ReadType.objects.create(read_type="CSV")
+        upload_file = open('test_broken.csv', 'rb')
+        read = Read.objects.create(owner=self.user, type=read_type,
+                                   read_name="TEST BROKEN CSV IMPORT", description="unittest",
+                                   create_date='2018-01-01 00:00:01',
+                                   file_data=SimpleUploadedFile(upload_file.name, upload_file.read())
+                                   )
+
+        process_silo.apply_async(
+            (silo.id, read.id),
+            link_error=process_silo_error()
+        )
+        process_silo_error.assert_called()
+
+    @patch('silo.tasks.process_silo.retry')
+    def test_wrong_silo(self, process_silo_retry):
+        process_silo_retry.side_effect = Retry()
+        silo = Silo.objects.create(name="Test Broken Silo", owner=self.user,
+                                   public=False, create_date=timezone.now())
+
+        with self.assertRaises(ObjectDoesNotExist):
+            process_silo(silo.id, -1)
 
 
 class ReadTest(TestCase):
