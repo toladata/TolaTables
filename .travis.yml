@@ -12,6 +12,9 @@ install:
   - pip install -r requirements-ci.txt
 services:
   - mongodb
+  - redis-server
 script: python manage.py test
 before_install:
   - mongo test --eval 'db.createUser({user:"test", pwd:"test", roles:["readWrite"]});'
+env:
+  - CELERY_BROKER_URL=redis://redis@localhost:6379/0
