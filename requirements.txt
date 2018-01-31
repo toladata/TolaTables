@@ -48,5 +48,4 @@ pycparser==2.18
 pynacl==1.2.0
 celery==4.0.2
 django-celery-results==1.0.1
-redis==2.7.6
-
+redis==2.10
