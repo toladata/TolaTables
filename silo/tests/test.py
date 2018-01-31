@@ -24,15 +24,15 @@ from tola.util import (addColsToSilo, hideSiloColumns, getColToTypeDict,
 
 from celery.exceptions import Retry
 from mock import patch
-from silo.tasks import process_silo, process_silo_error
-
+from silo.tasks import process_silo
+import factories
 
 class CeleryTest(TestCase):
 
     def setUp(self):
         self.client = Client()
         self.factory = RequestFactory()
-        self.user = User.objects.create_user(username="bob", email="bob@email.com", password="tola123")
+        self.user = factories.User()
 
     def test_celery_success(self):
         silo = Silo.objects.create(name="Test Silo", owner=self.user,
