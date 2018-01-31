@@ -309,6 +309,7 @@ class CustomFormSaveDataViewTest(TestCase):
         response = view(request)
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['detail'], 'It was successfully saved.')
 
     def test_save_data_customform_missing_data_superuser(self):
         self.tola_user.user.is_staff = True
@@ -355,6 +356,7 @@ class CustomFormSaveDataViewTest(TestCase):
         response = view(request)
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['detail'], 'It was successfully saved.')
 
     def test_save_data_customform_no_data_normaluser(self):
         factories.LabelValueStore(silo_id=self.silo.id, read_id=self.read.id)

@@ -1,13 +1,15 @@
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ImproperlyConfigured
-from django.urls import reverse
 from django.test import TestCase, override_settings
+from django.urls import reverse
 
 from rest_framework.test import APIRequestFactory
 
 from silo.tests import MongoTestCase
 from silo.api import CustomFormViewSet
 from silo.models import LabelValueStore, Read, Silo
+
+from mock import Mock, patch
 
 import json
 import factories
@@ -222,7 +224,8 @@ class ExportViewsTest(TestCase, MongoTestCase):
 
 class SiloViewsTest(TestCase):
     def setUp(self):
-        self.tola_user = factories.TolaUser()
+        self.org = factories.Organization()
+        self.tola_user = factories.TolaUser(organization=self.org)
         self.factory = APIRequestFactory()
 
     def test_silo_template_authenticated_user(self):
@@ -237,3 +240,108 @@ class SiloViewsTest(TestCase):
         match = '<div id="profileDropDown" ' \
                 'class="dropdown-menu dropdown-menu-right">'
         self.assertEqual(template_content.count(match), 1)
+
+
+class SaveDataToSiloViewTest(TestCase):
+    def setUp(self):
+        self.org = factories.Organization()
+        self.tola_user = factories.TolaUser(organization=self.org)
+        self.factory = APIRequestFactory()
+
+    @patch('silo.views.saveDataToSilo')
+    @patch('silo.views.requests')
+    def test_save_and_import_read(self, mock_requests, mock_savedatasilo):
+        data_res = {'detail': 'Success'}
+        mock_savedatasilo.return_value = Mock()
+        mock_requests.get.return_value = Mock(content=json.dumps(data_res))
+
+        read = factories.Read(read_name='Read Test', owner=self.tola_user.user)
+        silo = factories.Silo(owner=self.tola_user.user, reads=[read])
+        factories.ThirdPartyTokens(user=self.tola_user.user, name='ONA')
+        factories.ReadType(read_type='ONA')
+
+        data = {
+            'read_name': read.read_name,
+            'description': silo.description,
+            'silo_id': silo.id,
+            'silo_name': silo.name
+        }
+
+        request = self.factory.post('', data)
+        request.user = self.tola_user.user
+        response = views.saveAndImportRead(request)
+        template_content = response.content
+
+        match = reverse('siloDetail', args=[silo.pk])
+        self.assertIn(match, template_content)
+
+    @patch('silo.views.requests')
+    def test_save_and_import_read_without_data(self, mock_requests):
+        mock_requests.get.return_value = Mock(content='[]')
+
+        read = factories.Read(read_name='Read Test', owner=self.tola_user.user)
+        silo = factories.Silo(owner=self.tola_user.user, reads=[read])
+        factories.ThirdPartyTokens(user=self.tola_user.user, name='ONA')
+        factories.ReadType(read_type='ONA')
+
+        data = {
+            'read_name': read.read_name,
+            'description': silo.description,
+            'silo_id': silo.id,
+            'silo_name': silo.name
+        }
+
+        request = self.factory.post('', data)
+        request.user = self.tola_user.user
+        response = views.saveAndImportRead(request)
+        content = response.content
+
+        self.assertEqual('There is not data for the selected form, {}'.format(
+            read.read_name), content)
+
+    @patch('silo.views.requests')
+    def test_save_and_import_read_without_silo_id(self, mock_requests):
+        data_res = {'detail': 'Success'}
+        mock_requests.get.return_value = Mock(content=json.dumps(data_res))
+
+        read = factories.Read(read_name='Read Test', owner=self.tola_user.user)
+        silo = factories.Silo(owner=self.tola_user.user, reads=[read])
+        factories.ThirdPartyTokens(user=self.tola_user.user, name='ONA')
+        factories.ReadType(read_type='ONA')
+
+        data = {
+            'read_name': read.read_name,
+            'description': silo.description,
+            'silo_name': silo.name
+        }
+
+        request = self.factory.post('', data)
+        request.user = self.tola_user.user
+        response = views.saveAndImportRead(request)
+        content = response.content
+
+        self.assertEqual('Silo ID can only be an integer', content)
+
+    @patch('silo.views.requests')
+    def test_save_and_import_read_without_wrong_read_name(self, mock_requests):
+        data_res = {'detail': 'Success'}
+        mock_requests.get.return_value = Mock(content=json.dumps(data_res))
+
+        read = factories.Read(read_name='Read Test', owner=self.tola_user.user)
+        silo = factories.Silo(owner=self.tola_user.user, reads=[read])
+        factories.ThirdPartyTokens(user=self.tola_user.user, name='ONA')
+        factories.ReadType(read_type='ONA')
+
+        data = {
+            'read_name': 'This Read does not exist',
+            'description': silo.description,
+            'silo_id': silo.id,
+            'silo_name': silo.name
+        }
+
+        request = self.factory.post('', data)
+        request.user = self.tola_user.user
+        response = views.saveAndImportRead(request)
+        content = response.content
+
+        self.assertEqual('Invalid name and/or URL', content)
