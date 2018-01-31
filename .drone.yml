@@ -59,6 +59,8 @@ pipeline:
 services:
   mongo:
     image: mongo:3.4.10
+  redis:
+    image: redis:4.0
 
 matrix:
   PYTHON_VERSION:
