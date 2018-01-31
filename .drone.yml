@@ -13,6 +13,7 @@ pipeline:
     secrets: [SECRET_PASS]
     commands:
       - pip install -r requirements-ci.txt
+      - redis-cli -c ping
       - python manage.py test
     when:
       event: [push, tag]
