@@ -87,3 +87,6 @@ CACHES = {
 ########## END CACHE CONFIGURATION
 
 CORS_ORIGIN_ALLOW_ALL = True
+
+CELERY_BROKER_URL = "redis://redis@localhost:6379/0"
+CELERY_RESULT_BACKEND = "redis://redis@localhost:6379/0"
