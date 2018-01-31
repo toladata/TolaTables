@@ -13,6 +13,7 @@ pipeline:
     secrets: [SECRET_PASS]
     commands:
       - pip install -r requirements-ci.txt
+      - apt-get install redis-tools
       - redis-cli -c ping
       - python manage.py test
     when:
