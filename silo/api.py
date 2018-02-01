@@ -176,12 +176,6 @@ class CustomFormViewSet(mixins.CreateModelMixin,
         silo.reads.add(read)
         silo.workflowlevel1.add(wkflvl1)
 
-        lvs = LabelValueStore()
-        lvs.silo_id = silo.pk
-        lvs.create_date = timezone.now()
-        lvs.read_id = read.pk
-        lvs.save()
-
         serializer = self.serializer_class(silo, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -242,15 +236,15 @@ class CustomFormViewSet(mixins.CreateModelMixin,
             return Response({'detail': 'Missing data.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        silo = Silo.objects.get(pk=silo_id)
-        lvs = LabelValueStore.objects(silo_id=silo_id).count()
-        if not lvs or not silo:
+        try:
+            silo = Silo.objects.get(pk=silo_id)
+        except Silo.DoesNotExist:
             return Response({'detail': 'Not found.'},
                             status=status.HTTP_404_NOT_FOUND)
-
-        saveDataToSilo(silo, [data], silo.reads.first())
-        return Response({'detail': 'It was successfully saved.'},
-                        status=status.HTTP_200_OK)
+        else:
+            saveDataToSilo(silo, [data], silo.reads.first())
+            return Response({'detail': 'It was successfully saved.'},
+                            status=status.HTTP_200_OK)
 
 
 class SilosByUser(viewsets.ReadOnlyModelViewSet):
