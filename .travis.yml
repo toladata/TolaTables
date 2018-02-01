@@ -13,5 +13,7 @@ install:
 services:
   - mongodb
 script: python manage.py test
+after_success:
+  - coveralls
 before_install:
   - mongo test --eval 'db.createUser({user:"test", pwd:"test", roles:["readWrite"]});'
