@@ -145,7 +145,7 @@
                 datasets : [
                     {
                         data : {% for x,y in value.items %}{{ y.count }} {% endfor %},
-                        backgroundColor: [{% for i in "xxxxxxxxxxxxxxxxxxxx" %}{{ "dynamicColors()," }}{% endfor %}],
+                        backgroundColor: [{% for i in value.items %}{{ "dynamicColors()," }}{% endfor %}],
 
                     }
                 ]
