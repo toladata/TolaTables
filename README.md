@@ -102,7 +102,7 @@ You should now see '(venv)' added to the left side of your prompt.  If you don't
 
 Now install the python modules into the Virtualenv:
 
-`pip install -r TolaTables/requirements.txt`
+`pip install -r TolaTables/requirements/base.txt`
 
 ### Install selenium
 
