@@ -12,4 +12,4 @@ $celery_cmd &
 
 echo "Running the server"
 nginx
-PYTHONUNBUFFERED=1 python manage.py runserver --insecure 127.0.0.1:8888
+gunicorn -b 0.0.0.0:8888 tola.wsgi
