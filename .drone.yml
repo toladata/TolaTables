@@ -10,6 +10,7 @@ pipeline:
     image: python:${PYTHON_VERSION}
     environment:
       - TOLATABLES_MONGODB_HOST=mongo
+      - CELERY_BROKER_URL=redis://redis@redis:6379/0
     secrets: [SECRET_PASS]
     commands:
       - pip install -r requirements-ci.txt
@@ -59,6 +60,8 @@ pipeline:
 services:
   mongo:
     image: mongo:3.4.10
+  redis:
+    image: redis:4.0
 
 matrix:
   PYTHON_VERSION:

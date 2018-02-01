@@ -10,6 +10,7 @@ from django.test import TestCase
 from django.test import Client
 from django.test import RequestFactory
 from django.utils import timezone
+from django.core.exceptions import ObjectDoesNotExist
 
 from commcare.tasks import parseCommCareData
 from commcare.util import getProjects
@@ -21,6 +22,50 @@ from silo.views import (addColumnFilter, editColumnOrder, newFormulaColumn,
 from tola.util import (addColsToSilo, hideSiloColumns, getColToTypeDict,
                        getSiloColumnNames)
 
+from celery.exceptions import Retry
+from mock import patch
+from silo.tasks import process_silo
+import factories
+
+class CeleryTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.factory = RequestFactory()
+        self.user = factories.User()
+
+    def test_celery_success(self):
+        silo = factories.Silo(owner=self.user, public=False)
+
+        read_type = factories.ReadType(read_type="CSV")
+        upload_file = open('test.csv', 'rb')
+        read = factories.Read(owner=self.user, type=read_type, file_data=SimpleUploadedFile(upload_file.name, upload_file.read()))
+
+        process_done = process_silo(silo.id, read.id)
+
+        self.assertTrue(process_done)
+
+    @patch('silo.tasks.process_silo_error')
+    def test_celery_failure(self, process_silo_error):
+        silo = factories.Silo(owner=self.user, public=False)
+
+        read_type = factories.ReadType(read_type="CSV")
+        upload_file = open('test_broken.csv', 'rb')
+        read = factories.Read(owner=self.user, type=read_type, file_data=SimpleUploadedFile(upload_file.name, upload_file.read()))
+
+        process_silo.apply_async(
+            (silo.id, read.id),
+            link_error=process_silo_error()
+        )
+        process_silo_error.assert_called()
+
+    @patch('silo.tasks.process_silo.retry')
+    def test_wrong_silo(self, process_silo_retry):
+        process_silo_retry.side_effect = Retry()
+        silo = factories.Silo(owner=self.user, public=False)
+
+        with self.assertRaises(ObjectDoesNotExist):
+            process_silo(silo.id, -1)
 
 
 class ReadTest(TestCase):
@@ -111,7 +156,7 @@ class SiloTest(TestCase):
             read_name="TEST CSV IMPORT", description="unittest", create_date='2015-06-24 20:33:47',
             file_data=SimpleUploadedFile(upload_file.name, upload_file.read())
         )
-        params =  {
+        params = {
             "read_id": read.pk,
             "new_silo": "Test CSV Import",
         }

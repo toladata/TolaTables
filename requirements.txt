@@ -34,8 +34,6 @@ selenium==2.48.0
 simplejson==3.9.0
 six==1.10.0
 uritemplate==3.0.0
-celery==4.0.2
-django-celery-results==1.0.1
 
 asn1crypto==0.23.0
 bcrypt==3.1.4
@@ -48,3 +46,6 @@ ipaddress==1.0.18
 paramiko==2.4.0
 pycparser==2.18
 pynacl==1.2.0
+celery==4.0.2
+django-celery-results==1.0.1
+redis==2.10

@@ -282,6 +282,7 @@ def addColsToSilo(silo, columns, col_types = {}):
     """
     # make sure there are no duplicate columns
     columns_set = set(columns)
+
     if len(columns_set) != len(columns):
         raise ValueError('Duplicate columns are not allowed')
     silo_cols = json.loads(silo.columns)
