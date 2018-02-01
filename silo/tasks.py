@@ -1,12 +1,10 @@
-# Create your tasks here
 from __future__ import absolute_import, unicode_literals
 from celery import shared_task
 from celery.result import AsyncResult
 from tola.celery import app
 
-from random import randint
 from silo.custom_csv_dict_reader import CustomDictReader
-from tola.util import importJSON, saveDataToSilo
+from tola.util import saveDataToSilo
 from .models import Silo, Read
 
 import logging

@@ -45,6 +45,7 @@ from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, \
     DeletedSilos, FormulaColumn
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, \
     NewColumnForm, EditColumnForm, OnaLoginForm
+from .tasks import process_silo, process_silo_error
 
 logger = logging.getLogger("silo")
 client = MongoClient(settings.MONGO_URI)
@@ -811,7 +812,6 @@ def oneDrive(request):
     return render(request, 'silo/onedrive.html', {
     })
 
-from .tasks import process_silo, process_silo_error
 
 @login_required
 def uploadFile(request, id):
