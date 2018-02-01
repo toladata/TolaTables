@@ -11,5 +11,5 @@ celery_cmd="celery -A tola worker -l info"
 $celery_cmd &
 
 echo "Running the server"
-nginx
+service nginx restart
 gunicorn -b 0.0.0.0:8888 tola.wsgi
