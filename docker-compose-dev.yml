@@ -77,4 +77,4 @@ services:
       - GOOGLE_API_KEY=AIzaSyCnXYlzg5GBjOOk-_Mh8s36aF7OqIalyqE
       - GOOGLE_OAUTH_CLIENT_ID=1090285679254-sle9dnkig5lv0gvnvgo5bd7js2i2u9cl.apps.googleusercontent.com
       - GOOGLE_OAUTH_CLIENT_SECRET=bZ6NaORHhmAfeZ_s-s9WuLVh
-      - CELERY_BROKER_URL=redis://redis@localhost:6379/0
+      - CELERY_BROKER_URL=redis://redis@redis:6379/0
