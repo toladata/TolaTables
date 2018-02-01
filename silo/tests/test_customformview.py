@@ -1,7 +1,6 @@
 import json
 
 from django.test import TestCase
-from django.contrib.auth.models import AnonymousUser
 
 from rest_framework.test import APIRequestFactory
 
@@ -104,6 +103,8 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
 
         # For the tearDown
         self.silo_id = response.data['id']
+        silo = Silo.objects.get(pk=self.silo_id)
+        self.assertEqual(silo.data_count, 0)
 
     def test_create_customform_missing_data_superuser(self):
         self.tola_user.user.is_staff = True
@@ -183,9 +184,10 @@ class CustomFormUpdateViewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        customform = Silo.objects.get(pk=response.data['id'])
-        self.assertEquals(customform.name, 'customform_test_health_and_survival'
-                                           '_for_syrians_in_affected_regions')
+        silo = Silo.objects.get(pk=response.data['id'])
+        self.assertEquals(silo.name, 'customform_test_health_and_survival'
+                                     '_for_syrians_in_affected_regions')
+        self.assertEqual(silo.data_count, 0)
 
     def test_update_customform_missing_data_superuser(self):
         self.tola_user.user.is_staff = True
@@ -261,13 +263,13 @@ class CustomFormSaveDataViewTest(TestCase):
         for lvs in lvss:
             lvs.delete()
 
-    def test_save_data_customform_no_lvs_superuser(self):
+    def test_save_data_customform_no_silo_superuser(self):
         self.tola_user.user.is_staff = True
         self.tola_user.user.is_superuser = True
         self.tola_user.user.save()
 
         data = {
-            'silo_id': self.silo.id,
+            'silo_id': 123456,
             'data': {
                 'name': 'John Lennon',
                 'age': 40,
@@ -275,8 +277,8 @@ class CustomFormSaveDataViewTest(TestCase):
             }
         }
 
-        request = self.factory.post('api/customform/%s/save_data' %
-                                    self.silo.id, data=json.dumps(data),
+        request = self.factory.post('api/customform/save_data',
+                                    data=json.dumps(data),
                                     content_type='application/json')
         request.user = self.tola_user.user
         view = CustomFormViewSet.as_view({'post': 'save_data'})
@@ -290,8 +292,6 @@ class CustomFormSaveDataViewTest(TestCase):
         self.tola_user.user.is_superuser = True
         self.tola_user.user.save()
 
-        factories.LabelValueStore(silo_id=self.silo.id, read_id=self.read.id)
-
         data = {
             'silo_id': self.silo.id,
             'data': {
@@ -301,8 +301,8 @@ class CustomFormSaveDataViewTest(TestCase):
             }
         }
 
-        request = self.factory.post('api/customform/%s/save_data' %
-                                    self.silo.id, data=json.dumps(data),
+        request = self.factory.post('api/customform/save_data',
+                                    data=json.dumps(data),
                                     content_type='application/json')
         request.user = self.tola_user.user
         view = CustomFormViewSet.as_view({'post': 'save_data'})
@@ -310,13 +310,12 @@ class CustomFormSaveDataViewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['detail'], 'It was successfully saved.')
+        self.assertEqual(self.silo.data_count, 1)
 
     def test_save_data_customform_missing_data_superuser(self):
         self.tola_user.user.is_staff = True
         self.tola_user.user.is_superuser = True
         self.tola_user.user.save()
-
-        factories.LabelValueStore(silo_id=self.silo.id, read_id=self.read.id)
 
         data = {
             'data': {
@@ -326,8 +325,8 @@ class CustomFormSaveDataViewTest(TestCase):
             }
         }
 
-        request = self.factory.post('api/customform/%s/save_data' %
-                                    self.silo.id, data=json.dumps(data),
+        request = self.factory.post('api/customform/save_data',
+                                    data=json.dumps(data),
                                     content_type='application/json')
         request.user = self.tola_user.user
         view = CustomFormViewSet.as_view({'post': 'save_data'})
@@ -337,8 +336,6 @@ class CustomFormSaveDataViewTest(TestCase):
         self.assertEqual(response.data['detail'], 'Missing data.')
 
     def test_save_data_customform_normaluser(self):
-        factories.LabelValueStore(silo_id=self.silo.id, read_id=self.read.id)
-
         data = {
             'silo_id': self.silo.id,
             'data': {
@@ -348,8 +345,8 @@ class CustomFormSaveDataViewTest(TestCase):
             }
         }
 
-        request = self.factory.post('api/customform/%s/save_data' %
-                                    self.silo.id, data=json.dumps(data),
+        request = self.factory.post('api/customform/save_data',
+                                    data=json.dumps(data),
                                     content_type='application/json')
         request.user = self.tola_user.user
         view = CustomFormViewSet.as_view({'post': 'save_data'})
@@ -357,14 +354,14 @@ class CustomFormSaveDataViewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['detail'], 'It was successfully saved.')
+        self.assertEqual(self.silo.data_count, 1)
 
     def test_save_data_customform_no_data_normaluser(self):
-        factories.LabelValueStore(silo_id=self.silo.id, read_id=self.read.id)
-
         data = {}
 
-        request = self.factory.post('api/customform/%s/save_data' %
-                                    self.silo.id, data=data)
+        request = self.factory.post('api/customform/save_data',
+                                    data=json.dumps(data),
+                                    content_type='application/json')
         request.user = self.tola_user.user
         view = CustomFormViewSet.as_view({'post': 'save_data'})
         response = view(request)
