@@ -9,5 +9,8 @@ python manage.py shell -c "from django.contrib.auth.models import User; User.obj
 echo "Loading config fixtures"
 python manage.py loaddata fixtures/*.json
 
+echo "Starting celery worker"
+sh start-celery.sh
+
 echo "Running the server"
 PYTHONUNBUFFERED=1 python manage.py runserver 0.0.0.0:8000
