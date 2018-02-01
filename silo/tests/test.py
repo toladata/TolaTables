@@ -35,32 +35,23 @@ class CeleryTest(TestCase):
         self.user = factories.User()
 
     def test_celery_success(self):
-        silo = Silo.objects.create(name="Test Silo", owner=self.user,
-                                   public=False, create_date=timezone.now())
+        silo = factories.Silo(owner=self.user, public=False)
 
-        read_type = ReadType.objects.create(read_type="CSV")
+        read_type = factories.ReadType(read_type="CSV")
         upload_file = open('test.csv', 'rb')
-        read = Read.objects.create(owner=self.user, type=read_type,
-                                   read_name="TEST CSV IMPORT", description="unittest",
-                                   create_date='2015-06-24 20:33:47',
-                                   file_data=SimpleUploadedFile(upload_file.name, upload_file.read())
-                                   )
+        read = factories.Read(owner=self.user, type=read_type, file_data=SimpleUploadedFile(upload_file.name, upload_file.read()))
+
         process_done = process_silo(silo.id, read.id)
 
         self.assertTrue(process_done)
 
     @patch('silo.tasks.process_silo_error')
     def test_celery_failure(self, process_silo_error):
-        silo = Silo.objects.create(name="Test Broken Silo", owner=self.user,
-                                   public=False, create_date=timezone.now())
+        silo = factories.Silo(owner=self.user, public=False)
 
-        read_type = ReadType.objects.create(read_type="CSV")
+        read_type = factories.ReadType(read_type="CSV")
         upload_file = open('test_broken.csv', 'rb')
-        read = Read.objects.create(owner=self.user, type=read_type,
-                                   read_name="TEST BROKEN CSV IMPORT", description="unittest",
-                                   create_date='2018-01-01 00:00:01',
-                                   file_data=SimpleUploadedFile(upload_file.name, upload_file.read())
-                                   )
+        read = factories.Read(owner=self.user, type=read_type, file_data=SimpleUploadedFile(upload_file.name, upload_file.read()))
 
         process_silo.apply_async(
             (silo.id, read.id),
@@ -71,8 +62,7 @@ class CeleryTest(TestCase):
     @patch('silo.tasks.process_silo.retry')
     def test_wrong_silo(self, process_silo_retry):
         process_silo_retry.side_effect = Retry()
-        silo = Silo.objects.create(name="Test Broken Silo", owner=self.user,
-                                   public=False, create_date=timezone.now())
+        silo = factories.Silo(owner=self.user, public=False)
 
         with self.assertRaises(ObjectDoesNotExist):
             process_silo(silo.id, -1)
