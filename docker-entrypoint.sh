@@ -6,7 +6,9 @@ python manage.py collectstatic -v 0 --noinput
 echo "Migrate"
 python manage.py migrate
 
-sh start-celery.sh
+echo "Starting celery worker"
+celery_cmd="celery -A tola worker -l info"
+$celery_cmd &
 
 echo "Running the server"
 nginx
