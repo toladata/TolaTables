@@ -1,15 +1,10 @@
 from django.core.urlresolvers import reverse_lazy
-from django.forms import ModelForm
 from silo.models import Silo, Read
-#import floppyforms as forms
 from django import forms
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Div, Submit, Reset, HTML, Button, Row, Field, Hidden
-from crispy_forms.bootstrap import FormActions
-from django.forms.formsets import formset_factory
+from crispy_forms.layout import Layout, Submit, Reset, Field, Hidden
 from collections import OrderedDict
 
-from tola.util import getColToTypeDict
 from silo.models import Silo
 
 
