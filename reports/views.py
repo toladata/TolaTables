@@ -148,8 +148,11 @@ def tableDashboard(request,id=0):
 
     else:
         get_fields = None
-
-    columns = ast.literal_eval(get_table.columns)
+        
+    try:
+        columns = ast.literal_eval(get_table.columns)
+    except ValueError:
+        columns = json.loads(get_table.columns)
 
     return render(request, "reports/table_dashboard.html",
                   {'data': data, 'get_table': get_table, 'countries': countries, 'get_fields': get_fields,
