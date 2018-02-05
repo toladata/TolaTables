@@ -5,7 +5,8 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Reset, Field, Hidden
 from collections import OrderedDict
 
-from silo.models import Silo
+from silo.models import Silo, WorkflowLevel1
+from tola.activity_proxy import get_by_url, get_workflowteams
 
 
 class OnaLoginForm(forms.Form):
@@ -25,8 +26,24 @@ class OnaLoginForm(forms.Form):
 
 
 class SiloForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, user=None, *args, **kwargs):
         super(SiloForm, self).__init__(*args, **kwargs)
+        # Filter programs based on the program teams from Activity
+        if user:
+            params = {
+                'workflow_user__tola_user_uuid': user.tola_user.tola_user_uuid
+            }
+            wfteams = get_workflowteams(**params)
+            wfl1_uuids = []
+            for wfteam in wfteams:
+                if wfteam['workflowlevel1']:
+                    wfl1_url = wfteam['workflowlevel1']
+                    wfl1 = get_by_url(wfl1_url)
+                    if wfl1:
+                        wfl1_uuids.append(wfl1['level1_uuid'])
+
+            self.fields['workflowlevel1'].queryset = WorkflowLevel1.objects.\
+                filter(level1_uuid__in=wfl1_uuids)
 
         # If you pass FormHelper constructor a form instance
         # It builds a default layout with all its fields

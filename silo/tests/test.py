@@ -16,6 +16,8 @@ from silo.views import (addColumnFilter, editColumnOrder, newFormulaColumn,
 from tola.util import (addColsToSilo, hideSiloColumns, getColToTypeDict,
                        getSiloColumnNames)
 
+from mock import patch
+
 import factories
 
 
@@ -74,7 +76,9 @@ class SiloTest(TestCase):
         self.factory = RequestFactory()
         self.tola_user = factories.TolaUser()
 
-    def test_new_silo(self):
+    @patch('silo.forms.get_workflowteams')
+    def test_new_silo(self, mock_get_workflowteams):
+        mock_get_workflowteams.return_value = []
         # Create a New Silo
         silo = factories.Silo(owner=self.tola_user.user)
         self.assertEqual(silo.pk, 1)
@@ -100,7 +104,9 @@ class SiloTest(TestCase):
         else:
             self.assertEqual(response.status_code, 200)
 
-    def test_new_silodata(self):
+    @patch('silo.forms.get_workflowteams')
+    def test_new_silodata(self, mock_get_workflowteams):
+        mock_get_workflowteams.return_value = []
         read_type = ReadType.objects.get(read_type="CSV")
         upload_file = open('test.csv', 'rb')
         read = factories.Read(
