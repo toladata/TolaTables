@@ -7,11 +7,12 @@ from rest_framework.test import APIRequestFactory
 
 from silo.tests import MongoTestCase
 from silo.api import CustomFormViewSet
-from silo.models import LabelValueStore, Read, Silo
+from silo.models import LabelValueStore, Read, Silo, Tag
 
 from mock import Mock, patch
 
 import json
+import random
 import factories
 from silo import views
 from tola import util
@@ -240,6 +241,78 @@ class SiloViewsTest(TestCase):
         match = '<div id="profileDropDown" ' \
                 'class="dropdown-menu dropdown-menu-right">'
         self.assertEqual(template_content.count(match), 1)
+
+    @patch('silo.forms.get_workflowteams')
+    @patch('silo.forms.get_by_url')
+    def test_get_edit_silo(self, mock_get_by_url, mock_get_workflowteams):
+        silo = factories.Silo(owner=self.tola_user.user)
+        uuid = random.randint(1, 9999)
+        wfl1_1 = factories.WorkflowLevel1(level1_uuid=uuid,
+                                          name='Workflowlevel1 1')
+        uuid = random.randint(1, 9999)
+        wfl1_2 = factories.WorkflowLevel1(level1_uuid=uuid,
+                                          name='Workflowlevel1 2')
+        wfteams = [
+            {
+                'workflowlevel1': 'test.de/workflowlevel1/{}/'.format(wfl1_1.id)
+            }
+        ]
+        wfl1_data = {
+            'level1_uuid': wfl1_1.level1_uuid
+        }
+        mock_get_workflowteams.return_value = wfteams
+        mock_get_by_url.return_value = wfl1_data
+        request = self.factory.get('/silo_edit/{}/'.format(silo.id),
+                                   follow=True)
+        request.user = self.tola_user.user
+        response = views.editSilo(request, silo.id)
+        template_content = response.content
+
+        match = 'selected>{}</option>'.format(self.tola_user.user.username)
+        self.assertEqual(template_content.count(match), 1)
+
+        # check if only the allowed programs are shown
+        self.assertEqual(template_content.count(wfl1_1.name), 1)
+        self.assertEqual(template_content.count(wfl1_2.name), 0)
+
+    @patch('silo.forms.get_workflowteams')
+    def test_get_edit_silo_no_teams(self, mock_get_workflowteams):
+        silo = factories.Silo(owner=self.tola_user.user)
+        wfteams = []
+        mock_get_workflowteams.return_value = wfteams
+        request = self.factory.get('/silo_edit/{}/'.format(silo.id),
+                                   follow=True)
+        request.user = self.tola_user.user
+        response = views.editSilo(request, silo.id)
+        template_content = response.content
+
+        match = 'selected>{}</option>'.format(self.tola_user.user.username)
+        self.assertEqual(template_content.count(match), 1)
+
+    def test_post_edit_silo(self):
+        silo = factories.Silo(owner=self.tola_user.user)
+        olg_tag = factories.Tag(name='Old Tag', owner=self.tola_user.user)
+
+        data = {
+            'name': 'The new silo name',
+            'description': '',
+            'owner': self.tola_user.user.pk,
+            'tags': [olg_tag.id, 'New Tag'],
+        }
+
+        request = self.factory.post('/silo_edit/{}/'.format(silo.id), data)
+        request.user = self.tola_user.user
+        response = views.editSilo(request, silo.id)
+        self.assertEqual(response.status_code, 302)
+
+        silo = Silo.objects.get(pk=silo.id)
+        self.assertEqual(silo.name, 'The new silo name')
+
+        # check if the tags were selected and the new one was created
+        new_tag = Tag.objects.get(name='New Tag')
+        silo_tags = silo.tags.all()
+        self.assertIn(olg_tag, silo_tags)
+        self.assertIn(new_tag, silo_tags)
 
 
 class SaveDataToSiloViewTest(TestCase):

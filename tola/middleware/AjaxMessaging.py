@@ -2,7 +2,15 @@ import json
 
 from django.contrib import messages
 
+
 class AjaxMessaging(object):
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        return self.get_response(request)
+
     def process_response(self, request, response):
         if request.is_ajax():
             print("ajax done: %s" % response['Content-Type'])
@@ -22,12 +30,10 @@ class AjaxMessaging(object):
                         "extra_tags": message.tags,
                     })
 
-                #workaround for list type data
+                # workaround for list type data
                 if type(content) == list:
                     content = {"data" : content}
                 content['django_messages'] = django_messages
 
                 response.content = json.dumps(content)
-        #print("Ajax middleware returning response")
-        #print(response)
         return response
