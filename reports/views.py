@@ -148,7 +148,7 @@ def tableDashboard(request,id=0):
 
     else:
         get_fields = None
-        
+
     try:
         columns = ast.literal_eval(get_table.columns)
     except ValueError:
