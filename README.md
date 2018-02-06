@@ -166,3 +166,10 @@ descending
 ## Testing
 
 Do not run unit tests on a production database. Django is not set up to make a test MongoDB so data is added and removed from the MongoDB in settings. Any data with silo_id 1 will be damaged or deleted.
+
+#### Create PRs and Issues
+The following templates were created to easy the way to create tickets and help the developer.
+
+- Bugs and Issues [[+]](https://github.com/toladata/TolaTables/issues/new)
+- New features [[+]](https://github.com/toladata/TolaTables/issues/new?template=new_features.md)
+- Pull requests [[+]](https://github.com/toladata/TolaTables/compare/dev-v2?expand=1)
