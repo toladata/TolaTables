@@ -27,6 +27,7 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class TolaUserSerializer(serializers.HyperlinkedModelSerializer):
+    id = serializers.ReadOnlyField()
 
     class Meta:
         model = TolaUser

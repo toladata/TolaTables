@@ -48,14 +48,14 @@ class TolaUserViewSet(viewsets.ModelViewSet):
                                         context={'request': request})
         return Response(serializer.data)
 
-    filter_fields = ('organization__id',)
+    filter_fields = ('organization__id', 'tola_user_uuid')
     filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
     queryset = TolaUser.objects.all()
     serializer_class = TolaUserSerializer
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
-    filter_fields = ('name',)
+    filter_fields = ('name', 'organization_uuid')
     filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
@@ -75,14 +75,14 @@ class CountryViewSet(viewsets.ModelViewSet):
 
 
 class WorkflowLevel1ViewSet(viewsets.ModelViewSet):
-    filter_fields = ('name',)
+    filter_fields = ('name', 'level1_uuid')
     filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
     queryset = WorkflowLevel1.objects.all()
     serializer_class = WorkflowLevel1Serializer
 
 
 class WorkflowLevel2ViewSet(viewsets.ModelViewSet):
-    filter_fields = ('name','workflowlevel1__name')
+    filter_fields = ('name', 'workflowlevel1__name', 'level2_uuid')
     filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
     queryset = WorkflowLevel2.objects.all()
     serializer_class = WorkflowLevel2Serializer
