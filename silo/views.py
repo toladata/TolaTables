@@ -12,9 +12,6 @@ import tempfile
 
 from pymongo import MongoClient
 
-from bson import CodecOptions, SON
-from bson.json_util import dumps
-
 from django.conf import settings
 from django.core import files
 from django.core.exceptions import ImproperlyConfigured
@@ -91,7 +88,8 @@ class IndexView(View):
             if (request.COOKIES.get('auth_token', None) is None and
                     request.user.is_authenticated):
                 response.set_cookie('auth_token', request.user.auth_token)
-            return response
+            # if logged in redirect user to there list of tables
+            return redirect('/silos')
         else:
             # If users are accessing Track from Activity but they're not
             # logged in, redirect them to the login process
@@ -458,28 +456,28 @@ def editSilo(request, id):
         tags = request.POST.getlist('tags')
         post_data = request.POST.copy()
 
-        #empty the list but do not remove the dictionary element
-        if tags: del post_data.getlist('tags')[:]
+        if tags:
+            post_data.pop('tags')
 
         for i, t in enumerate(tags):
             if t.isdigit():
-                post_data.getlist('tags').append(t)
+                post_data.appendlist('tags', t)
             else:
-                tag, created = Tag.objects.get_or_create(name=t, defaults={'owner': request.user})
+                tag, created = Tag.objects.get_or_create(
+                    name=t, defaults={'owner': request.user})
                 if created:
-                    #print("creating tag: %s " % tag)
                     tags[i] = tag.id
-                #post_data is a QueryDict in which each element is a list
-                post_data.getlist('tags').append(tag.id)
 
-        form = SiloForm(post_data, instance=edited_silo)
+                post_data.appendlist('tags', tag.id)
+
+        form = SiloForm(data=post_data, instance=edited_silo)
         if form.is_valid():
-            updated = form.save()
+            form.save()
             return HttpResponseRedirect('/silos/')
         else:
             messages.error(request, 'Invalid Form', fail_silently=False)
     else:
-        form = SiloForm(instance=edited_silo)
+        form = SiloForm(user=request.user, instance=edited_silo)
     return render(request, 'silo/edit.html', {
         'form': form, 'silo_id': id, "silo": edited_silo,
     })
@@ -491,8 +489,8 @@ def saveAndImportRead(request):
     Saves ONA read if not already in the db and then imports its data
     """
     if request.method != 'POST':
-        return HttpResponseBadRequest("HTTP method, %s, is not supported" % request.method)
-
+        return HttpResponseBadRequest("HTTP method, {}, is not supported".
+                                      format(request.method))
 
     read_type = ReadType.objects.get(read_type="ONA")
     name = request.POST.get('read_name', None)
@@ -500,39 +498,50 @@ def saveAndImportRead(request):
     silo_name = request.POST.get('silo_name', None)
     owner = request.user
     description = request.POST.get('description', None)
-    silo_id = None
-    read = None
-    silo = None
-    provider = "ONA"
+    provider = 'ONA'
 
     # Fetch the data from ONA
     ona_token = ThirdPartyTokens.objects.get(user=request.user, name=provider)
-    response = requests.get(url, headers={'Authorization': 'Token %s' % ona_token.token})
+    header = {
+        'Authorization': 'Token {}'.format(ona_token.token)
+    }
+    response = requests.get(url, headers=header)
     data = json.loads(response.content)
 
     if len(data) == 0:
-        return HttpResponse("There is not data for the selected form, %s" % name)
+        return HttpResponse('There is not data for the selected form, '
+                            '{}'.format(name))
 
     try:
-        silo_id = int(request.POST.get("silo_id", None))
-        if silo_id == 0: silo_id = None
+        silo_id = int(request.POST.get('silo_id', None))
+        if silo_id == 0:
+            silo_id = None
     except Exception as e:
-         return HttpResponse("Silo ID can only be an integer")
+        return HttpResponse('Silo ID can only be an integer')
 
     try:
-        read, read_created = Read.objects.get_or_create(read_name=name, owner=owner,
-            defaults={'read_url': url, 'type': read_type, 'description': description})
-        if read_created: read.save()
+        read, read_created = Read.objects.get_or_create(
+            read_name=name,
+            owner=owner,
+            defaults={
+                'read_url': url,
+                'type': read_type,
+                'description': description
+            }
+        )
+        if read_created:
+            read.save()
     except Exception as e:
-        return HttpResponse("Invalid name and/or URL")
+        return HttpResponse('Invalid name and/or URL')
 
-    existing_silo_cols = []
-    new_cols = []
-    show_mapping = False
-
-    silo, silo_created = Silo.objects.get_or_create(id=silo_id, defaults={"name": silo_name,
-                                      "public": False,
-                                      "owner": owner})
+    silo, silo_created = Silo.objects.get_or_create(
+        id=silo_id,
+        defaults={
+            'name': silo_name,
+            'public': False,
+            'owner': owner
+        }
+    )
 
     if silo_created or read_created:
         silo.reads.add(read)
@@ -540,8 +549,9 @@ def saveAndImportRead(request):
         silo.reads.add(read)
 
     # import data into this silo
-    res = saveDataToSilo(silo, data, read, request.user)
-    return HttpResponse("View table data at <a href='/silo_detail/%s' target='_blank'>See your data</a>" % silo.pk)
+    saveDataToSilo(silo, data, read, request.user)
+    silo_detail_url = reverse_lazy('siloDetail', args=[silo.pk])
+    return HttpResponse(silo_detail_url)
 
 
 @login_required
@@ -562,39 +572,46 @@ def getOnaForms(request):
     if request.method == 'POST':
         form = OnaLoginForm(request.POST)
         if form.is_valid():
-            response = requests.get(url_user_token, auth=HTTPDigestAuth(request.POST['username'], request.POST['password']))
+            response = requests.get(url_user_token, auth=HTTPDigestAuth(
+                request.POST['username'], request.POST['password']))
             if response.status_code == 401:
                 messages.error(request, "Invalid username or password.")
             elif response.status_code == 200:
                 auth_success = True
                 token = json.loads(response.content)['api_token']
-                ona_token, created = ThirdPartyTokens.objects.get_or_create(user=request.user, name=provider, token=token)
-                if created: ona_token.save()
+                ona_token, created = ThirdPartyTokens.objects.get_or_create(
+                    user=request.user, name=provider, token=token)
+                if created:
+                    ona_token.save()
             else:
-                messages.error(request, "A %s error has occured: %s " % (response.status_code, response.text))
+                messages.error(request, "A {} error has occured: {} ".format(
+                    response.status_code, response.text))
     else:
         try:
             auth_success = True
-            ona_token = ThirdPartyTokens.objects.get(name=provider, user=request.user)
+            ona_token = ThirdPartyTokens.objects.get(name=provider,
+                                                     user=request.user)
         except Exception as e:
             auth_success = False
             form = OnaLoginForm()
 
     if ona_token and auth_success:
-        onaforms = requests.get(url_user_forms, headers={'Authorization': 'Token %s' % ona_token.token})
+        header = {
+                'Authorization': 'Token {}'.format(ona_token.token)
+        }
+        onaforms = requests.get(url_user_forms, headers=header)
         data = json.loads(onaforms.content)
-        # check for records (very slow) may need to cache somehow or request count from Ona API endpoint
+        # check for records (very slow) may need to cache somehow or
+        # request count from Ona API endpoint
         for x in data:
             data_count = 0
-            ona_data = requests.get(x['url'], headers={'Authorization': 'Token %s' % ona_token.token})
+            ona_data = requests.get(x['url'], headers=header)
             data_to_count = json.loads(ona_data.content)
             # check for existing read source
             try:
                 check_read = Read.objects.all().filter(read_url=x['url'])
                 if check_read:
                     x['silo'] = check_read
-                    print check_read
-                    print x['url']
             except Read.DoesNotExist:
                 x['silo'] = None
             # do count
@@ -603,7 +620,6 @@ def getOnaForms(request):
             x['count'] = data_count
         if data:
             has_data = True
-
 
     silos = Silo.objects.filter(owner=request.user)
     return render(request, 'silo/getonaforms.html', {
@@ -822,15 +838,10 @@ def uploadFile(request, id):
         form = UploadForm(request.POST)
         if form.is_valid():
             read_obj = Read.objects.get(pk=id)
-            today = datetime.date.today()
-            today.strftime('%Y-%m-%d')
-            today = str(today)
-
-            silo = None
             user = User.objects.get(username__exact=request.user)
-
             if request.POST.get("new_silo", None):
-                silo = Silo(name=request.POST['new_silo'], owner=user, public=False, create_date=today)
+                silo = Silo(name=request.POST['new_silo'], owner=user,
+                            public=False, create_date=timezone.now())
                 silo.save()
             else:
                 silo = Silo.objects.get(id = request.POST["silo_id"])
@@ -838,15 +849,11 @@ def uploadFile(request, id):
             silo.reads.add(read_obj)
             silo_id = silo.id
 
-            #create object from JSON String
-            #data = csv.reader(read_obj.file_data)
-            #reader = csv.DictReader(read_obj.file_data)
             reader = CustomDictReader(read_obj.file_data)
-            res = saveDataToSilo(silo, reader, read_obj)
+            saveDataToSilo(silo, reader, read_obj)
             return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
         else:
             messages.error(request, "There was a problem with reading the contents of your file" + form.errors)
-            #print form.errors
 
     user = User.objects.get(username__exact=request.user)
     # get all of the silo info to pass to the form
@@ -1335,7 +1342,7 @@ def doMerge(request):
         if res['status'] == "danger":
             new_silo.delete()
             return JsonResponse(res)
-    except Exception as e:
+    except Exception:
         pass
 
     mapping = MergedSilosFieldMapping(from_silo=left_table, to_silo=right_table, merged_silo=new_silo, merge_type=mergeType, mapping=data)
@@ -1433,27 +1440,26 @@ def valueDelete(request,id):
 
 
 def export_silo(request, id):
-    # To preserve fields order when reading BSON from MONGO
-    opts = CodecOptions(document_class=SON)
-    store = db.label_value_store.with_options(codec_options=opts)
-
     silo_name = Silo.objects.get(id=id).name
 
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="%s.csv"' % silo_name
     writer = csv.writer(response)
 
-    #get the query and the columns to export
-    query = json.loads(request.GET.get('query',"{}"))
-    cols = json.loads(request.GET.get('shown_cols',json.dumps(getSiloColumnNames(id))))
+    # get the query and the columns to export
+    query = json.loads(request.GET.get('query', "{}"))
+    cols = json.loads(request.GET.get('shown_cols', json.dumps(
+        getSiloColumnNames(id))))
 
-    # Loads the bson objects from mongo
-    query["silo_id"] = int(id)
-    bsondata = store.find(query)
-    # Now convert bson to json string using OrderedDict to main fields order
-    json_string = dumps(bsondata)
-    # Now decode the json string into python object
-    silo_data = json.loads(json_string)
+    # Loads the data from mongo
+    data = LabelValueStore.objects(silo_id=int(id), **query).exclude(
+        'create_date', 'edit_date', 'silo_id', 'read_id')
+
+    # Sort the data and convert it into JSON
+    sort = str(request.GET.get('sort', ''))
+    data = data.order_by(sort)
+    silo_data = json.loads(data.to_json())
+
     data = []
     num_cols = len(cols)
     if silo_data:
@@ -1463,7 +1469,8 @@ def export_silo(request, id):
         writer.writerow(cols)
 
         # Populate a 2x2 list structure that corresponds to the number of rows and cols in silo_data
-        for i in xrange(num_rows): data += [[0]*num_cols]
+        for i in xrange(num_rows):
+            data += [[0]*num_cols]
 
         for r, row in enumerate(silo_data):
             for col in cols:
@@ -1476,8 +1483,8 @@ def export_silo(request, id):
                         try:
                             val = smart_text(val['$oid'])
                         except KeyError as e:
-                            val  = val.popitem()
-                #val = val.decode("latin-1").encode("utf8")
+                            val = val.popitem()
+
                 val = smart_text(val).decode("latin-1").encode("utf8")
                 data[r][cols.index(col)] = val
             writer.writerow(data[r])

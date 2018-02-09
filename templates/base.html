@@ -231,7 +231,7 @@
         <script type="text/javascript">
 
             // The Client ID obtained from the Google Developers Console.
-            var clientId = "{{ GOOGLE_API_CLIENT_ID }}"
+            var clientId = "{{ GOOGLE_OAUTH_CLIENT_ID }}"
             // developerKey is the same as the Browser API key, at least, as of writing this code.
             var developerKey = "{{ GOOGLE_API_KEY }}"
             // The list of scopes to request access to is available at: https://developers.google.com/picker/docs/#otherviews
@@ -265,7 +265,7 @@
             function onAuthApiLoad(siloId) {
                 silo_id = siloId;
                 window.gapi.auth.authorize( {
-                    'client_id': '{{ GOOGLE_API_CLIENT_ID }}',
+                    'client_id': '{{ GOOGLE_OAUTH_CLIENT_ID }}',
                     'scope': scope,
                     'immediate': false
                 },
@@ -316,7 +316,7 @@
                     if (actionType == "import") {
                         //$(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + spreadsheet_id + "&name=" + doc['name']);
 
-                        $.get('/get_sheets_from_google_spredsheet/', { "spreadsheet_id": spreadsheet_id } )
+                        $.get('/get_sheets_from_google_spreadsheet/', { "spreadsheet_id": spreadsheet_id } )
                             .done(function(data) {
                                 var sheets = data['sheets'];
                                 if (sheets == undefined) {

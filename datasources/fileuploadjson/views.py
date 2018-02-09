@@ -4,7 +4,7 @@ import datetime
 
 
 from django.http import HttpResponseRedirect
-
+from django.utils import timezone
 from django.shortcuts import render
 from tola.util import saveDataToSilo
 from django.core.urlresolvers import reverse, reverse_lazy
@@ -49,15 +49,11 @@ def file(request, id):
         form = UploadForm(request.POST)
         if form.is_valid():
             read_obj = Read.objects.get(pk=id)
-            today = datetime.date.today()
-            today.strftime('%Y-%m-%d')
-            today = str(today)
-
-            silo = None
             user = User.objects.get(username__exact=request.user)
 
             if request.POST.get("new_silo", None):
-                silo = Silo(name=request.POST['new_silo'], owner=user, public=False, create_date=today)
+                silo = Silo(name=request.POST['new_silo'], owner=user, public=False,
+                            create_date=timezone.now())
                 silo.save()
             else:
                 silo = Silo.objects.get(id = request.POST["silo_id"])

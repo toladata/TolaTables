@@ -84,22 +84,28 @@
                             </a>
                         {% endif %}
                     </li>
-                    <!---
-                     <li class="nav-item">
-                        <a class="navbar" href="{% url 'social:begin' 'tola' %}">
-                            <tola-svg-login _ngcontent-c2="" _nghost-c26="">
-                                <img src="/static/img/user1.svg" height="30">
-                            </tola-svg-login>
-                            <span class="header__nav__link__label">Login</span>
-                        </a>
-                    </li>
-                    --->
+                    {% if user.is_authenticated  %}
+                       <li class="header__navbar__user-drop dropdown" role="button" onclick="profileDropDown()">
+                           <span id="user_init"
+                                 style="display:inline-block;height:70%;width:70%;line-height:42px;border-radius:50%;background-color:#0B607D;color:#fff;text-align:center;font-weight:600;font-size:1.0rem;">
+                               {% if user.first_name|length >= 1 and user.last_name|length >= 1 %}
+                                  {{ user.first_name.0|add:user.last_name.0 }}
+                               {% endif %}
+                           </span>
+                           <div id="profileDropDown" class="dropdown-menu dropdown-menu-right">
+                             <a class="dropdown-item" href="{% url 'logout' %}">Log out</a>
+                           </div>
+                       </li>
+                    {% endif %}
                  </ul>
             </div>
         </div>
         <div class="navbar-left main-sidebar">
         {% if user.is_authenticated  %}
             <ul class="nav navbar-nav left main-sidebar__menu">
+                <li class="dropdown main-sidebar__menu__level1">
+                    <a href="{% url 'listSilos' %}" > Your Tables</a>
+                </li>
                 <li class="dropdown main-sidebar__menu__level1">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">Import Data<b class="caret"></b></a>
                     <ul class="dropdown-menu main-sidebar__menu__submenu">
@@ -115,18 +121,7 @@
                     </ul>
                 </li>
                 <li class="dropdown main-sidebar__menu__level1">
-                    <a href="{% url 'listSilos' %}" > Your Tables</a>
-                </li>
-                <li class="dropdown main-sidebar__menu__level1">
                     <a href="{% url 'table_dashboard_list' %}" > Reports</a>
-                </li>
-                <li class="dropdown main-sidebar__menu__level1">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Help<b class="caret"></b></a>
-                    <ul class="dropdown-menu main-sidebar__menu__submenu">
-                        <li><a href="http://tola.work/documentation" target="blank">Documentation</a></li>
-                        <li><a href="http://tola.work/faq" target="blank">FAQ</a></li>
-                        <li><a href="http://tola.work/contact" target="blank">Contact</a></li>
-                    </ul>
                 </li>
             </ul>
         {% else %}
@@ -147,7 +142,7 @@
             <div class="page-content" id="content">
                 <!-- Page title  -->
                 <h2 class="page-title">{% block page_title %}{% endblock %}</h2>
-                <div class="card-content">
+                <div class="content">
                     <!-- Main body content -->
                     {% block content %} {% endblock %}
                 </div>
@@ -217,8 +212,8 @@
         <script>try{Typekit.load({ async: true });}catch(e){}</script>
 
         <script type="text/javascript">
-            {% if GOOGLE_API_CLIENT_ID %}
-            var clientId = "{{ GOOGLE_API_CLIENT_ID }}"
+            {% if GOOGLE_OAUTH_CLIENT_ID %}
+            var clientId = "{{ GOOGLE_OAUTH_CLIENT_ID }}"
             {% else %}
             var clientId = "445847194486-mah10ripofn1bl6q7pgi29ssvfhvq2uu.apps.googleusercontent.com"
             {% endif %}
@@ -257,7 +252,6 @@
                 gapi.load('picker', {'callback': onPickerApiLoad});
             }
 
-            // After Google's auth library is loaded, this function is called
             function onAuthApiLoad(siloId) {
                 silo_id = siloId;
                 window.gapi.auth.authorize( {
@@ -270,7 +264,6 @@
 
             function onPickerApiLoad() {
                 pickerApiLoaded = true;
-                //createPicker();
             }
 
             // After the authentication is complete, this method is called
@@ -291,7 +284,6 @@
                     view.setMode("DocsViewMode.LIST");
                     var picker = new google.picker.PickerBuilder()
                         .setOrigin(window.location.protocol + '//' + window.location.host)
-                        //.setOrigin('https://localhost:8000')
                         .enableFeature(google.picker.Feature.NAV_HIDDEN)
                         .addView(view)
                         .setOAuthToken(oauthToken)
@@ -304,15 +296,12 @@
 
             // A simple callback implementation.
             function pickerCallback(data) {
-                //console.log(JSON.stringify(data));
                 if (data[google.picker.Response.ACTION] == google.picker.Action.PICKED) {
                     doc = data[google.picker.Response.DOCUMENTS][0];
                     url = doc[google.picker.Document.URL];
                     spreadsheet_id = doc[google.picker.Document.ID];
                     if (actionType == "import") {
-                        //$(location).attr('href', '/import_gsheet/' + silo_id + "/?link=" + url + "&resource_id=" + spreadsheet_id + "&name=" + doc['name']);
-
-                        $.get('/get_sheets_from_google_spredsheet/', { "spreadsheet_id": spreadsheet_id } )
+                        $.get('/get_sheets_from_google_spreadsheet/', { "spreadsheet_id": spreadsheet_id } )
                             .done(function(data) {
                                 var sheets = data['sheets'];
                                 if (sheets == undefined) {
@@ -328,6 +317,13 @@
                                     }));
                                 });
                                 $("#select_gsheet_modal").modal("show");
+                            }).fail(function(data) {
+                                var error = data.responseJSON.msg;
+                                if (error == "PERMISSION_DENIED: The caller does not have permission") {
+                                    error += ". Check that the spreadsheet has not private access. " +
+                                             "Go to the spreadsheet's Sharing settings and make it public.";
+                                }
+                                alert(error);
                             });
                     } else {
                         url = url + "&resource_id=" + spreadsheet_id + "&query=" + query;
@@ -367,7 +363,7 @@
           m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
           })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
-          ga('create', 'UA-73736890-2', 'auto');
+          ga('create', '{{ GOOGLE_ANALYTICS }}', 'auto');
           ga('send', 'pageview');
 
         </script>

@@ -1,30 +1,24 @@
 # -*- coding: utf-8 -*-
+import os
+import json
 
-
-# This file demonstrates writing tests using the unittest module. These will pass
-# when you run "manage.py test".
-#
-# Replace this with more appropriate tests for your application.
-
-import datetime
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.core.urlresolvers import resolve, reverse
-from django.template.loader import render_to_string
-
-from django.contrib import messages
-
 from django.test import TestCase
 from django.test import Client
 from django.test import RequestFactory
 
-from silo.views import *
-from silo.models import *
-from silo.forms import *
+from commcare.tasks import parseCommCareData
+from commcare.util import getProjects
+from silo.forms import get_read_form
+from silo.models import DeletedSilos, LabelValueStore, ReadType, Read, Silo
+from silo.views import (addColumnFilter, editColumnOrder, newFormulaColumn,
+                        showRead, editSilo, uploadFile, siloDetail)
+from tola.util import (addColsToSilo, hideSiloColumns, getColToTypeDict,
+                       getSiloColumnNames)
 
-from commcare.util import *
-from commcare.views import *
-from commcare.tasks import *
+from mock import patch
 
+import factories
 
 
 class ReadTest(TestCase):
@@ -35,13 +29,13 @@ class ReadTest(TestCase):
     def setUp(self):
         self.client = Client()
         self.factory = RequestFactory()
-        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
+        self.tola_user = factories.TolaUser()
 
     def test_new_read_post(self):
         read_type = ReadType.objects.get(read_type="ONA")
         upload_file = open('test.csv', 'rb')
         params = {
-            'owner': self.user.pk,
+            'owner': self.tola_user.user.pk,
             'type': read_type.pk,
             'read_name': 'TEST READ SOURCE',
             'description': 'TEST DESCRIPTION for test read source',
@@ -51,7 +45,7 @@ class ReadTest(TestCase):
             'file_data': upload_file,
         }
         request = self.factory.post(self.new_read_url, data = params)
-        request.user = self.user
+        request.user = self.tola_user.user
 
         response = showRead(request, 1)
         if response.status_code == 302:
@@ -68,8 +62,9 @@ class ReadTest(TestCase):
         response = self.client.get(self.show_read_url + str(source.pk) + "/")
         self.assertEqual(response.status_code, 302)
 
-# TODO Adjust tests to work without mongodb as an instance is not available during testing.
 
+# TODO: Adjust tests to work without mongodb as an instance is not available
+# TODO: during testing.
 class SiloTest(TestCase):
     fixtures = ['fixtures/read_types.json']
     silo_edit_url = "/silo_edit/"
@@ -79,30 +74,29 @@ class SiloTest(TestCase):
     def setUp(self):
         self.client = Client()
         self.factory = RequestFactory()
-        self.user = User.objects.create_user(username="bob", email="bob@email.com", password="tola123")
-        self.today = datetime.today()
-        self.today.strftime('%Y-%m-%d')
-        self.today = str(self.today)
+        self.tola_user = factories.TolaUser()
 
-    def test_new_silo(self):
+    @patch('silo.forms.get_workflowteams')
+    def test_new_silo(self, mock_get_workflowteams):
+        mock_get_workflowteams.return_value = []
         # Create a New Silo
-        silo = Silo.objects.create(name="Test Silo", owner=self.user, public=False, create_date=self.today)
+        silo = factories.Silo(owner=self.tola_user.user)
         self.assertEqual(silo.pk, 1)
 
         # Fetch the silo that just got created above
         request = self.factory.get(self.silo_edit_url)
-        request.user = self.user
+        request.user = self.tola_user.user
         response = editSilo(request, silo.pk)
         self.assertEqual(response.status_code, 200)
 
         # update the silo that just got created above
         params = {
-            'owner': self.user.pk,
+            'owner': self.tola_user.user.pk,
             'name': 'Test Silo Updated',
             'description': 'Adding this description in a unit-test.',
         }
         request = self.factory.post(self.silo_edit_url, data = params)
-        request.user = self.user
+        request.user = self.tola_user.user
         request._dont_enforce_csrf_checks = True
         response = editSilo(request, silo.pk)
         if response.status_code == 302:
@@ -110,19 +104,22 @@ class SiloTest(TestCase):
         else:
             self.assertEqual(response.status_code, 200)
 
-    def test_new_silodata(self):
+    @patch('silo.forms.get_workflowteams')
+    def test_new_silodata(self, mock_get_workflowteams):
+        mock_get_workflowteams.return_value = []
         read_type = ReadType.objects.get(read_type="CSV")
         upload_file = open('test.csv', 'rb')
-        read = Read.objects.create(owner=self.user, type=read_type,
-            read_name="TEST CSV IMPORT", description="unittest", create_date='2015-06-24 20:33:47',
+        read = factories.Read(
+            owner=self.tola_user.user, type=read_type,
+            read_name="TEST CSV IMPORT",  description="unittest",
             file_data=SimpleUploadedFile(upload_file.name, upload_file.read())
         )
-        params =  {
+        params = {
             "read_id": read.pk,
             "new_silo": "Test CSV Import",
         }
-        request = self.factory.post(self.upload_csv_url, data = params)
-        request.user = self.user
+        request = self.factory.post(self.upload_csv_url, data=params)
+        request.user = self.tola_user.user
         request._dont_enforce_csrf_checks = True
         response = uploadFile(request, read.pk)
         self.assertEqual(response.status_code, 302)
@@ -130,73 +127,68 @@ class SiloTest(TestCase):
 
         silo = Silo.objects.get(name="Test CSV Import")
         request = self.factory.get(self.silo_detail_url)
-        request.user = self.user
+        request.user = self.tola_user.user
 
         response = siloDetail(request, silo.pk)
         self.assertEqual(response.status_code, 200)
 
-        #now delete that silo data cause this uses the custom database
-        LabelValueStore.objects.filter(First_Name="Bob", Last_Name="Smith", silo_id="1", read_id="1").delete()
-        LabelValueStore.objects.filter(First_Name="John", Last_Name="Doe", silo_id="1", read_id="1").delete()
-        LabelValueStore.objects.filter(First_Name="Joe", Last_Name="Schmoe", silo_id="1", read_id="1").delete()
-        LabelValueStore.objects.filter(First_Name="جان", Last_Name="ډو", silo_id="1", read_id="1").delete()
-
-    def test_root_url_resolves_to_home_page(self):
-        found = resolve('/')
-        self.assertEqual(found.func.view_class, IndexView)
+        # now delete that silo data cause this uses the custom database
+        LabelValueStore.objects.filter(First_Name="Bob", Last_Name="Smith",
+                                       silo_id="1", read_id="1").delete()
+        LabelValueStore.objects.filter(First_Name="John", Last_Name="Doe",
+                                       silo_id="1", read_id="1").delete()
+        LabelValueStore.objects.filter(First_Name="Joe", Last_Name="Schmoe",
+                                       silo_id="1", read_id="1").delete()
+        LabelValueStore.objects.filter(First_Name="جان", Last_Name="ډو",
+                                       silo_id="1", read_id="1").delete()
 
     def test_read_form(self):
         read_type = ReadType.objects.get(read_type="CSV")
         upload_file = open('test.csv', 'rb')
         params = {
-            'owner': self.user.pk,
+            'owner': self.tola_user.user.pk,
             'type': read_type.pk,
             'read_name': 'TEST READ SOURCE',
             'description': 'TEST DESCRIPTION for test read source',
             'read_url': 'https://www.lclark.edu',
-            'resource_id':'testsssszzz',
-            'create_date': '2015-06-24 20:33:47',
-            #'file_data': upload_file,
+            'resource_id': 'testsssszzz',
+            'create_date': '2015-06-24 20:33:47'
         }
-        file_dict = {'file_data': SimpleUploadedFile(upload_file.name, upload_file.read())}
-        #form = ReadForm(params, file_dict)
-        excluded_fields = ['create_date', 'edit_date',]
+        file_dict = {'file_data': SimpleUploadedFile(
+            upload_file.name, upload_file.read())}
+        excluded_fields = ['create_date', 'edit_date']
         form = get_read_form(excluded_fields)(params, file_dict)
         self.assertTrue(form.is_valid())
 
-    # def test_delete_data_from_silodata(self):
-    #     pass
-    #
-    # def test_update_data_in_silodata(self):
-    #     pass
-    #
-    # def test_read_data_from_silodata(self):
-    #     pass
-    #
-    # def test_delete_silodata(self):
-    #     pass
-    #
-    # def test_delete_silo(self):
-    #     pass
 
 class FormulaColumn(TestCase):
     new_formula_columh_url = "/new_formula_column/"
 
-
     def setUp(self):
         self.client = Client()
         self.factory = RequestFactory()
-        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
-        self.silo = self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
-        self.client.login(username='joe', password='tola123')
+        self.user = factories.User()
+        self.user.set_password('tola123')
+        self.user.save()
+        factories.TolaUser(user=self.user)
+        self.silo = factories.Silo(owner=self.user)
+        self.client.login(username=self.user.username, password='tola123')
+
     def test_getNewFormulaColumn(self):
         request = self.factory.get(self.new_formula_columh_url)
         request.user = self.user
         request._dont_enforce_csrf_checks = True
         response = newFormulaColumn(request, self.silo.pk)
         self.assertEqual(response.status_code, 200)
+
     def test_postNewFormulaColumn(self):
-        response = self.client.post('/new_formula_column/%s/' % str(self.silo.pk), data={'math_operation' : 'sum', 'column_name' : '', 'columns' : []})
+        data = {
+            'math_operation': 'sum',
+            'column_name': '',
+            'columns': []
+        }
+        response = self.client.post('/new_formula_column/{}/'.format(
+            self.silo.pk), data=data)
         self.assertEqual(response.status_code, 302)
 
         lvs = LabelValueStore()
@@ -220,31 +212,40 @@ class FormulaColumn(TestCase):
         lvs.silo_id = self.silo.pk
         lvs.save()
 
-
-        response = self.client.post('/new_formula_column/%s/' % str(self.silo.pk), data={'math_operation' : 'sum', 'column_name' : '', 'columns' : ['a', 'b', 'c']})
+        data = {
+            'math_operation': 'sum',
+            'column_name': '',
+            'columns': ['a', 'b', 'c']
+        }
+        response = self.client.post('/new_formula_column/{}/'.format(
+            self.silo.pk), data=data)
         self.assertEqual(response.status_code, 302)
         formula_column = self.silo.formulacolumns.get(column_name='sum')
-        self.assertEqual(formula_column.operation,'sum')
-        self.assertEqual(formula_column.mapping,'["a", "b", "c"]')
-        self.assertEqual(formula_column.column_name,'sum')
-        self.assertEqual(getSiloColumnNames(self.silo.pk),["sum"])
+        self.assertEqual(formula_column.operation, 'sum')
+        self.assertEqual(formula_column.mapping, '["a", "b", "c"]')
+        self.assertEqual(formula_column.column_name, 'sum')
+        self.assertEqual(getSiloColumnNames(self.silo.pk), ["sum"])
         self.silo = Silo.objects.get(pk=self.silo.pk)
-        self.assertEqual(getColToTypeDict(self.silo).get('sum'),'float')
+        self.assertEqual(getColToTypeDict(self.silo).get('sum'), 'float')
         try:
-            lvs = LabelValueStore.objects.get(a="1", b="2", c="3", sum=6.0, read_id=-1, silo_id = self.silo.pk)
+            lvs = LabelValueStore.objects.get(a="1", b="2", c="3", sum=6.0,
+                                              read_id=-1, silo_id=self.silo.pk)
             lvs.delete()
         except LabelValueStore.DoesNotExist as e:
             self.assert_(False)
         try:
-            lvs = LabelValueStore.objects.get(a="2", b="2", c="3.3", sum=7.3, read_id=-1, silo_id = self.silo.pk)
+            lvs = LabelValueStore.objects.get(a="2", b="2", c="3.3", sum=7.3,
+                                              read_id=-1, silo_id=self.silo.pk)
             lvs.delete()
         except LabelValueStore.DoesNotExist as e:
             self.assert_(False)
         try:
-            lvs = LabelValueStore.objects.get(a="3", b="2", c="hi", sum="Error", read_id=-1, silo_id = self.silo.pk)
+            lvs = LabelValueStore.objects.get(a="3", b="2", c="hi", sum="Error",
+                                              read_id=-1, silo_id=self.silo.pk)
             lvs.delete()
         except LabelValueStore.DoesNotExist as e:
             self.assert_(False)
+
 
 class ColumnOrder(TestCase):
     url = "/edit_column_order/"
@@ -252,25 +253,40 @@ class ColumnOrder(TestCase):
     def setUp(self):
         self.client = Client()
         self.factory = RequestFactory()
-        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
-        self.silo = self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
-        self.client.login(username='joe', password='tola123')
-    def test_get_editColumnOrder(self):
+        self.user = factories.User()
+        self.user.set_password('tola123')
+        self.user.save()
+        factories.TolaUser(user=self.user)
+        self.silo = factories.Silo(owner=self.user)
+        self.client.login(username=self.user.username, password='tola123')
+
+    def test_get_edit_column_order(self):
         request = self.factory.get(self.url)
         request.user = self.user
         request._dont_enforce_csrf_checks = True
         response = editColumnOrder(request, self.silo.pk)
         self.assertEqual(response.status_code, 200)
 
-    def test_post_editColumnOrder(self):
-        addColsToSilo(self.silo, ['a','b','c','d','e','f'])
-        hideSiloColumns(self.silo, ['b','e'])
-        cols_ordered = ['c','f','a','d']
-        response = self.client.post('/edit_column_order/%s/' % str(self.silo.pk), data={'columns' : cols_ordered})
+    def test_post_edit_column_order(self):
+        addColsToSilo(self.silo, ['a', 'b', 'c', 'd', 'e', 'f'])
+        hideSiloColumns(self.silo, ['b', 'e'])
+        cols_ordered = ['c', 'f', 'a', 'd']
+        data = {
+            'columns': cols_ordered
+        }
+        response = self.client.post('/edit_column_order/{}/'.format(
+            self.silo.pk), data=data)
+
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(getSiloColumnNames(self.silo.pk), ['c','f','a','d'] )
-        response = self.client.post('/edit_column_order/0/', data={'columns' : cols_ordered})
+        self.assertEqual(getSiloColumnNames(self.silo.pk),
+                         ['c', 'f', 'a', 'd'])
+
+        data = {
+            'columns': cols_ordered
+        }
+        response = self.client.post('/edit_column_order/0/', data=data)
         self.assertEqual(response.status_code, 302)
+
 
 class ColumnFilter(TestCase):
     url = "/edit_filter/"
@@ -278,30 +294,34 @@ class ColumnFilter(TestCase):
     def setUp(self):
         self.client = Client()
         self.factory = RequestFactory()
-        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
-        self.silo = self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
-        self.client.login(username='joe', password='tola123')
+        self.user = factories.User()
+        self.user.set_password('tola123')
+        self.user.save()
+        factories.TolaUser(user=self.user)
+        self.silo = factories.Silo(owner=self.user)
+        self.client.login(username=self.user.username, password='tola123')
+
     def test_get_editColumnOrder(self):
-        addColsToSilo(self.silo, ['a','b','c','d','e','f'])
-        hideSiloColumns(self.silo, ['b','e'])
+        addColsToSilo(self.silo, ['a', 'b', 'c', 'd', 'e', 'f'])
+        hideSiloColumns(self.silo, ['b', 'e'])
         self.silo.rows_to_hide = json.dumps([
             {
-                "logic" : "BLANKCHAR",
+                "logic": "BLANKCHAR",
                 "operation": "",
-                "number":"",
+                "number": "",
                 "conditional": "---",
             },
             {
-                "logic" : "AND",
+                "logic": "AND",
                 "operation": "empty",
-                "number":"",
-                "conditional": ["a","b"],
+                "number": "",
+                "conditional": ["a", "b"],
             },
             {
-                "logic" : "OR",
+                "logic": "OR",
                 "operation": "empty",
-                "number":"",
-                "conditional": ["c","d"],
+                "number": "",
+                "conditional": ["c", "d"],
             }
         ])
         self.silo.save()
@@ -314,282 +334,299 @@ class ColumnFilter(TestCase):
     def test_post_editColumnOrder(self):
         rows_to_hide = [
             {
-                "logic" : "BLANKCHAR",
+                "logic": "BLANKCHAR",
                 "operation": "",
-                "number":"",
+                "number": "",
                 "conditional": "---",
             },
             {
-                "logic" : "AND",
+                "logic": "AND",
                 "operation": "empty",
-                "number":"",
-                "conditional": ["a","b"],
+                "number": "",
+                "conditional": ["a", "b"],
             },
             {
-                "logic" : "OR",
+                "logic": "OR",
                 "operation": "empty",
-                "number":"",
-                "conditional": ["c","d"],
+                "number": "",
+                "conditional": ["c", "d"],
             }
         ]
-        cols_to_hide = ['a','b','c']
-        response = self.client.post('/edit_filter/%s/' % str(self.silo.pk), data={'hide_rows' : json.dumps(rows_to_hide), 'hide_cols' : json.dumps(cols_to_hide)})
+        cols_to_hide = ['a', 'b', 'c']
+        data = {
+            'hide_rows': json.dumps(rows_to_hide),
+            'hide_cols': json.dumps(cols_to_hide)
+        }
+        response = self.client.post('/edit_filter/{}/'.format(self.silo.pk),
+                                    data=data)
         self.assertEqual(response.status_code, 302)
         self.assertTrue(self.silo.hidden_columns, json.dumps(cols_to_hide))
         self.assertTrue(self.silo.rows_to_hide, json.dumps(rows_to_hide))
 
 
-class removeSourceTest(TestCase):
+class RemoveSourceTest(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
-        self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
-        self.read_type = ReadType.objects.create(read_type="Ona")
-        self.read = Read.objects.create(read_name="test_read1", owner = self.user, type=self.read_type)
-        self.silo.reads.add(self.read)
-        self.client.login(username='joe', password='tola123')
+        self.user = factories.User()
+        self.user.set_password('tola123')
+        self.user.save()
+        factories.TolaUser(user=self.user)
+        self.client.login(username=self.user.username, password='tola123')
 
-    def test_removeRead(self):
-        self.assertEqual(self.silo.reads.count(),1)
+    def test_remove_read(self):
+        silo = factories.Silo(owner=self.user)
+        read = silo.reads.all()[0]
+        self.assertEqual(silo.reads.count(), 1)
 
-        response = self.client.get("/source_remove/%s/%s/" % (0, self.read.pk))
+        response = self.client.get("/source_remove/{}/{}/".format(0, read.pk))
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(self.silo.reads.all().count(),1)
+        self.assertEqual(silo.reads.all().count(), 1)
 
-        response = self.client.get("/source_remove/%s/%s/" % (self.silo.pk, 0))
+        response = self.client.get("/source_remove/{}/{}/".format(silo.pk, 0))
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(self.silo.reads.all().count(),1)
+        self.assertEqual(silo.reads.all().count(), 1)
 
-        response = self.client.get("/source_remove/%s/%s/" % (self.silo.pk, self.read.pk))
+        response = self.client.get("/source_remove/{}/{}/".format(
+            silo.pk, read.pk))
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(self.silo.reads.all().count(),0)
+        self.assertEqual(silo.reads.all().count(), 0)
 
-        response = self.client.get("/source_remove/%s/%s/" % (self.silo.pk, self.read.pk))
+        response = self.client.get("/source_remove/{}/{}/".format(
+            silo.pk, read.pk))
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(self.silo.reads.all().count(),0)
+        self.assertEqual(silo.reads.all().count(), 0)
 
-class getCommCareProjectsTest(TestCase):
+
+class GetCommCareProjectsTest(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
-        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
-        self.user2 = User.objects.create_user(username="joe2", email="joe@email.com", password="tola123")
-        self.read_type = ReadType.objects.create(read_type="CommCare")
+        self.user = factories.User()
+        self.user2 = factories.User(first_name='John', last_name='Lennon')
+        self.read_type = factories.ReadType(read_type="CommCare")
 
     def test_onaParserOneLayer(self):
         self.assertEqual(getProjects(self.user.id), [])
-        self.read = Read.objects.create(read_name="test_read1", owner = self.user, type=self.read_type, read_url="https://www.commcarehq.org/a/a/")
+        self.read = factories.Read(
+            read_name="test_read1", owner=self.user, type=self.read_type,
+            read_url="https://www.commcarehq.org/a/a/"
+        )
         self.assertEqual(getProjects(self.user.id), ['a'])
-        self.read = Read.objects.create(read_name="test_read2", owner = self.user, type=self.read_type, read_url="https://www.commcarehq.org/a/b/")
-        self.assertEqual(getProjects(self.user.id), ['a','b'])
-        self.read = Read.objects.create(read_name="test_read3", owner = self.user, type=self.read_type, read_url="https://www.commcarehq.org/a/b/")
-        self.assertEqual(getProjects(self.user.id), ['a','b'])
-        self.read = Read.objects.create(read_name="test_read4", owner = self.user2, type=self.read_type, read_url="https://www.commcarehq.org/a/c/")
-        self.assertEqual(getProjects(self.user.id), ['a','b'])
 
-class parseCommCareDataTest(TestCase):
+        self.read = factories.Read(
+            read_name="test_read2", owner=self.user, type=self.read_type,
+            read_url="https://www.commcarehq.org/a/b/"
+        )
+        self.assertEqual(getProjects(self.user.id), ['a', 'b'])
+
+        self.read = factories.Read(
+            read_name="test_read3", owner=self.user, type=self.read_type,
+            read_url="https://www.commcarehq.org/a/b/"
+        )
+        self.assertEqual(getProjects(self.user.id), ['a', 'b'])
+
+        self.read = factories.Read(
+            read_name="test_read4", owner=self.user2, type=self.read_type,
+            read_url="https://www.commcarehq.org/a/c/"
+        )
+        self.assertEqual(getProjects(self.user.id), ['a', 'b'])
+
+
+class ParseCommCareDataTest(TestCase):
     def test_commcaredataparser(self):
         data = [
             {
-                'case_id' : 1,
-                'properties' : {
-                    'a' : 1,
-                    'b' : 2,
-                    'c' : 3
+                'case_id': 1,
+                'properties': {
+                    'a': 1,
+                    'b': 2,
+                    'c': 3
                 }
             },
             {
-                'case_id' : 2,
-                'properties' : {
-                    'd' : 1,
-                    'b' : 2,
-                    'c' : 3
+                'case_id': 2,
+                'properties': {
+                    'd': 1,
+                    'b': 2,
+                    'c': 3
                 }
             },
             {
-                'case_id' : 3,
-                'properties' : {
-                    'd' : 1,
-                    'e' : 2,
-                    'c' : 3
+                'case_id': 3,
+                'properties': {
+                    'd': 1,
+                    'e': 2,
+                    'c': 3
                 }
             },
             {
-                'case_id' : 4,
-                'properties' : {
-                    'f.' : 1,
-                    '' : 2,
-                    'silo_id' : 3,
-                    'read_id' : 4,
-                    '_id' : 5,
-                    'id' : 6,
-                    'edit_date' : 7,
-                    'create_date' : 8,
-                    'case_id' : 9
+                'case_id': 4,
+                'properties': {
+                    'f.': 1,
+                    '': 2,
+                    'silo_id': 3,
+                    'read_id': 4,
+                    '_id': 5,
+                    'id': 6,
+                    'edit_date': 7,
+                    'create_date': 8,
+                    'case_id': 9
                 }
             },
         ]
         parseCommCareData(data, -87, -97, False)
         try:
             try:
-                lvs = LabelValueStore.objects.get(a=1, b=2, c=3, case_id=1, read_id=-97, silo_id = -87)
+                LabelValueStore.objects.get(
+                    a=1, b=2, c=3, case_id=1, read_id=-97, silo_id=-87)
             except LabelValueStore.DoesNotExist as e:
                 self.assert_(False)
             try:
-                lvs = LabelValueStore.objects.get(d=1, b=2, c=3, case_id=2, read_id=-97, silo_id = -87)
+                LabelValueStore.objects.get(
+                    d=1, b=2, c=3, case_id=2, read_id=-97, silo_id=-87)
             except LabelValueStore.DoesNotExist as e:
                 self.assert_(False)
             try:
-                lvs = LabelValueStore.objects.get(d=1, e=2, c=3, case_id=3, read_id=-97, silo_id = -87)
+                LabelValueStore.objects.get(
+                    d=1, e=2, c=3, case_id=3, read_id=-97, silo_id=-87)
             except LabelValueStore.DoesNotExist as e:
                 self.assert_(False)
             try:
-                lvs = LabelValueStore.objects.get(f_=1, user_assigned_id=5, editted_date=7, created_date=8, user_case_id=9, case_id=4, read_id=-97, silo_id = -87)
+                LabelValueStore.objects.get(
+                    f_=1, user_assigned_id=5, editted_date=7, created_date=8,
+                    user_case_id=9, case_id=4, read_id=-97, silo_id=-87)
             except LabelValueStore.DoesNotExist as e:
                 self.assert_(False)
         except LabelValueStore.MultipleObjectsReturned as e:
-            LabelValueStore.objects.filter(read_id=-97, silo_id = -87).delete()
-            #if this happens run the test again and it should work
+            LabelValueStore.objects.filter(read_id=-97, silo_id=-87).delete()
+            # if this happens run the test again and it should work
             self.assert_(False)
 
-        #now lets test the updating functionality
+        # now lets test the updating functionality
 
         data = [
             {
-                'case_id' : 1,
-                'properties' : {
-                    'a' : 2,
-                    'b' : 2,
-                    'c' : 3,
-                    'd' : 4
+                'case_id': 1,
+                'properties': {
+                    'a': 2,
+                    'b': 2,
+                    'c': 3,
+                    'd': 4
                 }
             },
             {
-                'case_id' : 2,
-                'properties' : {
-                    'd' : 1,
-                    'b' : 3
+                'case_id': 2,
+                'properties': {
+                    'd': 1,
+                    'b': 3
                 }
             },
             {
-                'case_id' : 5,
-                'properties' : {
-                    'e' : 2,
-                    'f' : 3
+                'case_id': 5,
+                'properties': {
+                    'e': 2,
+                    'f': 3
                 }
             }
         ]
         parseCommCareData(data, -87, -97, True)
         try:
             try:
-                lvs = LabelValueStore.objects.get(a=2, b=2, c=3, d=4, case_id=1, read_id=-97, silo_id = -87)
+                LabelValueStore.objects.get(
+                    a=2, b=2, c=3, d=4, case_id=1, read_id=-97, silo_id=-87)
             except LabelValueStore.DoesNotExist as e:
                 self.assert_(False)
             try:
-                lvs = LabelValueStore.objects.get(d=1, b=3, c=3, case_id=2, read_id=-97, silo_id = -87)
+                LabelValueStore.objects.get(
+                    d=1, b=3, c=3, case_id=2, read_id=-97, silo_id=-87)
             except LabelValueStore.DoesNotExist as e:
                 self.assert_(False)
             try:
-                lvs = LabelValueStore.objects.get(d=1, e=2, c=3, case_id=3, read_id=-97, silo_id = -87)
+                LabelValueStore.objects.get(
+                    d=1, e=2, c=3, case_id=3, read_id=-97, silo_id=-87)
             except LabelValueStore.DoesNotExist as e:
                 self.assert_(False)
             try:
-                lvs = LabelValueStore.objects.get(e=2, f=3, case_id=5, read_id=-97, silo_id = -87)
+                LabelValueStore.objects.get(
+                    e=2, f=3, case_id=5, read_id=-97, silo_id=-87)
             except LabelValueStore.DoesNotExist as e:
                 self.assert_(False)
             try:
-                lvs = LabelValueStore.objects.get(f_=1, user_assigned_id=5, editted_date=7, created_date=8, user_case_id=9, case_id=4, read_id=-97, silo_id = -87)
+                LabelValueStore.objects.get(
+                    f_=1, user_assigned_id=5, editted_date=7, created_date=8,
+                    user_case_id=9, case_id=4, read_id=-97, silo_id=-87)
             except LabelValueStore.DoesNotExist as e:
                 self.assert_(False)
-            LabelValueStore.objects.filter(read_id=-97, silo_id = -87).delete()
+            LabelValueStore.objects.filter(read_id=-97, silo_id=-87).delete()
 
         except LabelValueStore.MultipleObjectsReturned as e:
-            LabelValueStore.objects.filter(read_id=-97, silo_id = -87).delete()
-            print 'Needed to delete some temporary data, running the tests again should work'
-            #if this happens run the test again and it should work
+            LabelValueStore.objects.filter(read_id=-97, silo_id=-87).delete()
+            # if this happens run the test again and it should work
             self.assert_(False)
 
     def test_delete_silo(self):
         pass
 
-from django.test import Client
-from django.conf import settings
 
-"""
-class Microsoft(TestCase):
-
-    def test_social_auth(self):
-
-
-        # Test social auth login with Microsoft online
-        # :return:
-
-        driver = Client()
-        response = driver.get('/login/microsoft-graph', follow=True)
-        #print(response.redirect_chain, response.status_code)
-
-        # check http redirect
-        steps = response.redirect_chain
-        self.assertEqual(steps[0][1], 301)
-
-        redir_target, redir_options = steps[1][0].split('?')
-        redir_options = dict(map(lambda x: x.split('='), redir_options.split('&')))
-
-        # check redirect target
-        self.assertEqual(redir_target, 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize')
-
-        # check parameters
-        self.assertEqual(redir_options['scope'], 'User.Read')
-        self.assertTrue('/complete/microsoft' in redir_options['redirect_uri'])
-        self.assertEqual(redir_options['client_id'], str(getattr(settings, 'SOCIAL_AUTH_MICROSOFT_OAUTH2_KEY', None)))
-        self.assertTrue('state' in redir_options)
-        self.assertTrue('response_type' in redir_options)
-
-            except LabelValueStore.DoesNotExist as e:
-                self.assert_(False)
-            LabelValueStore.objects.filter(read_id=-97, silo_id = -87).delete()
-            except LabelValueStore.MultipleObjectsReturned as e:
-                LabelValueStore.objects.filter(read_id=-97, silo_id = -87).delete()
-                #if this happens run the test again and it should work
-                self.assert_(False)
-"""
-class Test_ImportJson(TestCase):
+class TestImportJson(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
-        self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
+        self.user = factories.User()
+        self.user.set_password('tola123')
+        self.user.save()
         self.read_type = ReadType.objects.create(read_type="Ona")
-        self.read = Read.objects.create(read_name="test_read1", owner = self.user, type=self.read_type, read_url='http://mysafeinfo.com/api/data?list=englishmonarchs&format=json')
-        self.client.login(username='joe', password='tola123')
+        self.read = Read.objects.create(
+            read_name="test_read1", owner=self.user, type=self.read_type,
+            read_url='http://mysafeinfo.com/api/data?list='
+                     'englishmonarchs&format=json')
+        self.silo = factories.Silo(owner=self.user, reads=[self.read])
+        factories.TolaUser(user=self.user)
+        self.client.login(username=self.user.username, password='tola123')
+
     def test_JSONImport(self):
-        data_correct = json.loads('[{"nm":"Edmund lronside","cty":"United Kingdom","hse":"House of Wessex","yrs":"1016"},{"nm":"Cnut","cty":"United Kingdom","hse":"House of Denmark","yrs":"1016-1035"},{"nm":"Harold I Harefoot","cty":"United Kingdom","hse":"House of Denmark","yrs":"1035-1040"},{"nm":"Harthacanut","cty":"United Kingdom","hse":"House of Denmark","yrs":"1040-1042"},{"nm":"Edward the Confessor","cty":"United Kingdom","hse":"House of Wessex","yrs":"1042-1066"},{"nm":"Harold II","cty":"United Kingdom","hse":"House of Wessex","yrs":"1066"},{"nm":"William I","cty":"United Kingdom","hse":"House of Normandy","yrs":"1066-1087"},{"nm":"William II","cty":"United Kingdom","hse":"House of Normandy","yrs":"1087-1100"},{"nm":"Henry I","cty":"United Kingdom","hse":"House of Normandy","yrs":"1100-1135"},{"nm":"Stephen","cty":"United Kingdom","hse":"House of Blois","yrs":"1135-1154"},{"nm":"Henry II","cty":"United Kingdom","hse":"House of Angevin","yrs":"1154-1189"},{"nm":"Richard I","cty":"United Kingdom","hse":"House of Angevin","yrs":"1189-1199"},{"nm":"John","cty":"United Kingdom","hse":"House of Angevin","yrs":"1199-1216"},{"nm":"Henry III","cty":"United Kingdom","hse":"House of Plantagenet","yrs":"1216-1272"},{"nm":"Edward I","cty":"United Kingdom","hse":"House of Plantagenet","yrs":"1272-1307"},{"nm":"Edward II","cty":"United Kingdom","hse":"House of Plantagenet","yrs":"1307-1327"},{"nm":"Edward III","cty":"United Kingdom","hse":"House of Plantagenet","yrs":"1327-1377"},{"nm":"Richard II","cty":"United Kingdom","hse":"House of Plantagenet","yrs":"1377-1399"},{"nm":"Henry IV","cty":"United Kingdom","hse":"House of Lancaster","yrs":"1399-1413"},{"nm":"Henry V","cty":"United Kingdom","hse":"House of Lancaster","yrs":"1413-1422"},{"nm":"Henry VI","cty":"United Kingdom","hse":"House of Lancaster","yrs":"1422-1461"},{"nm":"Edward IV","cty":"United Kingdom","hse":"House of York","yrs":"1461-1483"},{"nm":"Edward V","cty":"United Kingdom","hse":"House of York","yrs":"1483"},{"nm":"Richard III","cty":"United Kingdom","hse":"House of York","yrs":"1483-1485"},{"nm":"Henry VII","cty":"United Kingdom","hse":"House of Tudor","yrs":"1485-1509"},{"nm":"Henry VIII","cty":"United Kingdom","hse":"House of Tudor","yrs":"1509-1547"},{"nm":"Edward VI","cty":"United Kingdom","hse":"House of Tudor","yrs":"1547-1553"},{"nm":"Mary I","cty":"United Kingdom","hse":"House of Tudor","yrs":"1553-1558"},{"nm":"Elizabeth I","cty":"United Kingdom","hse":"House of Tudor","yrs":"1558-1603"},{"nm":"James I","cty":"United Kingdom","hse":"House of Stuart","yrs":"1603-1625"},{"nm":"Charles I","cty":"United Kingdom","hse":"House of Stuart","yrs":"1625-1649"},{"nm":"Commonwealth","cty":"United Kingdom","hse":"Commonwealth","yrs":"1649-1653"},{"nm":"Oliver Cromwell","cty":"United Kingdom","hse":"Commonwealth","yrs":"1653-1658"},{"nm":"Richard Cromwell","cty":"United Kingdom","hse":"Commonwealth","yrs":"1658-1659"},{"nm":"Charles II","cty":"United Kingdom","hse":"House of Stuart","yrs":"1660-1685"},{"nm":"James II","cty":"United Kingdom","hse":"House of Stuart","yrs":"1685-1688"},{"nm":"William III","cty":"United Kingdom","hse":"House of Orange","yrs":"1689-1694"},{"nm":"Anne","cty":"United Kingdom","hse":"House of Stuart","yrs":"1702-1714"},{"nm":"George I","cty":"United Kingdom","hse":"House of Hanover","yrs":"1714-1727"},{"nm":"George II","cty":"United Kingdom","hse":"House of Hanover","yrs":"1727-1760"},{"nm":"George III","cty":"United Kingdom","hse":"House of Hanover","yrs":"1760-1820"},{"nm":"George IV","cty":"United Kingdom","hse":"House of Hanover","yrs":"1820-1830"},{"nm":"William IV","cty":"United Kingdom","hse":"House of Hanover","yrs":"1830-1837"},{"nm":"Victoria","cty":"United Kingdom","hse":"House of Hanover","yrs":"1837-1901"},{"nm":"Edward VII","cty":"United Kingdom","hse":"House of Saxe-Coburg-Gotha","yrs":"1901-1910"},{"nm":"George V","cty":"United Kingdom","hse":"House of Windsor","yrs":"1910-1936"},{"nm":"Edward VIII","cty":"United Kingdom","hse":"House of Windsor","yrs":"1936"},{"nm":"George VI","cty":"United Kingdom","hse":"House of Windsor","yrs":"1936-1952"},{"nm":"Elizabeth II","cty":"United Kingdom","hse":"House of Windsor","yrs":"1952-"},{"nm":"Edward the Elder","cty":"United Kingdom","hse":"House of Wessex","yrs":"899-925"},{"nm":"Athelstan","cty":"United Kingdom","hse":"House of Wessex","yrs":"925-940"},{"nm":"Edmund","cty":"United Kingdom","hse":"House of Wessex","yrs":"940-946"},{"nm":"Edred","cty":"United Kingdom","hse":"House of Wessex","yrs":"946-955"},{"nm":"Edwy","cty":"United Kingdom","hse":"House of Wessex","yrs":"955-959"},{"nm":"Edgar","cty":"United Kingdom","hse":"House of Wessex","yrs":"959-975"},{"nm":"Edward the Martyr","cty":"United Kingdom","hse":"House of Wessex","yrs":"975-978"},{"nm":"Ethelred II the Unready","cty":"United Kingdom","hse":"House of Wessex","yrs":"978-1016"}]')
-        response = self.client.post("/json", data={'read_id' : self.read.id, 'silo_id' : self.silo.id})
-        self.assertEqual(response.status_code,302)
+        filename = os.path.join(os.path.dirname(__file__),
+                                'sample_data/import_json.json')
+        with open(filename, 'r') as f:
+            data_correct = json.load(f)
+        data = {
+            'read_id': self.read.id,
+            'silo_id': self.silo.id
+        }
+        response = self.client.post("/json", data=data)
+        self.assertEqual(response.status_code, 302)
 
         for row in data_correct:
             try:
-                lvs = LabelValueStore.objects.get(silo_id=self.silo.id, read_id = self.read.id, **row)
+                lvs = LabelValueStore.objects.get(silo_id=self.silo.id,
+                                                  read_id=self.read.id, **row)
                 lvs.delete()
             except Exception as e:
-                print e
-                print row
-                LabelValueStore.objects.filter(silo_id=self.silo.id, read_id = self.read.id).delete()
+                LabelValueStore.objects.filter(silo_id=self.silo.id,
+                                               read_id=self.read.id).delete()
                 self.assertTrue(False)
 
 
-class Test_DeleteSilo(TestCase):
+class TestDeleteSilo(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user = User.objects.create_user(username="joe", email="joe@email.com", password="tola123")
-        self.silo = Silo.objects.create(name="test_silo1",public=0, owner = self.user)
-        self.read_type = ReadType.objects.create(read_type="Ona")
-        self.read = Read.objects.create(read_name="test_read1", owner = self.user, type=self.read_type, read_url='http://mysafeinfo.com/api/data?list=englishmonarchs&format=json')
-        self.silo.reads.add(self.read)
-        self.client.login(username='joe', password='tola123')
+        self.user = factories.User()
+        self.user.set_password('tola123')
+        self.user.save()
+        factories.TolaUser(user=self.user)
+        self.silo = factories.Silo(owner=self.user)
+        self.client.login(username=self.user.username, password='tola123')
+
     def test_deleteAuto(self):
         silo_id = self.silo.id
-        read_id = self.read.id
-        response = self.client.post("/silo_delete/%i/" % silo_id)
+        silo_name = self.silo.name
+        read_id = self.silo.reads.all()[0].id
+        response = self.client.post("/silo_delete/{}/".format(silo_id))
+
+        silo = Silo.objects.filter(pk=silo_id).exists()
+        read = Read.objects.filter(pk=read_id).exists()
+        deleted_silos = DeletedSilos.objects.filter(
+            silo_name_id="{} with id {}".format(silo_name, silo_id)).exists()
+
         self.assertEqual(response.status_code, 302)
-        self.assertFalse(Silo.objects.filter(pk=silo_id).exists())
-        self.assertFalse(Read.objects.filter(pk=read_id).exists())
-        self.assertTrue(DeletedSilos.objects.filter(silo_name_id="test_silo1 with id %i" % silo_id).exists())
+        self.assertFalse(silo)
+        self.assertFalse(read)
+        self.assertTrue(deleted_silos)

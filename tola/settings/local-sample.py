@@ -21,11 +21,7 @@ MANAGERS = ADMINS
 ########## DEBUG CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#debug
 DEBUG = True
-
-# See: https://docs.djangoproject.com/en/dev/ref/settings/#template-debug
-TEMPLATE_DEBUG = DEBUG
 ########## END DEBUG CONFIGURATION
-
 
 ########## SECRET CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
@@ -116,13 +112,6 @@ LDAP_PASSWORD = 'xxxxxx' # ldap dev
 LDAP_USER_GROUP = 'xxxx'
 LDAP_ADMIN_GROUP = 'xxxx-xxx'
 #ERTB_ADMIN_URL = 'https://xxxx.example.org/xx-xx-dev/'
-
-
-########## GOOGLE AUTH
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = "xxxx.apps.googleusercontent.com"
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = "xxxx"
-SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS = "yourDomain.org"
-GOOGLE_OAUTH2_CLIENT_SECRETS_JSON = "silo/client_secrets.json"
 
 
 #Turn On at: https://www.google.com/settings/security/lesssecureapps

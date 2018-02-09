@@ -1,4 +1,4 @@
-Tola Tables [![Build Status](https://travis-ci.org/toladata/TolaTables.svg?branch=master)](https://travis-ci.org/toladata/TolaTables)
+Tola Tables [![Build Status](https://travis-ci.org/toladata/TolaTables.svg?branch=master)](https://travis-ci.org/toladata/TolaTables) [![Coverage Status](https://coveralls.io/repos/github/toladata/TolaTables/badge.svg)](https://coveralls.io/github/toladata/TolaTables)
 ====
 
 Share, edit and display data from various mobile data collection platforms.
@@ -41,6 +41,8 @@ To run the webserver:
 ```bash
 docker-compose -f docker-compose-dev.yml up #-d for detached
 ```
+
+Go to http://localhost:8000/login
 
 User: `admin`
 Password: `admin`.
@@ -100,7 +102,7 @@ You should now see '(venv)' added to the left side of your prompt.  If you don't
 
 Now install the python modules into the Virtualenv:
 
-`pip install -r TolaTables/requirements.txt`
+`pip install -r TolaTables/requirements/base.txt`
 
 ### Install selenium
 

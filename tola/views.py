@@ -1,4 +1,7 @@
+from urlparse import urljoin
+
 from django.shortcuts import get_object_or_404
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.http import HttpResponseRedirect
@@ -74,11 +77,17 @@ def profile(request):
 
 def logout_view(request):
     """
-    Logout a user
+    Logout a user in activity and track
     """
-    logout(request)
-    # Redirect to a success page.
-    return HttpResponseRedirect("/")
+    # Redirect to activity, so the user will
+    # be logged out there as well
+    if request.user.is_authenticated:
+        logout(request)
+        url_subpath = 'accounts/logout/'
+        url = urljoin(settings.TABLES_LOGIN_URL, url_subpath)
+        return HttpResponseRedirect(url)
+
+    return HttpResponseRedirect(settings.TABLES_LOGIN_URL)
 
 
 class BoardView(LoginRequiredMixin, TemplateView):

@@ -250,3 +250,17 @@ var tableObject = function (json, id) {
     }
     return pTable;
 };
+
+/* When the user clicks on the profile button,
+ * toggle between hiding and showing the dropdown content
+ */
+var profileDropDown = function() {
+    $("div#profileDropDown").addClass("show");
+};
+
+// Close the dropdown menu if the user clicks outside of it
+window.onclick = function(event) {
+    if (!event.target.matches('span#user_init') && !event.target.matches('li.header__navbar__user-drop')) {
+        $("div#profileDropDown").removeClass("show");
+    }
+};
