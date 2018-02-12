@@ -42,7 +42,7 @@ from commcare.tasks import fetchCommCareData
 from .serializers import *
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, \
     Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, \
-    DeletedSilos, FormulaColumn
+    DeletedSilos, FormulaColumn, TASK_CREATED, TASK_IN_PROGRESS, TASK_FINISHED, TASK_FAILED
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, \
     NewColumnForm, EditColumnForm, OnaLoginForm
 from .tasks import process_silo, process_silo_error
@@ -661,7 +661,7 @@ def showRead(request, id):
     """
     Show a read data source and allow user to edit it
     """
-    excluded_fields = ['gsheet_id', 'resource_id', 'token', 'create_date', 'edit_date', 'token', 'autopush_expiration', 'autopull_expiration', 'task_id']
+    excluded_fields = ['gsheet_id', 'resource_id', 'token', 'create_date', 'edit_date', 'token', 'autopush_expiration', 'autopull_expiration', 'task_id', 'task_status']
     initial = {'owner': request.user}
     data = None
     access_token = None
@@ -839,6 +839,7 @@ def uploadFile(request, id):
             )
 
             read_obj.task_id = async_res.id
+            read_obj.task_status = TASK_CREATED
             read_obj.save()
 
             return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
@@ -973,11 +974,11 @@ def siloDetail(request, silo_id):
     tasks_running = 0
     tasks_failed = 0
 
-    for task_id in silo.reads.all().values_list('task_id', flat=True):
-        if task_id is not None:
-            if task_id != "FAILED":
+    for task_status in silo.reads.all().values_list('task_status', flat=True):
+        if task_status is not None:
+            if task_status == TASK_CREATED or task_status == TASK_IN_PROGRESS:
                 tasks_running = tasks_running + 1
-            else:
+            elif task_status == TASK_FAILED:
                 tasks_failed = tasks_failed + 1
 
     if silo.owner == request.user or silo.public == True or request.user in silo.shared.all():
