@@ -1,3 +1,4 @@
+from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase, override_settings
@@ -10,6 +11,7 @@ from silo.api import CustomFormViewSet
 from silo.models import LabelValueStore, Read, Silo, Tag
 
 from mock import Mock, patch
+from pymongo.errors import WriteError
 
 import json
 import random
@@ -157,14 +159,6 @@ class ExportViewsTest(TestCase, MongoTestCase):
         factories.ReadType(read_type='CustomForm')
         self.tola_user = factories.TolaUser()
         self.factory = APIRequestFactory()
-        self.silo_id = None
-
-    def tearDown(self):
-        if self.silo_id:
-            # Have to remove the created lvs
-            lvss = LabelValueStore.objects.filter(silo_id=self.silo_id)
-            for lvs in lvss:
-                lvs.delete()
 
     def test_export_csv(self):
         self.tola_user.user.is_staff = True
@@ -197,8 +191,8 @@ class ExportViewsTest(TestCase, MongoTestCase):
         response = view(request)
         self.assertEqual(response.status_code, 201)
         # For the tearDown
-        self.silo_id = response.data['id']
-        silo = Silo.objects.get(id=self.silo_id)
+        silo_id = response.data['id']
+        silo = Silo.objects.get(id=silo_id)
         read = silo.reads.all()[0]
 
         # Upload data
@@ -217,17 +211,28 @@ class ExportViewsTest(TestCase, MongoTestCase):
         # Export to CSV
         request = self.factory.get('')
         request.user = self.tola_user.user
-        response = views.export_silo(request, self.silo_id)
+        response = views.export_silo(request, silo_id)
         self.assertEqual(response.status_code, 200)
         self.assertIn('color,type', response.content)
         self.assertIn('black,primary', response.content)
 
 
-class SiloViewsTest(TestCase):
+class SiloViewsTest(TestCase, MongoTestCase):
     def setUp(self):
+        factories.ReadType(read_type='CustomForm')
         self.org = factories.Organization()
         self.tola_user = factories.TolaUser(organization=self.org)
         self.factory = APIRequestFactory()
+
+    def _bugfix_django_messages(self, request):
+        """
+        RequestFactory requests can't be used to test views
+        that call messages.add
+        https://code.djangoproject.com/ticket/17971
+        """
+        setattr(request, 'session', 'session')
+        messages = FallbackStorage(request)
+        setattr(request, '_messages', messages)
 
     def test_silo_template_authenticated_user(self):
         request = self.factory.get('', follow=True)
@@ -313,6 +318,142 @@ class SiloViewsTest(TestCase):
         silo_tags = silo.tags.all()
         self.assertIn(olg_tag, silo_tags)
         self.assertIn(new_tag, silo_tags)
+
+    def test_silo_edit_columns(self):
+        self.tola_user.user.is_staff = True
+        self.tola_user.user.is_superuser = True
+        self.tola_user.user.save()
+
+        wflvl1 = factories.WorkflowLevel1(
+            organization=self.tola_user.organization)
+        fields = [
+            {
+                'name': 'color',
+                'type': 'text'
+            },
+            {
+                'name': 'type',
+                'type': 'text'
+            }
+        ]
+        meta = {
+            'name': 'Export Test',
+            'description': 'This is a test.',
+            'fields': json.dumps(fields),
+            'level1_uuid': wflvl1.level1_uuid,
+            'tola_user_uuid': self.tola_user.tola_user_uuid
+        }
+        request = self.factory.post('', data=meta)
+        request.user = self.tola_user.user
+        view = CustomFormViewSet.as_view({'post': 'create'})
+        response = view(request)
+        # For the tearDown
+        silo_id = response.data['id']
+        silo = Silo.objects.get(id=silo_id)
+
+        data = {
+            'id': '',
+            'silo_id': silo.id,
+            'color': 'farbe',
+            'type': 'art'
+        }
+        request = self.factory.post('', data=data)
+        request.user = self.tola_user.user
+        self._bugfix_django_messages(request)
+        response = views.edit_columns(request, silo.id)
+        template_content = response.content
+
+        match = '<label for="id_farbe" class="control-label col-sm-5">'
+        self.assertIn(match, template_content)
+
+        match = '<label for="id_art" class="control-label col-sm-5">'
+        self.assertIn(match, template_content)
+
+    def test_silo_edit_columns_invalid_form(self):
+        self.tola_user.user.is_staff = True
+        self.tola_user.user.is_superuser = True
+        self.tola_user.user.save()
+
+        wflvl1 = factories.WorkflowLevel1(
+            organization=self.tola_user.organization)
+        fields = [
+            {
+                'name': 'color',
+                'type': 'text'
+            },
+            {
+                'name': 'type',
+                'type': 'text'
+            }
+        ]
+        meta = {
+            'name': 'Export Test',
+            'description': 'This is a test.',
+            'fields': json.dumps(fields),
+            'level1_uuid': wflvl1.level1_uuid,
+            'tola_user_uuid': self.tola_user.tola_user_uuid
+        }
+        request = self.factory.post('', data=meta)
+        request.user = self.tola_user.user
+        view = CustomFormViewSet.as_view({'post': 'create'})
+        response = view(request)
+        # For the tearDown
+        silo_id = response.data['id']
+        silo = Silo.objects.get(id=silo_id)
+
+        data = {}
+        request = self.factory.post('', data=data)
+        request.user = self.tola_user.user
+        self._bugfix_django_messages(request)
+        response = views.edit_columns(request, silo.id)
+        template_content = response.content
+
+        match = '<label for="id_color" class="control-label col-sm-5">'
+        self.assertIn(match, template_content)
+
+        match = '<label for="id_type" class="control-label col-sm-5">'
+        self.assertIn(match, template_content)
+
+    def test_silo_edit_columns_fields_dont_match(self):
+        self.tola_user.user.is_staff = True
+        self.tola_user.user.is_superuser = True
+        self.tola_user.user.save()
+
+        wflvl1 = factories.WorkflowLevel1(
+            organization=self.tola_user.organization)
+        fields = [
+            {
+                'name': 'color',
+                'type': 'text'
+            },
+            {
+                'name': 'type',
+                'type': 'text'
+            }
+        ]
+        meta = {
+            'name': 'Export Test',
+            'description': 'This is a test.',
+            'fields': json.dumps(fields),
+            'level1_uuid': wflvl1.level1_uuid,
+            'tola_user_uuid': self.tola_user.tola_user_uuid
+        }
+        request = self.factory.post('', data=meta)
+        request.user = self.tola_user.user
+        view = CustomFormViewSet.as_view({'post': 'create'})
+        response = view(request)
+        # For the tearDown
+        silo_id = response.data['id']
+        silo = Silo.objects.get(id=silo_id)
+
+        data = {
+            'invalid': 'invalid',
+            'test': 'test'
+        }
+        request = self.factory.post('', data=data)
+        request.user = self.tola_user.user
+        with self.assertRaises(WriteError):
+            views.edit_columns(request, silo.id)
 
 
 class SaveDataToSiloViewTest(TestCase):

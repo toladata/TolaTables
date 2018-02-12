@@ -47,7 +47,7 @@ from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, \
 
 logger = logging.getLogger("silo")
 client = MongoClient(settings.MONGO_URI)
-db = client.get_database("tola")
+db = client.get_default_database()
 ROLE_VIEW_ONLY = 'ViewOnly'
 
 
