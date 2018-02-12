@@ -14,4 +14,4 @@ celery_cmd="celery -A tola worker -l info"
 $celery_cmd &
 
 echo "Running the server"
-PYTHONUNBUFFERED=1 python manage.py runserver --insecure 127.0.0.1:8000
+PYTHONUNBUFFERED=1 python manage.py runserver 0.0.0.0:8000
