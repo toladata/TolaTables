@@ -49,9 +49,10 @@ class IndexViewTest(TestCase):
         self.assertEqual(context['silos_user_shared_total'], 1)
         self.assertEqual(context['silos_public'][0].name, 'open')
         self.assertEqual(len(context['silos_public']), 1)
-        self.assertEqual(len(context['readtypes']), 4)
+        self.assertEqual(len(context['readtypes']), 7)
         self.assertEqual(sorted(list(context['readtypes'])),
-                         [u'CommCare', u'CustomForm', u'JSON', u'OneDrive'])
+                         [u'CSV', u'CommCare', u'CustomForm', u'GSheet Import',
+                          u'JSON', u'ONA', u'OneDrive'])
         # self.assertEqual(list(context['tags']),
         #                  [{'name': u'security', 'times_tagged': 4},
         #                   {'name': u'report', 'times_tagged': 4}]),
