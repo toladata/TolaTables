@@ -18,18 +18,17 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse_lazy
 from django.http import HttpResponseBadRequest,\
     HttpResponse, HttpResponseRedirect, JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import render
 from django.utils import timezone
 from django.utils.encoding import smart_str, smart_text
 from django.utils.text import Truncator
-from django.db.models import Count, Q
+from django.db.models import Q
 from django.views.decorators.csrf import csrf_protect
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from django.views.generic import View
-from rest_framework.authtoken.models import Token
 
 from gviews_v4 import import_from_gsheet_helper
 from silo.custom_csv_dict_reader import CustomDictReader
@@ -48,7 +47,7 @@ from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, \
 
 logger = logging.getLogger("silo")
 client = MongoClient(settings.MONGO_URI)
-db = client.get_database("tola")
+db = client.get_default_database()
 ROLE_VIEW_ONLY = 'ViewOnly'
 
 
@@ -1194,9 +1193,9 @@ def newColumn(request,id):
     return render(request, "silo/new-column-form.html", {'silo':silo,'form': form})
 
 
-#Add a new column on to a silo
+# Add a new column on to a silo
 @login_required
-def editColumns(request,id):
+def edit_columns(request, id):
     """
     FORM TO CREATE A NEW COLUMN FOR A SILO
     """
@@ -1205,39 +1204,46 @@ def editColumns(request,id):
 
     if request.method == 'POST':
         data = getSiloColumnNames(id)
-        form = EditColumnForm(request.POST or None, extra = data)  # A form bound to the POST data
+        # A form bound to the POST data
+        form = EditColumnForm(request.POST or None, extra=data)
         if form.is_valid():  # All validation rules pass
-            for label,value in form.cleaned_data.iteritems():
-                #update the column name if it doesn't have delete in it
-                if "_delete" not in label and str(label) != str(value) and label != "silo_id" and label != "suds" and label != "id":
-                    #update a column in the existing silo
+            for label, value in form.cleaned_data.iteritems():
+                # update the column name if it doesn't have delete in it
+                if "_delete" not in label and str(label) != str(value) and \
+                                label != "silo_id" and label != "suds" and \
+                                label != "id":
+                    # update a column in the existing silo
                     db.label_value_store.update_many(
-                        {"silo_id": silo.id},
-                            {
-                            "$rename": {label: value},
-                            },
+                        {
+                            "silo_id": silo.id
+                        },
+                        {
+                            "$rename": {label: value}
+                        },
                         False
                     )
-                    columnObj = json.loads(silo.columns)
-                    for column in columnObj:
+                    column_obj = json.loads(silo.columns)
+                    for column in column_obj:
                         if column['name'] == label:
                             column['name'] = value
                             break
-                    silo.columns = json.dumps(columnObj)
+                    silo.columns = json.dumps(column_obj)
                     silo.save()
-                #if we see delete then it's a check box to delete that column
+                # if we see delete then it's a check box to delete that column
                 elif "_delete" in label and value == 1:
                     column = label.replace("_delete", "")
                     db.label_value_store.update_many(
-                        {"silo_id": silo.id},
-                            {
+                        {
+                            "silo_id": silo.id
+                        },
+                        {
                             "$unset": {column: value},
-                            },
+                        },
                         False
                     )
                     column_name = label.split("_")[0]
                     try:
-                        formula_columns = silo.formulacolumns.filter(column_name).delete()
+                        silo.formulacolumns.filter(column_name).delete()
                     except Exception as e:
                         pass
 
@@ -1247,12 +1253,14 @@ def editColumns(request,id):
                 deleteSiloColumns(silo, to_delete)
             messages.info(request, 'Updates Saved', fail_silently=False)
         else:
-            messages.error(request, 'ERROR: There was a problem with your request', fail_silently=False)
-            #print form.errors
+            messages.error(request,
+                           'ERROR: There was a problem with your request',
+                           fail_silently=False)
 
     data = getSiloColumnNames(id)
     form = EditColumnForm(initial={'silo_id': silo.id}, extra=data)
-    return render(request, "silo/edit-column-form.html", {'silo':silo,'form': form})
+    return render(request, "silo/edit-column-form.html",
+                  {'silo': silo, 'form': form})
 
 
 #Delete a column from a table silo
