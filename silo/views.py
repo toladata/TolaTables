@@ -1338,8 +1338,12 @@ def do_merge(request):
         return HttpResponse('No columns data passed')
 
     # Create a new silo
-    new_silo = Silo(name=merged_silo_name, public=False, owner=request.user)
-    new_silo.save()
+    new_silo = Silo.objects.create(name=merged_silo_name, public=False,
+                                   owner=request.user)
+    left_table_reads = left_table.reads.values_list('id', flat=True).all()
+    right_table_reads = right_table.reads.values_list('id', flat=True).all()
+    new_silo.reads.add(*left_table_reads)
+    new_silo.reads.add(*right_table_reads)
     merge_table_id = new_silo.pk
 
     if merge_type == 'merge':

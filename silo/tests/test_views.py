@@ -8,7 +8,8 @@ from rest_framework.test import APIRequestFactory
 
 from silo.tests import MongoTestCase
 from silo.api import CustomFormViewSet
-from silo.models import LabelValueStore, Read, Silo, Tag
+from silo.models import (LabelValueStore, MergedSilosFieldMapping, Read,
+                         Silo, Tag)
 
 from mock import Mock, patch
 from pymongo.errors import WriteError
@@ -559,3 +560,208 @@ class SaveDataToSiloViewTest(TestCase):
         content = response.content
 
         self.assertEqual('Invalid name and/or URL', content)
+
+
+class DoMergeViewTest(TestCase):
+    def setUp(self):
+        self.org = factories.Organization()
+        self.tola_user = factories.TolaUser(organization=self.org)
+        self.factory = APIRequestFactory()
+
+    @patch('silo.views.mergeTwoSilos')
+    @patch('silo.views.MergedSilosFieldMapping')
+    def test_merge(self, mock_merged_silos_map, mock_merge_two_silos):
+        mock_merge_two_silos.return_value = {'status': 'success'}
+        mock_merged_silos_map.return_value = Mock()
+
+        columns = {'name': 'name', 'type': 'text'}
+        left_read = factories.Read(read_name='Read Left',
+                                   owner=self.tola_user.user)
+        right_read = factories.Read(read_name='Read Right',
+                                    owner=self.tola_user.user)
+        left_silo = factories.Silo(owner=self.tola_user.user, columns=columns,
+                                   reads=[left_read])
+        right_silo = factories.Silo(owner=self.tola_user.user, columns=columns,
+                                    reads=[right_read])
+        merged_silo_name = '{}_{}'.format(left_silo.name, right_silo.name)
+
+        data = {
+            'left_table_id': left_silo.id,
+            'right_table_id': right_silo.id,
+            'tableMergeType': 'merge',
+            'columns_data': 'Test',
+            'merged_table_name': merged_silo_name
+        }
+
+        request = self.factory.post('', data=data)
+        request.user = self.tola_user.user
+        response = views.do_merge(request)
+        content = json.loads(response.content)
+
+        silo = Silo.objects.get(name=merged_silo_name)
+        self.assertEqual(content['status'], 'success')
+        self.assertIn('The merged table is accessible at', content['message'])
+        self.assertIn(left_read, silo.reads.all())
+        self.assertIn(right_read, silo.reads.all())
+
+    @patch('silo.views.appendTwoSilos')
+    @patch('silo.views.MergedSilosFieldMapping')
+    def test_append(self, mock_merged_silos_map,
+                             mock_append_two_silos):
+        mock_append_two_silos.return_value = {'status': 'success'}
+        mock_merged_silos_map.return_value = Mock()
+
+        columns = {'name': 'name', 'type': 'text'}
+        left_read = factories.Read(read_name='Read Left',
+                                   owner=self.tola_user.user)
+        right_read = factories.Read(read_name='Read Right',
+                                    owner=self.tola_user.user)
+        left_silo = factories.Silo(owner=self.tola_user.user, columns=columns,
+                                   reads=[left_read])
+        right_silo = factories.Silo(owner=self.tola_user.user, columns=columns,
+                                    reads=[right_read])
+        merged_silo_name = '{}_{}'.format(left_silo.name, right_silo.name)
+
+        data = {
+            'left_table_id': left_silo.id,
+            'right_table_id': right_silo.id,
+            'tableMergeType': 'append',
+            'columns_data': 'Test',
+            'merged_table_name': merged_silo_name
+        }
+
+        request = self.factory.post('', data=data)
+        request.user = self.tola_user.user
+        response = views.do_merge(request)
+        content = json.loads(response.content)
+
+        silo = Silo.objects.get(name=merged_silo_name)
+        self.assertEqual(content['status'], 'success')
+        self.assertIn('The merged table is accessible at', content['message'])
+        self.assertIn(left_read, silo.reads.all())
+        self.assertIn(right_read, silo.reads.all())
+
+    @patch('silo.views.mergeTwoSilos')
+    def test_status_danger(self, mock_merge_two_silos):
+        mock_merge_two_silos.return_value = {'status': 'danger'}
+
+        columns = {'name': 'name', 'type': 'text'}
+        left_read = factories.Read(read_name='Read Left',
+                                   owner=self.tola_user.user)
+        right_read = factories.Read(read_name='Read Right',
+                                    owner=self.tola_user.user)
+        left_silo = factories.Silo(owner=self.tola_user.user, columns=columns,
+                                   reads=[left_read])
+        right_silo = factories.Silo(owner=self.tola_user.user, columns=columns,
+                                    reads=[right_read])
+        merged_silo_name = '{}_{}'.format(left_silo.name, right_silo.name)
+
+        data = {
+            'left_table_id': left_silo.id,
+            'right_table_id': right_silo.id,
+            'tableMergeType': 'merge',
+            'columns_data': 'Test',
+            'merged_table_name': merged_silo_name
+        }
+
+        request = self.factory.post('', data=data)
+        request.user = self.tola_user.user
+        response = views.do_merge(request)
+        content = json.loads(response.content)
+
+        self.assertRaises(Silo.DoesNotExist,
+                          Silo.objects.get, name=merged_silo_name)
+        self.assertEqual(content['status'], 'danger')
+
+    def test_no_columns_passed(self):
+        read = factories.Read(read_name='Read Test', owner=self.tola_user.user)
+        left_silo = factories.Silo(owner=self.tola_user.user, reads=[read])
+        right_silo = factories.Silo(owner=self.tola_user.user, reads=[read])
+        merged_silo_name = '{}_{}'.format(left_silo.name, right_silo.name)
+
+        data = {
+            'left_table_id': left_silo.id,
+            'right_table_id': right_silo.id,
+            'tableMergeType': 'merge',
+            'merged_table_name': merged_silo_name
+        }
+
+        request = self.factory.post('', data=data)
+        request.user = self.tola_user.user
+        response = views.do_merge(request)
+
+        self.assertRaises(Silo.DoesNotExist,
+                          Silo.objects.get, name=merged_silo_name)
+        self.assertEqual(response.content, 'No columns data passed')
+
+    def test_cannot_find_tables(self):
+        read = factories.Read(read_name='Read Test', owner=self.tola_user.user)
+        silo = factories.Silo(owner=self.tola_user.user, reads=[read])
+
+        # Do not find the left table
+        data = {
+            'left_table_id': 999,
+            'right_table_id': silo.id,
+            'merged_table_name': 'Another test'
+        }
+
+        request = self.factory.post('', data=data)
+        request.user = self.tola_user.user
+        response = views.do_merge(request)
+
+        self.assertEqual(response.content,
+                         'Could not find the left table with id=999')
+
+        # Do not find the right table
+        data = {
+            'left_table_id': silo.id,
+            'right_table_id': 999,
+            'merged_table_name': 'Another test'
+        }
+
+        request = self.factory.post('', data=data)
+        request.user = self.tola_user.user
+        response = views.do_merge(request)
+
+        self.assertEqual(response.content,
+                         'Could not find the right table with id=999')
+
+    @patch('silo.views.mergeTwoSilos')
+    @patch('silo.views.MergedSilosFieldMapping')
+    def test_no_merge_name(self, mock_merged_silos_map,
+                                    mock_merge_two_silos):
+        mock_merge_two_silos.return_value = {'status': 'success'}
+        mock_merged_silos_map.return_value = Mock()
+
+        columns = {'name': 'name', 'type': 'text'}
+        left_read = factories.Read(read_name='Read Left',
+                                   owner=self.tola_user.user)
+        right_read = factories.Read(read_name='Read Right',
+                                    owner=self.tola_user.user)
+        left_silo = factories.Silo(owner=self.tola_user.user,
+                                   columns=columns,
+                                   reads=[left_read])
+        right_silo = factories.Silo(owner=self.tola_user.user,
+                                    columns=columns,
+                                    reads=[right_read])
+        merged_silo_name = 'Merging of {} and {}'.format(
+            left_silo.id, right_silo.id)
+
+        data = {
+            'left_table_id': left_silo.id,
+            'right_table_id': right_silo.id,
+            'tableMergeType': 'merge',
+            'columns_data': 'Test',
+            'merged_table_name': ''
+        }
+
+        request = self.factory.post('', data=data)
+        request.user = self.tola_user.user
+        response = views.do_merge(request)
+        content = json.loads(response.content)
+
+        silo = Silo.objects.get(name=merged_silo_name)
+        self.assertEqual(content['status'], 'success')
+        self.assertIn('The merged table is accessible at', content['message'])
+        self.assertIn(left_read, silo.reads.all())
+        self.assertIn(right_read, silo.reads.all())
