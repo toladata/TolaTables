@@ -1310,7 +1310,7 @@ def mergeColumns(request):
     return render(request, "display/merge-column-form.html", {'getSourceFrom':getSourceFrom, 'getSourceTo':getSourceTo, 'from_silo_id':from_silo_id, 'to_silo_id':to_silo_id})
 
 
-def doMerge(request):
+def do_merge(request):
     # get the table_ids.
     left_table_id = request.POST['left_table_id']
     right_table_id = request.POST['right_table_id']
