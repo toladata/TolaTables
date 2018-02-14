@@ -7,7 +7,7 @@ from django.contrib.auth.views import login
 from django.contrib import admin
 
 from util import getImportApps
-from silo import views, gviews_v4, tola_activity_views
+from silo import views, gviews_v4
 from silo.api import *
 from tola import views as tola_views
 
@@ -79,7 +79,6 @@ urlpatterns =[
     url(r'^edit_column_order/(?P<pk>\w+)/$', views.editColumnOrder, name='editColumnOrder'),
     url(r'^set_column_type/(?P<pk>\w+)/$', views.setColumnType, name='setColumnType'),
 
-    url(r'^export_to_activity/(?P<id>\d+)/$', tola_activity_views.export_to_tola_activity, name="acitivity_push"),
     url(r'^export_silo_form/(?P<id>\w+)/$', views.export_silo_form, name='export_silo_form'),
     url(r'^export/(?P<id>\w+)/$', views.export_silo, name='export_silo'),
 
