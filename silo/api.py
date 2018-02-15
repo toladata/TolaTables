@@ -48,14 +48,14 @@ class TolaUserViewSet(viewsets.ModelViewSet):
                                         context={'request': request})
         return Response(serializer.data)
 
-    filter_fields = ('organization__id',)
+    filter_fields = ('organization__id', 'tola_user_uuid')
     filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
     queryset = TolaUser.objects.all()
     serializer_class = TolaUserSerializer
 
 
 class OrganizationViewSet(viewsets.ModelViewSet):
-    filter_fields = ('name',)
+    filter_fields = ('name', 'organization_uuid')
     filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
@@ -75,14 +75,14 @@ class CountryViewSet(viewsets.ModelViewSet):
 
 
 class WorkflowLevel1ViewSet(viewsets.ModelViewSet):
-    filter_fields = ('name',)
+    filter_fields = ('name', 'level1_uuid')
     filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
     queryset = WorkflowLevel1.objects.all()
     serializer_class = WorkflowLevel1Serializer
 
 
 class WorkflowLevel2ViewSet(viewsets.ModelViewSet):
-    filter_fields = ('name','workflowlevel1__name')
+    filter_fields = ('name', 'workflowlevel1__name', 'level2_uuid')
     filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
     queryset = WorkflowLevel2.objects.all()
     serializer_class = WorkflowLevel2Serializer
@@ -176,12 +176,6 @@ class CustomFormViewSet(mixins.CreateModelMixin,
         silo.reads.add(read)
         silo.workflowlevel1.add(wkflvl1)
 
-        lvs = LabelValueStore()
-        lvs.silo_id = silo.pk
-        lvs.create_date = timezone.now()
-        lvs.read_id = read.pk
-        lvs.save()
-
         serializer = self.serializer_class(silo, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -242,14 +236,15 @@ class CustomFormViewSet(mixins.CreateModelMixin,
             return Response({'detail': 'Missing data.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        silo = Silo.objects.get(pk=silo_id)
-        lvs = LabelValueStore.objects(silo_id=silo_id).count()
-        if not lvs or not silo:
+        try:
+            silo = Silo.objects.get(pk=silo_id)
+        except Silo.DoesNotExist:
             return Response({'detail': 'Not found.'},
                             status=status.HTTP_404_NOT_FOUND)
-
-        saveDataToSilo(silo, [data], silo.reads.first())
-        return Response(status=status.HTTP_200_OK)
+        else:
+            saveDataToSilo(silo, [data], silo.reads.first())
+            return Response({'detail': 'It was successfully saved.'},
+                            status=status.HTTP_200_OK)
 
 
 class SilosByUser(viewsets.ReadOnlyModelViewSet):

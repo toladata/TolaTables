@@ -1,4 +1,4 @@
-Tola Tables [![Build Status](https://travis-ci.org/toladata/TolaTables.svg?branch=master)](https://travis-ci.org/toladata/TolaTables)
+Tola Tables [![Build Status](https://travis-ci.org/toladata/TolaTables.svg?branch=master)](https://travis-ci.org/toladata/TolaTables) [![Coverage Status](https://coveralls.io/repos/github/toladata/TolaTables/badge.svg)](https://coveralls.io/github/toladata/TolaTables)
 ====
 
 Share, edit and display data from various mobile data collection platforms.
@@ -102,7 +102,7 @@ You should now see '(venv)' added to the left side of your prompt.  If you don't
 
 Now install the python modules into the Virtualenv:
 
-`pip install -r TolaTables/requirements.txt`
+`pip install -r TolaTables/requirements/base.txt`
 
 ### Install selenium
 

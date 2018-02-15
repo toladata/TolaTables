@@ -54,56 +54,59 @@
             </div>
         </div>
 
-        <div class="col-xs-12 map-container">
-            <div class="panel panel-default">
-                <div class="panel-heading center">
-                    <h4>Map</h4>
+        {% if lat_long.items and lat_long.items.strip%}
+            <div class="col-xs-12 map-container">
+                <div class="panel panel-default">
+                    <div class="panel-heading center">
+                        <h4>Map</h4>
+                    </div>
+                    <style>
+                      #map { height: 350px; }
+                    </style>
+                    <div id="map"></div>
+                    <script>
+                    var countries = new L.LayerGroup();
+                    var bounds = new L.LatLngBounds();
+
+                    // Define an icon called cssIcon
+                    var countryIcon = L.divIcon({
+                      // Specify a class name we can refer to in CSS.
+                      // Set marker width and height
+                      html:'<div class="map-marker"></div>',
+                      iconSize: [0,0]
+                    });
+
+                    {% for item in lat_long.items %}
+                        marker = L.marker([{{ item.0 }} , {{ item.1 }}], {icon: countryIcon}).addTo(countries).bindPopup("" + "<b> {{ item.0 }} , {{ item.1 }} </b><br/>Location Entry <br/> ");
+                        bounds.extend(marker.getLatLng());
+                    {% endfor %}
+
+
+                    var mbAttr = 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+                    '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+                    'Imagery &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+                    mbUrl = 'http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png';
+                    var grayscale   = L.tileLayer(mbUrl, {id: 'mapbox.light', attribution: mbAttr}),
+                    streets  = L.tileLayer(mbUrl, {id: 'mapbox.streets',   attribution: mbAttr});
+                    var map = L.map('map', {
+
+                    zoom: 5,
+                    layers: [grayscale, countries]
+                    });
+                    var baseLayers = {
+                    "Grayscale": grayscale,
+                    "Streets": streets,
+                    };
+                    var overlays = {
+                    "TolaData Countries": countries,
+                    };
+                    L.control.layers(baseLayers, overlays).addTo(map);
+
+                    map.fitBounds(bounds);
+                    </script>
                 </div>
-                <style>
-                  #map { height: 350px; }
-                </style>
-                <div id="map"></div>
-                <script>
-                var countries = new L.LayerGroup();
-                var bounds = new L.LatLngBounds();
-
-                // Define an icon called cssIcon
-                var countryIcon = L.divIcon({
-                  // Specify a class name we can refer to in CSS.
-                  // Set marker width and height
-                  html:'<div class="map-marker"></div>',
-                  iconSize: [0,0]
-                });
-
-                {% for item in lat_long.items %}
-                    marker = L.marker([{{ item.0 }} , {{ item.1 }}], {icon: countryIcon}).addTo(countries).bindPopup("" + "<b> {{ item.0 }} , {{ item.1 }} </b><br/>Location Entry <br/> ");
-                    bounds.extend(marker.getLatLng());
-                {% endfor %}
-
-                var mbAttr = 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
-                '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
-                'Imagery &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
-                mbUrl = 'http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png';
-                var grayscale   = L.tileLayer(mbUrl, {id: 'mapbox.light', attribution: mbAttr}),
-                streets  = L.tileLayer(mbUrl, {id: 'mapbox.streets',   attribution: mbAttr});
-                var map = L.map('map', {
-
-                zoom: 5,
-                layers: [grayscale, countries]
-                });
-                var baseLayers = {
-                "Grayscale": grayscale,
-                "Streets": streets,
-                };
-                var overlays = {
-                "TolaData Countries": countries,
-                };
-                L.control.layers(baseLayers, overlays).addTo(map);
-
-                map.fitBounds(bounds);
-                </script>
             </div>
-        </div>
+        {% endif %}
 
         <div class="col-xs-12 viz">
             <div class="panel panel-default">
@@ -142,9 +145,7 @@
                 datasets : [
                     {
                         data : {% for x,y in value.items %}{{ y.count }} {% endfor %},
-                        backgroundColor: [{% for i in "xxxxxxxxxxxxxxxxxxxx" %}{{ "dynamicColors()," }}{% endfor %}],
-
-
+                        backgroundColor: [{% for i in "x"|rjust:"100" %}{{ "dynamicColors()," }}{% endfor %}],
 
                     }
                 ]
