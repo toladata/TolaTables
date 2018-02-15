@@ -340,7 +340,7 @@
         columns_data['right_unmapped_cols'] = cols;
 
         // Now post the data object to the server
-        $.post("/doMerge/", {
+        $.post("/do_merge/", {
             'columns_data': JSON.stringify(columns_data),
             'left_table_id': {{ from_silo_id  }},
             'right_table_id': {{ to_silo_id }} ,

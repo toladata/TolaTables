@@ -65,7 +65,7 @@ urlpatterns =[
 
     url(r'^merge/(?P<id>\w+)/$', views.mergeForm, name='mergeForm'),
     url(r'^merge_columns', views.mergeColumns, name='mergeColumns'),
-    url(r'^doMerge', views.doMerge, name='doMerge'),
+    url(r'^do_merge', views.do_merge, name='do_merge'),
     url(r'^updateMergedTable/(?P<pk>\w+)/$', views.updateSiloData, name='updateMergedTable'),
 
     url(r'^update_column', views.updateEntireColumn, name='updateColumn'),

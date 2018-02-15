@@ -1309,53 +1309,60 @@ def mergeColumns(request):
     return render(request, "display/merge-column-form.html", {'getSourceFrom':getSourceFrom, 'getSourceTo':getSourceTo, 'from_silo_id':from_silo_id, 'to_silo_id':to_silo_id})
 
 
-def doMerge(request):
+def do_merge(request):
     # get the table_ids.
     left_table_id = request.POST['left_table_id']
-    right_table_id = request.POST["right_table_id"]
-    mergeType = request.POST.get("tableMergeType", None)
-    left_table = None
-    right_table = None
-
+    right_table_id = request.POST['right_table_id']
+    merge_type = request.POST.get('tableMergeType', None)
     merged_silo_name = request.POST['merged_table_name']
 
     if not merged_silo_name:
-        merged_silo_name = "Merging of %s and %s" % (left_table_id, right_table_id)
+        merged_silo_name = 'Merging of {} and {}'.format(
+            left_table_id, right_table_id)
 
     try:
         left_table = Silo.objects.get(id=left_table_id)
-    except Silo.DoesNotExist as e:
-        return HttpResponse("Could not find left table with id=%s" % left_table_id)
+    except Silo.DoesNotExist:
+        return HttpResponse('Could not find the left table with id={}'.format(
+                             left_table_id))
 
     try:
         right_table = Silo.objects.get(id=right_table_id)
-    except Silo.DoesNotExist as e:
-        return HttpResponse("Could not find right table with id=%s" % left_table_id)
+    except Silo.DoesNotExist:
+        return HttpResponse('Could not find the right table with id={}'.format(
+                             right_table_id))
 
     data = request.POST.get('columns_data', None)
     if not data:
-        return HttpResponse("no columns data passed")
+        return HttpResponse('No columns data passed')
 
     # Create a new silo
-    new_silo = Silo(name=merged_silo_name , public=False, owner=request.user)
-    new_silo.save()
+    new_silo = Silo.objects.create(name=merged_silo_name, public=False,
+                                   owner=request.user)
+    left_table_reads = left_table.reads.values_list('id', flat=True).all()
+    right_table_reads = right_table.reads.values_list('id', flat=True).all()
+    new_silo.reads.add(*left_table_reads)
+    new_silo.reads.add(*right_table_reads)
     merge_table_id = new_silo.pk
 
-    if mergeType == "merge":
+    if merge_type == 'merge':
         res = mergeTwoSilos(data, left_table_id, right_table_id, merge_table_id)
     else:
-        res = appendTwoSilos(data, left_table_id, right_table_id, merge_table_id)
+        res = appendTwoSilos(
+            data, left_table_id, right_table_id, merge_table_id
+        )
 
-    try:
-        if res['status'] == "danger":
-            new_silo.delete()
-            return JsonResponse(res)
-    except Exception:
-        pass
+    if res['status'] == 'danger':
+        new_silo.delete()
+        return JsonResponse(res)
 
-    mapping = MergedSilosFieldMapping(from_silo=left_table, to_silo=right_table, merged_silo=new_silo, merge_type=mergeType, mapping=data)
+    mapping = MergedSilosFieldMapping(from_silo=left_table, to_silo=right_table,
+                                      merged_silo=new_silo, mapping=data,
+                                      merge_type=merge_type)
     mapping.save()
-    return JsonResponse({'status': "success",  'message': 'The merged table is accessible at <a href="/silo_detail/%s/" target="_blank">Merged Table</a>' % new_silo.pk})
+    msg = 'The merged table is accessible at <a href="/silo_detail/{}/" ' \
+          'target="_blank">Merged Table</a>'.format(new_silo.pk)
+    return JsonResponse({'status': 'success', 'message': msg})
 
 
 # EDIT A SINGLE VALUE STORE
