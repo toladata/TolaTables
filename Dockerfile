@@ -8,7 +8,7 @@ RUN apt-get update && \
 
 ADD docker/etc/nginx/nginx.conf /etc/nginx/nginx.conf
 
-RUN pip install -r requirements.txt
+RUN pip install -r requirements/base.txt
 
 EXPOSE 8000
 

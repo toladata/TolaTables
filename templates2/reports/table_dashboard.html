@@ -54,7 +54,7 @@
             </div>
         </div>
 
-        {% if lat_long.items and lat_long.items.strip or countries and countries.strip%}
+        {% if lat_long.items and lat_long.items.strip%}
             <div class="col-xs-12 map-container">
                 <div class="panel panel-default">
                     <div class="panel-heading center">
@@ -145,7 +145,7 @@
                 datasets : [
                     {
                         data : {% for x,y in value.items %}{{ y.count }} {% endfor %},
-                        backgroundColor: [{% for i in "xxxxxxxxxxxxxxxxxxxx" %}{{ "dynamicColors()," }}{% endfor %}],
+                        backgroundColor: [{% for i in "x"|rjust:"100" %}{{ "dynamicColors()," }}{% endfor %}],
 
                     }
                 ]

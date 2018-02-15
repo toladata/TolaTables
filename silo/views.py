@@ -457,28 +457,28 @@ def editSilo(request, id):
         tags = request.POST.getlist('tags')
         post_data = request.POST.copy()
 
-        #empty the list but do not remove the dictionary element
-        if tags: del post_data.getlist('tags')[:]
+        if tags:
+            post_data.pop('tags')
 
         for i, t in enumerate(tags):
             if t.isdigit():
-                post_data.getlist('tags').append(t)
+                post_data.appendlist('tags', t)
             else:
-                tag, created = Tag.objects.get_or_create(name=t, defaults={'owner': request.user})
+                tag, created = Tag.objects.get_or_create(
+                    name=t, defaults={'owner': request.user})
                 if created:
-                    #print("creating tag: %s " % tag)
                     tags[i] = tag.id
-                #post_data is a QueryDict in which each element is a list
-                post_data.getlist('tags').append(tag.id)
 
-        form = SiloForm(post_data, instance=edited_silo)
+                post_data.appendlist('tags', tag.id)
+
+        form = SiloForm(data=post_data, instance=edited_silo)
         if form.is_valid():
-            updated = form.save()
+            form.save()
             return HttpResponseRedirect('/silos/')
         else:
             messages.error(request, 'Invalid Form', fail_silently=False)
     else:
-        form = SiloForm(instance=edited_silo)
+        form = SiloForm(user=request.user, instance=edited_silo)
     return render(request, 'silo/edit.html', {
         'form': form, 'silo_id': id, "silo": edited_silo,
     })
