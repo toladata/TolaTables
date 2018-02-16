@@ -1,20 +1,15 @@
 import json
 
+from django.utils.deprecation import MiddlewareMixin
 from django.contrib import messages
 
 
-class AjaxMessaging(object):
-
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
-        return self.get_response(request)
+class AjaxMessaging(MiddlewareMixin):
 
     def process_response(self, request, response):
         if request.is_ajax():
-            print("ajax done: %s" % response['Content-Type'])
-            if response['Content-Type'] in ["application/javascript", "application/json"]:
+            if response['Content-Type'] in ["application/javascript",
+                                            "application/json"]:
                 try:
                     content = json.loads(response.content)
                 except ValueError as e:
@@ -31,8 +26,8 @@ class AjaxMessaging(object):
                     })
 
                 # workaround for list type data
-                if type(content) == list:
-                    content = {"data" : content}
+                if isinstance(content, list):
+                    content = {"data": content}
                 content['django_messages'] = django_messages
 
                 response.content = json.dumps(content)
