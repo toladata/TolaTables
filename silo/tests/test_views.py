@@ -363,13 +363,9 @@ class SiloViewsTest(TestCase, MongoTestCase):
         request.user = self.tola_user.user
         self._bugfix_django_messages(request)
         response = views.edit_columns(request, silo.id)
-        template_content = response.content
 
-        match = '<label for="id_farbe" class="control-label col-sm-5">'
-        self.assertIn(match, template_content)
-
-        match = '<label for="id_art" class="control-label col-sm-5">'
-        self.assertIn(match, template_content)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/silo_detail/1/')
 
     def test_silo_edit_columns_invalid_form(self):
         self.tola_user.user.is_staff = True
