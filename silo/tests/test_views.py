@@ -597,18 +597,16 @@ class DoMergeViewTest(TestCase):
         request = self.factory.post('', data=data)
         request.user = self.tola_user.user
         response = views.do_merge(request)
-        content = json.loads(response.content)
 
         silo = Silo.objects.get(name=merged_silo_name)
-        self.assertEqual(content['status'], 'success')
-        self.assertIn('The merged table is accessible at', content['message'])
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/silo_detail/{}/'.format(silo.id))
         self.assertIn(left_read, silo.reads.all())
         self.assertIn(right_read, silo.reads.all())
 
     @patch('silo.views.appendTwoSilos')
     @patch('silo.views.MergedSilosFieldMapping')
-    def test_append(self, mock_merged_silos_map,
-                             mock_append_two_silos):
+    def test_append(self, mock_merged_silos_map, mock_append_two_silos):
         mock_append_two_silos.return_value = {'status': 'success'}
         mock_merged_silos_map.return_value = Mock()
 
@@ -634,11 +632,10 @@ class DoMergeViewTest(TestCase):
         request = self.factory.post('', data=data)
         request.user = self.tola_user.user
         response = views.do_merge(request)
-        content = json.loads(response.content)
 
         silo = Silo.objects.get(name=merged_silo_name)
-        self.assertEqual(content['status'], 'success')
-        self.assertIn('The merged table is accessible at', content['message'])
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/silo_detail/{}/'.format(silo.id))
         self.assertIn(left_read, silo.reads.all())
         self.assertIn(right_read, silo.reads.all())
 
@@ -729,8 +726,7 @@ class DoMergeViewTest(TestCase):
 
     @patch('silo.views.mergeTwoSilos')
     @patch('silo.views.MergedSilosFieldMapping')
-    def test_no_merge_name(self, mock_merged_silos_map,
-                                    mock_merge_two_silos):
+    def test_no_merge_name(self, mock_merged_silos_map, mock_merge_two_silos):
         mock_merge_two_silos.return_value = {'status': 'success'}
         mock_merged_silos_map.return_value = Mock()
 
@@ -759,10 +755,9 @@ class DoMergeViewTest(TestCase):
         request = self.factory.post('', data=data)
         request.user = self.tola_user.user
         response = views.do_merge(request)
-        content = json.loads(response.content)
 
         silo = Silo.objects.get(name=merged_silo_name)
-        self.assertEqual(content['status'], 'success')
-        self.assertIn('The merged table is accessible at', content['message'])
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/silo_detail/{}/'.format(silo.id))
         self.assertIn(left_read, silo.reads.all())
         self.assertIn(right_read, silo.reads.all())
