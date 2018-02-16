@@ -82,13 +82,20 @@ def user_to_tola(backend, user, response, *args, **kwargs):
             'privacy_disclaimer_accepted':
                 remote_user['privacy_disclaimer_accepted']
         }
-        del remote_org['url']
-        del remote_org['industry']  # ignore for now
-        del remote_org['sector']  # ignore for now
-        del remote_org['chargebee_subscription_id']  # ignore for now
-        del remote_org['chargebee_used_seats']  # ignore for now
+
+        data_org = {
+            'organization_uuid': remote_org['organization_uuid'],
+            'name': remote_org['name'],
+            'description': remote_org.get('description'),
+            'organization_url': remote_org.get('organization_url'),
+            'level_1_label': remote_org.get('level_1_label', ''),
+            'level_2_label': remote_org.get('level_2_label', ''),
+            'level_3_label': remote_org.get('level_3_label', ''),
+            'level_4_label': remote_org.get('level_4_label', '')
+        }
+
         organization, org_created = Organization.objects.update_or_create(
-                remote_org, organization_uuid=remote_org['organization_uuid'])
+            data_org, organization_uuid=data_org['organization_uuid'])
 
         tola_user_fields['organization'] = organization
 
