@@ -1360,9 +1360,8 @@ def do_merge(request):
                                       merged_silo=new_silo, mapping=data,
                                       merge_type=merge_type)
     mapping.save()
-    msg = 'The merged table is accessible at <a href="/silo_detail/{}/" ' \
-          'target="_blank">Merged Table</a>'.format(new_silo.pk)
-    return JsonResponse({'status': 'success', 'message': msg})
+    return HttpResponseRedirect(
+        reverse_lazy('siloDetail', kwargs={'silo_id': merge_table_id}))
 
 
 # EDIT A SINGLE VALUE STORE
