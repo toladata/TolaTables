@@ -1251,6 +1251,7 @@ def edit_columns(request, id):
             if len(to_delete):
                 deleteSiloColumns(silo, to_delete)
             messages.info(request, 'Updates Saved', fail_silently=False)
+            return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': silo.id}))
         else:
             messages.error(request,
                            'ERROR: There was a problem with your request',
