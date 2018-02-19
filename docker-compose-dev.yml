@@ -18,6 +18,11 @@ services:
       - "5432:5432"
     restart: always
 
+  redis:
+    image: redis:4.0
+    ports:
+      - "6379:6379"
+
   mongo:
     container_name: mongo
     healthcheck:
@@ -72,3 +77,4 @@ services:
       - GOOGLE_API_KEY=AIzaSyCnXYlzg5GBjOOk-_Mh8s36aF7OqIalyqE
       - GOOGLE_OAUTH_CLIENT_ID=1090285679254-sle9dnkig5lv0gvnvgo5bd7js2i2u9cl.apps.googleusercontent.com
       - GOOGLE_OAUTH_CLIENT_SECRET=bZ6NaORHhmAfeZ_s-s9WuLVh
+      - CELERY_BROKER_URL=redis://redis@redis:6379/0
