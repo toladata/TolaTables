@@ -987,8 +987,8 @@ def siloDetail(request, silo_id):
     could not be removed from the task.
     """
 
-    tasks_running = Read.objects.filter(silo=silo.id, task_status__in=[TASK_CREATED, TASK_IN_PROGRESS]).count()
-    tasks_failed = Read.objects.filter(silo=silo.id, task_status=TASK_FAILED).count()
+    tasks_running = Read.objects.filter(silos=silo.id, task_status__in=[TASK_CREATED, TASK_IN_PROGRESS]).count()
+    tasks_failed = Read.objects.filter(silos=silo.id, task_status=TASK_FAILED).count()
 
     if silo.owner == request.user or silo.public == True or request.user in silo.shared.all():
         cols.append('_id')

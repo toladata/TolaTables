@@ -6,9 +6,11 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.test import Client
 from django.test import RequestFactory
+from django.core.exceptions import ObjectDoesNotExist
 
 from commcare.tasks import parseCommCareData
 from commcare.util import getProjects
+from silo.tasks import process_silo
 from silo.forms import get_read_form
 from silo.models import DeletedSilos, LabelValueStore, ReadType, Read, Silo
 from silo.views import (addColumnFilter, editColumnOrder, newFormulaColumn,
@@ -17,8 +19,50 @@ from tola.util import (addColsToSilo, hideSiloColumns, getColToTypeDict,
                        getSiloColumnNames)
 
 from mock import patch
+from celery.exceptions import Retry
 
 import factories
+
+
+class CeleryTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.factory = RequestFactory()
+        self.user = factories.User()
+
+    def test_celery_success(self):
+        silo = factories.Silo(owner=self.user, public=False)
+
+        read_type = factories.ReadType(read_type="CSV")
+        upload_file = open('test.csv', 'rb')
+        read = factories.Read(owner=self.user, type=read_type, file_data=SimpleUploadedFile(upload_file.name, upload_file.read()))
+
+        process_done = process_silo(silo.id, read.id)
+
+        self.assertTrue(process_done)
+
+    @patch('silo.tasks.process_silo_error')
+    def test_celery_failure(self, process_silo_error):
+        silo = factories.Silo(owner=self.user, public=False)
+
+        read_type = factories.ReadType(read_type="CSV")
+        upload_file = open('test_broken.csv', 'rb')
+        read = factories.Read(owner=self.user, type=read_type, file_data=SimpleUploadedFile(upload_file.name, upload_file.read()))
+
+        process_silo.apply_async(
+            (silo.id, read.id),
+            link_error=process_silo_error()
+        )
+        process_silo_error.assert_called()
+
+    @patch('silo.tasks.process_silo.retry')
+    def test_wrong_silo(self, process_silo_retry):
+        process_silo_retry.side_effect = Retry()
+        silo = factories.Silo(owner=self.user, public=False)
+
+        with self.assertRaises(ObjectDoesNotExist):
+            process_silo(silo.id, -1)
 
 
 class ReadTest(TestCase):

@@ -57,6 +57,7 @@ services:
     depends_on:
       - postgres
       - mongoClientTemp
+      - redis
     environment:
       - DJANGO_SETTINGS_MODULE=tola.settings.dev
       - TOLA_DEBUG=True
