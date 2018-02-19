@@ -12,6 +12,19 @@ from mongoengine import DynamicDocument, IntField, DateTimeField
 from oauth2client.contrib.django_orm import CredentialsField
 from rest_framework.authtoken.models import Token
 
+#Status choices for celery tasks
+TASK_CREATED = 'CREATED'
+TASK_IN_PROGRESS = 'IN_PROGRESS'
+TASK_FINISHED = 'FINISHED'
+TASK_FAILED = 'FAILED'
+
+TASK_STATUS_CHOICES = (
+    (TASK_CREATED, 'CREATED'),
+    (TASK_IN_PROGRESS, 'IN_PROGRESS'),
+    (TASK_FINISHED, 'FINISHED'),
+    (TASK_FAILED, 'FAILED'),
+)
+
 
 # New user created generate a token
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
@@ -279,6 +292,9 @@ class Read(models.Model):
     autopush_expiration = models.DateTimeField(null=True, blank=True)
     create_date = models.DateTimeField(null=True, blank=True, auto_now=False, auto_now_add=True)
     edit_date = models.DateTimeField(null=True, blank=True, auto_now=True, auto_now_add=False)
+    task_id = models.CharField(max_length=50, blank=True, null=True, default=None, verbose_name='Celery task id')
+    task_status = models.CharField(max_length=25, choices=TASK_STATUS_CHOICES, null=True, blank=True,
+                                   verbose_name='Celery task status')
 
     class Meta:
         ordering = ('create_date',)

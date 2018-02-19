@@ -41,9 +41,10 @@ from commcare.tasks import fetchCommCareData
 from .serializers import *
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, \
     Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, \
-    DeletedSilos, FormulaColumn
+    DeletedSilos, FormulaColumn, TASK_CREATED, TASK_IN_PROGRESS, TASK_FINISHED, TASK_FAILED
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, \
     NewColumnForm, EditColumnForm, OnaLoginForm
+from .tasks import process_silo, process_silo_error
 
 logger = logging.getLogger("silo")
 client = MongoClient(settings.MONGO_URI)
@@ -676,7 +677,7 @@ def showRead(request, id):
     """
     Show a read data source and allow user to edit it
     """
-    excluded_fields = ['gsheet_id', 'resource_id', 'token', 'create_date', 'edit_date', 'token', 'autopush_expiration', 'autopull_expiration']
+    excluded_fields = ['gsheet_id', 'resource_id', 'token', 'create_date', 'edit_date', 'token', 'autopush_expiration', 'autopull_expiration', 'task_id', 'task_status']
     initial = {'owner': request.user}
     data = None
     access_token = None
@@ -695,13 +696,13 @@ def showRead(request, id):
         get_tables = None
 
     if read_type == "GSheet Import" or read_type == "ONA":
-        excluded_fields = excluded_fields + ['username', 'password', 'file_data','autopush_frequency']
+        excluded_fields = excluded_fields + ['username', 'password', 'file_data','autopush_frequency', 'onedrive_file']
     elif read_type == "JSON":
         excluded_fields = excluded_fields + ['file_data','autopush_frequency']
     elif read_type == "Google Spreadsheet":
-        excluded_fields = excluded_fields + ['username', 'password', 'file_data', 'autopull_frequency']
+        excluded_fields = excluded_fields + ['username', 'password', 'file_data', 'autopull_frequency', 'onedrive_file']
     elif read_type == "CSV":
-        excluded_fields = excluded_fields + ['username', 'password', 'autopush_frequency', 'autopull_frequency', 'read_url']
+        excluded_fields = excluded_fields + ['username', 'password', 'autopush_frequency', 'autopull_frequency', 'read_url', 'onedrive_file']
     elif read_type == "OneDrive":
         user = User.objects.get(username__exact=request.user)
         social = user.social_auth.get(provider='microsoft-graph')
@@ -848,8 +849,15 @@ def uploadFile(request, id):
             silo.reads.add(read_obj)
             silo_id = silo.id
 
-            reader = CustomDictReader(read_obj.file_data)
-            saveDataToSilo(silo, reader, read_obj)
+            async_res = process_silo.apply_async(
+                        (silo.id, read_obj.id),
+                        link_error=process_silo_error.s(read_obj.id)
+            )
+
+            read_obj.task_id = async_res.id
+            read_obj.task_status = TASK_CREATED
+            read_obj.save()
+
             return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
         else:
             messages.error(request, "There was a problem with reading the contents of your file" + form.errors)
@@ -974,12 +982,30 @@ def siloDetail(request, silo_id):
     data = []
     query = makeQueryForHiddenRow(json.loads(silo.rows_to_hide))
 
+    """
+    Note:    There is a chance a service gets stuck in "tasks_running" if a service worker terminates unexpectedly and the task id
+    could not be removed from the task.
+    """
+
+    tasks_running = Read.objects.filter(silo=silo.id, task_status__in=[TASK_CREATED, TASK_IN_PROGRESS]).count()
+    tasks_failed = Read.objects.filter(silo=silo.id, task_status=TASK_FAILED).count()
+
     if silo.owner == request.user or silo.public == True or request.user in silo.shared.all():
         cols.append('_id')
         cols.extend(getSiloColumnNames(silo_id))
     else:
         messages.warning(request,"You do not have permission to view this table.")
-    return render(request, "display/silo.html", {"silo": silo, "cols": cols, "query": query})
+    return render(
+        request,
+        "display/silo.html",
+        {
+            "silo": silo,
+            "cols": cols,
+            "query": query,
+            "tasks_running": tasks_running,
+            "tasks_failed": tasks_failed
+        }
+    )
 
 
 @login_required

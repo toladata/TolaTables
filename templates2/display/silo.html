@@ -84,7 +84,11 @@
                             {% for read in silo.reads.all %}
                                 {% if read.type.read_type != "Google Spreadsheet" %}
                                 <tr>
-                                    <td><a href="/show_read/{{read.id}}" target="_blank">{{read.read_name }}</a></td>
+                                    <td>
+                                        <a href="/show_read/{{read.id}}" target="_blank">{{read.read_name }}</a>
+                                        {% if read.task_status == "FAILED" %}&nbsp;<span class="btn-sm btn-danger">Import Failed</span>{% endif %}
+                                        {% if read.task_status == "CREATED" or read.task_status == "IN_PROGRESS" %}&nbsp;<span class="btn-sm btn-warning">Import running</span>{% endif %}
+                                    </td>
                                     <td>{{read.description}}</td>
                                     <td>{{ read.type.read_type}}</td>
                                     <td><a href="{{ read.read_url }}" target="_blank">link to source</a></td>
@@ -205,16 +209,31 @@
         <div class="panel-heading">
             <h3 class="panel-title"><a href="/silo_edit/{{ silo.id }}">{{silo.name}}</a></h3>
             <small>{{ silo.description|default:"" }}</small>
+            {% if tasks_running %}
+                <h4>Import process running</h4>
+                <small style="color:#ff3019">
+                    The table is not available because the importing process did not finish yet.
+                    <br> Refresh this page to check the current status.
+                </small>
+            {% endif %}
+            {% if tasks_failed %}
+                    <h4 style="color:#ff3019">Import process failed</h4>
+                    <small style="color:#ff3019">
+                        At least one import process failed. Data shown in this table might be incomplete!
+                    </small>
+            {% endif %}
         </div>
-        <div class="panel panel-body" style="padding: 5px 0px 5px 0px;">
-            <table id="data_table" class="table table-hover table table-striped table-bordered" style="overflow-x: scroll; display:inline-block; width:100%;" width="100%">
-                <thead>
-                    {% for c in cols %}
-                        <th>{{c}}</th>
-                    {% endfor %}
-                </thead>
-            </table>
-        </div>
+{% if not tasks_running %}
+<div class="panel panel-body" style="padding: 5px 0px 5px 0px;">
+<table id="data_table" class="table table-hover table table-striped table-bordered" style="overflow-x: scroll; display:inline-block; width:100%;" width="100%">
+<thead>
+{% for c in cols %}
+<th>{{c}}</th>
+{% endfor %}
+</thead>
+</table>
+</div>
+{% endif %}
     </div>
 
 <div class="modal fade" id="unique_cols_selection_modal" tabindex="-1" role="dialog" aria-labelledby="pr_items_modal_div_label" aria-hidden="true">
