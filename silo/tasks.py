@@ -5,7 +5,9 @@ from tola.celery import app
 
 from silo.custom_csv_dict_reader import CustomDictReader
 from tola.util import saveDataToSilo
-from .models import Silo, Read, TASK_IN_PROGRESS, TASK_FINISHED, TASK_FAILED
+from .models import Silo, Read, CeleryTask
+
+from django.contrib.contenttypes.models import ContentType
 
 import logging
 
@@ -16,15 +18,18 @@ logger = logging.getLogger("tola")
 def process_silo(self, silo_id, read_id):
     silo = Silo.objects.get(id=silo_id)
     read_obj = Read.objects.get(pk=read_id)
-    read_obj.task_status = TASK_IN_PROGRESS
-    read_obj.save()
+
+    ctype = ContentType.objects.get_for_model(Read)
+    task = CeleryTask.objects.get(content_type=ctype, object_id=read_obj.id)
+    task.task_status = CeleryTask.TASK_IN_PROGRESS
+    task.save()
 
     reader = CustomDictReader(read_obj.file_data)
     saveDataToSilo(silo, reader, read_obj)
 
     # Todo add notification when done
-    read_obj.task_status = TASK_FINISHED
-    read_obj.save()
+    task.task_status = CeleryTask.TASK_FINISHED
+    task.save()
 
     return True
 
@@ -37,5 +42,8 @@ def process_silo_error(uuid, read_id):
     logger.error(exc)
 
     read_obj = Read.objects.get(pk=read_id)
-    read_obj.task_status = TASK_FAILED
-    read_obj.save()
+    ctype = ContentType.objects.get_for_model(Read)
+    task = CeleryTask.objects.get(content_type=ctype, object_id=read_obj.id)
+
+    task.task_status = CeleryTask.TASK_FAILED
+    task.save()

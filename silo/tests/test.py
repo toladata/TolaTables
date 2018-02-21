@@ -12,7 +12,7 @@ from commcare.tasks import parseCommCareData
 from commcare.util import getProjects
 from silo.tasks import process_silo
 from silo.forms import get_read_form
-from silo.models import DeletedSilos, LabelValueStore, ReadType, Read, Silo
+from silo.models import DeletedSilos, LabelValueStore, ReadType, Read, Silo, CeleryTask
 from silo.views import (addColumnFilter, editColumnOrder, newFormulaColumn,
                         showRead, editSilo, uploadFile, siloDetail)
 from tola.util import (addColsToSilo, hideSiloColumns, getColToTypeDict,
@@ -37,6 +37,9 @@ class CeleryTest(TestCase):
         read_type = factories.ReadType(read_type="CSV")
         upload_file = open('test.csv', 'rb')
         read = factories.Read(owner=self.user, type=read_type, file_data=SimpleUploadedFile(upload_file.name, upload_file.read()))
+
+        task = CeleryTask(task_id=1, task_status=CeleryTask.TASK_CREATED, content_object=read)
+        task.save()
 
         process_done = process_silo(silo.id, read.id)
 

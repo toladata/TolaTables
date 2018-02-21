@@ -86,8 +86,15 @@
                                 <tr>
                                     <td>
                                         <a href="/show_read/{{read.id}}" target="_blank">{{read.read_name }}</a>
-                                        {% if read.task_status == "FAILED" %}&nbsp;<span class="btn-sm btn-danger">Import Failed</span>{% endif %}
-                                        {% if read.task_status == "CREATED" or read.task_status == "IN_PROGRESS" %}&nbsp;<span class="btn-sm btn-warning">Import running</span>{% endif %}
+                                        {% for t in tasks %}
+                                            {% if t.read_id == read.id %}
+                                                {% if t.task_status == "FAILED" %}
+                                                    <span class="btn-sm btn-danger">Import Failed</span>
+                                                {% elif t.task_status == "CREATED" or t.task_status == "IN_PROGRESS" %}
+                                                    <span class="btn-sm btn-warning">Import running</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
                                     </td>
                                     <td>{{read.description}}</td>
                                     <td>{{ read.type.read_type}}</td>

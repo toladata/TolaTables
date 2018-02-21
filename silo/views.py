@@ -41,10 +41,12 @@ from commcare.tasks import fetchCommCareData
 from .serializers import *
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, \
     Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, \
-    DeletedSilos, FormulaColumn, TASK_CREATED, TASK_IN_PROGRESS, TASK_FINISHED, TASK_FAILED
+    DeletedSilos, FormulaColumn, CeleryTask
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, \
     NewColumnForm, EditColumnForm, OnaLoginForm
 from .tasks import process_silo, process_silo_error
+
+from django.contrib.contenttypes.models import ContentType
 
 logger = logging.getLogger("silo")
 client = MongoClient(settings.MONGO_URI)
@@ -828,7 +830,6 @@ def oneDrive(request):
     return render(request, 'silo/onedrive.html', {
     })
 
-
 @login_required
 def uploadFile(request, id):
     """
@@ -854,9 +855,8 @@ def uploadFile(request, id):
                         link_error=process_silo_error.s(read_obj.id)
             )
 
-            read_obj.task_id = async_res.id
-            read_obj.task_status = TASK_CREATED
-            read_obj.save()
+            task = CeleryTask(task_id=async_res.id, task_status=CeleryTask.TASK_CREATED, content_object=read_obj)
+            task.save()
 
             return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
         else:
@@ -987,8 +987,20 @@ def siloDetail(request, silo_id):
     could not be removed from the task.
     """
 
-    tasks_running = Read.objects.filter(silos=silo.id, task_status__in=[TASK_CREATED, TASK_IN_PROGRESS]).count()
-    tasks_failed = Read.objects.filter(silos=silo.id, task_status=TASK_FAILED).count()
+    tasks_running = Read.objects.filter(silos=silo.id, tasks__task_status__in=[CeleryTask.TASK_CREATED, CeleryTask.TASK_IN_PROGRESS]).count()
+    tasks_failed = Read.objects.filter(silos=silo.id, tasks__task_status=CeleryTask.TASK_FAILED).count()
+
+    silo_read_ids = Read.objects.filter(silos=silo.id).values_list('id', flat=True)
+
+    celery_tasks = CeleryTask.objects.filter(
+        object_id__in=silo_read_ids,
+        content_type=ContentType.objects.get_for_model(Read)
+    ).values_list('object_id', 'task_id', 'task_status')
+
+    tasks = map(
+        lambda t: {'read_id': t[0], 'task_id': t[1], 'task_status': t[2]},
+        celery_tasks
+    )
 
     if silo.owner == request.user or silo.public == True or request.user in silo.shared.all():
         cols.append('_id')
@@ -1003,7 +1015,8 @@ def siloDetail(request, silo_id):
             "cols": cols,
             "query": query,
             "tasks_running": tasks_running,
-            "tasks_failed": tasks_failed
+            "tasks_failed": tasks_failed,
+            "tasks": tasks
         }
     )
 
