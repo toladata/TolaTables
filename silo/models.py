@@ -14,6 +14,7 @@ from rest_framework.authtoken.models import Token
 
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericRelation
 
 
 class CeleryTask(models.Model):
@@ -275,7 +276,6 @@ class ReadTypeAdmin(admin.ModelAdmin):
     list_display = ('read_type','description','create_date','edit_date')
     display = 'Read Type'
 
-from django.contrib.contenttypes.fields import GenericRelation
 
 class Read(models.Model):
     FREQUENCY_DISABLED = 'DISABLED'
