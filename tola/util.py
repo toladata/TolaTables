@@ -385,7 +385,7 @@ def ona_parse_type_group(data, form_data, parent_name, silo, read):
                     try:
                         entry[field['label']] = entry.pop(parent_name + field['name'])
                     except KeyError as e:
-                        warnings.add("Warn: ona_parse_type_group for silo %s, %s" % (silo.pk, e))
+                        warnings.add("Keyerror for silo %s, %s" % (silo.pk, e))
                     except TypeError:
                         pass
             for warn in warnings:

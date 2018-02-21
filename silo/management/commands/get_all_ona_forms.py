@@ -16,7 +16,7 @@ class Command(BaseCommand):
     """
     help = 'Fetches all reads that have autopull_frequency checked and belong to a silo'
 
-    logger = logging.getLogger("silo")
+    logger = logging.getLogger(__name__)
 
     def add_arguments(self, parser):
         parser.add_argument("-f", "--frequency", type=str, required=True)
@@ -34,13 +34,13 @@ class Command(BaseCommand):
                 try:
                     ona_token = ThirdPartyTokens.objects.get(user=silo.owner.pk, name="ONA")
                 except MultipleObjectsReturned as e:
-                    self.logger.error("get_all_ona_forms token error: silo_id=%s, read_id=%s" % (silo.pk, read.pk))
+                    self.logger.error("token error: silo_id=%s, read_id=%s" % (silo.pk, read.pk))
                     self.logger.error(e)
                     continue
                 try:
                     response = requests.get(read.read_url, headers={'Authorization': 'Token %s' % ona_token.token}, timeout=10)
                 except Timeout:
-                    self.logger.error("get_all_ona_forms timeout error: silo_id=%s, read_id=%s" % (silo.pk, read.pk))
+                    self.logger.error("timeout error: silo_id=%s, read_id=%s" % (silo.pk, read.pk))
                     continue
 
                 data = json.loads(response.content)
@@ -49,8 +49,8 @@ class Command(BaseCommand):
                     saveDataToSilo(silo, data, read, silo.owner.pk)
                     self.stdout.write('Successfully fetched the READ_ID, "%s", from ONA' % read.pk)
                 except TypeError as e:
-                    self.logger.error("get_all_ona_forms type error: silo_id=%s, read_id=%s" % (silo.pk, read.pk))
+                    self.logger.error("type error: silo_id=%s, read_id=%s" % (silo.pk, read.pk))
                     self.logger.error(e)
                 except UnicodeEncodeError as e:
-                    self.logger.error("get_all_ona_forms unicode error: silo_id=%s, read_id=%s" % (silo.pk, read.pk))
+                    self.logger.error("unicode error: silo_id=%s, read_id=%s" % (silo.pk, read.pk))
                     self.logger.error(e)
