@@ -44,7 +44,7 @@ from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, \
     DeletedSilos, FormulaColumn, CeleryTask
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, \
     NewColumnForm, EditColumnForm, OnaLoginForm
-from .tasks import process_silo, process_silo_error
+from .tasks import process_silo
 
 from django.contrib.contenttypes.models import ContentType
 
@@ -851,8 +851,7 @@ def uploadFile(request, id):
             silo_id = silo.id
 
             async_res = process_silo.apply_async(
-                        (silo.id, read_obj.id),
-                        link_error=process_silo_error.s(read_obj.id)
+                        (silo.id, read_obj.id)
             )
 
             task = CeleryTask(task_id=async_res.id, task_status=CeleryTask.TASK_CREATED, content_object=read_obj)

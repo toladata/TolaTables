@@ -24,26 +24,14 @@ def process_silo(self, silo_id, read_id):
     task.task_status = CeleryTask.TASK_IN_PROGRESS
     task.save()
 
-    reader = CustomDictReader(read_obj.file_data)
-    saveDataToSilo(silo, reader, read_obj)
+    try:
+        reader = CustomDictReader(read_obj.file_data)
+        saveDataToSilo(silo, reader, read_obj)
+        task.task_status = CeleryTask.TASK_FINISHED
+    except TypeError, e:
+        logger.error(e)
+        task.task_status = CeleryTask.TASK_FAILED
 
+    task.save()
     # Todo add notification when done
-    task.task_status = CeleryTask.TASK_FINISHED
-    task.save()
-
     return True
-
-
-@app.task()
-def process_silo_error(uuid, read_id):
-    result = AsyncResult(uuid)
-    exc = result.get(propagate=False)
-
-    logger.error(exc)
-
-    read_obj = Read.objects.get(pk=read_id)
-    ctype = ContentType.objects.get_for_model(Read)
-    task = CeleryTask.objects.get(content_type=ctype, object_id=read_obj.id)
-
-    task.task_status = CeleryTask.TASK_FAILED
-    task.save()
