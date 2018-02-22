@@ -268,9 +268,26 @@
 
             // After the authentication is complete, this method is called
             function handleAuthResult(authResult) {
+                /* Firefox issue with `g-oauth-window` attribute
+                 * Check stackoverflow answer
+                 * https://stackoverflow.com/questions/28949048/error-permission-denied-to-access-property-nodetype-on-ajax-request-in-firefo
+                 */
                 if (authResult && !authResult.error) {
-                    oauthToken = authResult.access_token;
-                    createPicker();
+                    url_credential = '{% url 'store_oauth2_credential' %}';
+                    delete authResult['g-oauth-window'];
+                    $.ajax({
+                        url: url_credential,
+                        type: "POST",
+                        headers: {'X-CSRFToken': getCookie('csrftoken')},
+                        data: authResult,
+                        success: function(data, textStatus, jqXHR) {
+                            oauthToken = authResult.access_token;
+                            createPicker();
+                        },
+                        error: function(jqXHR, textStatus, error) {
+                            console.log(jqXHR, textStatus, error);
+                        },
+                    });
                 }
             }
 

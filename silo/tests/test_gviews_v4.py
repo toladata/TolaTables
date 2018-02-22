@@ -1,18 +1,22 @@
+import logging
 import json
 import os
-from unittest import TestCase as PythonTestCase
 import urllib
 
 from django.contrib.auth.models import User
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase, override_settings
 from django.urls import reverse
-from mock import patch
+from oauth2client.client import AccessTokenCredentialsError
+
+from rest_framework.test import APIRequestFactory
+from mock import Mock, patch
 
 import silo.gviews_v4 as gviews_v4
+import factories
 
 
-class GetOauthFlowTest(PythonTestCase):
+class GetOauthFlowTest(TestCase):
     @override_settings(GOOGLE_OAUTH_CLIENT_ID=None,
                        GOOGLE_OAUTH_CLIENT_SECRET=None)
     def test_get_oauth_flow_no_conf(self):
@@ -85,3 +89,68 @@ class GetCredentialObjectTest(TestCase):
         self.assertIn('access_type=offline', credential['redirect'])
         scope_url = urllib.quote_plus(gviews_v4.SCOPE)
         self.assertIn('scope={}'.format(scope_url), credential['redirect'])
+
+
+class OAuthTest(TestCase):
+    def setUp(self):
+        logging.disable(logging.ERROR)
+        
+        self.org = factories.Organization()
+        self.tola_user = factories.TolaUser(organization=self.org)
+        self.factory = APIRequestFactory()
+    
+    def tearDown(self):
+        logging.disable(logging.NOTSET)
+
+    def test_store_oauth2_credential_method_notallowed(self):
+        request = self.factory.get('')
+        request.user = self.tola_user.user
+        response = gviews_v4.store_oauth2_credential(request)
+
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response['Allow'], 'POST, OPTIONS')
+
+    @patch('silo.gviews_v4.OAuth2Credentials')
+    @patch('silo.gviews_v4.Storage')
+    def test_store_oauth2_credential_success_minimal(self, mock_storage,
+                                              mock_oauthcred):
+        mock_storage.return_value = Mock()
+        mock_oauthcred.return_value = Mock()
+        data = {
+            'access_token': 'mytestaccesstoken',
+        }
+        request = self.factory.post('', data=data)
+        request.user = self.tola_user.user
+        response = gviews_v4.store_oauth2_credential(request)
+        content = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(content['detail'],
+                         'The credential was successfully saved.')
+
+    @patch('silo.gviews_v4.OAuth2Credentials')
+    @patch('silo.gviews_v4.Storage')
+    def test_store_oauth2_credential_success_full(self, mock_storage,
+                                              mock_oauthcred):
+        mock_storage.return_value = Mock()
+        mock_oauthcred.return_value = Mock()
+        data = {
+            'access_token': 'mytestaccesstoken',
+            'refresh_token': 'myrefreshtoken',
+            'expires_in': 3573,
+        }
+        request = self.factory.post('', data=data)
+        request.user = self.tola_user.user
+        response = gviews_v4.store_oauth2_credential(request)
+        content = json.loads(response.content)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(content['detail'],
+                         'The credential was successfully saved.')
+
+    def test_store_oauth2_credential_no_access_token(self):
+        request = self.factory.post('', {})
+        request.user = self.tola_user.user
+
+        with self.assertRaises(AccessTokenCredentialsError):
+            gviews_v4.store_oauth2_credential(request)
