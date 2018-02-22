@@ -10,7 +10,7 @@ echo "Loading basic initial data"
 python manage.py loadinitialdata
 
 echo "Starting celery worker"
-celery_cmd="celery -A tola worker -l info"
+celery_cmd="celery -A tola worker -l info -f celery.log"
 $celery_cmd &
 
 echo "Running the server"
