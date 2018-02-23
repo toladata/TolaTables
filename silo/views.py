@@ -1246,9 +1246,9 @@ def edit_columns(request, id):
         if form.is_valid():  # All validation rules pass
             for label, value in form.cleaned_data.iteritems():
                 # update the column name if it doesn't have delete in it
-                if "_delete" not in label and str(label) != str(value) and \
-                                label != "silo_id" and label != "suds" and \
-                                label != "id":
+                if (not label.endswith('_delete') and str(label) != str(value)
+                    and label != "silo_id" and label != "suds"
+                        and label != "id"):
                     # update a column in the existing silo
                     db.label_value_store.update_many(
                         {
@@ -1267,7 +1267,7 @@ def edit_columns(request, id):
                     silo.columns = json.dumps(column_obj)
                     silo.save()
                 # if we see delete then it's a check box to delete that column
-                elif "_delete" in label and value == 1:
+                elif label.endswith('_delete') and value == 1:
                     column = label.replace("_delete", "")
                     db.label_value_store.update_many(
                         {
@@ -1278,18 +1278,17 @@ def edit_columns(request, id):
                         },
                         False
                     )
-                    column_name = label.split("_")[0]
                     try:
-                        silo.formulacolumns.filter(column_name).delete()
+                        silo.formulacolumns.filter(column).delete()
                     except Exception as e:
                         pass
-
-                    to_delete.append(column_name)
+                    to_delete.append(column)
 
             if len(to_delete):
                 deleteSiloColumns(silo, to_delete)
             messages.info(request, 'Updates Saved', fail_silently=False)
-            return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': silo.id}))
+            return HttpResponseRedirect(reverse_lazy(
+                'siloDetail', kwargs={'silo_id': silo.id}))
         else:
             messages.error(request,
                            'ERROR: There was a problem with your request',
