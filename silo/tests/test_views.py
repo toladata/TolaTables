@@ -366,9 +366,49 @@ class SiloViewsTest(TestCase, MongoTestCase):
 
         column_names = util.getSiloColumnNames(silo_id)
 
-        self.assertTrue('farbe' in column_names and 'art' in column_names and len(column_names) == 2)
+        self.assertTrue('farbe' in column_names)
+        self.assertTrue('art' in column_names)
+        self.assertEqual(len(column_names), 2)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, '/silo_detail/'+str(silo_id)+'/')
+
+    @patch('silo.views.db')
+    def test_silo_edit_columns_delete(self, mock_db):
+        mock_db.return_value = Mock()
+        self.tola_user.user.is_staff = True
+        self.tola_user.user.is_superuser = True
+        self.tola_user.user.save()
+
+        fields = [
+            {
+                'name': 'test_color',
+                'type': 'text'
+            },
+            {
+                'name': 'type',
+                'type': 'text'
+            }
+        ]
+        silo = factories.Silo(
+            name='Delete Test',
+            columns=json.dumps(fields),
+        )
+
+        data = {
+            'id': '',
+            'silo_id': silo.id,
+            'test_color_delete': True,
+            'type': 'type'
+        }
+        request = self.factory.post('', data=data)
+        request.user = self.tola_user.user
+        self._bugfix_django_messages(request)
+        views.edit_columns(request, silo.id)
+
+        silo = Silo.objects.get(pk=silo.id)
+        column_names = util.getSiloColumnNames(silo.id)
+        self.assertTrue('test_color' not in column_names)
+        self.assertTrue('type' in column_names)
 
     def test_silo_edit_columns_invalid_form(self):
         self.tola_user.user.is_staff = True
