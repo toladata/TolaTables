@@ -18,18 +18,17 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse_lazy
 from django.http import HttpResponseBadRequest,\
     HttpResponse, HttpResponseRedirect, JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import render
 from django.utils import timezone
 from django.utils.encoding import smart_str, smart_text
 from django.utils.text import Truncator
-from django.db.models import Count, Q
+from django.db.models import Q
 from django.views.decorators.csrf import csrf_protect
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from django.views.generic import View
-from rest_framework.authtoken.models import Token
 
 from gviews_v4 import import_from_gsheet_helper
 from silo.custom_csv_dict_reader import CustomDictReader
@@ -48,7 +47,7 @@ from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, \
 
 logger = logging.getLogger("silo")
 client = MongoClient(settings.MONGO_URI)
-db = client.get_database("tola")
+db = client.get_default_database()
 ROLE_VIEW_ONLY = 'ViewOnly'
 
 
@@ -65,7 +64,6 @@ class IndexView(View):
         silos_public = Silo.objects.prefetch_related('tags').filter(public=1).\
             exclude(owner=request.user)
         readtypes = ReadType.objects.all().values_list('read_type', flat=True)
-        print 'readytyes', readtypes
         # tags = Tag.objects.filter(owner=request.user).\
         #            annotate(times_tagged=Count('silos')).\
         #            values('name', 'times_tagged').order_by('-times_tagged')[:8]
@@ -1194,9 +1192,9 @@ def newColumn(request,id):
     return render(request, "silo/new-column-form.html", {'silo':silo,'form': form})
 
 
-#Add a new column on to a silo
+# Add a new column on to a silo
 @login_required
-def editColumns(request,id):
+def edit_columns(request, id):
     """
     FORM TO CREATE A NEW COLUMN FOR A SILO
     """
@@ -1205,39 +1203,46 @@ def editColumns(request,id):
 
     if request.method == 'POST':
         data = getSiloColumnNames(id)
-        form = EditColumnForm(request.POST or None, extra = data)  # A form bound to the POST data
+        # A form bound to the POST data
+        form = EditColumnForm(request.POST or None, extra=data)
         if form.is_valid():  # All validation rules pass
-            for label,value in form.cleaned_data.iteritems():
-                #update the column name if it doesn't have delete in it
-                if "_delete" not in label and str(label) != str(value) and label != "silo_id" and label != "suds" and label != "id":
-                    #update a column in the existing silo
+            for label, value in form.cleaned_data.iteritems():
+                # update the column name if it doesn't have delete in it
+                if "_delete" not in label and str(label) != str(value) and \
+                                label != "silo_id" and label != "suds" and \
+                                label != "id":
+                    # update a column in the existing silo
                     db.label_value_store.update_many(
-                        {"silo_id": silo.id},
-                            {
-                            "$rename": {label: value},
-                            },
+                        {
+                            "silo_id": silo.id
+                        },
+                        {
+                            "$rename": {label: value}
+                        },
                         False
                     )
-                    columnObj = json.loads(silo.columns)
-                    for column in columnObj:
+                    column_obj = json.loads(silo.columns)
+                    for column in column_obj:
                         if column['name'] == label:
                             column['name'] = value
                             break
-                    silo.columns = json.dumps(columnObj)
+                    silo.columns = json.dumps(column_obj)
                     silo.save()
-                #if we see delete then it's a check box to delete that column
+                # if we see delete then it's a check box to delete that column
                 elif "_delete" in label and value == 1:
                     column = label.replace("_delete", "")
                     db.label_value_store.update_many(
-                        {"silo_id": silo.id},
-                            {
+                        {
+                            "silo_id": silo.id
+                        },
+                        {
                             "$unset": {column: value},
-                            },
+                        },
                         False
                     )
                     column_name = label.split("_")[0]
                     try:
-                        formula_columns = silo.formulacolumns.filter(column_name).delete()
+                        silo.formulacolumns.filter(column_name).delete()
                     except Exception as e:
                         pass
 
@@ -1246,13 +1251,16 @@ def editColumns(request,id):
             if len(to_delete):
                 deleteSiloColumns(silo, to_delete)
             messages.info(request, 'Updates Saved', fail_silently=False)
+            return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': silo.id}))
         else:
-            messages.error(request, 'ERROR: There was a problem with your request', fail_silently=False)
-            #print form.errors
+            messages.error(request,
+                           'ERROR: There was a problem with your request',
+                           fail_silently=False)
 
     data = getSiloColumnNames(id)
     form = EditColumnForm(initial={'silo_id': silo.id}, extra=data)
-    return render(request, "silo/edit-column-form.html", {'silo':silo,'form': form})
+    return render(request, "silo/edit-column-form.html",
+                  {'silo': silo, 'form': form})
 
 
 #Delete a column from a table silo
@@ -1302,53 +1310,59 @@ def mergeColumns(request):
     return render(request, "display/merge-column-form.html", {'getSourceFrom':getSourceFrom, 'getSourceTo':getSourceTo, 'from_silo_id':from_silo_id, 'to_silo_id':to_silo_id})
 
 
-def doMerge(request):
+def do_merge(request):
     # get the table_ids.
     left_table_id = request.POST['left_table_id']
-    right_table_id = request.POST["right_table_id"]
-    mergeType = request.POST.get("tableMergeType", None)
-    left_table = None
-    right_table = None
-
+    right_table_id = request.POST['right_table_id']
+    merge_type = request.POST.get('tableMergeType', None)
     merged_silo_name = request.POST['merged_table_name']
 
     if not merged_silo_name:
-        merged_silo_name = "Merging of %s and %s" % (left_table_id, right_table_id)
+        merged_silo_name = 'Merging of {} and {}'.format(
+            left_table_id, right_table_id)
 
     try:
         left_table = Silo.objects.get(id=left_table_id)
-    except Silo.DoesNotExist as e:
-        return HttpResponse("Could not find left table with id=%s" % left_table_id)
+    except Silo.DoesNotExist:
+        return HttpResponse('Could not find the left table with id={}'.format(
+                             left_table_id))
 
     try:
         right_table = Silo.objects.get(id=right_table_id)
-    except Silo.DoesNotExist as e:
-        return HttpResponse("Could not find right table with id=%s" % left_table_id)
+    except Silo.DoesNotExist:
+        return HttpResponse('Could not find the right table with id={}'.format(
+                             right_table_id))
 
     data = request.POST.get('columns_data', None)
     if not data:
-        return HttpResponse("no columns data passed")
+        return HttpResponse('No columns data passed')
 
     # Create a new silo
-    new_silo = Silo(name=merged_silo_name , public=False, owner=request.user)
-    new_silo.save()
+    new_silo = Silo.objects.create(name=merged_silo_name, public=False,
+                                   owner=request.user)
+    left_table_reads = left_table.reads.values_list('id', flat=True).all()
+    right_table_reads = right_table.reads.values_list('id', flat=True).all()
+    new_silo.reads.add(*left_table_reads)
+    new_silo.reads.add(*right_table_reads)
     merge_table_id = new_silo.pk
 
-    if mergeType == "merge":
+    if merge_type == 'merge':
         res = mergeTwoSilos(data, left_table_id, right_table_id, merge_table_id)
     else:
-        res = appendTwoSilos(data, left_table_id, right_table_id, merge_table_id)
+        res = appendTwoSilos(
+            data, left_table_id, right_table_id, merge_table_id
+        )
 
-    try:
-        if res['status'] == "danger":
-            new_silo.delete()
-            return JsonResponse(res)
-    except Exception:
-        pass
+    if res['status'] == 'danger':
+        new_silo.delete()
+        return JsonResponse(res)
 
-    mapping = MergedSilosFieldMapping(from_silo=left_table, to_silo=right_table, merged_silo=new_silo, merge_type=mergeType, mapping=data)
+    mapping = MergedSilosFieldMapping(from_silo=left_table, to_silo=right_table,
+                                      merged_silo=new_silo, mapping=data,
+                                      merge_type=merge_type)
     mapping.save()
-    return JsonResponse({'status': "success",  'message': 'The merged table is accessible at <a href="/silo_detail/%s/" target="_blank">Merged Table</a>' % new_silo.pk})
+    return HttpResponseRedirect(
+        reverse_lazy('siloDetail', kwargs={'silo_id': merge_table_id}))
 
 
 # EDIT A SINGLE VALUE STORE
