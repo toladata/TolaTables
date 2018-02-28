@@ -24,6 +24,7 @@ from .user_models import User
 class Country(DjangoModelFactory):
     class Meta:
         model = CountryM
+        django_get_or_create = ('country', 'code')
 
     country = 'Afghanistan'
     code = 'AF'
@@ -59,7 +60,8 @@ class ReadType(DjangoModelFactory):
         model = ReadTypeM
         django_get_or_create = ('read_type',)
 
-    read_type = Iterator(['CustomForm', 'OneDrive', 'CommCare', 'JSON'])
+    read_type = Iterator(['CustomForm', 'OneDrive', 'CommCare', 'JSON',
+                          'GSheet Import', 'CSV', 'ONA'])
 
 
 class Read(DjangoModelFactory):
@@ -73,6 +75,7 @@ class Read(DjangoModelFactory):
 class TolaSites(DjangoModelFactory):
     class Meta:
         model = TolaSitesM
+        django_get_or_create = ('name', 'site_id')
 
     name = 'Track'
     site_id = '1'

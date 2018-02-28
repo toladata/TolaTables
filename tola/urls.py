@@ -7,7 +7,7 @@ from django.contrib.auth.views import login
 from django.contrib import admin
 
 from util import getImportApps
-from silo import views, gviews_v4, tola_activity_views
+from silo import views, gviews_v4
 from silo.api import *
 from tola import views as tola_views
 
@@ -65,7 +65,7 @@ urlpatterns =[
 
     url(r'^merge/(?P<id>\w+)/$', views.mergeForm, name='mergeForm'),
     url(r'^merge_columns', views.mergeColumns, name='mergeColumns'),
-    url(r'^doMerge', views.doMerge, name='doMerge'),
+    url(r'^do_merge', views.do_merge, name='do_merge'),
     url(r'^updateMergedTable/(?P<pk>\w+)/$', views.updateSiloData, name='updateMergedTable'),
 
     url(r'^update_column', views.updateEntireColumn, name='updateColumn'),
@@ -74,12 +74,11 @@ urlpatterns =[
     url(r'^new_column/(?P<id>\w+)/$', views.newColumn, name='newColumn'),
     url(r'^new_formula_column/(?P<pk>\w+)/$', views.newFormulaColumn, name='newFormulaColumn'),
     url(r'^edit_filter/(?P<pk>\w+)/$', views.addColumnFilter, name='editColumnFilter'),
-    url(r'^edit_columns/(?P<id>\w+)/$', views.editColumns, name='editColumns'),
+    url(r'^edit_columns/(?P<id>\w+)/$', views.edit_columns, name='editColumns'),
     url(r'^delete_column/(?P<id>\w+)/(?P<column>\w+)/$', views.deleteColumn, name='deleteColumn'),
     url(r'^edit_column_order/(?P<pk>\w+)/$', views.editColumnOrder, name='editColumnOrder'),
     url(r'^set_column_type/(?P<pk>\w+)/$', views.setColumnType, name='setColumnType'),
 
-    url(r'^export_to_activity/(?P<id>\d+)/$', tola_activity_views.export_to_tola_activity, name="acitivity_push"),
     url(r'^export_silo_form/(?P<id>\w+)/$', views.export_silo_form, name='export_silo_form'),
     url(r'^export/(?P<id>\w+)/$', views.export_silo, name='export_silo'),
 

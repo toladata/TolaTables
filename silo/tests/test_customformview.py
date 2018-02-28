@@ -56,14 +56,6 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         factories.ReadType(read_type='CustomForm')
         self.tola_user = factories.TolaUser()
         self.factory = APIRequestFactory()
-        self.silo_id = None
-
-    def tearDown(self):
-        if self.silo_id:
-            # Have to remove the created lvs
-            lvss = LabelValueStore.objects.filter(silo_id=self.silo_id)
-            for lvs in lvss:
-                lvs.delete()
 
     def test_create_customform_superuser(self):
         self.tola_user.user.is_staff = True
@@ -102,8 +94,8 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         self.assertEqual(response.status_code, 201)
 
         # For the tearDown
-        self.silo_id = response.data['id']
-        silo = Silo.objects.get(pk=self.silo_id)
+        silo_id = response.data['id']
+        silo = Silo.objects.get(pk=silo_id)
         self.assertEqual(silo.data_count, 0)
 
     def test_create_customform_missing_data_superuser(self):
