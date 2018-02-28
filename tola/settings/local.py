@@ -6,6 +6,8 @@ ADMINS = (
     ('admin', 'admin@example.org'),
 )
 
+NOTIFICATION_SENDER = os.getenv('NOTIFICATION_SENDER')
+
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#managers
 MANAGERS = ADMINS
 ########## END MANAGER CONFIGURATION
