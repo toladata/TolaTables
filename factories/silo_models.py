@@ -17,6 +17,7 @@ from silo.models import (
     TolaSites as TolaSitesM,
     TolaUser as TolaUserM,
     WorkflowLevel1 as WorkflowLevel1M,
+    CeleryTask as CeleryTaskM
 )
 from .user_models import User
 
@@ -178,3 +179,12 @@ class ThirdPartyTokens(DjangoModelFactory):
 
     user = SubFactory(User)
     token = str(random.randint(1, 9999))
+
+
+class CeleryTask(DjangoModelFactory):
+    class Meta:
+        model = CeleryTaskM
+
+    task_id = str(random.randint(1, 9999))
+    task_status = CeleryTaskM.TASK_CREATED
+

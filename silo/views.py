@@ -41,9 +41,12 @@ from commcare.tasks import fetchCommCareData
 from .serializers import *
 from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, \
     Tag, UniqueFields, MergedSilosFieldMapping, TolaSites, PIIColumn, \
-    DeletedSilos, FormulaColumn
+    DeletedSilos, FormulaColumn, CeleryTask
 from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, \
     NewColumnForm, EditColumnForm, OnaLoginForm
+from .tasks import process_silo
+
+from django.contrib.contenttypes.models import ContentType
 
 logger = logging.getLogger("silo")
 client = MongoClient(settings.MONGO_URI)
@@ -695,13 +698,13 @@ def showRead(request, id):
         get_tables = None
 
     if read_type == "GSheet Import" or read_type == "ONA":
-        excluded_fields = excluded_fields + ['username', 'password', 'file_data','autopush_frequency']
+        excluded_fields = excluded_fields + ['username', 'password', 'file_data','autopush_frequency', 'onedrive_file']
     elif read_type == "JSON":
         excluded_fields = excluded_fields + ['file_data','autopush_frequency']
     elif read_type == "Google Spreadsheet":
-        excluded_fields = excluded_fields + ['username', 'password', 'file_data', 'autopull_frequency']
+        excluded_fields = excluded_fields + ['username', 'password', 'file_data', 'autopull_frequency', 'onedrive_file']
     elif read_type == "CSV":
-        excluded_fields = excluded_fields + ['username', 'password', 'autopush_frequency', 'autopull_frequency', 'read_url']
+        excluded_fields = excluded_fields + ['username', 'password', 'autopush_frequency', 'autopull_frequency', 'read_url', 'onedrive_file']
     elif read_type == "OneDrive":
         user = User.objects.get(username__exact=request.user)
         social = user.social_auth.get(provider='microsoft-graph')
@@ -827,7 +830,6 @@ def oneDrive(request):
     return render(request, 'silo/onedrive.html', {
     })
 
-
 @login_required
 def uploadFile(request, id):
     """
@@ -848,8 +850,13 @@ def uploadFile(request, id):
             silo.reads.add(read_obj)
             silo_id = silo.id
 
-            reader = CustomDictReader(read_obj.file_data)
-            saveDataToSilo(silo, reader, read_obj)
+            async_res = process_silo.apply_async(
+                        (silo.id, read_obj.id)
+            )
+
+            task = CeleryTask(task_id=async_res.id, task_status=CeleryTask.TASK_CREATED, content_object=read_obj)
+            task.save()
+
             return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
         else:
             messages.error(request, "There was a problem with reading the contents of your file" + form.errors)
@@ -974,12 +981,43 @@ def siloDetail(request, silo_id):
     data = []
     query = makeQueryForHiddenRow(json.loads(silo.rows_to_hide))
 
+    """
+    Note:    There is a chance a service gets stuck in "tasks_running" if a service worker terminates unexpectedly and the task id
+    could not be removed from the task.
+    """
+
+    tasks_running = Read.objects.filter(silos=silo.id, tasks__task_status__in=[CeleryTask.TASK_CREATED, CeleryTask.TASK_IN_PROGRESS]).count()
+    tasks_failed = Read.objects.filter(silos=silo.id, tasks__task_status=CeleryTask.TASK_FAILED).count()
+
+    silo_read_ids = Read.objects.filter(silos=silo.id).values_list('id', flat=True)
+
+    celery_tasks = CeleryTask.objects.filter(
+        object_id__in=silo_read_ids,
+        content_type=ContentType.objects.get_for_model(Read)
+    ).values_list('object_id', 'task_id', 'task_status')
+
+    tasks = map(
+        lambda t: {'read_id': t[0], 'task_id': t[1], 'task_status': t[2]},
+        celery_tasks
+    )
+
     if silo.owner == request.user or silo.public == True or request.user in silo.shared.all():
         cols.append('_id')
         cols.extend(getSiloColumnNames(silo_id))
     else:
         messages.warning(request,"You do not have permission to view this table.")
-    return render(request, "display/silo.html", {"silo": silo, "cols": cols, "query": query})
+    return render(
+        request,
+        "display/silo.html",
+        {
+            "silo": silo,
+            "cols": cols,
+            "query": query,
+            "tasks_running": tasks_running,
+            "tasks_failed": tasks_failed,
+            "tasks": tasks
+        }
+    )
 
 
 @login_required
@@ -1208,9 +1246,9 @@ def edit_columns(request, id):
         if form.is_valid():  # All validation rules pass
             for label, value in form.cleaned_data.iteritems():
                 # update the column name if it doesn't have delete in it
-                if "_delete" not in label and str(label) != str(value) and \
-                                label != "silo_id" and label != "suds" and \
-                                label != "id":
+                if (not label.endswith('_delete') and str(label) != str(value)
+                    and label != "silo_id" and label != "suds"
+                        and label != "id"):
                     # update a column in the existing silo
                     db.label_value_store.update_many(
                         {
@@ -1229,7 +1267,7 @@ def edit_columns(request, id):
                     silo.columns = json.dumps(column_obj)
                     silo.save()
                 # if we see delete then it's a check box to delete that column
-                elif "_delete" in label and value == 1:
+                elif label.endswith('_delete') and value == 1:
                     column = label.replace("_delete", "")
                     db.label_value_store.update_many(
                         {
@@ -1240,17 +1278,17 @@ def edit_columns(request, id):
                         },
                         False
                     )
-                    column_name = label.split("_")[0]
                     try:
-                        silo.formulacolumns.filter(column_name).delete()
+                        silo.formulacolumns.filter(column).delete()
                     except Exception as e:
                         pass
-
-                    to_delete.append(column_name)
+                    to_delete.append(column)
 
             if len(to_delete):
                 deleteSiloColumns(silo, to_delete)
             messages.info(request, 'Updates Saved', fail_silently=False)
+            return HttpResponseRedirect(reverse_lazy(
+                'siloDetail', kwargs={'silo_id': silo.id}))
         else:
             messages.error(request,
                            'ERROR: There was a problem with your request',

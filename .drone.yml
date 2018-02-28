@@ -10,6 +10,7 @@ pipeline:
     image: python:${PYTHON_VERSION}
     environment:
       - TOLATABLES_MONGODB_HOST=mongo
+      - CELERY_BROKER_URL=redis://redis@redis:6379/0
     secrets: [SECRET_PASS]
     commands:
       - pip install -r requirements/ci.txt
@@ -34,10 +35,10 @@ pipeline:
   trigger-deployment:
     image: quay.io/ukhomeofficedigital/drone-trigger:latest
     verbose: true
-    drone_server: http://drone.tola.io
+    drone_server: http://drone.humanitec.io
     drone_token: $DRONE_TOKEN
     secrets: [DRONE_TOKEN]
-    repo: toladata/deployment
+    repo: Humanitec/deployment
     branch: master
     deploy_to: marathon
     params: "APP_ID=/tolatables,APP_GROUP=toladata,APP_NAME=TolaTables,APP_BRANCH=${DRONE_COMMIT_BRANCH},APP_COMMIT=${DRONE_COMMIT_SHA},APP_TAG=${DRONE_TAG},APP_IMAGE=registry.tola.io/toladata/tolatables:${DRONE_COMMIT_SHA}"
@@ -59,6 +60,8 @@ pipeline:
 services:
   mongo:
     image: mongo:3.4.10
+  redis:
+    image: redis:4.0
 
 matrix:
   PYTHON_VERSION:

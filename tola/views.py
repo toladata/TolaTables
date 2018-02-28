@@ -83,11 +83,11 @@ def logout_view(request):
     # be logged out there as well
     if request.user.is_authenticated:
         logout(request)
-        url_subpath = 'accounts/logout/'
-        url = urljoin(settings.TABLES_LOGIN_URL, url_subpath)
+        url_subpath = 'logout/'
+        url = urljoin(settings.ACTIVITY_URL, url_subpath)
         return HttpResponseRedirect(url)
 
-    return HttpResponseRedirect(settings.TABLES_LOGIN_URL)
+    return HttpResponseRedirect(settings.ACTIVITY_URL)
 
 
 class BoardView(LoginRequiredMixin, TemplateView):

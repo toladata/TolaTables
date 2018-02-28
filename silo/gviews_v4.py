@@ -1,30 +1,28 @@
 import httplib2
-import urllib
 import os
+import datetime
 import logging
 import json
-import datetime
 
 from apiclient import discovery
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse, reverse_lazy
 from django.http import (HttpResponseRedirect, HttpResponseBadRequest,
-                         JsonResponse, HttpResponse)
+                         JsonResponse, HttpResponseNotAllowed, HttpResponse)
 from django.utils import timezone
 from django.utils.encoding import smart_text, smart_str
-from django.views.decorators.csrf import csrf_protect
 from oauth2client.client import (OAuth2Credentials, flow_from_clientsecrets,
                                  HttpAccessTokenRefreshError,
                                  OAuth2WebServerFlow)
 from oauth2client.contrib.django_orm import Storage
 from oauth2client.contrib import xsrfutil
+from oauth2client.client import AccessTokenCredentialsError
 
 from .models import GoogleCredentialsModel
-from .models import Silo, Read, ReadType, ThirdPartyTokens, LabelValueStore, Tag
+from .models import Silo, Read, ReadType, LabelValueStore
 from tola.util import (getSiloColumnNames, parseMathInstruction,
                        calculateFormulaCell, makeQueryForHiddenRow,
                        addColsToSilo, cleanKey)
@@ -587,8 +585,10 @@ def get_sheets_from_google_spreadsheet(request):
 
 @login_required
 def oauth2callback(request):
-    if not xsrfutil.validate_token(settings.SECRET_KEY, str(request.GET['state']), request.user):
-        return  HttpResponseBadRequest()
+    if not xsrfutil.validate_token(settings.SECRET_KEY,
+                                   str(request.GET.get('state', '')),
+                                   request.user):
+        return HttpResponseBadRequest()
 
     flow = _get_oauth_flow()
     credential = flow.step2_exchange(request.GET)
@@ -596,3 +596,46 @@ def oauth2callback(request):
     storage.put(credential)
     redirect_url = request.session['redirect_uri_after_step2']
     return HttpResponseRedirect(redirect_url)
+
+
+@login_required
+def store_oauth2_credential(request):
+    if request.method == 'GET':
+        return HttpResponseNotAllowed(['POST', 'OPTIONS'])
+
+    data = request.POST
+
+    if 'access_token' not in data:
+        logger.info('Failed to retrieve access token')
+        if 'error' in data:
+            error_msg = (str(data['error']) +
+                         str(data.get('error_description', '')))
+        else:
+            error_msg = 'Invalid response. No access token.'
+        raise AccessTokenCredentialsError(error_msg)
+
+    access_token = data['access_token']
+    if 'refresh_token' in data:
+        refresh_token = data['refresh_token']
+    else:
+        refresh_token = None
+        logger.info(
+            'Received token response with no refresh_token. Consider '
+            "reauthenticating with approval_prompt='force'.")
+    token_expiry = None
+    if 'expires_in' in data:
+        delta = datetime.timedelta(seconds=int(data['expires_in']))
+        token_expiry = delta + datetime.datetime.utcnow()
+
+    logger.info('Successfully retrieved access token')
+    flow = _get_oauth_flow()
+    credential = OAuth2Credentials(
+        access_token, flow.client_id, flow.client_secret,
+        refresh_token, token_expiry, flow.token_uri, flow.user_agent,
+        revoke_uri=flow.revoke_uri, id_token=None,
+        token_response=data, scopes=flow.scope,
+        token_info_uri=flow.token_info_uri)
+
+    storage = Storage(GoogleCredentialsModel, 'id', request.user, 'credential')
+    storage.put(credential)
+    return HttpResponse('{"detail": "The credential was successfully saved."}')
