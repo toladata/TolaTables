@@ -66,7 +66,7 @@ $(document).ready(function() {
     /*
      * Handle change in the province drop-down; updates the distirct drop-down accordingly.
      */
-    
+
     // A global ajaxComplete method that shows you any messages that are set in Django's view
     $( document )
         .ajaxComplete(function(e, xhr, settings) {
@@ -75,9 +75,11 @@ $(document).ready(function() {
             if (contentType == "application/javascript" || contentType == "application/json") {
                 var json = $.parseJSON(xhr.responseText);
 
-                $.each(json.django_messages, function (i, item) {
-                    addMessage(item.message, item.extra_tags);
-                });
+                if (json.django_messages){
+                    $.each(json.django_messages, function (i, item) {
+                        addMessage(item.message, item.extra_tags);
+                    });
+                }
             }
         })
         .ajaxError(function(e, xhr, settings, thrownError) {

@@ -289,9 +289,16 @@ LOGGING = {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
             'filename': 'error.log',
+            'formatter': 'verbose',
         },
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'formatters': {
+        'verbose': {
+            'format': '%(asctime)s %(levelname)s %(module)s %(funcName)s %(message)s'
         },
     },
     'loggers': {
@@ -304,6 +311,7 @@ LOGGING = {
             'handlers': ['file', 'console'],
             'level': 'INFO',
             'propagate': True,
+
         },
         'tola': {
             'handlers': ['file', 'console'],
