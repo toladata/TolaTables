@@ -20,6 +20,7 @@ SITE_NAME = basename(DJANGO_ROOT)
 path.append(DJANGO_ROOT)
 ########## END PATH CONFIGURATION
 
+SECRET_KEY = os.getenv('SECRET_KEY', '!0^+)=t*ly6ycprf9@adsfsdfdfsdff#pa*3333*lp5k9ko7')
 
 ########## DEBUG CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#debug
@@ -110,12 +111,6 @@ STATICFILES_FINDERS = (
 ########## END STATIC FILE CONFIGURATION
 
 
-########## SECRET CONFIGURATION
-# See: https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
-
-########## END SECRET CONFIGURATION
-
-
 ########## SITE CONFIGURATION
 # Hosts/domain names that are valid for this site
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
@@ -136,8 +131,7 @@ FIXTURE_DIRS = (
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [normpath(join(SITE_ROOT, 'templates')),],
-        #'APP_DIRS': True,
+        'DIRS': [normpath(join(SITE_ROOT, 'templates')), ],
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
@@ -190,10 +184,6 @@ MIDDLEWARE = (
 ROOT_URLCONF = '%s.urls' % SITE_NAME
 ########## END URL CONFIGURATION
 
-# Email setup
-EMAIL_HOST = 'localhost'
-EMAIL_PORT = 25
-
 
 ########## APP CONFIGURATION
 DJANGO_APPS = (
@@ -238,14 +228,7 @@ DATASOURCE_APPS = (
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS + DATASOURCE_APPS
 ########## END APP CONFIGURATION
 
-"""
-Allowed for now from everyone
-CORS_ORIGIN_WHITELIST = (
-    "localhost:8000",
-    "localhost:4200"
-)
-"""
-CORS_ORIGIN_ALLOW_ALL=True
+CORS_ORIGIN_ALLOW_ALL = True
 
 ####### AUTHENTICATION BAKEND CONFIG ##################
 # https://github.com/django/django/blob/master/django/contrib/auth/backends.py
@@ -276,7 +259,6 @@ SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'
 ########## LOGGING CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#logging
 
-import os
 PROJECT_PATH = dirname(dirname(dirname(abspath(__file__))))
 path.append(PROJECT_PATH)
 
@@ -354,7 +336,7 @@ MESSAGE_TAGS = {message.DEBUG: 'debug',
                 message.INFO: 'info',
                 message.SUCCESS: 'success',
                 message.WARNING: 'warning',
-                message.ERROR: 'danger',}
+                message.ERROR: 'danger'}
 
 
 GOOGLE_REDIRECT_URL = 'http://localhost:8000/oauth2callback/'
