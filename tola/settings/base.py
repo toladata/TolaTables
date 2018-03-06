@@ -231,7 +231,6 @@ LOCAL_APPS = (
     'tola',
 )
 DATASOURCE_APPS = (
-    'commcare',
     'fileuploadjson',
 )
 
