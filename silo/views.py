@@ -850,11 +850,16 @@ def uploadFile(request, id):
             silo.reads.add(read_obj)
             silo_id = silo.id
 
+            task = CeleryTask.objects.create(task_id=None,
+                              task_status=None,
+                              content_object=read_obj)
+
             async_res = process_silo.apply_async(
                         (silo.id, read_obj.id)
             )
 
-            task = CeleryTask(task_id=async_res.id, task_status=CeleryTask.TASK_CREATED, content_object=read_obj)
+            task.task_id = async_res.id
+            task.task_status = CeleryTask.TASK_CREATED
             task.save()
 
             return HttpResponseRedirect('/silo_detail/' + str(silo_id) + '/')
