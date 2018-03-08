@@ -326,9 +326,34 @@ class SiloViewsTest(TestCase, MongoTestCase):
         self.tola_user.user.is_superuser = True
         self.tola_user.user.save()
 
-        wflvl1 = factories.WorkflowLevel1(
-            organization=self.tola_user.organization)
-        fields = [
+        columns = [{'name': 'name', 'type': 'text'}]
+        read = factories.Read(read_name='Read Test', owner=self.tola_user.user)
+        silo = factories.Silo(owner=self.tola_user.user,
+                              columns=json.dumps(columns), reads=[read])
+
+        data = {
+            'id': '',
+            'silo_id': silo.id,
+            'name': 'given_name',
+        }
+        request = self.factory.post('', data=data)
+        request.user = self.tola_user.user
+        self._bugfix_django_messages(request)
+        response = views.edit_columns(request, silo.id)
+
+        column_names = util.getSiloColumnNames(silo.id)
+
+        self.assertTrue('given_name' in column_names)
+        self.assertEqual(len(column_names), 1)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/silo_detail/'+str(silo.id)+'/')
+
+    def test_silo_edit_columns_keep_data(self):
+        self.tola_user.user.is_staff = True
+        self.tola_user.user.is_superuser = True
+        self.tola_user.user.save()
+
+        columns = [
             {
                 'name': 'color',
                 'type': 'text'
@@ -338,20 +363,35 @@ class SiloViewsTest(TestCase, MongoTestCase):
                 'type': 'text'
             }
         ]
-        meta = {
-            'name': 'Export Test',
-            'description': 'This is a test.',
-            'fields': json.dumps(fields),
-            'level1_uuid': wflvl1.level1_uuid,
-            'tola_user_uuid': self.tola_user.tola_user_uuid
-        }
-        request = self.factory.post('', data=meta)
-        request.user = self.tola_user.user
-        view = CustomFormViewSet.as_view({'post': 'create'})
-        response = view(request)
-        # For the tearDown
-        silo_id = response.data['id']
-        silo = Silo.objects.get(id=silo_id)
+        read = factories.Read(read_name='Read Test', owner=self.tola_user.user)
+        silo = factories.Silo(owner=self.tola_user.user,
+                              columns=json.dumps(columns), reads=[read])
+
+        # Upload data
+        data = [{
+            'color': 'black',
+            'type': 'primary'
+        }, {
+            'color': 'white',
+            'type': 'primary'
+        }, {
+            'color': 'red',
+            'type': 'primary'
+        }]
+        util.saveDataToSilo(silo, data, read)
+
+        # Check if the data was inserted
+        filter_fields = {}
+        db_data = LabelValueStore.objects(silo_id=silo.id, **filter_fields). \
+            exclude('create_date', 'edit_date', 'silo_id', 'read_id')
+        json_data = json.loads(db_data.to_json())
+
+        self.assertEqual(len(json_data), 3)
+        self.assertTrue('color' in json_data[0])
+        self.assertTrue('type' in json_data[0])
+
+        self.assertTrue(json_data[0]['color'] in ['black', 'white', 'red'])
+        self.assertEqual(json_data[0]['type'], 'primary')
 
         data = {
             'id': '',
@@ -362,15 +402,20 @@ class SiloViewsTest(TestCase, MongoTestCase):
         request = self.factory.post('', data=data)
         request.user = self.tola_user.user
         self._bugfix_django_messages(request)
-        response = views.edit_columns(request, silo.id)
+        views.edit_columns(request, silo.id)
 
-        column_names = util.getSiloColumnNames(silo_id)
+        # Check if the data was kept but the column name was changed
+        db_data = LabelValueStore.objects(silo_id=silo.id, **filter_fields).\
+            exclude('create_date', 'edit_date', 'silo_id', 'read_id')
+        json_data = json.loads(db_data.to_json())
 
-        self.assertTrue('farbe' in column_names)
-        self.assertTrue('art' in column_names)
-        self.assertEqual(len(column_names), 2)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, '/silo_detail/'+str(silo_id)+'/')
+        self.assertEqual(len(json_data), 3)
+        self.assertTrue('farbe' in json_data[0])
+        self.assertTrue('art' in json_data[0])
+
+        self.assertTrue(json_data[0]['farbe'] in ['black', 'white', 'red'])
+        self.assertEqual(json_data[0]['art'], 'primary')
+
 
     @patch('silo.views.db')
     def test_silo_edit_columns_delete(self, mock_db):
