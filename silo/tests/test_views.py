@@ -542,7 +542,7 @@ class SiloViewsTest(TestCase, MongoTestCase):
             views.edit_columns(request, silo.id)
 
 
-class SaveDataToSiloViewTest(TestCase):
+class SaveAndImportReadViewTest(TestCase):
     def setUp(self):
         self.org = factories.Organization()
         self.tola_user = factories.TolaUser(organization=self.org)
