@@ -98,6 +98,56 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         silo = Silo.objects.get(pk=silo_id)
         self.assertEqual(silo.data_count, 0)
 
+    def test_create_customform_long_name(self):
+        self.tola_user.user.is_staff = True
+        self.tola_user.user.is_superuser = True
+        self.tola_user.user.save()
+
+        wflvl1 = factories.WorkflowLevel1(
+            name='This Program was created to test when a table has a '
+                 'really long name. It should accept long names but it has '
+                 'to truncate those name. It is so hard to create a name '
+                 'longer than 255 characters that I do not know if this is '
+                 'going to work well. Almost there!',
+            organization=self.tola_user.organization)
+
+        data = {
+            'name': 'CustomForm Test',
+            'description': 'This is a test.',
+            'fields': [
+                {
+                    'name': 'name',
+                    'type': 'text'
+                },
+                {
+                    'name': 'age',
+                    'type': 'number'
+                },
+                {
+                    'name': 'city',
+                    'type': 'text'
+                }
+            ],
+            'level1_uuid': wflvl1.level1_uuid,
+            'tola_user_uuid': self.tola_user.tola_user_uuid
+        }
+
+        request = self.factory.post('api/customform', data=data)
+        request.user = self.tola_user.user
+        view = CustomFormViewSet.as_view({'post': 'create'})
+        response = view(request)
+
+        self.assertEqual(response.status_code, 201)
+
+        # For the tearDown
+        silo_id = response.data['id']
+        silo = Silo.objects.get(pk=silo_id)
+        silo_name = '{} - {}'.format(data['name'], wflvl1.name)
+        silo_name = silo_name[:255]
+
+        self.assertEqual(len(silo.name), 255)
+        self.assertEqual(silo.name, silo_name)
+
     def test_create_customform_missing_data_superuser(self):
         self.tola_user.user.is_staff = True
         self.tola_user.user.is_superuser = True
