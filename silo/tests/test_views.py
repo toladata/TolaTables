@@ -659,14 +659,16 @@ class DoMergeViewTest(TestCase):
         mock_merge_two_silos.return_value = {'status': 'success'}
         mock_merged_silos_map.return_value = Mock()
 
-        columns = {'name': 'name', 'type': 'text'}
+        columns = [{'name': 'name', 'type': 'text'}]
         left_read = factories.Read(read_name='Read Left',
                                    owner=self.tola_user.user)
         right_read = factories.Read(read_name='Read Right',
                                     owner=self.tola_user.user)
-        left_silo = factories.Silo(owner=self.tola_user.user, columns=columns,
+        left_silo = factories.Silo(owner=self.tola_user.user,
+                                   columns=json.dumps(columns),
                                    reads=[left_read])
-        right_silo = factories.Silo(owner=self.tola_user.user, columns=columns,
+        right_silo = factories.Silo(owner=self.tola_user.user,
+                                    columns=json.dumps(columns),
                                     reads=[right_read])
         merged_silo_name = '{}_{}'.format(left_silo.name, right_silo.name)
 
@@ -694,14 +696,16 @@ class DoMergeViewTest(TestCase):
         mock_append_two_silos.return_value = {'status': 'success'}
         mock_merged_silos_map.return_value = Mock()
 
-        columns = {'name': 'name', 'type': 'text'}
+        columns = [{'name': 'name', 'type': 'text'}]
         left_read = factories.Read(read_name='Read Left',
                                    owner=self.tola_user.user)
         right_read = factories.Read(read_name='Read Right',
                                     owner=self.tola_user.user)
-        left_silo = factories.Silo(owner=self.tola_user.user, columns=columns,
+        left_silo = factories.Silo(owner=self.tola_user.user,
+                                   columns=json.dumps(columns),
                                    reads=[left_read])
-        right_silo = factories.Silo(owner=self.tola_user.user, columns=columns,
+        right_silo = factories.Silo(owner=self.tola_user.user,
+                                    columns=json.dumps(columns),
                                     reads=[right_read])
         merged_silo_name = '{}_{}'.format(left_silo.name, right_silo.name)
 
@@ -727,14 +731,16 @@ class DoMergeViewTest(TestCase):
     def test_status_danger(self, mock_merge_two_silos):
         mock_merge_two_silos.return_value = {'status': 'danger'}
 
-        columns = {'name': 'name', 'type': 'text'}
+        columns = [{'name': 'name', 'type': 'text'}]
         left_read = factories.Read(read_name='Read Left',
                                    owner=self.tola_user.user)
         right_read = factories.Read(read_name='Read Right',
                                     owner=self.tola_user.user)
-        left_silo = factories.Silo(owner=self.tola_user.user, columns=columns,
+        left_silo = factories.Silo(owner=self.tola_user.user,
+                                   columns=json.dumps(columns),
                                    reads=[left_read])
-        right_silo = factories.Silo(owner=self.tola_user.user, columns=columns,
+        right_silo = factories.Silo(owner=self.tola_user.user,
+                                    columns=json.dumps(columns),
                                     reads=[right_read])
         merged_silo_name = '{}_{}'.format(left_silo.name, right_silo.name)
 
@@ -814,16 +820,16 @@ class DoMergeViewTest(TestCase):
         mock_merge_two_silos.return_value = {'status': 'success'}
         mock_merged_silos_map.return_value = Mock()
 
-        columns = {'name': 'name', 'type': 'text'}
+        columns = [{'name': 'name', 'type': 'text'}]
         left_read = factories.Read(read_name='Read Left',
                                    owner=self.tola_user.user)
         right_read = factories.Read(read_name='Read Right',
                                     owner=self.tola_user.user)
         left_silo = factories.Silo(owner=self.tola_user.user,
-                                   columns=columns,
+                                   columns=json.dumps(columns),
                                    reads=[left_read])
         right_silo = factories.Silo(owner=self.tola_user.user,
-                                    columns=columns,
+                                    columns=json.dumps(columns),
                                     reads=[right_read])
         merged_silo_name = 'Merging of {} and {}'.format(
             left_silo.id, right_silo.id)
