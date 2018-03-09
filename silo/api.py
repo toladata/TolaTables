@@ -150,20 +150,23 @@ class CustomFormViewSet(mixins.CreateModelMixin,
             tola_user_uuid = request.POST['tola_user_uuid']
             wkflvl1 = WorkflowLevel1.objects.get(level1_uuid=level1_uuid)
             tola_user = TolaUser.objects.get(tola_user_uuid=tola_user_uuid)
-            table_name = request.POST['name'].lower().replace(' ', '_')
-            table_name += '_' + wkflvl1.name.lower().replace(' ', '_')
+            form_name = request.POST['name']
             read_name = request.POST['name']
             columns = request.POST['fields']
         except (WorkflowLevel1.DoesNotExist, TolaUser.DoesNotExist, KeyError) \
                 as e:
             return Response(e, status=status.HTTP_400_BAD_REQUEST)
-        description = request.POST.get('description', '')
 
         read = Read.objects.create(
             owner=tola_user.user,
             type=ReadType.objects.get(read_type='CustomForm'),
             read_name=read_name,
         )
+
+        table_name = '{} - {}'.format(form_name, wkflvl1.name)
+        if len(table_name) > 255:
+            table_name = table_name[:255]
+        description = request.POST.get('description', '')
         silo = Silo.objects.create(
             owner=tola_user.user,
             name=table_name,
