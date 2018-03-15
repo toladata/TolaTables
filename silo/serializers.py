@@ -42,7 +42,9 @@ class SiloSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Silo
-        fields = ('owner', 'name', 'reads', 'description', 'create_date', 'id', 'data','shared','tags','public', 'data_count')
+        fields = ('owner', 'name', 'reads', 'description', 'create_date',
+                  'id', 'data', 'shared', 'tags', 'public', 'data_count',
+                  'columns')
         # removind depth for now, it may be breaking the post method
         # depth =1
 
