@@ -21,7 +21,6 @@ from django.http import HttpResponseBadRequest,\
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.encoding import smart_str, smart_text
-from django.utils.text import Truncator
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_protect
 from django.contrib import messages
@@ -1436,7 +1435,6 @@ def valueEdit(request,id):
                 create_date = datetime.datetime.fromtimestamp(item['create_date']['$date']/1000)
                 data[k] = create_date.strftime('%Y-%m-%d')
             else:
-                k = Truncator(re.sub('\s+', ' ', k).strip()).chars(40)
                 data[k] = v
 
         keys = item.keys()
