@@ -1,12 +1,16 @@
+import os
 from django.test import TestCase
 
 from rest_framework.test import APIRequestFactory
 
 import factories
+import json
 from silo.api import SiloViewSet
+from silo.models import LabelValueStore
+from tola.util import saveDataToSilo
 
 
-class SiloListViewsTest(TestCase):
+class SiloListViewTest(TestCase):
     def setUp(self):
         factories.Organization(id=1)
         factories.Silo.create_batch(2)
@@ -49,7 +53,7 @@ class SiloListViewsTest(TestCase):
         self.assertEqual(len(response.data), 1)
 
 
-class SiloRetrieveViewsTest(TestCase):
+class SiloRetrieveViewTest(TestCase):
     def setUp(self):
         factories.Organization(id=1)
         self.silos = factories.Silo.create_batch(2)
@@ -77,3 +81,99 @@ class SiloRetrieveViewsTest(TestCase):
         response = view(request, id=silo.id)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['name'], silo.name)
+
+
+class SiloDataViewTest(TestCase):
+    def _import_json(self, silo, read):
+        filename = os.path.join(os.path.dirname(__file__),
+                                'sample_data/moviesbyearnings2013.json')
+        with open(filename, 'r') as f:
+            data = json.load(f)
+            saveDataToSilo(silo, data, read)
+
+    def setUp(self):
+        self.factory = APIRequestFactory()
+        self.tola_user = factories.TolaUser()
+
+        self.read = factories.Read(read_name="test_data",
+                                   owner=self.tola_user.user)
+        self.silo = factories.Silo(owner=self.tola_user.user,
+                                   reads=[self.read])
+        self._import_json(self.silo, self.read)
+
+    def tearDown(self):
+        # Have to remove the created lvs
+        lvss = LabelValueStore.objects.filter(silo_id=self.silo.id)
+        for lvs in lvss:
+            lvs.delete()
+
+    def test_data_silo(self):
+        request = self.factory.get('/api/silo/{}/data'.format(self.silo.id))
+        request.user = self.tola_user.user
+        view = SiloViewSet.as_view({'get': 'data'})
+        response = view(request, id=self.silo.id)
+        self.assertEqual(response.status_code, 200)
+        json_content = json.loads(response.content)
+        self.assertEqual(json_content['recordsTotal'], 20)
+        self.assertEqual(json_content['recordsFiltered'], 20)
+
+    def test_data_silo_query(self):
+        query = '{"opn": "2015-11"}'
+        request = self.factory.get('/api/silo/{}/data?query={}'.format(
+            self.silo.id, query))
+        request.user = self.tola_user.user
+        view = SiloViewSet.as_view({'get': 'data'})
+        response = view(request, id=self.silo.id)
+        self.assertEqual(response.status_code, 200)
+        json_content = json.loads(response.content)
+
+        self.assertEqual(json_content['recordsTotal'], 3)
+        self.assertEqual(json_content['recordsFiltered'], 3)
+
+    def test_data_silo_group(self):
+        group = '{"_id": null,"total_cnt":{"$sum":"$cnt"}}'
+        request = self.factory.get('/api/silo/{}/data?group={}'.format(
+            self.silo.id, group))
+        request.user = self.tola_user.user
+        view = SiloViewSet.as_view({'get': 'data'})
+        response = view(request, id=self.silo.id)
+        self.assertEqual(response.status_code, 200)
+        json_content = json.loads(response.content)
+
+        self.assertEqual(json_content['recordsTotal'], 1)
+        self.assertEqual(json_content['recordsFiltered'], 1)
+        res = json_content['data'][0]
+        self.assertEqual(res['total_cnt'], 74376)
+
+    def test_data_silo_query_group(self):
+        query = '{"opn": "2015-11"}'
+        group = '{"_id": null,"total_cnt":{"$sum":"$cnt"}}'
+        request = self.factory.get('/api/silo/{}/data?query={}&group={}'.format(
+            self.silo.id, query, group))
+        request.user = self.tola_user.user
+        view = SiloViewSet.as_view({'get': 'data'})
+        response = view(request, id=self.silo.id)
+        self.assertEqual(response.status_code, 200)
+        json_content = json.loads(response.content)
+
+        self.assertEqual(json_content['recordsTotal'], 1)
+        self.assertEqual(json_content['recordsFiltered'], 1)
+        res = json_content['data'][0]
+        self.assertEqual(res['total_cnt'], 11746)
+
+    def test_data_silo_sort(self):
+        query = '{"opn": "2015-11"}'
+        request = self.factory.get('/api/silo/{}/data?query={}'.format(
+            self.silo.id, query))
+        request.user = self.tola_user.user
+        view = SiloViewSet.as_view({'get': 'data'})
+        response = view(request, id=self.silo.id)
+        self.assertEqual(response.status_code, 200)
+        json_content = json.loads(response.content)
+
+        data = json_content['data']
+        last_rank = int(data[0]['rank'])
+        for d in data[1:]:
+            current_rank = int(d['rank'])
+            self.assertTrue(last_rank < current_rank)
+            last_rank = current_rank
