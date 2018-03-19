@@ -346,7 +346,7 @@ class FormulaColumn(models.Model):
 # Create your models here.
 class Silo(models.Model):
     owner = models.ForeignKey(User)
-    name = models.CharField(max_length=60, blank=False, null=False)
+    name = models.CharField(max_length=255, blank=False, null=False)
     reads = models.ManyToManyField(Read, related_name='silos')
     tags = models.ManyToManyField(Tag, related_name='silos', blank=True)
     shared = models.ManyToManyField(User, related_name='silos', blank=True)

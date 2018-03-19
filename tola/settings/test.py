@@ -33,10 +33,6 @@ MONGO_URI = 'mongodb://{username}:{password}@{host}:{port}/{db}'.format(
 )
 ################ END OF MONGO DB #######################
 
-from os.path import join, normpath
-
-SECRET_KEY = r"!0^+)=t*ly6ycprf9@adsfsdfdfsdff#pa*3333*lp5k9ko7"
-
 ########## MANAGER CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#admins
 ADMINS = (
@@ -55,27 +51,9 @@ DEBUG = True
 ########## EMAIL CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-########## END EMAIL CONFIGURATION
-
-########## EMAIL SETTINGS
-
-EMAIL_USE_TLS = True
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'test@test.com'
-EMAIL_HOST_PASSWORD = ''
 DEFAULT_FROM_EMAIL = 'test@test.com'
-SERVER_EMAIL = "test@test.com"
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-#DEFAULT_TO_EMAIL = 'to email'
 
-########## END EMAIL SETTINGS
-
-########## GOOGLE CLIENT CONFIG ###########
-GOOGLE_STEP2_URI = ''
-GOOGLE_CLIENT_ID = ''
-GOOGLE_CLIENT_SECRET = ''
-GOOGLE_REDIRECT_URL = ''
+########## END EMAIL CONFIGURATION
 
 ########## CACHE CONFIGURATION
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#caches

@@ -52,4 +52,4 @@ class Command(BaseCommand):
             except Exception as e:
                 logger.error("Silo_id %s encountered the following error: %s" % (silo.pk, e))
 
-        self.stdout.write("done executing gsheet export command job")
+        self.stdout.write("Done executing gsheet export command job")
