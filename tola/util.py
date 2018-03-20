@@ -22,7 +22,7 @@ logger = logging.getLogger("tola")
 class JSONEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, ObjectId):
-            return str(o)
+            return {u'$oid': str(o)}
         return json.JSONEncoder.default(self, o)
 
 

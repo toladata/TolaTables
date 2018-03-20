@@ -22,3 +22,8 @@ class RegisterViewTest(TestCase):
 
         encoded = JSONEncoder().encode(dict_test)
         self.assertTrue(isinstance(encoded, str))
+        self.assertEqual(encoded, '{"silo_id": 2, "read_id": 2, "county": '
+                                  '"CLAY COUNTY", "tiv_2011": 60946.79, '
+                                  '"statecode": "FL", "_id": {"$oid": '
+                                  '"5aaf820a58d8e7002c889905"}, "policy_id": '
+                                  '353022}')
