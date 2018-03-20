@@ -3,6 +3,7 @@ import json
 import base64
 import requests
 from collections import OrderedDict
+from bson import ObjectId
 import logging
 from django.utils import timezone
 from django.utils.encoding import smart_str
@@ -16,6 +17,13 @@ from collections import deque
 
 
 logger = logging.getLogger("tola")
+
+
+class JSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, ObjectId):
+            return str(o)
+        return json.JSONEncoder.default(self, o)
 
 
 def mean(lst):
