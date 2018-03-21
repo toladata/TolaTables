@@ -6,6 +6,8 @@ ADMINS = (
     ('admin', 'admin@example.org'),
 )
 
+NOTIFICATION_SENDER = os.getenv('NOTIFICATION_SENDER')
+
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#managers
 MANAGERS = ADMINS
 ########## END MANAGER CONFIGURATION
@@ -149,6 +151,9 @@ TABLES_LOGIN_URL = TOLA_ACTIVITY_API_URL
 
 SOCIAL_AUTH_TOLA_KEY = os.getenv('SOCIAL_AUTH_TOLA_KEY')
 SOCIAL_AUTH_TOLA_SECRET = os.getenv('SOCIAL_AUTH_TOLA_SECRET')
+
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_BROKER_URL')
 
 from fabric.api import *
 
