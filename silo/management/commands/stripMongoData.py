@@ -21,92 +21,79 @@ class Command(BaseCommand):
         db = client.get_database(settings.TOLATABLES_MONGODB_NAME)
 
         counter = 0
-        foundSilos = set()
-        recordsUpdated = []
-        multiMod = []
+        found_silos = set()
+        records_updated = []
+        multi_mod = []
 
-        # sampleRecords = db.label_value_store.find({"silo_id": {"$in": [175, 891, 996, 981, 1342, 1576]}})
-        # print sampleRecords.count()
-        # for r in sampleRecords:
-        #     print 's=', r['silo_id']
-        # import sys
-        # print 'done'
-        # sys.exit()
-
-        autoPushEnabled = list(Silo.objects.filter(reads__autopush_frequency__isnull=False).values_list('pk', flat=True))
-        problemSilos = {}
-        diffSamples = []
-        diffInclude = ['5731956873abe223358d3a74', '57a473d005e48c0fdd83cdb8']
-        rCountBefore = db.label_value_store.count()
+        auto_push_enabled = list(Silo.objects.filter(reads__autopush_frequency__isnull=False).values_list('pk', flat=True))
+        problem_silos = {}
+        diff_samples = []
+        diff_include = ['5731956873abe223358d3a74', '57a473d005e48c0fdd83cdb8']
+        row_count_before = db.label_value_store.count()
 
         for record in db.label_value_store.find({}):
             for key in record:
                 try:
-                    newVal = record[key].strip()
+                    new_val = record[key].strip()
                 except:
                     continue
-                # print 'new', newVal
-                # print '|val=%s newval=%s' % (record[key], newVal)
-                if newVal != record[key]:
-                    # print all diffs to console and save some samples for later
+                if new_val != record[key]:
                     diff = 'silo %s: different new=|%s| old=|%s|, key=%s, _id=%s' % \
                         (record['silo_id'],
-                        smart_str(newVal),
+                        smart_str(new_val),
                         smart_str(record[key]),
                         smart_str(key),
                         record['_id'])
                     print diff
-                    if (random.random() > .99 and len(diffSamples) <=15) \
-                            or str(record['_id']) in diffInclude:
-                        diffSamples.append(diff)
+                    if (random.random() > .99 and len(diff_samples) <=15) \
+                            or str(record['_id']) in diff_include:
+                        diff_samples.append(diff)
 
                     # There could be problems with the GSheet data if the auto-push
                     # has already taken place.  This lets us highlight potential problems
-                    if record['silo_id'] in autoPushEnabled:
+                    if record['silo_id'] in auto_push_enabled:
                         try:
-                            problemSilos[record['silo_id']].append(key)
+                            problem_silos[record['silo_id']].append(key)
                         except KeyError:
-                            problemSilos[record['silo_id']] = [key]
-                    foundSilos.add(record['silo_id'])
+                            problem_silos[record['silo_id']] = [key]
+                    found_silos.add(record['silo_id'])
 
                     # Only perform the update if the --write flag is thrown
                     if options['write']:
                         rid = ObjectId(record['_id'])
                         result = db.label_value_store.update_one(
                                         {'_id': rid},
-                                        {'$set': {key : newVal}}
+                                        {'$set': {key : new_val}}
                                     )
 
                         # Hightlight any places where we updated more than one record
                         if result.matched_count > 1:
-                            multiMod.append((rid, key))
+                            multi_mod.append((rid, key))
 
-                        recordsUpdated.append({
+                        records_updated.append({
                             'mongo_id': record['_id']
                         })
 
 
             counter += 1
-            # if counter >= 50000:
-            #     break
 
         print '\n#########################################'
         print '#########################################'
         print ''
         print '\nDiff samples:'
-        print '\n'.join(diffSamples)
+        print '\n'.join(diff_samples)
         print ''
-        print 'Records count before', rCountBefore
+        print 'Records count before', row_count_before
         print 'Records count after', db.label_value_store.count()
         print '\n%s records examined\n' % counter
-        print '%s silos with extra whitespace:' % len(foundSilos)
-        print ', '.join(sorted([str(i) for i in foundSilos]))
-        print '\nMultimods (hopefully empty):', multiMod
+        print '%s silos with extra whitespace:' % len(found_silos)
+        print ', '.join(sorted([str(i) for i in found_silos]))
+        print '\nMultimods (hopefully empty):', multi_mod
         print ''
-        print '%s records updated.  If value is 0 you may not have used the --write option.\n' % len(recordsUpdated)
-        if len(problemSilos) > 0:
+        print '%s records updated.  If value is 0 you may not have used the --write option.\n' % len(records_updated)
+        if len(problem_silos) > 0:
             print "These silos had extra whitespace and are on the auto-push list:"
-            for silo in problemSilos:
-                print 'silo_id %s: %s' % (silo, ', '.join(problemSilos[silo]))
+            for silo in problem_silos:
+                print 'silo_id %s: %s' % (silo, ', '.join(problem_silos[silo]))
         else:
             print "There were no silos that had extra whitespace and that were auto-push"
