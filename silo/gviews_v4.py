@@ -187,7 +187,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
         # build filter_criteria if unique field(s) have been setup for this silo
         for unique_field in unique_fields:
             try:
-                filter_criteria.update({unique_field.name: row[headers.index(unique_field.name)]})
+                filter_criteria.update({unique_field.name: row[headers.index(unique_field.name)].strip()})
             except KeyError:
                 pass
             except ValueError:
@@ -215,10 +215,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
             except IndexError as e:
                 #this happens when a column header is missing gsheet
                 continue
-            if key == "" or key is None or key == "silo_id": continue
-            elif key == "id" or key == "_id": key = "user_assigned_id"
-            elif key == "edit_date": key = "editted_date"
-            elif key == "create_date": key = "created_date"
+            key = cleanKey(key)
             val = smart_str(row[c], strings_only=True)
             key = smart_str(key)
             val = val.strip()
