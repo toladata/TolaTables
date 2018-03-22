@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('silo', '0037_auto_20171110_0101'),
-        ('silo', '0034_tolauser_tola_user_uuid'),
+        ('silo', '0033_tolauser_tola_user_uuid'),
     ]
 
     operations = [

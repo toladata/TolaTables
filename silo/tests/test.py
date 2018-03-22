@@ -6,19 +6,206 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.test import Client
 from django.test import RequestFactory
+from django.core.exceptions import ObjectDoesNotExist
 
 from commcare.tasks import parseCommCareData
 from commcare.util import getProjects
+from silo.tasks import process_silo
 from silo.forms import get_read_form
-from silo.models import DeletedSilos, LabelValueStore, ReadType, Read, Silo
+from silo.models import DeletedSilos, LabelValueStore, ReadType, Read, Silo, CeleryTask
 from silo.views import (addColumnFilter, editColumnOrder, newFormulaColumn,
                         showRead, editSilo, uploadFile, siloDetail)
 from tola.util import (addColsToSilo, hideSiloColumns, getColToTypeDict,
                        getSiloColumnNames)
 
-from mock import patch
+from django.contrib.contenttypes.models import ContentType
 
+from mock import patch
+from celery.exceptions import Retry
+import time
 import factories
+
+
+class UploadFileTest(TestCase):
+    """
+    Tests the File Upload Process in several steps.
+    - Checks if uploadFile successfully creates a celery task and new silo for imported read
+    - Checks if process_silo actually imports data
+    - Checks what happens if the task fails
+    
+    Celery is not used for testing purposes, each step is checked on its own.
+    """
+    def setUp(self):
+        self.client = Client()
+        self.factory = RequestFactory()
+        self.user = factories.User()
+        self.upload_csv_url = '/file/'
+
+    def test_upload_file(self):
+        """
+        Checks if uploadFile successfully creates a celery task and new silo for imported read
+        
+        uploadFile takes POST request with csv file
+        - takes a Read
+        - adds read to a silo
+        - creates a CeleryTask
+        - redirects to silo_detail
+        :return: 
+        """
+        read_type = factories.ReadType(read_type="CSV")
+        upload_file = open('silo/tests/sample_data/test.csv', 'rb')
+        read = factories.Read(
+            owner=self.user, type=read_type,
+            read_name="TEST UPLOADFILE",  description="unittest",
+            file_data=SimpleUploadedFile(upload_file.name, upload_file.read())
+        )
+        self.assertEqual(Silo.objects.filter(reads=read.pk).count(), 0)
+        params = {
+            "read_id": read.pk,
+            "new_silo": "TEST UPLOADFILE",
+        }
+        request = self.factory.post(self.upload_csv_url, data=params)
+        request.user = self.user
+        request._dont_enforce_csrf_checks = True
+        response = uploadFile(request, read.pk)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/silo_detail/", response.url)
+
+        # assure new Silo was created
+        new_silo = Silo.objects.get(reads=read.pk)
+        self.assertEqual(new_silo.name, params["new_silo"])
+
+        # assure CeleryTask was created
+        ctask = CeleryTask.objects.get(
+            object_id=read.pk,
+            content_type=ContentType.objects.get_for_model(Read)
+        )
+
+        self.assertNotEqual(ctask.task_id, None)
+        self.assertEqual(ctask.task_status, CeleryTask.TASK_CREATED)
+
+    def test_celery_success(self):
+        """
+        Test if the celery task process_silo actually imports data
+        :return: 
+        """
+        silo = factories.Silo(owner=self.user, public=False)
+
+        read_type = factories.ReadType(read_type="CSV")
+        upload_file = open('silo/tests/sample_data/test.csv', 'rb')
+        read = factories.Read(owner=self.user, type=read_type, file_data=SimpleUploadedFile(upload_file.name, upload_file.read()))
+
+        task = factories.CeleryTask(task_status=CeleryTask.TASK_CREATED, content_object=read)
+
+        process_done = process_silo(silo.id, read.id)
+
+        self.assertEqual(getSiloColumnNames(silo.id), ['First_Name', 'Last_Name', 'E-mail'])
+        self.assertTrue(process_done)
+
+    def test_celery_failure(self):
+        silo = factories.Silo(owner=self.user, public=False)
+
+        read_type = factories.ReadType(read_type="CSV")
+        upload_file = open('silo/tests/sample_data/test_broken.csv', 'rb')
+        read = factories.Read(owner=self.user, type=read_type, file_data=SimpleUploadedFile(upload_file.name, upload_file.read()))
+        task = factories.CeleryTask(content_object=read)
+
+        process_silo(silo.id, read.id)
+
+        ctask = CeleryTask.objects.get(
+            object_id=read.id,
+            content_type=ContentType.objects.get_for_model(Read)
+        )
+
+        self.assertEqual(ctask.task_id, task.task_id)
+        self.assertEqual(ctask.task_status, CeleryTask.TASK_FAILED)
+
+    @patch('silo.tasks.process_silo.retry')
+    def test_celery_wrong_silo(self, process_silo_retry):
+        process_silo_retry.side_effect = Retry()
+        silo = factories.Silo(owner=self.user, public=False)
+
+        with self.assertRaises(ObjectDoesNotExist):
+            process_silo(silo.id, -1)
+
+
+class SiloDetailTest(TestCase):
+    """
+    Test Silo Detail in the following scenarios
+    1 - CeleryTask running in the background: no data is shown and info is displayed
+    2 - CeleryTask Finished: data is shown
+    3 - CeleryTask Failed: data is shown and error message is displayed
+    """
+
+    def setUp(self):
+        self.client = Client()
+        self.factory = RequestFactory()
+        self.user = factories.User()
+        self.upload_csv_url = '/file/'
+        self.silo_detail_url = "/silo_detail/"
+
+    def test_silo_detail_import_running(self):
+        # Create Silo, Read and CeleryTask
+        read_type = factories.ReadType(read_type="CSV")
+        read = factories.Read(
+            owner=self.user, type=read_type,
+            read_name="TEST SILO DETAIL", description="unittest"
+        )
+        silo = factories.Silo(owner=self.user, public=False)
+        silo.reads.add(read)
+        task = factories.CeleryTask(content_object=read, task_status=CeleryTask.TASK_IN_PROGRESS)
+
+        # Check view
+
+        request = self.factory.get(self.silo_detail_url)
+        request.user = self.user
+
+        response = siloDetail(request, silo.pk)
+        self.assertContains(response, "<a href=\"/show_read/"+str(read.id)+"\" target=\"_blank\">"+read.read_name+"</a>")
+        self.assertContains(response, "<span class=\"btn-sm btn-warning\">Import running</span>")
+        self.assertContains(response, "<h4>Import process running</h4>")
+
+    def test_silo_detail_import_failed(self):
+        # Create Silo, Read and CeleryTask
+        read_type = factories.ReadType(read_type="CSV")
+        read = factories.Read(
+            owner=self.user, type=read_type,
+            read_name="TEST SILO FAIL", description="unittest"
+        )
+        silo = factories.Silo(owner=self.user, public=False)
+        silo.reads.add(read)
+        task = factories.CeleryTask(content_object=read, task_status=CeleryTask.TASK_FAILED)
+
+        # Check view
+        request = self.factory.get(self.silo_detail_url)
+        request.user = self.user
+
+        response = siloDetail(request, silo.pk)
+        self.assertContains(response, "<a href=\"/show_read/"+str(read.id)+"\" target=\"_blank\">"+read.read_name+"</a>")
+        self.assertContains(response, "<span class=\"btn-sm btn-danger\">Import Failed</span>")
+        self.assertContains(response, "<h4 style=\"color:#ff3019\">Import process failed</h4>")
+
+    def test_silo_detail_import_done(self):
+        # Create Silo, Read and CeleryTask
+        read_type = factories.ReadType(read_type="CSV")
+        read = factories.Read(
+            owner=self.user, type=read_type,
+            read_name="TEST SILO DONE", description="unittest"
+        )
+        silo = factories.Silo(owner=self.user, public=False)
+        silo.reads.add(read)
+        task = factories.CeleryTask(content_object=read, task_status=CeleryTask.TASK_FINISHED)
+
+        # Check view
+        request = self.factory.get(self.silo_detail_url)
+        request.user = self.user
+
+        response = siloDetail(request, silo.pk)
+        self.assertContains(response, "<a href=\"/show_read/"+str(read.id)+"\" target=\"_blank\">"+read.read_name+"</a>")
+        self.assertNotContains(response, "<span class=\"btn-sm btn-danger\">Import Failed</span>")
+        self.assertNotContains(response, "<span class=\"btn-sm btn-warning\">Import running</span>")
+        self.assertNotContains(response, "<h4 style=\"color:#ff3019\">Import process failed</h4>")
+        self.assertNotContains(response, "<h4>Import process running</h4>")
 
 
 class ReadTest(TestCase):
@@ -33,7 +220,7 @@ class ReadTest(TestCase):
 
     def test_new_read_post(self):
         read_type = ReadType.objects.get(read_type="ONA")
-        upload_file = open('test.csv', 'rb')
+        upload_file = open('silo/tests/sample_data/test.csv', 'rb')
         params = {
             'owner': self.tola_user.user.pk,
             'type': read_type.pk,
@@ -108,7 +295,7 @@ class SiloTest(TestCase):
     def test_new_silodata(self, mock_get_workflowteams):
         mock_get_workflowteams.return_value = []
         read_type = ReadType.objects.get(read_type="CSV")
-        upload_file = open('test.csv', 'rb')
+        upload_file = open('silo/tests/sample_data/test.csv', 'rb')
         read = factories.Read(
             owner=self.tola_user.user, type=read_type,
             read_name="TEST CSV IMPORT",  description="unittest",
@@ -144,7 +331,7 @@ class SiloTest(TestCase):
 
     def test_read_form(self):
         read_type = ReadType.objects.get(read_type="CSV")
-        upload_file = open('test.csv', 'rb')
+        upload_file = open('silo/tests/sample_data/test.csv', 'rb')
         params = {
             'owner': self.tola_user.user.pk,
             'type': read_type.pk,
