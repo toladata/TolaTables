@@ -16,9 +16,10 @@ from silo.models import DeletedSilos, LabelValueStore, ReadType, Read, Silo, Cel
 from silo.views import (addColumnFilter, editColumnOrder, newFormulaColumn,
                         showRead, editSilo, uploadFile, siloDetail)
 from tola.util import (addColsToSilo, hideSiloColumns, getColToTypeDict,
-                       getSiloColumnNames)
+                       getSiloColumnNames, cleanKey)
 
 from django.contrib.contenttypes.models import ContentType
+from django.utils.encoding import smart_str
 
 from mock import patch
 from celery.exceptions import Retry
@@ -32,7 +33,7 @@ class UploadFileTest(TestCase):
     - Checks if uploadFile successfully creates a celery task and new silo for imported read
     - Checks if process_silo actually imports data
     - Checks what happens if the task fails
-    
+
     Celery is not used for testing purposes, each step is checked on its own.
     """
     def setUp(self):
@@ -44,13 +45,13 @@ class UploadFileTest(TestCase):
     def test_upload_file(self):
         """
         Checks if uploadFile successfully creates a celery task and new silo for imported read
-        
+
         uploadFile takes POST request with csv file
         - takes a Read
         - adds read to a silo
         - creates a CeleryTask
         - redirects to silo_detail
-        :return: 
+        :return:
         """
         read_type = factories.ReadType(read_type="CSV")
         upload_file = open('silo/tests/sample_data/test.csv', 'rb')
@@ -87,7 +88,7 @@ class UploadFileTest(TestCase):
     def test_celery_success(self):
         """
         Test if the celery task process_silo actually imports data
-        :return: 
+        :return:
         """
         silo = factories.Silo(owner=self.user, public=False)
 
@@ -817,3 +818,42 @@ class TestDeleteSilo(TestCase):
         self.assertFalse(silo)
         self.assertFalse(read)
         self.assertTrue(deleted_silos)
+
+
+class TestCleanKeys(TestCase):
+    def setUp(self):
+        self.user = factories.User()
+        self.silo = factories.Silo(owner=self.user)
+
+    def test_clean_keys(self):
+        LabelValueStore.objects(silo_id=self.silo.id).delete()
+        lvs = LabelValueStore()
+        orig_data = {
+            'Header 1': 'r1c1',
+            'create_date': 'r1c3',
+            'edit_date': 'r1c2',
+            '_id': 'r1c4'
+        }
+
+        for k, v in orig_data.iteritems():
+            key = cleanKey(k)
+            val = smart_str(v, strings_only=True)
+            key = smart_str(key)
+            val = val.strip()
+            setattr(lvs, key, val)
+        lvs.silo_id = self.silo.id
+        lvs.save()
+
+        returned_data = json.loads(LabelValueStore.objects(silo_id=self.silo.id).to_json())[0]
+        returned_data.pop('_id')
+
+        expected_data = {
+            'Header 1': 'r1c1',
+            'created_date': 'r1c3',
+            'editted_date': 'r1c2',
+            'user_assigned_id': 'r1c4',
+            'read_id': -1,
+            'silo_id': self.silo.id
+        }
+        self.assertEqual(returned_data, expected_data)
+        LabelValueStore.objects(silo_id=self.silo.id).delete()

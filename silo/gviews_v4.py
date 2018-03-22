@@ -219,7 +219,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
             val = smart_str(row[c], strings_only=True)
             key = smart_str(key)
             val = val.strip()
-            setattr(lvs, key.replace(".", "_").replace("$", "USD"), val)
+            setattr(lvs, key, val)
         lvs.silo_id = silo.id
         lvs.read_id = gsheet_read.id
         lvs.create_date = timezone.now()
