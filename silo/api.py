@@ -332,8 +332,12 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
 
         count_pipeline = pipeline + [{'$count': 'count'}]
         count_cur = collection.aggregate(pipeline=count_pipeline)
-        count_result = list(count_cur)[0]
-        records_total = count_result['count']
+        list_count = list(count_cur)
+        if list_count:
+            count_result = list_count[0]
+            records_total = count_result['count']
+        else:
+            records_total = 0
 
         # workaround until the problem of javascript not increasing
         # the value of length is fixed
