@@ -117,6 +117,19 @@ class SiloDataViewTest(TestCase):
         self.assertEqual(json_content['recordsTotal'], 20)
         self.assertEqual(json_content['recordsFiltered'], 20)
 
+    def test_data_silo_empty_table(self):
+        read = factories.Read(read_name="test_empty", owner=self.tola_user.user)
+        silo = factories.Silo(owner=self.tola_user.user, reads=[read])
+
+        request = self.factory.get('/api/silo/{}/data'.format(silo.id))
+        request.user = self.tola_user.user
+        view = SiloViewSet.as_view({'get': 'data'})
+        response = view(request, id=silo.id)
+        self.assertEqual(response.status_code, 200)
+        json_content = json.loads(response.content)
+        self.assertEqual(json_content['recordsTotal'], 0)
+        self.assertEqual(json_content['recordsFiltered'], 0)
+
     def test_data_silo_query(self):
         query = '{"opn": "2015-11"}'
         request = self.factory.get('/api/silo/{}/data?query={}'.format(
