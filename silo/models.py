@@ -355,6 +355,7 @@ class Silo(models.Model):
     country = models.ForeignKey(Country, blank=True, null=True)
     workflowlevel1 = models.ManyToManyField(WorkflowLevel1, blank=True)
     public = models.BooleanField()
+    form_uuid = models.CharField(max_length=255, verbose_name='CustomForm UUID', null=True, blank=True)
     create_date = models.DateTimeField(null=True, blank=True)
 
     formulacolumns = models.ManyToManyField(FormulaColumn, related_name='silos', blank=True)
