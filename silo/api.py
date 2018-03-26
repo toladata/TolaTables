@@ -1,10 +1,11 @@
 import json
 import django_filters
+from urlparse import urljoin
 
 from django.http import (HttpResponseBadRequest, JsonResponse, HttpResponse,
                          QueryDict)
 from django.db.models import Q
-from django.utils import timezone
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 
 from rest_framework import viewsets, filters, permissions
@@ -146,6 +147,7 @@ class CustomFormViewSet(mixins.CreateModelMixin,
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         try:
+            form_uuid = request.POST['form_uuid']
             level1_uuid = request.POST['level1_uuid']
             tola_user_uuid = request.POST['tola_user_uuid']
             wkflvl1 = WorkflowLevel1.objects.get(level1_uuid=level1_uuid)
@@ -157,10 +159,13 @@ class CustomFormViewSet(mixins.CreateModelMixin,
                 as e:
             return Response(e, status=status.HTTP_400_BAD_REQUEST)
 
+        url_subpath = '/activity/forms/uuid/{}'.format(form_uuid)
+        form_url = urljoin(settings.ACTIVITY_URL, url_subpath)
         read = Read.objects.create(
             owner=tola_user.user,
             type=ReadType.objects.get(read_type='CustomForm'),
             read_name=read_name,
+            read_url=form_url
         )
 
         table_name = '{} - {}'.format(form_name, wkflvl1.name)
@@ -174,6 +179,7 @@ class CustomFormViewSet(mixins.CreateModelMixin,
             organization=tola_user.organization,
             public=False,
             columns=columns,
+            form_uuid=form_uuid
         )
 
         silo.reads.add(read)

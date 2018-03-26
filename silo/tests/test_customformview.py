@@ -1,5 +1,8 @@
 import json
+import uuid
+from urlparse import urljoin
 
+from django.conf import settings
 from django.test import TestCase
 
 from rest_framework.test import APIRequestFactory
@@ -65,6 +68,7 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         wflvl1 = factories.WorkflowLevel1(
             organization=self.tola_user.organization)
 
+        form_uuid = uuid.uuid4()
         data = {
             'name': 'CustomForm Test',
             'description': 'This is a test.',
@@ -83,7 +87,8 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
                 }
             ],
             'level1_uuid': wflvl1.level1_uuid,
-            'tola_user_uuid': self.tola_user.tola_user_uuid
+            'tola_user_uuid': self.tola_user.tola_user_uuid,
+            'form_uuid': form_uuid
         }
 
         request = self.factory.post('api/customform', data=data)
@@ -98,6 +103,11 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         silo = Silo.objects.get(pk=silo_id)
         self.assertEqual(silo.data_count, 0)
 
+        url_subpath = '/activity/forms/uuid/{}'.format(form_uuid)
+        form_url = urljoin(settings.ACTIVITY_URL, url_subpath)
+        reads = silo.reads.all()
+        self.assertEqual(reads[0].read_url, form_url)
+
     def test_create_customform_long_name(self):
         self.tola_user.user.is_staff = True
         self.tola_user.user.is_superuser = True
@@ -111,6 +121,7 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
                  'going to work well. Almost there!',
             organization=self.tola_user.organization)
 
+        form_uuid = uuid.uuid4()
         data = {
             'name': 'CustomForm Test',
             'description': 'This is a test.',
@@ -129,7 +140,8 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
                 }
             ],
             'level1_uuid': wflvl1.level1_uuid,
-            'tola_user_uuid': self.tola_user.tola_user_uuid
+            'tola_user_uuid': self.tola_user.tola_user_uuid,
+            'form_uuid': form_uuid
         }
 
         request = self.factory.post('api/customform', data=data)
@@ -144,9 +156,14 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         silo = Silo.objects.get(pk=silo_id)
         silo_name = '{} - {}'.format(data['name'], wflvl1.name)
         silo_name = silo_name[:255]
+        url_subpath = '/activity/forms/uuid/{}'.format(form_uuid)
+        form_url = urljoin(settings.ACTIVITY_URL, url_subpath)
 
         self.assertEqual(len(silo.name), 255)
         self.assertEqual(silo.name, silo_name)
+
+        reads = silo.reads.all()
+        self.assertEqual(reads[0].read_url, form_url)
 
     def test_create_customform_missing_data_superuser(self):
         self.tola_user.user.is_staff = True

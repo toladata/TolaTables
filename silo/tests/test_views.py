@@ -16,6 +16,7 @@ from pymongo.errors import WriteError
 
 import json
 import random
+import uuid
 import factories
 from silo import views
 from tola import util
@@ -185,7 +186,8 @@ class ExportViewsTest(TestCase, MongoTestCase):
             'description': 'This is a test.',
             'fields': json.dumps(fields),
             'level1_uuid': wflvl1.level1_uuid,
-            'tola_user_uuid': self.tola_user.tola_user_uuid
+            'tola_user_uuid': self.tola_user.tola_user_uuid,
+            'form_uuid': uuid.uuid4()
         }
         request = self.factory.post('', data=meta)
         request.user = self.tola_user.user
@@ -477,7 +479,8 @@ class SiloViewsTest(TestCase, MongoTestCase):
             'description': 'This is a test.',
             'fields': json.dumps(fields),
             'level1_uuid': wflvl1.level1_uuid,
-            'tola_user_uuid': self.tola_user.tola_user_uuid
+            'tola_user_uuid': self.tola_user.tola_user_uuid,
+            'form_uuid': uuid.uuid4()
         }
         request = self.factory.post('', data=meta)
         request.user = self.tola_user.user
@@ -522,7 +525,8 @@ class SiloViewsTest(TestCase, MongoTestCase):
             'description': 'This is a test.',
             'fields': json.dumps(fields),
             'level1_uuid': wflvl1.level1_uuid,
-            'tola_user_uuid': self.tola_user.tola_user_uuid
+            'tola_user_uuid': self.tola_user.tola_user_uuid,
+            'form_uuid': uuid.uuid4()
         }
         request = self.factory.post('', data=meta)
         request.user = self.tola_user.user
