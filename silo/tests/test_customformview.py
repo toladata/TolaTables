@@ -103,7 +103,7 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         silo = Silo.objects.get(pk=silo_id)
         self.assertEqual(silo.data_count, 0)
 
-        url_subpath = '/activity/forms/uuid/{}'.format(form_uuid)
+        url_subpath = '/activity/forms/{}/view'.format(form_uuid)
         form_url = urljoin(settings.ACTIVITY_URL, url_subpath)
         reads = silo.reads.all()
         self.assertEqual(reads[0].read_url, form_url)
@@ -156,7 +156,7 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         silo = Silo.objects.get(pk=silo_id)
         silo_name = '{} - {}'.format(data['name'], wflvl1.name)
         silo_name = silo_name[:255]
-        url_subpath = '/activity/forms/uuid/{}'.format(form_uuid)
+        url_subpath = '/activity/forms/{}/view'.format(form_uuid)
         form_url = urljoin(settings.ACTIVITY_URL, url_subpath)
 
         self.assertEqual(len(silo.name), 255)
