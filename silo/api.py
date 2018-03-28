@@ -159,7 +159,7 @@ class CustomFormViewSet(mixins.CreateModelMixin,
                 as e:
             return Response(e, status=status.HTTP_400_BAD_REQUEST)
 
-        url_subpath = '/activity/forms/uuid/{}'.format(form_uuid)
+        url_subpath = '/activity/forms/{}/view'.format(form_uuid)
         form_url = urljoin(settings.ACTIVITY_URL, url_subpath)
         read = Read.objects.create(
             owner=tola_user.user,
