@@ -108,6 +108,37 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         reads = silo.reads.all()
         self.assertEqual(reads[0].read_url, form_url)
 
+    def test_create_customform_missing_data(self):
+        self.tola_user.user.is_staff = True
+        self.tola_user.user.is_superuser = True
+        self.tola_user.user.save()
+
+        data = {
+            'name': 'CustomForm Test',
+            'description': 'This is a test.',
+            'fields': [
+                {
+                    'name': 'name',
+                    'type': 'text'
+                },
+                {
+                    'name': 'age',
+                    'type': 'number'
+                },
+                {
+                    'name': 'city',
+                    'type': 'text'
+                }
+            ],
+        }
+
+        request = self.factory.post('api/customform', data=data)
+        request.user = self.tola_user.user
+        view = CustomFormViewSet.as_view({'post': 'create'})
+        response = view(request)
+
+        self.assertEqual(response.status_code, 400)
+
     def test_create_customform_long_name(self):
         self.tola_user.user.is_staff = True
         self.tola_user.user.is_superuser = True
@@ -205,7 +236,7 @@ class CustomFormUpdateViewTest(TestCase):
         self.factory = APIRequestFactory()
         self.tola_user = factories.TolaUser()
 
-    def test_update_customform_superuser(self):
+    def test_update_customform_superuser_minimal(self):
         self.tola_user.user.is_staff = True
         self.tola_user.user.is_superuser = True
         self.tola_user.user.save()
@@ -219,7 +250,6 @@ class CustomFormUpdateViewTest(TestCase):
 
         data = {
             'name': 'CustomForm Test',
-            'description': 'This is a test.',
             'fields': [
                 {
                     'name': 'name',

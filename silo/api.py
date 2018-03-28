@@ -136,7 +136,7 @@ class PublicSiloViewSet(viewsets.ReadOnlyModelViewSet):
 class CustomFormViewSet(mixins.CreateModelMixin,
                         mixins.UpdateModelMixin,
                         viewsets.GenericViewSet):
-    serializer_class = SiloSerializer
+    serializer_class = CustomFormSerializer
     queryset = Silo.objects.all()
 
     def create(self, request, *args, **kwargs):
