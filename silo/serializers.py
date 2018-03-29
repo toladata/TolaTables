@@ -53,6 +53,18 @@ class SiloSerializer(serializers.HyperlinkedModelSerializer):
         return self.context['request'].build_absolute_uri(link)
 
 
+class CustomFormSerializer(serializers.ModelSerializer):
+    id = serializers.ReadOnlyField()
+    fields = serializers.JSONField(write_only=True)
+    level1_uuid = serializers.CharField(write_only=True)
+    tola_user_uuid = serializers.CharField(write_only=True, required=False)
+
+    class Meta:
+        model = Silo
+        fields = ('id', 'name', 'description', 'fields', 'level1_uuid',
+                  'tola_user_uuid', 'form_uuid')
+
+
 class TagSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Tag
