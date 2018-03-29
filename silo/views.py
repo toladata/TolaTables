@@ -14,7 +14,7 @@ from pymongo import MongoClient
 
 from django.conf import settings
 from django.core import files
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.core.urlresolvers import reverse_lazy
 from django.http import HttpResponseBadRequest,\
     HttpResponse, HttpResponseRedirect, JsonResponse
@@ -46,6 +46,7 @@ from .forms import get_read_form, UploadForm, SiloForm, MongoEditForm, \
 from .tasks import process_silo
 
 from django.contrib.contenttypes.models import ContentType
+from social_django.models import UserSocialAuth
 
 logger = logging.getLogger("silo")
 client = MongoClient(settings.MONGO_URI)
@@ -678,18 +679,28 @@ def showRead(request, id):
     """
     Show a read data source and allow user to edit it
     """
-    excluded_fields = ['gsheet_id', 'resource_id', 'token', 'create_date', 'edit_date', 'token', 'autopush_expiration', 'autopull_expiration']
+    excluded_fields = ['gsheet_id', 'resource_id', 'token', 'create_date',
+                       'edit_date', 'token', 'autopush_expiration',
+                       'autopull_expiration']
     initial = {'owner': request.user}
     data = None
-    access_token = None
+    onedrive_redirect_uri = settings.ONEDRIVE_REDIRECT_URI
+    onedrive_client_id = settings.ONEDRIVE_CLIENT_ID
 
     try:
         read_instance = Read.objects.get(pk=id)
         read_type = read_instance.type.read_type
     except Read.DoesNotExist as e:
         read_instance = None
-        read_type = request.GET.get("type", "CSV")
-        initial['type'] = ReadType.objects.get(read_type=read_type)
+        if request.method == 'POST':
+            read_type_id = request.POST.get("type")
+            rt = ReadType.objects.get(id=read_type_id)
+        else:
+            read_type_name = request.GET.get("type", "CSV")
+            rt = ReadType.objects.get(read_type=read_type_name)
+
+        initial['type'] = rt
+        read_type = rt.read_type
 
     try:
         get_tables = Silo.objects.all().filter(reads__id=id)
@@ -697,93 +708,110 @@ def showRead(request, id):
         get_tables = None
 
     if read_type == "GSheet Import" or read_type == "ONA":
-        excluded_fields = excluded_fields + ['username', 'password', 'file_data','autopush_frequency', 'onedrive_file']
+        excluded_fields = excluded_fields + ['username', 'password',
+                                             'file_data',
+                                             'autopush_frequency',
+                                             'onedrive_access_token',
+                                             'onedrive_file']
     elif read_type == "JSON":
-        excluded_fields = excluded_fields + ['file_data','autopush_frequency']
+        excluded_fields = excluded_fields + ['file_data',
+                                             'onedrive_access_token',
+                                             'onedrive_file',
+                                             'autopush_frequency']
     elif read_type == "Google Spreadsheet":
-        excluded_fields = excluded_fields + ['username', 'password', 'file_data', 'autopull_frequency', 'onedrive_file']
+        excluded_fields = excluded_fields + ['username', 'password',
+                                             'file_data',
+                                             'autopull_frequency',
+                                             'onedrive_access_token',
+                                             'onedrive_file']
     elif read_type == "CSV":
-        excluded_fields = excluded_fields + ['username', 'password', 'autopush_frequency', 'autopull_frequency', 'read_url', 'onedrive_file']
+        excluded_fields = excluded_fields + ['username', 'password',
+                                             'autopush_frequency',
+                                             'autopull_frequency',
+                                             'read_url',
+                                             'onedrive_access_token',
+                                             'onedrive_file']
     elif read_type == "OneDrive":
-        user = User.objects.get(username__exact=request.user)
-        social = user.social_auth.get(provider='microsoft-graph')
-        access_token = social.extra_data['access_token']
-
-        """
-        # Todo catch expired token
-        response = requests.get(
-            'https://graph.microsoft.com/v1.0/me/drive/root/children',
-            headers={
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json',
-                'Authorization': 'Bearer ' + social.extra_data['access_token']
-            }
-        )
-        data = response.json()
-        print(response.status_code)
-        if response.status_code == 401:
-            logout(request)
-            redirect('/')
-
-        print(data)
-        """
-        excluded_fields = excluded_fields + ['username', 'password', 'file_data','autopush_frequency']
-        excluded_fields = excluded_fields + ['autopull_frequency', 'read_url']
+        excluded_fields = excluded_fields + ['username', 'password',
+                                             'file_data',
+                                             'autopush_frequency',
+                                             'autopull_frequency', 'read_url']
 
     if request.method == 'POST':
-        form = get_read_form(excluded_fields)(request.POST, request.FILES, instance=read_instance)
+        form = get_read_form(excluded_fields)(request.POST, request.FILES,
+                                              instance=read_instance)
+
         if form.is_valid():
             read = form.save(commit=False)
             if read.username and read.password:
-                basic_auth = base64.encodestring('%s:%s' % (read.username, read.password))[:-1]
+                basic_auth = base64.encodestring('%s:%s' % (read.username,
+                                                            read.password)
+                                                 )[:-1]
                 read.token = basic_auth
                 read.password = None
             if form.instance.autopull_frequency:
-                read.autopull_expiration = datetime.datetime.now() + datetime.timedelta(days=170)
+                read.autopull_expiration = datetime.datetime.now() + \
+                                           datetime.timedelta(days=170)
             if form.instance.autopush_frequency:
-                read.autopush_expiration = datetime.datetime.now() + datetime.timedelta(days=170)
+                read.autopush_expiration = datetime.datetime.now() + \
+                                           datetime.timedelta(days=170)
 
             read.save()
             if form.instance.type.read_type == "CSV":
                 return HttpResponseRedirect("/file/" + str(read.id) + "/")
             elif form.instance.type.read_type == "JSON":
-                return HttpResponseRedirect(reverse_lazy("getJSON")+ "?read_id=%s" % read.id)
+                return HttpResponseRedirect(reverse_lazy("getJSON") +
+                                            "?read_id=%s" % read.id)
             if form.instance.type.read_type == "OneDrive":
-                return HttpResponseRedirect("/import_onedrive/" + str(read.id) + "/")
+                extra_data = {"token_type": "Bearer", "access_token":
+                    form.cleaned_data["onedrive_access_token"]}
 
-            if form.instance.autopull_frequency or form.instance.autopush_frequency:
-                messages.info(request, "Your table must have a unique column set for Autopull/Autopush to work.")
+                social_auth, created = UserSocialAuth.objects.get_or_create(
+                        provider='microsoft-graph', user=request.user)
+                social_auth.extra_data = extra_data
+                social_auth.save()
+
+                return HttpResponseRedirect("/import_onedrive/" + str(
+                    read.id) + "/")
+
+            if form.instance.autopull_frequency or \
+                    form.instance.autopush_frequency:
+                messages.info(request,
+                              "Your table must have a unique column set for "
+                              "Autopull/Autopush to work.")
             return HttpResponseRedirect(reverse_lazy('listSilos'))
         else:
             messages.error(request, 'Invalid Form', fail_silently=False)
     else:
-        form = get_read_form(excluded_fields)(instance=read_instance, initial=initial)
+        form = get_read_form(excluded_fields)(instance=read_instance,
+                                              initial=initial)
 
     return render(request, 'read/read.html', {
         'form': form,
         'read_id': id,
         'data': data,
         'get_tables': get_tables,
-        'access_token': access_token
+        'redirect_uri': onedrive_redirect_uri,
+        'client_id': onedrive_client_id,
     })
 
 
 @login_required
 def oneDriveImport(request, id):
     """
-    Get the forms owned or shared with the logged in user
+    Import a file from OneDrive
     :param request:
-    :return: list of Ona forms paired with action buttons
+    :return: HttpResponseRedirect to the imported file
     """
     read_obj = Read.objects.get(pk=id)
 
-    # print(read_obj.onedrive_file)
     user = User.objects.get(username__exact=request.user)
     social = user.social_auth.get(provider='microsoft-graph')
     access_token = social.extra_data['access_token']
 
     request_meta = requests.get(
-        'https://graph.microsoft.com/v1.0/me/drive/items/' + read_obj.onedrive_file + '',
+        'https://graph.microsoft.com/v1.0/me/drive/items/' +
+        read_obj.onedrive_file,
         headers={
             'Content-Type': 'application/x-www-form-urlencoded',
             'Accept': 'application/json',
@@ -795,7 +823,8 @@ def oneDriveImport(request, id):
         return redirect('/')
 
     request_content = requests.get(
-        'https://graph.microsoft.com/v1.0/me/drive/items/'+read_obj.onedrive_file+'/content',
+        'https://graph.microsoft.com/v1.0/me/drive/items/' +
+        read_obj.onedrive_file+'/content',
         headers={
             'Content-Type': 'application/x-www-form-urlencoded',
             'Accept': 'application/json',
@@ -810,13 +839,7 @@ def oneDriveImport(request, id):
     read_obj.file_data = files.File(tmp, name=file_meta["name"])
     read_obj.save()
 
-    print(file_meta["name"])
     return HttpResponseRedirect("/file/" + str(id) + "/")
-
-    #read_obj.file_data
-
-    return render(request, 'silo/onedrive.html', {
-    })
 
 
 @login_required
@@ -826,8 +849,8 @@ def oneDrive(request):
     :param request:
     :return: list of Ona forms paired with action buttons
     """
-    return render(request, 'silo/onedrive.html', {
-    })
+    return render(request, 'silo/onedrive.html', {})
+
 
 @login_required
 def uploadFile(request, id):

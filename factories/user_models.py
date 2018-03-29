@@ -12,3 +12,8 @@ class User(DjangoModelFactory):
     username = lazy_attribute(lambda o: slugify(o.first_name + '.' +
                                                 o.last_name))
     email = lazy_attribute(lambda o: o.username + "@testenv.com")
+
+
+class UserSocialAuth(DjangoModelFactory):
+    class Meta:
+        model = 'social_django.UserSocialAuth'

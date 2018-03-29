@@ -855,3 +855,50 @@ class DoMergeViewTest(TestCase):
         self.assertEqual(response.url, '/silo_detail/{}/'.format(silo.id))
         self.assertIn(left_read, silo.reads.all())
         self.assertIn(right_read, silo.reads.all())
+
+
+class OneDriveViewsTest(TestCase):
+
+    def setUp(self):
+        self.org = factories.Organization()
+        self.tola_user = factories.TolaUser(organization=self.org)
+        self.user = factories.User()
+        factories.ReadType.create_batch(7)
+
+    def test_onedrive_js_page(self):
+        self.client.force_login(self.user)
+        response = self.client.get('/onedrive')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'silo/onedrive.html')
+
+    def test_onedrive_js_page_no_login(self):
+        response = self.client.get('/onedrive')
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTemplateNotUsed(response, 'silo/onedrive.html')
+
+    def test_read_view_onedrive_contains_fields(self):
+        self.client.force_login(self.user)
+        response = self.client.get('/source/new/?type=OneDrive')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'read/read.html')
+        self.assertContains(response, "https://js.live.net/v7.2/OneDrive.js")
+        self.assertContains(response, "launchOneDrivePicker")
+        self.assertContains(response, '<input type="hidden" '
+                                      'name="onedrive_file" '
+                                      'id="id_onedrive_file" />')
+        self.assertContains(response, '<input type="hidden" '
+                                      'name="onedrive_access_token" '
+                                      'id="id_onedrive_access_token" />')
+
+    def test_other_views_dont_contain_fields(self):
+        self.client.force_login(self.user)
+        response = self.client.get('/source/new/?type=CSV')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'read/read.html')
+        self.assertNotContains(response, '<input type="hidden" '
+                                      'name="onedrive_file" '
+                                      'id="id_onedrive_file" />')
