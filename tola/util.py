@@ -2,6 +2,7 @@ import urllib2
 import json
 import base64
 import requests
+import cgi
 from collections import OrderedDict
 from bson import ObjectId
 import logging
@@ -86,8 +87,8 @@ def saveDataToSilo(silo, data, read=-1, user=None):
     try:
         keys = data.fieldnames
         keys = [cleanKey(key) for key in keys]
-    except AttributeError:
-        pass
+    except AttributeError as e:
+        logger.warning(e)
 
     for counter, row in enumerate(data):
         # resetting filter_criteria for each row
@@ -117,7 +118,7 @@ def saveDataToSilo(silo, data, read=-1, user=None):
                 lvs.create_date = timezone.now()
                 lvs.read_id = read_source_id
             except LabelValueStore.MultipleObjectsReturned:
-                for k,v in filter_criteria.iteritems():
+                for k, v in filter_criteria.iteritems():
                     skipped_rows.add("{}={}".format(str(k), str(v)))
                 continue
         else:
@@ -127,7 +128,8 @@ def saveDataToSilo(silo, data, read=-1, user=None):
             lvs.create_date = timezone.now()
             lvs.read_id = read_source_id
 
-        row = cleanDataObj(row, silo)
+        row = clean_data_obj(row)
+
         for key, val in row.iteritems():
             if not isinstance(key, tuple):
                 if key not in keys:
@@ -135,35 +137,34 @@ def saveDataToSilo(silo, data, read=-1, user=None):
                 setattr(lvs, key, val)
 
         counter += 1
-        lvs = calculateFormulaCell(lvs,silo)
+        lvs = calculateFormulaCell(lvs, silo)
         lvs.save()
+
     addColsToSilo(silo, keys)
     res = {"skipped_rows": skipped_rows, "num_rows": counter}
     return res
 
 
-
-def cleanDataObj(obj, silo):
+def clean_data_obj(obj):
+    """
+    Clean the data object given in the call. It casts the values to the right
+    type to be stored in the database.
+    :param obj: dict | list | string
+    :return: dict
+    """
     if not isinstance(obj, (dict, list, OrderedDict)):
-        fieldToType = getColToTypeDict(silo)
-        if type(obj) == str or type(obj) == unicode:
-            obj = smart_str(obj, strings_only=True).strip()
-        if fieldToType.get(obj, 'string') == 'int':
-            try:
-                obj = int(obj)
-            except ValueError as e:
-                pass
-        if fieldToType.get(obj, 'string') == 'double':
-            try:
-                obj = float(obj)
-            except ValueError as e:
-                pass
+
+        try:
+            obj = json.loads(obj)
+        except (ValueError, TypeError):
+            if isinstance(obj, str) or isinstance(obj, unicode):
+                obj = cgi.escape(obj)
         return obj
 
     if isinstance(obj, list):
-        return [cleanDataObj(v, silo) for v in obj]
+        return [clean_data_obj(v) for v in obj]
 
-    return {cleanKey(k): cleanDataObj(v, silo) for k,v in obj.items()}
+    return {cleanKey(k): clean_data_obj(v) for k, v in obj.items()}
 
 
 def cleanKey(key):
