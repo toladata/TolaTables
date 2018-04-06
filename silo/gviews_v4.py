@@ -103,6 +103,56 @@ def _get_or_create_read(rtype, name, description, spreadsheet_id, user, silo):
     return gsheet_read
 
 
+def _get_gsheet_metadata(credential_obj, spreadsheet_id, user):
+    """
+    Get the sheet metada data from Google to name of the sheet and create a Read
+    :param credential_obj: OAuth2Credentials object
+    :param spreadsheet_id: integer
+    :param user: User object
+    :return: The name of the sheet, the Read, an error msg
+             | (object, dict)
+    """
+    service = _get_authorized_service(credential_obj)
+    try:
+        spreadsheet = service.spreadsheets().get(
+            spreadsheetId=spreadsheet_id).execute()
+    except HttpAccessTokenRefreshError:
+        error = {'credential': [_get_credential_object(user, True)]}
+        return None, error
+    except Exception as e:
+        error = json.loads(e.content).get('error')
+        msg = '{}: {}'.format(error.get("status"), error.get("message"))
+        error = {'level': messages.ERROR, 'msg': msg}
+        return None, error
+
+    return spreadsheet, None
+
+
+def _fetch_data_gsheet(credential_obj, spreadsheet_id, sheet_name):
+    """
+    Fetch the table data from Google Spreadsheet
+    :param credential_obj: OAuth2Credentials object
+    :param spreadsheet_id: integer
+    :param sheet_name: string
+    :return: the data, an error msg | (object, dict)
+    """
+    service = _get_authorized_service(credential_obj)
+    try:
+        result = service.spreadsheets().values().get(
+            spreadsheetId=spreadsheet_id, range=sheet_name).execute()
+        values = result.get('values', [])
+    except Exception as e:
+        logger.error(e)
+        msg = {
+            'level': messages.ERROR,
+            'msg': 'Something went wrong 22: {}'.format(e),
+            'redirect': None
+        }
+        return None, msg
+    else:
+        return values, None
+
+
 def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id,
                               sheet_id=None, partialcomplete=False):
     msgs = []
@@ -128,51 +178,35 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id,
         pk=None if silo_id == '0' else silo_id, defaults=defaults)
     msgs.append({'silo_id': silo.id})
 
-    service = _get_authorized_service(credential_obj)
+    metadata, error = _get_gsheet_metadata(credential_obj, spreadsheet_id, user)
+    if error:
+        if 'credential' in error:
+            return error.get('credential')
+        else:
+            msgs.append(error)
+            return msgs
 
-    # fetch the google spreadsheet metadata
-    try:
-        spreadsheet = service.spreadsheets().get(
-            spreadsheetId=spreadsheet_id).execute()
-    except HttpAccessTokenRefreshError:
-        return [_get_credential_object(user, True)]
-    except Exception as e:
-        error = json.loads(e.content).get('error')
-        msg = '{}: {}'.format(error.get("status"), error.get("message"))
-        msgs.append({'level': messages.ERROR, 'msg': msg})
-        return msgs
-
-    spreadsheet_name = spreadsheet.get('properties', {}).get('title', '')
-
+    spreadsheet_name = metadata.get('properties', {}).get('title', '')
     gsheet_read = _get_or_create_read(
         'GSheet Import', spreadsheet_name, 'Google Spreadsheet Import',
         spreadsheet_id, user, silo)
-    sheet_name = 'Sheet1'
     if sheet_id:
         gsheet_read.gsheet_id = sheet_id
         gsheet_read.save()
 
+    sheet_name = 'Sheet1'
     if gsheet_read.gsheet_id:
-        sheets = spreadsheet.get('sheets', None)
+        sheets = metadata.get('sheets', None)
         for sheet in sheets:
             properties = sheet.get('properties', None)
             if properties:
                 if str(properties.get('sheetId')) == str(gsheet_read.gsheet_id):
                     sheet_name = properties.get('title')
 
-    # Fetch data from gsheet
-    try:
-        result = service.spreadsheets().values().get(
-            spreadsheetId=spreadsheet_id, range=sheet_name).execute()
-        data = result.get('values', [])
-    except Exception as e:
-        logger.error(e)
-        msg = {
-            'level': messages.ERROR,
-            'msg': 'Something went wrong 22: {}'.format(e),
-            'redirect': None
-        }
-        msgs.append(msg)
+    values, error = _fetch_data_gsheet(credential_obj, spreadsheet_id,
+                                       sheet_name)
+    if error:
+        msgs.append(error)
         return msgs
 
     unique_fields = silo.unique_fields.all()
@@ -248,7 +282,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id,
             'msg': msg
         })
 
-    msgs.append({"level": messages.SUCCESS, "msg": "Operation successful"})
+    msgs.append({'level': messages.SUCCESS, 'msg': 'Operation successful'})
     if partialcomplete:
         return lvss, msgs
     return msgs
