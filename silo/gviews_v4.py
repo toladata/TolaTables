@@ -23,9 +23,9 @@ from oauth2client.client import AccessTokenCredentialsError
 
 from .models import GoogleCredentialsModel
 from .models import Silo, Read, ReadType, LabelValueStore
-from tola.util import (getSiloColumnNames, parseMathInstruction,
-                       calculateFormulaCell, makeQueryForHiddenRow,
-                       addColsToSilo, cleanKey)
+from tola.util import (addColsToSilo, calculateFormulaCell, clean_data_obj,
+                       cleanKey, getSiloColumnNames, makeQueryForHiddenRow,
+                       parseMathInstruction)
 
 logger = logging.getLogger('silo')
 
@@ -153,6 +153,24 @@ def _fetch_data_gsheet(credential_obj, spreadsheet_id, sheet_name):
         return values, None
 
 
+def _convert_gsheet_data(headers, values):
+    """
+    Convert the data from GSheet into a list of dict
+    :param headers: list of keys(column names)
+    :param values: the GSheet data - list(list)
+    :return: list(dict)
+    """
+    data = []
+    for row in values:
+        data_dict = {}
+        for c, col in enumerate(row[:len(headers)]):
+            data_dict.update({headers[c]: col})
+        if data_dict:
+            data.append(data_dict)
+
+    return data
+
+
 def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id,
                               sheet_id=None, partialcomplete=False):
     msgs = []
@@ -214,64 +232,51 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id,
     headers = []
     lvss = []
 
+    # get the column names
+    header = values.pop(0)
+    for h in header:
+        h = cleanKey(h)
+        headers.append(h)
+
+    data = _convert_gsheet_data(headers, values)
+
     for r, row in enumerate(data):
-        if r == 0:
-            headers = []
-            for header in row:
-                header = cleanKey(header)
-                headers.append(header)
-
-            addColsToSilo(silo, headers)
-            continue
         filter_criteria = {}
-
         # build filter_criteria if unique field(s) have been setup for this silo
-        for unique_field in unique_fields:
+        for uf in unique_fields:
             try:
-                filter_criteria.update(
-                    {unique_field.name: row[headers.index(
-                        unique_field.name)].strip()})
-            except KeyError:
-                pass
-            except ValueError:
-                pass
+                filter_criteria.update({str(uf.name): str(row[uf.name])})
+            except AttributeError as e:
+                logger.warning(e)
         if filter_criteria:
             filter_criteria.update({'silo_id': silo.id})
-            # if a row is found, then fetch and update it
-            # if no row is found then create a new one
-            # if multiple rows are found then skip b/c not
-            # sure which one to update
             try:
                 lvs = LabelValueStore.objects.get(**filter_criteria)
                 lvs.edit_date = timezone.now()
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 lvs = LabelValueStore()
-            except LabelValueStore.MultipleObjectsReturned as e:
-                for k,v in filter_criteria.iteritems():
-                    skipped_rows.add("%s=%s" % (k,v))
+            except LabelValueStore.MultipleObjectsReturned:
+                for k, v in filter_criteria.iteritems():
+                    skipped_rows.add('{}={}'.format(k, v))
                 continue
         else:
             lvs = LabelValueStore()
 
-        for c, col in enumerate(row):
-            try:
-                key = headers[c]
-            except IndexError as e:
-                # this happens when a column header is missing gsheet
-                continue
-            key = cleanKey(key)
-            val = smart_str(row[c], strings_only=True)
-            key = smart_str(key)
-            val = val.strip()
+        # add the key and values to the document
+        row = clean_data_obj(row)
+        for key, val in row.iteritems():
+            val = smart_str(val, strings_only=True)
             setattr(lvs, key, val)
+
         lvs.silo_id = silo.id
         lvs.read_id = gsheet_read.id
         lvs.create_date = timezone.now()
-        lvs = calculateFormulaCell(lvs,silo)
+        lvs = calculateFormulaCell(lvs, silo)
         if partialcomplete:
             lvss.append(lvs)
         else:
             lvs.save()
+    addColsToSilo(silo, headers)
 
     if skipped_rows:
         skipped_str = ','.join(str(s) for s in skipped_rows)
