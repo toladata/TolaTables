@@ -103,76 +103,83 @@ def _get_or_create_read(rtype, name, description, spreadsheet_id, user, silo):
     return gsheet_read
 
 
-def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id=None, partialcomplete = False):
+def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id,
+                              sheet_id=None, partialcomplete=False):
     msgs = []
-
     if spreadsheet_id is None:
-        msgs.append({"level": messages.ERROR,
-                    "msg": "A Google Spreadsheet is not selected to import data from.",
-                    "redirect" : reverse('index') })
+        msgs.append({
+            'level': messages.ERROR,
+            'msg': 'A Google Spreadsheet is not selected to import data from.',
+            'redirect': reverse('index')
+        })
 
     credential_obj = _get_credential_object(user)
     if not isinstance(credential_obj, OAuth2Credentials):
         msgs.append(credential_obj)
         return msgs
 
-    defaults = {"name": silo_name, "description": "Google Sheet Import", "public": False, "owner": user}
-    silo, created = Silo.objects.get_or_create(pk=None if silo_id=='0' else silo_id, defaults=defaults)
-    msgs.append({"silo_id": silo.id})
+    defaults = {
+        'name': silo_name,
+        'description': 'Google Sheet Import',
+        'public': False,
+        'owner': user
+    }
+    silo, created = Silo.objects.get_or_create(
+        pk=None if silo_id == '0' else silo_id, defaults=defaults)
+    msgs.append({'silo_id': silo.id})
 
     service = _get_authorized_service(credential_obj)
 
     # fetch the google spreadsheet metadata
     try:
-        spreadsheet = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+        spreadsheet = service.spreadsheets().get(
+            spreadsheetId=spreadsheet_id).execute()
     except HttpAccessTokenRefreshError:
         return [_get_credential_object(user, True)]
     except Exception as e:
-        error = json.loads(e.content).get("error")
-        msg = "%s: %s" % (error.get("status"), error.get("message"))
-        msgs.append({"level": messages.ERROR,
-                    "msg": msg})
+        error = json.loads(e.content).get('error')
+        msg = '{}: {}'.format(error.get("status"), error.get("message"))
+        msgs.append({'level': messages.ERROR, 'msg': msg})
         return msgs
 
-    spreadsheet_name = spreadsheet.get("properties", {}).get("title", "")
+    spreadsheet_name = spreadsheet.get('properties', {}).get('title', '')
 
-    gsheet_read = _get_or_create_read("GSheet Import",
-                                     spreadsheet_name,
-                                     "Google Spreadsheet Import",
-                                     spreadsheet_id,
-                                     user,
-                                     silo)
-    sheet_name = "Sheet1"
+    gsheet_read = _get_or_create_read(
+        'GSheet Import', spreadsheet_name, 'Google Spreadsheet Import',
+        spreadsheet_id, user, silo)
+    sheet_name = 'Sheet1'
     if sheet_id:
         gsheet_read.gsheet_id = sheet_id
         gsheet_read.save()
 
     if gsheet_read.gsheet_id:
-        sheets = spreadsheet.get("sheets", None)
+        sheets = spreadsheet.get('sheets', None)
         for sheet in sheets:
-            properties = sheet.get("properties", None)
+            properties = sheet.get('properties', None)
             if properties:
-                if str(properties.get("sheetId")) == str(gsheet_read.gsheet_id):
-                    sheet_name = properties.get("title")
+                if str(properties.get('sheetId')) == str(gsheet_read.gsheet_id):
+                    sheet_name = properties.get('title')
 
-    headers = []
-    data = None
-
-    combine_cols = False
     # Fetch data from gsheet
     try:
-        result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=sheet_name).execute()
-        data = result.get("values", [])
+        result = service.spreadsheets().values().get(
+            spreadsheetId=spreadsheet_id, range=sheet_name).execute()
+        data = result.get('values', [])
     except Exception as e:
         logger.error(e)
-        msgs.append({"level": messages.ERROR,
-                    "msg": "Something went wrong 22: %s" % e,
-                    "redirect": None})
+        msg = {
+            'level': messages.ERROR,
+            'msg': 'Something went wrong 22: {}'.format(e),
+            'redirect': None
+        }
+        msgs.append(msg)
         return msgs
 
     unique_fields = silo.unique_fields.all()
     skipped_rows = set()
+    headers = []
     lvss = []
+
     for r, row in enumerate(data):
         if r == 0:
             headers = []
@@ -187,7 +194,9 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
         # build filter_criteria if unique field(s) have been setup for this silo
         for unique_field in unique_fields:
             try:
-                filter_criteria.update({unique_field.name: row[headers.index(unique_field.name)].strip()})
+                filter_criteria.update(
+                    {unique_field.name: row[headers.index(
+                        unique_field.name)].strip()})
             except KeyError:
                 pass
             except ValueError:
@@ -196,7 +205,8 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
             filter_criteria.update({'silo_id': silo.id})
             # if a row is found, then fetch and update it
             # if no row is found then create a new one
-            # if multiple rows are found then skip b/c not sure which one to update
+            # if multiple rows are found then skip b/c not
+            # sure which one to update
             try:
                 lvs = LabelValueStore.objects.get(**filter_criteria)
                 lvs.edit_date = timezone.now()
@@ -213,7 +223,7 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
             try:
                 key = headers[c]
             except IndexError as e:
-                #this happens when a column header is missing gsheet
+                # this happens when a column header is missing gsheet
                 continue
             key = cleanKey(key)
             val = smart_str(row[c], strings_only=True)
@@ -230,12 +240,17 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id, sheet_id
             lvs.save()
 
     if skipped_rows:
-        msgs.append({"level": messages.WARNING,
-                    "msg": "Skipped updating/adding records where %s because there are already multiple records." % ",".join(str(s) for s in skipped_rows)})
+        skipped_str = ','.join(str(s) for s in skipped_rows)
+        msg = 'Skipped updating/adding records where {} because there are ' \
+              'already multiple records.'.format(skipped_str)
+        msgs.append({
+            'level': messages.WARNING,
+            'msg': msg
+        })
 
     msgs.append({"level": messages.SUCCESS, "msg": "Operation successful"})
     if partialcomplete:
-        return (lvss,msgs)
+        return lvss, msgs
     return msgs
 
 

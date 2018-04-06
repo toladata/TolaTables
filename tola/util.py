@@ -70,25 +70,27 @@ def saveDataToSilo(silo, data, read=-1, user=None):
     silo -- the silo object, which is meta data for its labe_value_store
     data -- a python list of dictionaries. stored in MONGODB
     read -- the read object, optional only for backwards compatability
-    user -- an optional parameter to use if its necessary to retrieve from ThirdPartyTokens
+    user -- an optional parameter to use if its necessary to retrieve
+            from ThirdPartyTokens
     """
     try:
         if read.type.read_type == "ONA" and user:
             saveOnaDataToSilo(silo, data, read, user)
         read_source_id = read.id
-    except AttributeError as e:
+    except AttributeError:
         read_source_id = read
     unique_fields = silo.unique_fields.all()
     skipped_rows = set()
+    counter = 0
     keys = []
     try:
         keys = data.fieldnames
         keys = [cleanKey(key) for key in keys]
     except AttributeError:
         pass
-    fieldToType = getColToTypeDict(silo)
+
     for counter, row in enumerate(data):
-        # reseting filter_criteria for each row
+        # resetting filter_criteria for each row
         filter_criteria = {}
         for uf in unique_fields:
             try:
@@ -104,23 +106,19 @@ def saveDataToSilo(silo, data, read=-1, user=None):
         # document instead of updating an existing one.
         if filter_criteria:
             filter_criteria.update({'silo_id': silo.id})
-            # else:
-            #     filter_criteria.update({"nonexistentkey":"NEVER0101010101010NEVER"})
 
             try:
                 lvs = LabelValueStore.objects.get(**filter_criteria)
-                #print("updating")
                 setattr(lvs, "edit_date", timezone.now())
                 lvs.read_id = read_source_id
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 lvs = LabelValueStore()
                 lvs.silo_id = silo.pk
                 lvs.create_date = timezone.now()
                 lvs.read_id = read_source_id
-            except LabelValueStore.MultipleObjectsReturned as e:
+            except LabelValueStore.MultipleObjectsReturned:
                 for k,v in filter_criteria.iteritems():
-                    skipped_rows.add("%s=%s" % (str(k),str(v)))
-                #print("skipping")
+                    skipped_rows.add("{}={}".format(str(k), str(v)))
                 continue
         else:
             lvs = LabelValueStore()
@@ -129,28 +127,8 @@ def saveDataToSilo(silo, data, read=-1, user=None):
             lvs.create_date = timezone.now()
             lvs.read_id = read_source_id
 
-        counter = 0
-
         row = cleanDataObj(row, silo)
-
         for key, val in row.iteritems():
-            # if key == "" or key is None or key == "silo_id": continue
-            # elif key == "id" or key == "_id": key = "user_assigned_id"
-            # elif key == "edit_date": key = "editted_date"
-            # elif key == "create_date": key = "created_date"
-            # if type(val) == str or type(val) == unicode:
-            #     val = smart_str(val, strings_only=True).strip()
-            # if fieldToType.get(key, 'string') == 'int':
-            #     try:
-            #         val = int(val)
-            #     except ValueError as e:
-            #         continue
-            # if fieldToType.get(key, 'string') == 'double':
-            #     try:
-            #         val = float(val)
-            #     except ValueError as e:
-            #         continue
-
             if not isinstance(key, tuple):
                 if key not in keys:
                     keys.append(key)
