@@ -6,7 +6,7 @@ from requests.auth import HTTPDigestAuth
 from django.http import HttpResponseRedirect, HttpResponseBadRequest, HttpResponse
 
 
-from tola.util import saveDataToSilo, getSiloColumnNames
+from tola.util import getSiloColumnNames
 from django.shortcuts import redirect, render
 from django.core.urlresolvers import reverse, reverse_lazy
 

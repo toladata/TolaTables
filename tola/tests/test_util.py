@@ -6,7 +6,7 @@ import logging
 import factories
 from silo.models import LabelValueStore
 from silo.custom_csv_dict_reader import CustomDictReader
-from tola.util import clean_data_obj, JSONEncoder, saveDataToSilo
+from tola.util import clean_data_obj, JSONEncoder, save_data_to_silo
 
 
 class RegisterViewTest(TestCase):
@@ -88,7 +88,7 @@ class CleanDataObjTest(TestCase):
         self.assertEqual(result, expected_data)
 
 
-class SaveDataToSiloTest(TestCase):
+class save_data_to_siloTest(TestCase):
     """
     Tests the clean_data_obj function.
     - The returned dict should match with the given data
@@ -117,7 +117,7 @@ class SaveDataToSiloTest(TestCase):
             'num_rows': 4
         }
 
-        result = saveDataToSilo(self.silo, reader, self.read)
+        result = save_data_to_silo(self.silo, reader, self.read)
         self.assertEqual(result, expected_response)
 
     def test_save_data_to_silo_already_lvs(self):
@@ -131,7 +131,7 @@ class SaveDataToSiloTest(TestCase):
             'num_rows': 4
         }
 
-        result = saveDataToSilo(self.silo, reader, self.read)
+        result = save_data_to_silo(self.silo, reader, self.read)
         self.assertEqual(result, expected_response)
         self.assertEqual(self.silo.data_count, 5)
 
@@ -143,7 +143,7 @@ class SaveDataToSiloTest(TestCase):
             'num_rows': 4
         }
 
-        result = saveDataToSilo(self.silo, reader)
+        result = save_data_to_silo(self.silo, reader)
         lvss = LabelValueStore.objects.filter(silo_id=self.silo.id)
         self.assertEqual(result, expected_response)
         for lvs in lvss:
@@ -161,7 +161,7 @@ class SaveDataToSiloTest(TestCase):
             'num_rows': 1
         }
 
-        result = saveDataToSilo(self.silo, data, self.read)
+        result = save_data_to_silo(self.silo, data, self.read)
         self.assertEqual(result, expected_response)
 
     def test_save_data_to_silo_empty(self):
@@ -170,7 +170,7 @@ class SaveDataToSiloTest(TestCase):
             'num_rows': 0
         }
 
-        result = saveDataToSilo(self.silo, list(), self.read)
+        result = save_data_to_silo(self.silo, list(), self.read)
         self.assertEqual(result, expected_response)
 
     def test_save_data_to_silo_unique_field(self):
@@ -184,7 +184,7 @@ class SaveDataToSiloTest(TestCase):
             'num_rows': 1
         }
 
-        saveDataToSilo(self.silo, reader, self.read)
+        save_data_to_silo(self.silo, reader, self.read)
         factories.UniqueFields(name='E-mail', silo=self.silo)
         data = [{
             'First.Name': 'John',
@@ -192,7 +192,7 @@ class SaveDataToSiloTest(TestCase):
             'E-mail': 'john@example.org',
         }]
 
-        result = saveDataToSilo(self.silo, data, self.read)
+        result = save_data_to_silo(self.silo, data, self.read)
         self.assertEqual(result, expected_response)
         lvss = LabelValueStore.objects.filter(silo_id=self.silo.id)
         count = 0
@@ -212,7 +212,7 @@ class SaveDataToSiloTest(TestCase):
             'num_rows': 4
         }
         factories.UniqueFields(name='E-mail', silo=self.silo)
-        result = saveDataToSilo(self.silo, reader, self.read)
+        result = save_data_to_silo(self.silo, reader, self.read)
         self.assertEqual(result, expected_response)
 
     def test_save_data_to_silo_skipped_rows(self):
@@ -221,7 +221,7 @@ class SaveDataToSiloTest(TestCase):
         lvs = factories.LabelValueStore()
         lvs.silo_id = self.silo.id
         lvs.save()
-        saveDataToSilo(self.silo, reader, self.read)
+        save_data_to_silo(self.silo, reader, self.read)
 
         # create multiple lvs
         read_file = open('silo/tests/sample_data/test.csv')
@@ -229,7 +229,7 @@ class SaveDataToSiloTest(TestCase):
         lvs = factories.LabelValueStore()
         lvs.silo_id = self.silo.id
         lvs.save()
-        saveDataToSilo(self.silo, reader, self.read)
+        save_data_to_silo(self.silo, reader, self.read)
 
         factories.UniqueFields(name='E-mail', silo=self.silo)
         skipped_rows = ['E-mail=john@example.org',
@@ -243,5 +243,5 @@ class SaveDataToSiloTest(TestCase):
             'E-mail': 'john@example.org',
         }]
 
-        result = saveDataToSilo(self.silo, data, self.read)
+        result = save_data_to_silo(self.silo, data, self.read)
         self.assertEqual(result, expected_response)

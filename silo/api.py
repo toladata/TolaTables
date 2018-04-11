@@ -22,7 +22,7 @@ from .models import (Silo, LabelValueStore, Country, WorkflowLevel1,
                      WorkflowLevel2, TolaUser, Read, ReadType)
 from silo.permissions import *
 from tola.util import (getSiloColumnNames, getCompleteSiloColumnNames,
-                       saveDataToSilo, JSONEncoder)
+                       save_data_to_silo, JSONEncoder)
 
 
 class TolaUserViewSet(viewsets.ModelViewSet):
@@ -250,7 +250,7 @@ class CustomFormViewSet(mixins.CreateModelMixin,
             return Response({'detail': 'Not found.'},
                             status=status.HTTP_404_NOT_FOUND)
         else:
-            saveDataToSilo(silo, [data], silo.reads.first())
+            save_data_to_silo(silo, [data], silo.reads.first())
             return Response({'detail': 'It was successfully saved.'},
                             status=status.HTTP_200_OK)
 

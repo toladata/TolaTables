@@ -210,7 +210,7 @@ class ExportViewsTest(TestCase, MongoTestCase):
             'color': 'red',
             'type': 'primary'
         }]
-        util.saveDataToSilo(silo, data, read)
+        util.save_data_to_silo(silo, data, read)
 
         # Export to CSV
         request = self.factory.get('')
@@ -380,7 +380,7 @@ class SiloViewsTest(TestCase, MongoTestCase):
             'color': 'red',
             'type': 'primary'
         }]
-        util.saveDataToSilo(silo, data, read)
+        util.save_data_to_silo(silo, data, read)
 
         # Check if the data was inserted
         filter_fields = {}
@@ -552,7 +552,7 @@ class SaveAndImportReadViewTest(TestCase):
         self.tola_user = factories.TolaUser(organization=self.org)
         self.factory = APIRequestFactory()
 
-    @patch('silo.views.saveDataToSilo')
+    @patch('silo.views.save_data_to_silo')
     @patch('silo.views.requests')
     def test_save_and_import_read(self, mock_requests, mock_savedatasilo):
         data_res = {'detail': 'Success'}

@@ -63,7 +63,7 @@ def parseMathInstruction(operation):
         raise TypeError(operation)
 
 
-def saveDataToSilo(silo, data, read=-1, user=None):
+def save_data_to_silo(silo, data, read=-1, user=None):
     """
     This saves data to the silo
 
@@ -223,7 +223,7 @@ def importJSON(read_obj, user, remote_user=None, password=None, silo_id=None, si
         if return_data:
             return data
 
-        saveDataToSilo(silo, data, read_obj)
+        save_data_to_silo(silo, data, read_obj)
         return messages.SUCCESS, "Data imported successfully.", str(silo_id)
     except Exception as e:
         if return_data:
@@ -433,7 +433,7 @@ def saveOnaDataToSilo(silo, data, read, user):
     form_metadata = json.loads(response.content)
 
     # if this is true than the data isn't a form so proceed to
-    # saveDataToSilo normally
+    # save_data_to_silo normally
     if "detail" in form_metadata:
         return
     else:
