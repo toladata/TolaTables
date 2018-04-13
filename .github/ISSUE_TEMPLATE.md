@@ -13,3 +13,4 @@
 3. 
 
 ### Additional details
+Environment: [**dev**/**staging**/**demo**/**production**]
