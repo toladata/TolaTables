@@ -9,7 +9,7 @@ from celery import group
 from .tasks import fetchCommCareData, requestCommCareData, storeCommCareData
 
 from silo.models import LabelValueStore
-from tola.util import saveDataToSilo, addColsToSilo, hideSiloColumns
+from tola.util import save_data_to_silo, addColsToSilo, hideSiloColumns
 from pymongo import MongoClient
 from django.conf import settings
 

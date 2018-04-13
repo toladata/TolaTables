@@ -7,7 +7,7 @@ import factories
 import json
 from silo.api import SiloViewSet
 from silo.models import LabelValueStore
-from tola.util import saveDataToSilo
+from tola.util import save_data_to_silo
 
 
 class SiloListViewTest(TestCase):
@@ -89,7 +89,7 @@ class SiloDataViewTest(TestCase):
                                 'sample_data/moviesbyearnings2013.json')
         with open(filename, 'r') as f:
             data = json.load(f)
-            saveDataToSilo(silo, data, read)
+            save_data_to_silo(silo, data, read)
 
     def setUp(self):
         self.factory = APIRequestFactory()
