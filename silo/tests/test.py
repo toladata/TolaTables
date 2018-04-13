@@ -210,7 +210,6 @@ class SiloDetailTest(TestCase):
 
 
 class ReadTest(TestCase):
-    fixtures = ['../fixtures/read_types.json']
     show_read_url = '/show_read/'
     new_read_url = 'source/new//'
 
@@ -218,6 +217,7 @@ class ReadTest(TestCase):
         self.client = Client()
         self.factory = RequestFactory()
         self.tola_user = factories.TolaUser()
+        factories.ReadType.create_batch(7)
 
     def test_new_read_post(self):
         read_type = ReadType.objects.get(read_type="ONA")
@@ -254,7 +254,6 @@ class ReadTest(TestCase):
 # TODO: Adjust tests to work without mongodb as an instance is not available
 # TODO: during testing.
 class SiloTest(TestCase):
-    fixtures = ['fixtures/read_types.json']
     silo_edit_url = "/silo_edit/"
     upload_csv_url = "/file/"
     silo_detail_url = "/silo_detail/"
@@ -263,6 +262,7 @@ class SiloTest(TestCase):
         self.client = Client()
         self.factory = RequestFactory()
         self.tola_user = factories.TolaUser()
+        factories.ReadType.create_batch(7)
 
     @patch('silo.forms.get_workflowteams')
     def test_new_silo(self, mock_get_workflowteams):
@@ -344,7 +344,7 @@ class SiloTest(TestCase):
         }
         file_dict = {'file_data': SimpleUploadedFile(
             upload_file.name, upload_file.read())}
-        excluded_fields = ['create_date', 'edit_date']
+        excluded_fields = ['create_date', 'edit_date', 'onedrive_file', 'onedrive_access_token']
         form = get_read_form(excluded_fields)(params, file_dict)
         self.assertTrue(form.is_valid())
 

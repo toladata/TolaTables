@@ -1,15 +1,13 @@
-from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ImproperlyConfigured
-from django.test import TestCase, override_settings
+from django.test import TestCase, override_settings, Client, RequestFactory
 from django.urls import reverse
 
 from rest_framework.test import APIRequestFactory
 
 from silo.tests import MongoTestCase
 from silo.api import CustomFormViewSet
-from silo.models import (LabelValueStore, MergedSilosFieldMapping, Read,
-                         Silo, Tag)
+from silo.models import (LabelValueStore, Silo, Tag, ReadType)
 
 from mock import Mock, patch
 from pymongo.errors import WriteError
@@ -20,6 +18,9 @@ import uuid
 import factories
 from silo import views
 from tola import util
+
+from social_django.models import UserSocialAuth
+from django.contrib.messages.storage.fallback import FallbackStorage
 
 
 class IndexViewTest(TestCase):
@@ -855,3 +856,167 @@ class DoMergeViewTest(TestCase):
         self.assertEqual(response.url, '/silo_detail/{}/'.format(silo.id))
         self.assertIn(left_read, silo.reads.all())
         self.assertIn(right_read, silo.reads.all())
+
+
+class OneDriveViewsTest(TestCase):
+
+    def setUp(self):
+        self.org = factories.Organization()
+        self.tola_user = factories.TolaUser(organization=self.org)
+        self.user = factories.User()
+        factories.ReadType.create_batch(7)
+
+    def test_onedrive_js_page(self):
+        self.client.force_login(self.user)
+        response = self.client.get('/onedrive')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'silo/onedrive.html')
+
+    def test_onedrive_js_page_no_login(self):
+        response = self.client.get('/onedrive')
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTemplateNotUsed(response, 'silo/onedrive.html')
+
+    def test_read_view_onedrive_contains_fields(self):
+        self.client.force_login(self.user)
+        response = self.client.get('/source/new/?type=OneDrive')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'read/read.html')
+        self.assertContains(response, "https://js.live.net/v7.2/OneDrive.js")
+        self.assertContains(response, "launchOneDrivePicker")
+        self.assertContains(response, '<input type="hidden" '
+                                      'name="onedrive_file" '
+                                      'id="id_onedrive_file" />')
+        self.assertContains(response, '<input type="hidden" '
+                                      'name="onedrive_access_token" '
+                                      'id="id_onedrive_access_token" />')
+
+    def test_other_views_dont_contain_fields(self):
+        self.client.force_login(self.user)
+        response = self.client.get('/source/new/?type=CSV')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'read/read.html')
+        self.assertNotContains(response, '<input type="hidden" '
+                                      'name="onedrive_file" '
+                                      'id="id_onedrive_file" />')
+
+
+class OneDriveReadTest(TestCase):
+    new_read_url = '/source/new/'
+    # Is the UserSocialAuth extra data obj updated when there is already one? I saw a test when there is no UserSocialAuth.
+
+    def setUp(self):
+        self.client = Client()
+        self.factory = RequestFactory()
+        self.tola_user = factories.TolaUser()
+        factories.ReadType.create_batch(7)
+
+    def test_new_read_post(self):
+        read_type = ReadType.objects.get(read_type="OneDrive")
+
+        params = {
+            'owner': self.tola_user.user.pk,
+            'type': read_type.pk,
+            'read_name': 'TEST READ ONEDRIVE',
+            'description': 'TEST DESCRIPTION for test read source',
+            'onedrive_file': 'TEST10000100',
+            'onedrive_access_token':'TEST_DUMMY_TOKEN',
+            'create_date': '2018-01-26 12:33:00',
+        }
+        request = self.factory.post(self.new_read_url, data=params)
+        request.user = self.tola_user.user
+
+        response = views.showRead(request, 0)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/import_onedrive/1/')
+
+        # check for social auth updated
+
+        social_auth = UserSocialAuth.objects.get(user=self.tola_user.user,
+                                      provider='microsoft-graph')
+        self.assertEqual(social_auth.extra_data['access_token'],
+                         'TEST_DUMMY_TOKEN')
+
+    def test_new_read_post_existing_token(self):
+        read_type = ReadType.objects.get(read_type="OneDrive")
+
+        factories.UserSocialAuth(user=self.tola_user.user,
+                                 provider='microsoft-graph',
+                                 extra_data={"token_type": "Bearer",
+                                             "access_token": "OLD_TOKEN"})
+
+        params = {
+            'owner': self.tola_user.user.pk,
+            'type': read_type.pk,
+            'read_name': 'TEST READ ONEDRIVE',
+            'description': 'TEST DESCRIPTION for test read source',
+            'onedrive_file': 'TEST10000100',
+            'onedrive_access_token':'TEST_DUMMY_TOKEN_CHANGED',
+            'create_date': '2018-01-26 12:33:00',
+        }
+        request = self.factory.post(self.new_read_url, data = params)
+        request.user = self.tola_user.user
+
+        response = views.showRead(request, 0)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/import_onedrive/1/')
+
+        # check for social auth updated
+
+        social_auth = UserSocialAuth.objects.get(user=self.tola_user.user,
+                                      provider='microsoft-graph')
+        self.assertEqual(social_auth.extra_data['access_token'],
+                         'TEST_DUMMY_TOKEN_CHANGED')
+
+    def test_new_read_post_fails_no_token(self):
+        read_type = ReadType.objects.get(read_type="OneDrive")
+
+        params = {
+            'owner': self.tola_user.user.pk,
+            'type': read_type.pk,
+            'read_name': 'TEST READ ONEDRIVE',
+            'description': 'TEST DESCRIPTION for test read source',
+            'onedrive_file': 'TEST10000100',
+            'create_date': '2018-01-26 12:33:00',
+        }
+        request = self.factory.post(self.new_read_url, data=params)
+        request.user = self.tola_user.user
+        request.session = 'session'
+        message_storage = FallbackStorage(request)
+        request._messages = message_storage
+        response = views.showRead(request, 0)
+
+        messages = []
+        for m in message_storage:
+            messages.append(m.message)
+
+        self.assertIn('Invalid Form', messages)
+
+    def test_new_read_post_fails_no_file(self):
+        read_type = ReadType.objects.get(read_type="OneDrive")
+
+        params = {
+            'owner': self.tola_user.user.pk,
+            'type': read_type.pk,
+            'read_name': 'TEST READ ONEDRIVE',
+            'description': 'TEST DESCRIPTION for test read source',
+            'onedrive_access_token':'TEST_DUMMY_TOKEN',
+            'create_date': '2018-01-26 12:33:00',
+        }
+        request = self.factory.post(self.new_read_url, data=params)
+        request.user = self.tola_user.user
+        request.session = 'session'
+        message_storage = FallbackStorage(request)
+        request._messages = message_storage
+        views.showRead(request, 0)
+        messages = []
+        for m in message_storage:
+            messages.append(m.message)
+
+        self.assertIn('Invalid Form', messages)
