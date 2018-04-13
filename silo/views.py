@@ -31,7 +31,7 @@ from django.views.generic import View
 
 from gviews_v4 import import_from_gsheet_helper
 from silo.custom_csv_dict_reader import CustomDictReader
-from tola.util import importJSON, saveDataToSilo, getSiloColumnNames, \
+from tola.util import importJSON, save_data_to_silo, getSiloColumnNames, \
     parseMathInstruction, calculateFormulaColumn, makeQueryForHiddenRow, \
     getNewestDataDate, addColsToSilo, deleteSiloColumns, hideSiloColumns,  \
     getCompleteSiloColumnNames, setSiloColumnType, getColToTypeDict
@@ -551,7 +551,7 @@ def saveAndImportRead(request):
         silo.reads.add(read)
 
     # import data into this silo
-    saveDataToSilo(silo, data, read, request.user)
+    save_data_to_silo(silo, data, read, request.user)
     silo_detail_url = reverse_lazy('siloDetail', args=[silo.pk])
     return HttpResponse(silo_detail_url)
 
@@ -1103,7 +1103,7 @@ def updateSiloData(request, pk):
             #put in the new records
             for x in range(0,len(data[0])):
                 for entry in data[1][x]:
-                    saveDataToSilo(silo,entry,data[0][x],request.user)
+                    save_data_to_silo(silo,entry,data[0][x],request.user)
             for read in reads:
                 if read.type.read_type == "GSheet Import":
                     greturn = import_from_gsheet_helper(request.user, silo.id, None, read.resource_id, None, True)
