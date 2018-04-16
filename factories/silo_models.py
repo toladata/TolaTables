@@ -6,6 +6,7 @@ from factory import (DjangoModelFactory, LazyAttribute, SubFactory,
                      post_generation, Iterator)
 
 from silo.models import (
+    CeleryTask as CeleryTaskM,
     Country as CountryM,
     LabelValueStore as LabelValueStoreM,
     Organization as OrganizationM,
@@ -16,8 +17,8 @@ from silo.models import (
     ThirdPartyTokens as ThirdPartyTokensM,
     TolaSites as TolaSitesM,
     TolaUser as TolaUserM,
-    WorkflowLevel1 as WorkflowLevel1M,
-    CeleryTask as CeleryTaskM
+    UniqueFields as UniqueFieldsM,
+    WorkflowLevel1 as WorkflowLevel1M
 )
 from .user_models import User
 
@@ -164,6 +165,14 @@ class Silo(DjangoModelFactory):
             # A list of formulacolumns were passed in, use them
             for formulacolumns in extracted:
                 self.formulacolumns.add(formulacolumns)
+
+
+class UniqueFields(DjangoModelFactory):
+    class Meta:
+        model = UniqueFieldsM
+
+    name = 'Test'
+    silo = SubFactory(Silo)
 
 
 class LabelValueStore(DjangoModelFactory):

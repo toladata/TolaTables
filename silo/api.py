@@ -2,8 +2,7 @@ import json
 import django_filters
 from urlparse import urljoin
 
-from django.http import (HttpResponseBadRequest, JsonResponse, HttpResponse,
-                         QueryDict)
+from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 from django.db.models import Q
 from django.conf import settings
 from django.shortcuts import get_object_or_404
@@ -23,7 +22,7 @@ from .models import (Silo, LabelValueStore, Country, WorkflowLevel1,
                      WorkflowLevel2, TolaUser, Read, ReadType)
 from silo.permissions import *
 from tola.util import (getSiloColumnNames, getCompleteSiloColumnNames,
-                       saveDataToSilo)
+                       save_data_to_silo, JSONEncoder)
 
 
 class TolaUserViewSet(viewsets.ModelViewSet):
@@ -251,7 +250,7 @@ class CustomFormViewSet(mixins.CreateModelMixin,
             return Response({'detail': 'Not found.'},
                             status=status.HTTP_404_NOT_FOUND)
         else:
-            saveDataToSilo(silo, [data], silo.reads.first())
+            save_data_to_silo(silo, [data], silo.reads.first())
             return Response({'detail': 'It was successfully saved.'},
                             status=status.HTTP_200_OK)
 
@@ -308,28 +307,60 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
         # calling get_object applies the permission classes to this query
         self.get_object()
 
+        # get the mongo collection
+        collection = LabelValueStore._get_collection()
+
         draw = int(request.GET.get("draw", 1))
         offset = int(request.GET.get('start', -1))
         length = int(request.GET.get('length', 10))
 
         # filtering syntax is the mongodb syntax
-        query = request.GET.get('query',"{}")
-        filter_fields = json.loads(query)
+        query = request.GET.get('query', '{}')
+        group = request.GET.get('group', '{}')
+        sort = str(request.GET.get('sort', '{}'))
+        query_fields = json.loads(query)
+        group_fields = json.loads(group)
+        sort_fields = json.loads(sort)
 
-        recordsTotal = LabelValueStore.objects(silo_id=id, **filter_fields).count()
+        # creating the aggregation pipeline
+        pipeline = [
+            {'$match': {'$and': [{'silo_id': int(id)}, query_fields]}},
+            {'$project': {
+                'create_date': 0,
+                'edit_date': 0,
+                'silo_id': 0,
+                'read_id': 0
+            }}
+        ]
+        if group_fields:
+            pipeline.append({'$group': group_fields})
+        if sort_fields:
+            pipeline.append({'$sort': sort_fields})
 
-        # workaround until the problem of javascript not increasing the value of length is fixed
+        count_pipeline = pipeline + [{'$count': 'count'}]
+        count_cur = collection.aggregate(pipeline=count_pipeline)
+        list_count = list(count_cur)
+        if list_count:
+            count_result = list_count[0]
+            records_total = count_result['count']
+        else:
+            records_total = 0
+
+        # workaround until the problem of javascript not increasing
+        # the value of length is fixed
         if offset >= 0:
             length = offset + length
-            data = LabelValueStore.objects(silo_id=id, **filter_fields).exclude('create_date', 'edit_date', 'silo_id','read_id').skip(offset).limit(length)
-        else:
-            data = LabelValueStore.objects(silo_id=id, **filter_fields).exclude('create_date', 'edit_date', 'silo_id','read_id')
+            pipeline.append({'$skip': offset})
+            pipeline.append({'$limit': length})
 
-        sort = str(request.GET.get('sort',''))
-        data = data.order_by(sort)
-        json_data = json.loads(data.to_json())
+        pipeline_cur = collection.aggregate(pipeline=pipeline)
+        pipeline_result = list(pipeline_cur)
+        data = JSONEncoder().encode(pipeline_result)
+        json_data = json.loads(data)
 
-        return JsonResponse({"data": json_data, "draw": draw, "recordsTotal": recordsTotal, "recordsFiltered": recordsTotal}, safe=False)
+        return JsonResponse({"data": json_data, "draw": draw,
+                             "recordsTotal": records_total,
+                             "recordsFiltered": records_total},  safe=False)
 
 
 class TagViewSet(viewsets.ModelViewSet):

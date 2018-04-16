@@ -135,6 +135,9 @@ GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID')
 GOOGLE_OAUTH_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET')
 
+ONEDRIVE_CLIENT_ID = os.getenv('ONEDRIVE_CLIENT_ID')
+ONEDRIVE_REDIRECT_URI = os.getenv('ONEDRIVE_REDIRECT_URI')
+
 # This allows for additional settings to be kept in a local file
 try:
     from local_secret import *

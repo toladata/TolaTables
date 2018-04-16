@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import MultipleObjectsReturned
 
 from silo.models import LabelValueStore, Read, ReadType, Silo, ThirdPartyTokens
-from tola.util import  saveDataToSilo
+from tola.util import  save_data_to_silo
 
 class Command(BaseCommand):
     """
@@ -46,7 +46,7 @@ class Command(BaseCommand):
                 data = json.loads(response.content)
 
                 try:
-                    saveDataToSilo(silo, data, read, silo.owner.pk)
+                    save_data_to_silo(silo, data, read, silo.owner.pk)
                     self.stdout.write('Successfully fetched the READ_ID, "%s", from ONA' % read.pk)
                 except TypeError as e:
                     self.logger.error("type error: silo_id=%s, read_id=%s" % (silo.pk, read.pk))

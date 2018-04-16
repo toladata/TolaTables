@@ -2,7 +2,7 @@
 	"nm": "Edmund lronside",
 	"cty": "United Kingdom",
 	"hse": "House of Wessex",
-	"yrs": "1016"
+	"yrs": 1016
 }, {
 	"nm": "Cnut",
 	"cty": "United Kingdom",
@@ -27,7 +27,7 @@
 	"nm": "Harold II",
 	"cty": "United Kingdom",
 	"hse": "House of Wessex",
-	"yrs": "1066"
+	"yrs": 1066
 }, {
 	"nm": "William I",
 	"cty": "United Kingdom",
@@ -112,7 +112,7 @@
 	"nm": "Edward V",
 	"cty": "United Kingdom",
 	"hse": "House of York",
-	"yrs": "1483"
+	"yrs": 1483
 }, {
 	"nm": "Richard III",
 	"cty": "United Kingdom",
@@ -232,7 +232,7 @@
 	"nm": "Edward VIII",
 	"cty": "United Kingdom",
 	"hse": "House of Windsor",
-	"yrs": "1936"
+	"yrs": 1936
 }, {
 	"nm": "George VI",
 	"cty": "United Kingdom",
