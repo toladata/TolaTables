@@ -577,18 +577,10 @@
                 column.visible( ! column.visible() );
             });
 
-            /*
-            console.log( 'Table\'s column visibility are set to: '+silo_table.columns().visible().join(', ') );
-            $.each(silo_table.columns(), function(i,col){
-                console.log("i="+i + " " + col);
-            });
-            */
-
             $('#setColumnType').on('click', function(e){
                 e.preventDefault();
                 $('#column_type_modal').modal('toggle');
             });
-
 
             $("#table_tabs li a").click(function(e){
                 e.preventDefault();
@@ -600,7 +592,6 @@
                     },1);
                 }
             });
-
 
             // Watch for autopush_frequency and autopull_frequency dropdowns changes
             $(".tab-content").on("change", "#autopull_frequency, #autopush_frequency", function(e){
@@ -614,12 +605,8 @@
                     url: api_url,
                     type: "PATCH",
                     data: data,
-                    success: function(data, textStatus, jqXHR) {
-                        //console.log(data);
-                        createAlert("info", "Your change was successful.");
-                    },
-                    error: function(jqXHR, textStatus, error) {
-                        createAlert("error", error);
+                    error: function() {
+                        alert("Error saving Auto-pull Frequency.")
                     },
                 });
 
@@ -638,7 +625,7 @@
                         btn.blur();
                     })
                     .fail(function(a, b, c) {
-                        createAlert("error", "Something went wrong: " + c);
+                        alert("Something went wrong: " + c);
                     });
             });
         });
