@@ -346,7 +346,7 @@ class FormulaColumn(models.Model):
 # Create your models here.
 class Silo(models.Model):
     owner = models.ForeignKey(User)
-    name = models.CharField(max_length=60, blank=False, null=False)
+    name = models.CharField(max_length=255, blank=False, null=False)
     reads = models.ManyToManyField(Read, related_name='silos')
     tags = models.ManyToManyField(Tag, related_name='silos', blank=True)
     shared = models.ManyToManyField(User, related_name='silos', blank=True)
@@ -355,6 +355,7 @@ class Silo(models.Model):
     country = models.ForeignKey(Country, blank=True, null=True)
     workflowlevel1 = models.ManyToManyField(WorkflowLevel1, blank=True)
     public = models.BooleanField()
+    form_uuid = models.CharField(max_length=255, verbose_name='CustomForm UUID', null=True, blank=True)
     create_date = models.DateTimeField(null=True, blank=True)
 
     formulacolumns = models.ManyToManyField(FormulaColumn, related_name='silos', blank=True)

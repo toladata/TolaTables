@@ -12,27 +12,29 @@ from commcare.tasks import parseCommCareData
 from commcare.util import getProjects
 from silo.tasks import process_silo
 from silo.forms import get_read_form
-from silo.models import DeletedSilos, LabelValueStore, ReadType, Read, Silo, CeleryTask
+from silo.models import (DeletedSilos, LabelValueStore, ReadType, Read, Silo,
+                         CeleryTask)
 from silo.views import (addColumnFilter, editColumnOrder, newFormulaColumn,
                         showRead, editSilo, uploadFile, siloDetail)
 from tola.util import (addColsToSilo, hideSiloColumns, getColToTypeDict,
-                       getSiloColumnNames)
+                       getSiloColumnNames, cleanKey)
 
 from django.contrib.contenttypes.models import ContentType
+from django.utils.encoding import smart_str
 
 from mock import patch
 from celery.exceptions import Retry
-import time
 import factories
 
 
 class UploadFileTest(TestCase):
     """
     Tests the File Upload Process in several steps.
-    - Checks if uploadFile successfully creates a celery task and new silo for imported read
+    - Checks if uploadFile successfully creates a celery task and new silo
+    for imported read
     - Checks if process_silo actually imports data
     - Checks what happens if the task fails
-    
+
     Celery is not used for testing purposes, each step is checked on its own.
     """
     def setUp(self):
@@ -43,14 +45,15 @@ class UploadFileTest(TestCase):
 
     def test_upload_file(self):
         """
-        Checks if uploadFile successfully creates a celery task and new silo for imported read
-        
+        Checks if uploadFile successfully creates a celery task and new silo
+        for imported read
+
         uploadFile takes POST request with csv file
         - takes a Read
         - adds read to a silo
         - creates a CeleryTask
         - redirects to silo_detail
-        :return: 
+        :return:
         """
         read_type = factories.ReadType(read_type="CSV")
         upload_file = open('silo/tests/sample_data/test.csv', 'rb')
@@ -87,19 +90,24 @@ class UploadFileTest(TestCase):
     def test_celery_success(self):
         """
         Test if the celery task process_silo actually imports data
-        :return: 
+        :return:
         """
         silo = factories.Silo(owner=self.user, public=False)
 
         read_type = factories.ReadType(read_type="CSV")
         upload_file = open('silo/tests/sample_data/test.csv', 'rb')
-        read = factories.Read(owner=self.user, type=read_type, file_data=SimpleUploadedFile(upload_file.name, upload_file.read()))
+        read = factories.Read(
+            owner=self.user, type=read_type,
+            file_data=SimpleUploadedFile(upload_file.name, upload_file.read())
+        )
 
-        task = factories.CeleryTask(task_status=CeleryTask.TASK_CREATED, content_object=read)
+        factories.CeleryTask(task_status=CeleryTask.TASK_CREATED,
+                             content_object=read)
 
         process_done = process_silo(silo.id, read.id)
-
-        self.assertEqual(getSiloColumnNames(silo.id), ['First_Name', 'Last_Name', 'E-mail'])
+        silo = Silo.objects.get(pk=silo.id)
+        self.assertEqual(getSiloColumnNames(silo.id),
+                         ['First_Name', 'Last_Name', 'E-mail'])
         self.assertTrue(process_done)
 
     def test_celery_failure(self):
@@ -107,7 +115,10 @@ class UploadFileTest(TestCase):
 
         read_type = factories.ReadType(read_type="CSV")
         upload_file = open('silo/tests/sample_data/test_broken.csv', 'rb')
-        read = factories.Read(owner=self.user, type=read_type, file_data=SimpleUploadedFile(upload_file.name, upload_file.read()))
+        read = factories.Read(
+            owner=self.user, type=read_type,
+            file_data=SimpleUploadedFile(upload_file.name, upload_file.read())
+        )
         task = factories.CeleryTask(content_object=read)
 
         process_silo(silo.id, read.id)
@@ -132,7 +143,8 @@ class UploadFileTest(TestCase):
 class SiloDetailTest(TestCase):
     """
     Test Silo Detail in the following scenarios
-    1 - CeleryTask running in the background: no data is shown and info is displayed
+    1 - CeleryTask running in the background: no data is shown and info
+        is displayed
     2 - CeleryTask Finished: data is shown
     3 - CeleryTask Failed: data is shown and error message is displayed
     """
@@ -153,7 +165,8 @@ class SiloDetailTest(TestCase):
         )
         silo = factories.Silo(owner=self.user, public=False)
         silo.reads.add(read)
-        task = factories.CeleryTask(content_object=read, task_status=CeleryTask.TASK_IN_PROGRESS)
+        factories.CeleryTask(content_object=read,
+                             task_status=CeleryTask.TASK_IN_PROGRESS)
 
         # Check view
 
@@ -161,9 +174,16 @@ class SiloDetailTest(TestCase):
         request.user = self.user
 
         response = siloDetail(request, silo.pk)
-        self.assertContains(response, "<a href=\"/show_read/"+str(read.id)+"\" target=\"_blank\">"+read.read_name+"</a>")
-        self.assertContains(response, "<span class=\"btn-sm btn-warning\">Import running</span>")
-        self.assertContains(response, "<h4>Import process running</h4>")
+        self.assertContains(
+            response,
+            '<a href="/show_read/{}" target="_blank">{}</a>'.format(
+                read.id, read.read_name)
+        )
+        self.assertContains(
+            response,
+            '<span class="btn-sm btn-warning">Import running</span>'
+        )
+        self.assertContains(response, '<h4>Import process running</h4>')
 
     def test_silo_detail_import_failed(self):
         # Create Silo, Read and CeleryTask
@@ -174,16 +194,25 @@ class SiloDetailTest(TestCase):
         )
         silo = factories.Silo(owner=self.user, public=False)
         silo.reads.add(read)
-        task = factories.CeleryTask(content_object=read, task_status=CeleryTask.TASK_FAILED)
+        factories.CeleryTask(content_object=read,
+                             task_status=CeleryTask.TASK_FAILED)
 
         # Check view
         request = self.factory.get(self.silo_detail_url)
         request.user = self.user
 
         response = siloDetail(request, silo.pk)
-        self.assertContains(response, "<a href=\"/show_read/"+str(read.id)+"\" target=\"_blank\">"+read.read_name+"</a>")
-        self.assertContains(response, "<span class=\"btn-sm btn-danger\">Import Failed</span>")
-        self.assertContains(response, "<h4 style=\"color:#ff3019\">Import process failed</h4>")
+        self.assertContains(
+            response,
+            '<a href="/show_read/{}" target="_blank">{}</a>'.format(
+                read.id, read.read_name)
+        )
+        self.assertContains(
+            response,
+            '<span class="btn-sm btn-danger">Import Failed</span>'
+        )
+        self.assertContains(
+            response, '<h4 style="color:#ff3019">Import process failed</h4>')
 
     def test_silo_detail_import_done(self):
         # Create Silo, Read and CeleryTask
@@ -194,22 +223,29 @@ class SiloDetailTest(TestCase):
         )
         silo = factories.Silo(owner=self.user, public=False)
         silo.reads.add(read)
-        task = factories.CeleryTask(content_object=read, task_status=CeleryTask.TASK_FINISHED)
+        factories.CeleryTask(content_object=read,
+                             task_status=CeleryTask.TASK_FINISHED)
 
         # Check view
         request = self.factory.get(self.silo_detail_url)
         request.user = self.user
 
         response = siloDetail(request, silo.pk)
-        self.assertContains(response, "<a href=\"/show_read/"+str(read.id)+"\" target=\"_blank\">"+read.read_name+"</a>")
-        self.assertNotContains(response, "<span class=\"btn-sm btn-danger\">Import Failed</span>")
-        self.assertNotContains(response, "<span class=\"btn-sm btn-warning\">Import running</span>")
-        self.assertNotContains(response, "<h4 style=\"color:#ff3019\">Import process failed</h4>")
-        self.assertNotContains(response, "<h4>Import process running</h4>")
+        self.assertContains(
+            response,
+            '<a href="/show_read/{}" target="_blank">{}</a>'.format(
+                read.id, read.read_name)
+        )
+        self.assertNotContains(
+            response, '<span class="btn-sm btn-danger">Import Failed</span>')
+        self.assertNotContains(
+            response, '<span class="btn-sm btn-warning">Import running</span>')
+        self.assertNotContains(
+            response, '<h4 style="color:#ff3019">Import process failed</h4>')
+        self.assertNotContains(response, '<h4>Import process running</h4>')
 
 
 class ReadTest(TestCase):
-    fixtures = ['../fixtures/read_types.json']
     show_read_url = '/show_read/'
     new_read_url = 'source/new//'
 
@@ -217,6 +253,7 @@ class ReadTest(TestCase):
         self.client = Client()
         self.factory = RequestFactory()
         self.tola_user = factories.TolaUser()
+        factories.ReadType.create_batch(7)
 
     def test_new_read_post(self):
         read_type = ReadType.objects.get(read_type="ONA")
@@ -243,7 +280,7 @@ class ReadTest(TestCase):
         else:
             self.assertEqual(response.status_code, 200)
 
-        # Now test the show_read view to make sure that I can retrieve the objec
+        # Now test the show_read view to make sure that I can retrieve the obj
         # that just got created using the POST method above.
         source = Read.objects.get(read_name='TEST READ SOURCE')
         response = self.client.get(self.show_read_url + str(source.pk) + "/")
@@ -253,7 +290,6 @@ class ReadTest(TestCase):
 # TODO: Adjust tests to work without mongodb as an instance is not available
 # TODO: during testing.
 class SiloTest(TestCase):
-    fixtures = ['fixtures/read_types.json']
     silo_edit_url = "/silo_edit/"
     upload_csv_url = "/file/"
     silo_detail_url = "/silo_detail/"
@@ -262,6 +298,7 @@ class SiloTest(TestCase):
         self.client = Client()
         self.factory = RequestFactory()
         self.tola_user = factories.TolaUser()
+        factories.ReadType.create_batch(7)
 
     @patch('silo.forms.get_workflowteams')
     def test_new_silo(self, mock_get_workflowteams):
@@ -343,7 +380,7 @@ class SiloTest(TestCase):
         }
         file_dict = {'file_data': SimpleUploadedFile(
             upload_file.name, upload_file.read())}
-        excluded_fields = ['create_date', 'edit_date']
+        excluded_fields = ['create_date', 'edit_date', 'onedrive_file', 'onedrive_access_token']
         form = get_read_form(excluded_fields)(params, file_dict)
         self.assertTrue(form.is_valid())
 
@@ -817,3 +854,43 @@ class TestDeleteSilo(TestCase):
         self.assertFalse(silo)
         self.assertFalse(read)
         self.assertTrue(deleted_silos)
+
+
+class TestCleanKeys(TestCase):
+    def setUp(self):
+        self.user = factories.User()
+        self.silo = factories.Silo(owner=self.user)
+
+    def test_clean_keys(self):
+        LabelValueStore.objects(silo_id=self.silo.id).delete()
+        lvs = LabelValueStore()
+        orig_data = {
+            'Header 1': 'r1c1',
+            'create_date': 'r1c3',
+            'edit_date': 'r1c2',
+            '_id': 'r1c4'
+        }
+
+        for k, v in orig_data.iteritems():
+            key = cleanKey(k)
+            val = smart_str(v, strings_only=True)
+            key = smart_str(key)
+            val = val.strip()
+            setattr(lvs, key, val)
+        lvs.silo_id = self.silo.id
+        lvs.save()
+
+        returned_data = json.loads(LabelValueStore.objects(
+            silo_id=self.silo.id).to_json())[0]
+        returned_data.pop('_id')
+
+        expected_data = {
+            'Header 1': 'r1c1',
+            'created_date': 'r1c3',
+            'editted_date': 'r1c2',
+            'user_assigned_id': 'r1c4',
+            'read_id': -1,
+            'silo_id': self.silo.id
+        }
+        self.assertEqual(returned_data, expected_data)
+        LabelValueStore.objects(silo_id=self.silo.id).delete()

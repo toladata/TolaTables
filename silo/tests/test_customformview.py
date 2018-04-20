@@ -1,5 +1,8 @@
 import json
+import uuid
+from urlparse import urljoin
 
+from django.conf import settings
 from django.test import TestCase
 
 from rest_framework.test import APIRequestFactory
@@ -65,6 +68,7 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         wflvl1 = factories.WorkflowLevel1(
             organization=self.tola_user.organization)
 
+        form_uuid = uuid.uuid4()
         data = {
             'name': 'CustomForm Test',
             'description': 'This is a test.',
@@ -83,7 +87,8 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
                 }
             ],
             'level1_uuid': wflvl1.level1_uuid,
-            'tola_user_uuid': self.tola_user.tola_user_uuid
+            'tola_user_uuid': self.tola_user.tola_user_uuid,
+            'form_uuid': form_uuid
         }
 
         request = self.factory.post('api/customform', data=data)
@@ -97,6 +102,99 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         silo_id = response.data['id']
         silo = Silo.objects.get(pk=silo_id)
         self.assertEqual(silo.data_count, 0)
+
+        url_subpath = '/activity/forms/{}/view'.format(form_uuid)
+        form_url = urljoin(settings.ACTIVITY_URL, url_subpath)
+        reads = silo.reads.all()
+        self.assertEqual(reads[0].read_url, form_url)
+
+    def test_create_customform_missing_data(self):
+        self.tola_user.user.is_staff = True
+        self.tola_user.user.is_superuser = True
+        self.tola_user.user.save()
+
+        data = {
+            'name': 'CustomForm Test',
+            'description': 'This is a test.',
+            'fields': [
+                {
+                    'name': 'name',
+                    'type': 'text'
+                },
+                {
+                    'name': 'age',
+                    'type': 'number'
+                },
+                {
+                    'name': 'city',
+                    'type': 'text'
+                }
+            ],
+        }
+
+        request = self.factory.post('api/customform', data=data)
+        request.user = self.tola_user.user
+        view = CustomFormViewSet.as_view({'post': 'create'})
+        response = view(request)
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_create_customform_long_name(self):
+        self.tola_user.user.is_staff = True
+        self.tola_user.user.is_superuser = True
+        self.tola_user.user.save()
+
+        wflvl1 = factories.WorkflowLevel1(
+            name='This Program was created to test when a table has a '
+                 'really long name. It should accept long names but it has '
+                 'to truncate those name. It is so hard to create a name '
+                 'longer than 255 characters that I do not know if this is '
+                 'going to work well. Almost there!',
+            organization=self.tola_user.organization)
+
+        form_uuid = uuid.uuid4()
+        data = {
+            'name': 'CustomForm Test',
+            'description': 'This is a test.',
+            'fields': [
+                {
+                    'name': 'name',
+                    'type': 'text'
+                },
+                {
+                    'name': 'age',
+                    'type': 'number'
+                },
+                {
+                    'name': 'city',
+                    'type': 'text'
+                }
+            ],
+            'level1_uuid': wflvl1.level1_uuid,
+            'tola_user_uuid': self.tola_user.tola_user_uuid,
+            'form_uuid': form_uuid
+        }
+
+        request = self.factory.post('api/customform', data=data)
+        request.user = self.tola_user.user
+        view = CustomFormViewSet.as_view({'post': 'create'})
+        response = view(request)
+
+        self.assertEqual(response.status_code, 201)
+
+        # For the tearDown
+        silo_id = response.data['id']
+        silo = Silo.objects.get(pk=silo_id)
+        silo_name = '{} - {}'.format(data['name'], wflvl1.name)
+        silo_name = silo_name[:255]
+        url_subpath = '/activity/forms/{}/view'.format(form_uuid)
+        form_url = urljoin(settings.ACTIVITY_URL, url_subpath)
+
+        self.assertEqual(len(silo.name), 255)
+        self.assertEqual(silo.name, silo_name)
+
+        reads = silo.reads.all()
+        self.assertEqual(reads[0].read_url, form_url)
 
     def test_create_customform_missing_data_superuser(self):
         self.tola_user.user.is_staff = True
@@ -138,7 +236,7 @@ class CustomFormUpdateViewTest(TestCase):
         self.factory = APIRequestFactory()
         self.tola_user = factories.TolaUser()
 
-    def test_update_customform_superuser(self):
+    def test_update_customform_superuser_minimal(self):
         self.tola_user.user.is_staff = True
         self.tola_user.user.is_superuser = True
         self.tola_user.user.save()
@@ -152,7 +250,6 @@ class CustomFormUpdateViewTest(TestCase):
 
         data = {
             'name': 'CustomForm Test',
-            'description': 'This is a test.',
             'fields': [
                 {
                     'name': 'name',

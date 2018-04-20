@@ -80,7 +80,7 @@ docker exec -it postgres psql -U root tolatables
 To connect to the mongo database when the container is running:
 
 ```bash
-docker exec -it mongo mongo tolatables -u root -p root
+docker exec -it mongo mongo tolatables -u tolatables -p tolatables
 ```
 
 ## Deploy using Virtualenv

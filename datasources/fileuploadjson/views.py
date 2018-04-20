@@ -6,7 +6,7 @@ import datetime
 from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.shortcuts import render
-from tola.util import saveDataToSilo
+from tola.util import save_data_to_silo
 from django.core.urlresolvers import reverse, reverse_lazy
 
 from django.contrib import messages
@@ -61,7 +61,7 @@ def file(request, id):
             silo.reads.add(read_obj)
             silo_id = silo.id
             data = json.load(read_obj.file_data)
-            saveDataToSilo(silo, data, read_obj)
+            save_data_to_silo(silo, data, read_obj)
             return HttpResponseRedirect('/silo_detail/%s/' % silo_id)
             # except Exception as e:
             #     messages.error(request, "Your JSON file was formatted incorrectly")

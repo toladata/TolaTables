@@ -1,24 +1,26 @@
-from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ImproperlyConfigured
-from django.test import TestCase, override_settings
+from django.test import TestCase, override_settings, Client, RequestFactory
 from django.urls import reverse
 
 from rest_framework.test import APIRequestFactory
 
 from silo.tests import MongoTestCase
 from silo.api import CustomFormViewSet
-from silo.models import (LabelValueStore, MergedSilosFieldMapping, Read,
-                         Silo, Tag)
+from silo.models import (LabelValueStore, Silo, Tag, ReadType)
 
 from mock import Mock, patch
 from pymongo.errors import WriteError
 
 import json
 import random
+import uuid
 import factories
 from silo import views
 from tola import util
+
+from social_django.models import UserSocialAuth
+from django.contrib.messages.storage.fallback import FallbackStorage
 
 
 class IndexViewTest(TestCase):
@@ -185,7 +187,8 @@ class ExportViewsTest(TestCase, MongoTestCase):
             'description': 'This is a test.',
             'fields': json.dumps(fields),
             'level1_uuid': wflvl1.level1_uuid,
-            'tola_user_uuid': self.tola_user.tola_user_uuid
+            'tola_user_uuid': self.tola_user.tola_user_uuid,
+            'form_uuid': uuid.uuid4()
         }
         request = self.factory.post('', data=meta)
         request.user = self.tola_user.user
@@ -208,7 +211,7 @@ class ExportViewsTest(TestCase, MongoTestCase):
             'color': 'red',
             'type': 'primary'
         }]
-        util.saveDataToSilo(silo, data, read)
+        util.save_data_to_silo(silo, data, read)
 
         # Export to CSV
         request = self.factory.get('')
@@ -326,9 +329,34 @@ class SiloViewsTest(TestCase, MongoTestCase):
         self.tola_user.user.is_superuser = True
         self.tola_user.user.save()
 
-        wflvl1 = factories.WorkflowLevel1(
-            organization=self.tola_user.organization)
-        fields = [
+        columns = [{'name': 'name', 'type': 'text'}]
+        read = factories.Read(read_name='Read Test', owner=self.tola_user.user)
+        silo = factories.Silo(owner=self.tola_user.user,
+                              columns=json.dumps(columns), reads=[read])
+
+        data = {
+            'id': '',
+            'silo_id': silo.id,
+            'name': 'given_name',
+        }
+        request = self.factory.post('', data=data)
+        request.user = self.tola_user.user
+        self._bugfix_django_messages(request)
+        response = views.edit_columns(request, silo.id)
+
+        column_names = util.getSiloColumnNames(silo.id)
+
+        self.assertTrue('given_name' in column_names)
+        self.assertEqual(len(column_names), 1)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/silo_detail/'+str(silo.id)+'/')
+
+    def test_silo_edit_columns_keep_data(self):
+        self.tola_user.user.is_staff = True
+        self.tola_user.user.is_superuser = True
+        self.tola_user.user.save()
+
+        columns = [
             {
                 'name': 'color',
                 'type': 'text'
@@ -338,20 +366,35 @@ class SiloViewsTest(TestCase, MongoTestCase):
                 'type': 'text'
             }
         ]
-        meta = {
-            'name': 'Export Test',
-            'description': 'This is a test.',
-            'fields': json.dumps(fields),
-            'level1_uuid': wflvl1.level1_uuid,
-            'tola_user_uuid': self.tola_user.tola_user_uuid
-        }
-        request = self.factory.post('', data=meta)
-        request.user = self.tola_user.user
-        view = CustomFormViewSet.as_view({'post': 'create'})
-        response = view(request)
-        # For the tearDown
-        silo_id = response.data['id']
-        silo = Silo.objects.get(id=silo_id)
+        read = factories.Read(read_name='Read Test', owner=self.tola_user.user)
+        silo = factories.Silo(owner=self.tola_user.user,
+                              columns=json.dumps(columns), reads=[read])
+
+        # Upload data
+        data = [{
+            'color': 'black',
+            'type': 'primary'
+        }, {
+            'color': 'white',
+            'type': 'primary'
+        }, {
+            'color': 'red',
+            'type': 'primary'
+        }]
+        util.save_data_to_silo(silo, data, read)
+
+        # Check if the data was inserted
+        filter_fields = {}
+        db_data = LabelValueStore.objects(silo_id=silo.id, **filter_fields). \
+            exclude('create_date', 'edit_date', 'silo_id', 'read_id')
+        json_data = json.loads(db_data.to_json())
+
+        self.assertEqual(len(json_data), 3)
+        self.assertTrue('color' in json_data[0])
+        self.assertTrue('type' in json_data[0])
+
+        self.assertTrue(json_data[0]['color'] in ['black', 'white', 'red'])
+        self.assertEqual(json_data[0]['type'], 'primary')
 
         data = {
             'id': '',
@@ -362,15 +405,20 @@ class SiloViewsTest(TestCase, MongoTestCase):
         request = self.factory.post('', data=data)
         request.user = self.tola_user.user
         self._bugfix_django_messages(request)
-        response = views.edit_columns(request, silo.id)
+        views.edit_columns(request, silo.id)
 
-        column_names = util.getSiloColumnNames(silo_id)
+        # Check if the data was kept but the column name was changed
+        db_data = LabelValueStore.objects(silo_id=silo.id, **filter_fields).\
+            exclude('create_date', 'edit_date', 'silo_id', 'read_id')
+        json_data = json.loads(db_data.to_json())
 
-        self.assertTrue('farbe' in column_names)
-        self.assertTrue('art' in column_names)
-        self.assertEqual(len(column_names), 2)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, '/silo_detail/'+str(silo_id)+'/')
+        self.assertEqual(len(json_data), 3)
+        self.assertTrue('farbe' in json_data[0])
+        self.assertTrue('art' in json_data[0])
+
+        self.assertTrue(json_data[0]['farbe'] in ['black', 'white', 'red'])
+        self.assertEqual(json_data[0]['art'], 'primary')
+
 
     @patch('silo.views.db')
     def test_silo_edit_columns_delete(self, mock_db):
@@ -432,7 +480,8 @@ class SiloViewsTest(TestCase, MongoTestCase):
             'description': 'This is a test.',
             'fields': json.dumps(fields),
             'level1_uuid': wflvl1.level1_uuid,
-            'tola_user_uuid': self.tola_user.tola_user_uuid
+            'tola_user_uuid': self.tola_user.tola_user_uuid,
+            'form_uuid': uuid.uuid4()
         }
         request = self.factory.post('', data=meta)
         request.user = self.tola_user.user
@@ -477,7 +526,8 @@ class SiloViewsTest(TestCase, MongoTestCase):
             'description': 'This is a test.',
             'fields': json.dumps(fields),
             'level1_uuid': wflvl1.level1_uuid,
-            'tola_user_uuid': self.tola_user.tola_user_uuid
+            'tola_user_uuid': self.tola_user.tola_user_uuid,
+            'form_uuid': uuid.uuid4()
         }
         request = self.factory.post('', data=meta)
         request.user = self.tola_user.user
@@ -497,13 +547,13 @@ class SiloViewsTest(TestCase, MongoTestCase):
             views.edit_columns(request, silo.id)
 
 
-class SaveDataToSiloViewTest(TestCase):
+class SaveAndImportReadViewTest(TestCase):
     def setUp(self):
         self.org = factories.Organization()
         self.tola_user = factories.TolaUser(organization=self.org)
         self.factory = APIRequestFactory()
 
-    @patch('silo.views.saveDataToSilo')
+    @patch('silo.views.save_data_to_silo')
     @patch('silo.views.requests')
     def test_save_and_import_read(self, mock_requests, mock_savedatasilo):
         data_res = {'detail': 'Success'}
@@ -614,14 +664,16 @@ class DoMergeViewTest(TestCase):
         mock_merge_two_silos.return_value = {'status': 'success'}
         mock_merged_silos_map.return_value = Mock()
 
-        columns = {'name': 'name', 'type': 'text'}
+        columns = [{'name': 'name', 'type': 'text'}]
         left_read = factories.Read(read_name='Read Left',
                                    owner=self.tola_user.user)
         right_read = factories.Read(read_name='Read Right',
                                     owner=self.tola_user.user)
-        left_silo = factories.Silo(owner=self.tola_user.user, columns=columns,
+        left_silo = factories.Silo(owner=self.tola_user.user,
+                                   columns=json.dumps(columns),
                                    reads=[left_read])
-        right_silo = factories.Silo(owner=self.tola_user.user, columns=columns,
+        right_silo = factories.Silo(owner=self.tola_user.user,
+                                    columns=json.dumps(columns),
                                     reads=[right_read])
         merged_silo_name = '{}_{}'.format(left_silo.name, right_silo.name)
 
@@ -649,14 +701,16 @@ class DoMergeViewTest(TestCase):
         mock_append_two_silos.return_value = {'status': 'success'}
         mock_merged_silos_map.return_value = Mock()
 
-        columns = {'name': 'name', 'type': 'text'}
+        columns = [{'name': 'name', 'type': 'text'}]
         left_read = factories.Read(read_name='Read Left',
                                    owner=self.tola_user.user)
         right_read = factories.Read(read_name='Read Right',
                                     owner=self.tola_user.user)
-        left_silo = factories.Silo(owner=self.tola_user.user, columns=columns,
+        left_silo = factories.Silo(owner=self.tola_user.user,
+                                   columns=json.dumps(columns),
                                    reads=[left_read])
-        right_silo = factories.Silo(owner=self.tola_user.user, columns=columns,
+        right_silo = factories.Silo(owner=self.tola_user.user,
+                                    columns=json.dumps(columns),
                                     reads=[right_read])
         merged_silo_name = '{}_{}'.format(left_silo.name, right_silo.name)
 
@@ -682,14 +736,16 @@ class DoMergeViewTest(TestCase):
     def test_status_danger(self, mock_merge_two_silos):
         mock_merge_two_silos.return_value = {'status': 'danger'}
 
-        columns = {'name': 'name', 'type': 'text'}
+        columns = [{'name': 'name', 'type': 'text'}]
         left_read = factories.Read(read_name='Read Left',
                                    owner=self.tola_user.user)
         right_read = factories.Read(read_name='Read Right',
                                     owner=self.tola_user.user)
-        left_silo = factories.Silo(owner=self.tola_user.user, columns=columns,
+        left_silo = factories.Silo(owner=self.tola_user.user,
+                                   columns=json.dumps(columns),
                                    reads=[left_read])
-        right_silo = factories.Silo(owner=self.tola_user.user, columns=columns,
+        right_silo = factories.Silo(owner=self.tola_user.user,
+                                    columns=json.dumps(columns),
                                     reads=[right_read])
         merged_silo_name = '{}_{}'.format(left_silo.name, right_silo.name)
 
@@ -769,16 +825,16 @@ class DoMergeViewTest(TestCase):
         mock_merge_two_silos.return_value = {'status': 'success'}
         mock_merged_silos_map.return_value = Mock()
 
-        columns = {'name': 'name', 'type': 'text'}
+        columns = [{'name': 'name', 'type': 'text'}]
         left_read = factories.Read(read_name='Read Left',
                                    owner=self.tola_user.user)
         right_read = factories.Read(read_name='Read Right',
                                     owner=self.tola_user.user)
         left_silo = factories.Silo(owner=self.tola_user.user,
-                                   columns=columns,
+                                   columns=json.dumps(columns),
                                    reads=[left_read])
         right_silo = factories.Silo(owner=self.tola_user.user,
-                                    columns=columns,
+                                    columns=json.dumps(columns),
                                     reads=[right_read])
         merged_silo_name = 'Merging of {} and {}'.format(
             left_silo.id, right_silo.id)
@@ -800,3 +856,167 @@ class DoMergeViewTest(TestCase):
         self.assertEqual(response.url, '/silo_detail/{}/'.format(silo.id))
         self.assertIn(left_read, silo.reads.all())
         self.assertIn(right_read, silo.reads.all())
+
+
+class OneDriveViewsTest(TestCase):
+
+    def setUp(self):
+        self.org = factories.Organization()
+        self.tola_user = factories.TolaUser(organization=self.org)
+        self.user = factories.User()
+        factories.ReadType.create_batch(7)
+
+    def test_onedrive_js_page(self):
+        self.client.force_login(self.user)
+        response = self.client.get('/onedrive')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'silo/onedrive.html')
+
+    def test_onedrive_js_page_no_login(self):
+        response = self.client.get('/onedrive')
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTemplateNotUsed(response, 'silo/onedrive.html')
+
+    def test_read_view_onedrive_contains_fields(self):
+        self.client.force_login(self.user)
+        response = self.client.get('/source/new/?type=OneDrive')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'read/read.html')
+        self.assertContains(response, "https://js.live.net/v7.2/OneDrive.js")
+        self.assertContains(response, "launchOneDrivePicker")
+        self.assertContains(response, '<input type="hidden" '
+                                      'name="onedrive_file" '
+                                      'id="id_onedrive_file" />')
+        self.assertContains(response, '<input type="hidden" '
+                                      'name="onedrive_access_token" '
+                                      'id="id_onedrive_access_token" />')
+
+    def test_other_views_dont_contain_fields(self):
+        self.client.force_login(self.user)
+        response = self.client.get('/source/new/?type=CSV')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'read/read.html')
+        self.assertNotContains(response, '<input type="hidden" '
+                                      'name="onedrive_file" '
+                                      'id="id_onedrive_file" />')
+
+
+class OneDriveReadTest(TestCase):
+    new_read_url = '/source/new/'
+    # Is the UserSocialAuth extra data obj updated when there is already one? I saw a test when there is no UserSocialAuth.
+
+    def setUp(self):
+        self.client = Client()
+        self.factory = RequestFactory()
+        self.tola_user = factories.TolaUser()
+        factories.ReadType.create_batch(7)
+
+    def test_new_read_post(self):
+        read_type = ReadType.objects.get(read_type="OneDrive")
+
+        params = {
+            'owner': self.tola_user.user.pk,
+            'type': read_type.pk,
+            'read_name': 'TEST READ ONEDRIVE',
+            'description': 'TEST DESCRIPTION for test read source',
+            'onedrive_file': 'TEST10000100',
+            'onedrive_access_token':'TEST_DUMMY_TOKEN',
+            'create_date': '2018-01-26 12:33:00',
+        }
+        request = self.factory.post(self.new_read_url, data=params)
+        request.user = self.tola_user.user
+
+        response = views.showRead(request, 0)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/import_onedrive/1/')
+
+        # check for social auth updated
+
+        social_auth = UserSocialAuth.objects.get(user=self.tola_user.user,
+                                      provider='microsoft-graph')
+        self.assertEqual(social_auth.extra_data['access_token'],
+                         'TEST_DUMMY_TOKEN')
+
+    def test_new_read_post_existing_token(self):
+        read_type = ReadType.objects.get(read_type="OneDrive")
+
+        factories.UserSocialAuth(user=self.tola_user.user,
+                                 provider='microsoft-graph',
+                                 extra_data={"token_type": "Bearer",
+                                             "access_token": "OLD_TOKEN"})
+
+        params = {
+            'owner': self.tola_user.user.pk,
+            'type': read_type.pk,
+            'read_name': 'TEST READ ONEDRIVE',
+            'description': 'TEST DESCRIPTION for test read source',
+            'onedrive_file': 'TEST10000100',
+            'onedrive_access_token':'TEST_DUMMY_TOKEN_CHANGED',
+            'create_date': '2018-01-26 12:33:00',
+        }
+        request = self.factory.post(self.new_read_url, data = params)
+        request.user = self.tola_user.user
+
+        response = views.showRead(request, 0)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/import_onedrive/1/')
+
+        # check for social auth updated
+
+        social_auth = UserSocialAuth.objects.get(user=self.tola_user.user,
+                                      provider='microsoft-graph')
+        self.assertEqual(social_auth.extra_data['access_token'],
+                         'TEST_DUMMY_TOKEN_CHANGED')
+
+    def test_new_read_post_fails_no_token(self):
+        read_type = ReadType.objects.get(read_type="OneDrive")
+
+        params = {
+            'owner': self.tola_user.user.pk,
+            'type': read_type.pk,
+            'read_name': 'TEST READ ONEDRIVE',
+            'description': 'TEST DESCRIPTION for test read source',
+            'onedrive_file': 'TEST10000100',
+            'create_date': '2018-01-26 12:33:00',
+        }
+        request = self.factory.post(self.new_read_url, data=params)
+        request.user = self.tola_user.user
+        request.session = 'session'
+        message_storage = FallbackStorage(request)
+        request._messages = message_storage
+        response = views.showRead(request, 0)
+
+        messages = []
+        for m in message_storage:
+            messages.append(m.message)
+
+        self.assertIn('Invalid Form', messages)
+
+    def test_new_read_post_fails_no_file(self):
+        read_type = ReadType.objects.get(read_type="OneDrive")
+
+        params = {
+            'owner': self.tola_user.user.pk,
+            'type': read_type.pk,
+            'read_name': 'TEST READ ONEDRIVE',
+            'description': 'TEST DESCRIPTION for test read source',
+            'onedrive_access_token':'TEST_DUMMY_TOKEN',
+            'create_date': '2018-01-26 12:33:00',
+        }
+        request = self.factory.post(self.new_read_url, data=params)
+        request.user = self.tola_user.user
+        request.session = 'session'
+        message_storage = FallbackStorage(request)
+        request._messages = message_storage
+        views.showRead(request, 0)
+        messages = []
+        for m in message_storage:
+            messages.append(m.message)
+
+        self.assertIn('Invalid Form', messages)

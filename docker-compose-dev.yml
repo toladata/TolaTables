@@ -79,3 +79,5 @@ services:
       - GOOGLE_OAUTH_CLIENT_ID=1090285679254-sle9dnkig5lv0gvnvgo5bd7js2i2u9cl.apps.googleusercontent.com
       - GOOGLE_OAUTH_CLIENT_SECRET=bZ6NaORHhmAfeZ_s-s9WuLVh
       - CELERY_BROKER_URL=redis://redis@redis:6379/0
+      - ONEDRIVE_REDIRECT_URI=http://localhost:8000/onedrive
+      - ONEDRIVE_CLIENT_ID=REPLACETHIS

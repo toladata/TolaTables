@@ -1,10 +1,10 @@
 import json
 import django_filters
+from urlparse import urljoin
 
-from django.http import (HttpResponseBadRequest, JsonResponse, HttpResponse,
-                         QueryDict)
+from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 from django.db.models import Q
-from django.utils import timezone
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 
 from rest_framework import viewsets, filters, permissions
@@ -22,7 +22,7 @@ from .models import (Silo, LabelValueStore, Country, WorkflowLevel1,
                      WorkflowLevel2, TolaUser, Read, ReadType)
 from silo.permissions import *
 from tola.util import (getSiloColumnNames, getCompleteSiloColumnNames,
-                       saveDataToSilo)
+                       save_data_to_silo, JSONEncoder)
 
 
 class TolaUserViewSet(viewsets.ModelViewSet):
@@ -135,7 +135,7 @@ class PublicSiloViewSet(viewsets.ReadOnlyModelViewSet):
 class CustomFormViewSet(mixins.CreateModelMixin,
                         mixins.UpdateModelMixin,
                         viewsets.GenericViewSet):
-    serializer_class = SiloSerializer
+    serializer_class = CustomFormSerializer
     queryset = Silo.objects.all()
 
     def create(self, request, *args, **kwargs):
@@ -146,24 +146,31 @@ class CustomFormViewSet(mixins.CreateModelMixin,
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         try:
+            form_uuid = request.POST['form_uuid']
             level1_uuid = request.POST['level1_uuid']
             tola_user_uuid = request.POST['tola_user_uuid']
             wkflvl1 = WorkflowLevel1.objects.get(level1_uuid=level1_uuid)
             tola_user = TolaUser.objects.get(tola_user_uuid=tola_user_uuid)
-            table_name = request.POST['name'].lower().replace(' ', '_')
-            table_name += '_' + wkflvl1.name.lower().replace(' ', '_')
+            form_name = request.POST['name']
             read_name = request.POST['name']
             columns = request.POST['fields']
         except (WorkflowLevel1.DoesNotExist, TolaUser.DoesNotExist, KeyError) \
                 as e:
             return Response(e, status=status.HTTP_400_BAD_REQUEST)
-        description = request.POST.get('description', '')
 
+        url_subpath = '/activity/forms/{}/view'.format(form_uuid)
+        form_url = urljoin(settings.ACTIVITY_URL, url_subpath)
         read = Read.objects.create(
             owner=tola_user.user,
             type=ReadType.objects.get(read_type='CustomForm'),
             read_name=read_name,
+            read_url=form_url
         )
+
+        table_name = '{} - {}'.format(form_name, wkflvl1.name)
+        if len(table_name) > 255:
+            table_name = table_name[:255]
+        description = request.POST.get('description', '')
         silo = Silo.objects.create(
             owner=tola_user.user,
             name=table_name,
@@ -171,6 +178,7 @@ class CustomFormViewSet(mixins.CreateModelMixin,
             organization=tola_user.organization,
             public=False,
             columns=columns,
+            form_uuid=form_uuid
         )
 
         silo.reads.add(read)
@@ -242,7 +250,7 @@ class CustomFormViewSet(mixins.CreateModelMixin,
             return Response({'detail': 'Not found.'},
                             status=status.HTTP_404_NOT_FOUND)
         else:
-            saveDataToSilo(silo, [data], silo.reads.first())
+            save_data_to_silo(silo, [data], silo.reads.first())
             return Response({'detail': 'It was successfully saved.'},
                             status=status.HTTP_200_OK)
 
@@ -279,16 +287,17 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         user_uuid = self.request.GET.get('user_uuid')
         if user_uuid is not None:
-            if TolaUser.objects.filter(tola_user_uuid=user_uuid).count() == 1:
-                tola_user = TolaUser.objects.prefetch_related('user').get(tola_user_uuid=user_uuid)
-                user = tola_user.user
-                return Silo.objects.filter(Q(owner=user) | Q(public=True) | Q(shared=user))
-            else:
+            try:
+                tola_user = TolaUser.objects.get(tola_user_uuid=user_uuid)
+            except TolaUser.DoesNotExist:
                 return Silo.objects.filter(owner=None)
+            else:
+                user = tola_user.user
+                return Silo.objects.filter(
+                    Q(owner=user) | Q(public=True) | Q(shared=user))
         else:
             user = self.request.user
             if user.is_superuser:
-                #pagination.PageNumberPagination.page_size = 200
                 return Silo.objects.all()
 
             return Silo.objects.filter(Q(owner=user) | Q(public=True))
@@ -298,28 +307,60 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
         # calling get_object applies the permission classes to this query
         self.get_object()
 
+        # get the mongo collection
+        collection = LabelValueStore._get_collection()
+
         draw = int(request.GET.get("draw", 1))
         offset = int(request.GET.get('start', -1))
         length = int(request.GET.get('length', 10))
 
         # filtering syntax is the mongodb syntax
-        query = request.GET.get('query',"{}")
-        filter_fields = json.loads(query)
+        query = request.GET.get('query', '{}')
+        group = request.GET.get('group', '{}')
+        sort = str(request.GET.get('sort', '{}'))
+        query_fields = json.loads(query)
+        group_fields = json.loads(group)
+        sort_fields = json.loads(sort)
 
-        recordsTotal = LabelValueStore.objects(silo_id=id, **filter_fields).count()
+        # creating the aggregation pipeline
+        pipeline = [
+            {'$match': {'$and': [{'silo_id': int(id)}, query_fields]}},
+            {'$project': {
+                'create_date': 0,
+                'edit_date': 0,
+                'silo_id': 0,
+                'read_id': 0
+            }}
+        ]
+        if group_fields:
+            pipeline.append({'$group': group_fields})
+        if sort_fields:
+            pipeline.append({'$sort': sort_fields})
 
-        # workaround until the problem of javascript not increasing the value of length is fixed
+        count_pipeline = pipeline + [{'$count': 'count'}]
+        count_cur = collection.aggregate(pipeline=count_pipeline)
+        list_count = list(count_cur)
+        if list_count:
+            count_result = list_count[0]
+            records_total = count_result['count']
+        else:
+            records_total = 0
+
+        # workaround until the problem of javascript not increasing
+        # the value of length is fixed
         if offset >= 0:
             length = offset + length
-            data = LabelValueStore.objects(silo_id=id, **filter_fields).exclude('create_date', 'edit_date', 'silo_id','read_id').skip(offset).limit(length)
-        else:
-            data = LabelValueStore.objects(silo_id=id, **filter_fields).exclude('create_date', 'edit_date', 'silo_id','read_id')
+            pipeline.append({'$skip': offset})
+            pipeline.append({'$limit': length})
 
-        sort = str(request.GET.get('sort',''))
-        data = data.order_by(sort)
-        json_data = json.loads(data.to_json())
+        pipeline_cur = collection.aggregate(pipeline=pipeline)
+        pipeline_result = list(pipeline_cur)
+        data = JSONEncoder().encode(pipeline_result)
+        json_data = json.loads(data)
 
-        return JsonResponse({"data": json_data, "draw": draw, "recordsTotal": recordsTotal, "recordsFiltered": recordsTotal}, safe=False)
+        return JsonResponse({"data": json_data, "draw": draw,
+                             "recordsTotal": records_total,
+                             "recordsFiltered": records_total},  safe=False)
 
 
 class TagViewSet(viewsets.ModelViewSet):

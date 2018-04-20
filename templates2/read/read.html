@@ -5,25 +5,16 @@
 <script type="text/javascript" src="https://js.live.net/v7.2/OneDrive.js"></script>
 <script type="text/javascript">
     function launchOneDrivePicker(){
-        console.log("Launching OneDrive picker");
         var odOptions = {
-            clientId: "fffa9abf-8d14-45a0-a97e-8059275810bf",
+            clientId: "{{ client_id }}",
             action: "query",
             multiSelect: true,
             advanced: {
-                redirectUri: "https://tola.test/onedrive",
-                accessToken: "{{ access_token }}"
+                redirectUri: "{{ redirect_uri }}"
             },
-            success: function(files) {
-                console.log("Success");
-                console.log(files);
-                $("#id_onedrive_file").val(files.value[0].id)
-            },
-            cancel: function() {
-                console.log("Process cancelled")
-            },
-            error: function(e) {
-                console.log("Process failed")
+            success: function(data) {
+                $("#id_onedrive_access_token").val(data.accessToken);
+                $("#id_onedrive_file").val(data.value[0].id);
             }
         };
         OneDrive.open(odOptions);
@@ -32,7 +23,9 @@
 {% endblock %}
 
 {% block content %}
-    <button onClick="launchOneDrivePicker()">Open from OneDrive</button>
+    {% if 'onedrive_file' in form.fields %}
+        <button onClick="launchOneDrivePicker()">Open from OneDrive</button>
+    {% endif %}
 
     <ul>
     {% for key, value in data.items %}
@@ -43,6 +36,7 @@
     {% load crispy_forms_tags %}
     {% crispy form %}
     <input type="hidden" name="read_id" value="{{ read_id }}">
+
     {% if get_tables %}
         <h3>Tables using this source</h3>
         <ul>
