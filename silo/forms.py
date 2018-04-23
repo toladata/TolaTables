@@ -83,20 +83,28 @@ class NewColumnForm(forms.Form):
 
 def get_read_form(excluded_fields):
     class ReadForm(forms.ModelForm):
+        onedrive_access_token = forms.CharField(required=False,
+                                                widget=forms.HiddenInput())
+
         def __init__(self, *args, **kwargs):
-            # exclude_list=kwargs.pop('exclude_list', '')
             super(ReadForm, self).__init__(*args, **kwargs)
             self.helper = FormHelper(self)
             self.helper.layout.append(Hidden('read_id', '{{read_id}}'))
             self.helper.layout.append(Submit('save', 'save'))
-            # self.fields['type'].widget.attrs['disabled'] = True
+            if 'onedrive_file' not in excluded_fields:
+                self.fields['onedrive_file'].required = True
+                self.fields['onedrive_access_token'].required = True
+
         class Meta:
             model = Read
             exclude = excluded_fields
             widgets = {
                 'owner': forms.HiddenInput(),
                 'type': forms.HiddenInput(),
-                'password': forms.PasswordInput(),}
+                'onedrive_file': forms.HiddenInput(),
+                'password': forms.PasswordInput(),
+            }
+
     return ReadForm
 
 

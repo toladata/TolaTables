@@ -159,7 +159,6 @@
                             <a href="/edit_columns/{{ silo.pk }}/" class="btn btn-primary">Edit or Delete columns</a>
                             <a href="/new_column/{{ silo.pk }}/" class="btn btn-primary">Add New Column</a>
                             <a href="/new_formula_column/{{ silo.pk }}/" class="btn btn-primary">Add New Formula Column</a>
-                            <button id="setColumnType" class="btn btn-primary" data-toggle="tooltip">Add Column Validation</button>
 
                         <!--
                         <a href="/anonymize_silo/{{ id }}/" class="btn btn-primary">Anonymize Table</a>
@@ -589,7 +588,7 @@
                     type: "PATCH",
                     data: data,
                     success: function(data, textStatus, jqXHR) {
-                        alert("Your change was successful.");                      
+                        alert("Your change was successful.");
                     },
                     error: function(jqXHR, textStatus, error) {
                         alert("error\n"+error);
