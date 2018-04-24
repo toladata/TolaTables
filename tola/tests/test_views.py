@@ -1,11 +1,16 @@
+
 from django.test import Client, override_settings, TestCase, RequestFactory
 from django.conf import settings
 from django.contrib import auth
+from django.urls import reverse
 
 import factories
+import json
+import uuid
+from rest_framework.test import APIRequestFactory
+from silo.api import CustomFormViewSet
 from tola.views import register
 from urlparse import urljoin
-
 
 class RegisterViewTest(TestCase):
     def setUp(self):
@@ -151,3 +156,13 @@ class LogoutViewTest(TestCase):
         self.assertEqual(self.user.is_authenticated(), False)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, settings.ACTIVITY_URL)
+
+
+class LoginTest(TestCase):
+    @override_settings(TABLES_URL='https://tolaactivity.com')
+    def test_unauthorized_user_login_redirect(self):
+        silo = factories.Silo()
+        url= reverse('siloDetail', args=[silo.pk])
+        response = self.client.get(url)
+        self.assertIn(settings.LOGIN_URL, response.url)
+        self.assertEqual(response.status_code, 302)
