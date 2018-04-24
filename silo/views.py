@@ -28,6 +28,7 @@ from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from django.views.generic import View
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 from gviews_v4 import import_from_gsheet_helper
 from silo.custom_csv_dict_reader import CustomDictReader
@@ -54,7 +55,7 @@ db = client.get_default_database()
 ROLE_VIEW_ONLY = 'ViewOnly'
 
 
-class IndexView(View):
+class IndexView(LoginRequiredMixin, View):
     template_name = 'index.html'
 
     def _get_context_data(self, request):
@@ -84,30 +85,13 @@ class IndexView(View):
         return context
 
     def get(self, request, *args, **kwargs):
-        if request.user.is_authenticated:
-            context = self._get_context_data(request)
-            response = render(request, self.template_name, context)
-            if (request.COOKIES.get('auth_token', None) is None and
-                    request.user.is_authenticated):
-                response.set_cookie('auth_token', request.user.auth_token)
-            # if logged in redirect user to there list of tables
-            return redirect('/silos')
-        else:
-            # If users are accessing Track from Activity but they're not
-            # logged in, redirect them to the login process
-            if settings.TOLA_ACTIVITY_API_URL and settings.ACTIVITY_URL:
-                referer = request.META.get('HTTP_REFERER', '')
-                if settings.TOLA_ACTIVITY_API_URL in referer or \
-                        settings.ACTIVITY_URL in referer:
-                    return redirect('/login/tola')
-                else:
-                    return HttpResponseRedirect(settings.TABLES_LOGIN_URL)
-            else:
-                raise ImproperlyConfigured(
-                    "TOLA_ACTIVITY_API_URL and/or ACTIVITY_URL variable(s)"
-                    " not set. Please, set a value so the user can log in. If "
-                    "you are in a Dev environment, go to /login/ in order to "
-                    "sign in.")
+        context = self._get_context_data(request)
+        response = render(request, self.template_name, context)
+        if (request.COOKIES.get('auth_token', None) is None and
+                request.user.is_authenticated):
+            response.set_cookie('auth_token', request.user.auth_token)
+        # if logged in redirect user to there list of tables
+        return redirect('/silos')
 
 
 def tablesLogin(request):

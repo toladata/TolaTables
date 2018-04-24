@@ -110,52 +110,19 @@ class IndexViewTest(TestCase):
         response = views.IndexView.as_view()(request)
         self.assertEqual(response.status_code, 302)
     """
-
     @override_settings(TOLA_ACTIVITY_API_URL='https://api.toladata.io')
     @override_settings(ACTIVITY_URL='https://toladata.io')
     def test_index_get_unauthenticated(self):
-        request = self.factory.get('', follow=True)
-        request.user = AnonymousUser()
-        request.META['HTTP_REFERER'] = 'https://api.toladata.io'
-        response = views.IndexView.as_view()(request)
-        self.assertEqual(response.status_code, 302)
-        self.assertIn('login/tola', response.url)
-
-    @override_settings(TOLA_ACTIVITY_API_URL='https://api.toladata.io')
-    @override_settings(ACTIVITY_URL='https://toladata.io')
-    def test_index_get_from_index_page(self):
-        request = self.factory.get('', follow=True)
-        request.user = AnonymousUser()
-        request.META['HTTP_REFERER'] = 'https://api.toladata.io'
-        response = views.IndexView.as_view()(request)
-        self.assertEqual(response.status_code, 302)
-        self.assertIn('login/tola', response.url)
-
-    @override_settings(TOLA_ACTIVITY_API_URL='https://api.toladata.io')
-    @override_settings(ACTIVITY_URL='https://toladata.io')
-    def test_index_get_from_app(self):
-        request = self.factory.get('', follow=True)
-        request.user = AnonymousUser()
-        request.META['HTTP_REFERER'] = 'https://toladata.io'
-        response = views.IndexView.as_view()(request)
+        response = self.client.get('/')
         self.assertEqual(response.status_code, 302)
         self.assertIn('login/tola', response.url)
 
     @override_settings(TOLA_ACTIVITY_API_URL=None)
     @override_settings(ACTIVITY_URL='https://toladata.io')
     def test_index_get_unauthenticated_no_activity_api_url(self):
-        request = self.factory.get('')
-        request.user = AnonymousUser()
-        with self.assertRaises(ImproperlyConfigured):
-            views.IndexView.as_view()(request)
-
-    @override_settings(TOLA_ACTIVITY_API_URL='https://api.toladata.io')
-    @override_settings(ACTIVITY_URL=None)
-    def test_index_get_unauthenticated_no_activity_url(self):
-        request = self.factory.get('')
-        request.user = AnonymousUser()
-        with self.assertRaises(ImproperlyConfigured):
-            views.IndexView.as_view()(request)
+        response = self.client.get('')
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('login/tola', response.url)
 
 
 class ExportViewsTest(TestCase, MongoTestCase):
