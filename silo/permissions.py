@@ -41,7 +41,7 @@ class Silo_IsOwnerOrCanRead(permissions.BasePermission):
         return any(permitted)
 
 
-class Read_IsOwnerViewOrWrite(permissions.BasePermission):
+class ReadIsOwnerViewOrWrite(permissions.BasePermission):
     """
     Custom permission to only allow access to silos if the user
     is the silo owner, if the silo has been shared with the user,
@@ -49,11 +49,14 @@ class Read_IsOwnerViewOrWrite(permissions.BasePermission):
     """
 
     def has_object_permission(self, request, view, obj):
-
-        permitted = [obj.owner == request.user]
+        is_owner = obj.owner == request.user
+        permitted = list()
+        permitted.append(is_owner)
         permitted.append(request.user.is_superuser)
 
-        if request.method in ['GET', 'HEAD']:
-            permitted.append(obj.silos__public)
-            permitted.append(request.user.id in obj.silos__shared.values_list('id', flat=True))
+        if request.method in permissions.SAFE_METHODS:
+            silos_public = obj.silos.values_list('public', flat=True).all()
+            silos_shared = obj.silos.filter(shared__id=request.user.id).exists()
+            permitted.append(silos_public)
+            permitted.append(silos_shared)
         return any(permitted)
