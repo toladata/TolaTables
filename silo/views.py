@@ -1014,6 +1014,7 @@ def siloDetail(request, silo_id):
 
     if silo.owner == request.user or silo.public == True or request.user in silo.shared.all():
         cols.append('_id')
+        cols.append('id')
         cols.extend(getSiloColumnNames(silo_id))
     else:
         messages.warning(request,"You do not have permission to view this table.")

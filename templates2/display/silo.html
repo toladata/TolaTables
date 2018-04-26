@@ -234,8 +234,13 @@
 <div class="panel panel-body" style="padding: 5px 0px 5px 0px;">
 <table id="data_table" class="table table-hover table table-striped table-bordered" style="overflow-x: scroll; display:inline-block; width:100%;" width="100%">
 <thead>
-{% for c in cols %}
-<th>{{c}}</th>
+        <th></th>
+{% for c in cols|slice:"1:" %}
+
+    {% if c != '_id' %}
+        <th>{{c}}</th>
+    {% endif %}
+
 {% endfor %}
 </thead>
 </table>
@@ -393,15 +398,23 @@
             var cols = [];
 
             $('#popuptitle').text("Detail view");
+            k = 0;
 
             // Loop through the header row and create a cols array for datatables.
             $("#data_table").find("th").each(function(i){
                 if (i == -1) {
                     // make the first col have a set width and non-sortable
                     //cols.push({"data": $(this).text(), "orderable": false , "width": "40px"});
-                } else {
+                }
+                else {
+                    if($(this).text() == '' || $(this).text() == 'id'){
+                        data = '_id';
+                    }
+                    else{
+                        data = $(this).text();
+                    }
                     cols.push({
-                        "data": $(this).text(),
+                        "data": data,
                         // Use the cell render function to return "repeats if the value is an array"
                         // This function places the data in the table on a silo
                         "render": function(data, type, row) {
@@ -426,11 +439,17 @@
                                 return cell_data + "<a href='#''>more</a>";
                             } else if(jQuery.type(data) == "object") {
                                 if (Object.keys(data) == "$oid") {
-                                  //for the update and delete information
-                                  return "<a href='/value_edit/" + data[Object.keys(data)[0]] + "'><span class='glyphicon glyphicon-edit' aria-hidden='true'></span></a> &nbsp;" +
-                                      "<a href='/value_delete/" + data[Object.keys(data)[0]] + "' class='btn-del' title='You are about to delete a record. Are you sure?'>" +
-                                      "<span style='color:red;' class='glyphicon glyphicon-trash' aria-hidden='true'></span></a>";
 
+                                    switch(k){
+                                        case 0:
+                                            k = 1;
+                                            return "<a href='/value_edit/" + data[Object.keys(data)[0]] + "'><span class='glyphicon glyphicon-edit' aria-hidden='true'></span></a> &nbsp;" +
+                                              "<a href='/value_delete/" + data[Object.keys(data)[0]] + "' class='btn-del' title='You are about to delete a record. Are you sure?'>" +
+                                              "<span style='color:red;' class='glyphicon glyphicon-trash' aria-hidden='true'></span></a>";
+                                        case 1:
+                                            k = 0;
+                                            return data[Object.keys(data)[0]];
+                                    }
                                 }
                                 else{
                                   //for any other kind of object
