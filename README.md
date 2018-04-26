@@ -83,6 +83,26 @@ To connect to the mongo database when the container is running:
 docker exec -it mongo mongo tolatables -u tolatables -p tolatables
 ```
 
+
+## Deploy with NGINX reverse proxy + static server + Gunicorn
+
+It is possible as well to have a really similar setup than our production
+server. The main difference here is that we are not using the Django webserver
+anymore and we are using NGINX to serve static files.
+
+Build first the images:
+
+```bash
+docker-compose -f docker-compose-dev.yml -f docker-compose-dev-nginx.yml build # --no-cache to force deps installation
+```
+
+To run the webserver (go to 127.0.0.1:8000):
+
+```bash
+docker-compose -f docker-compose-dev.yml -f docker-compose-dev-nginx.yml up # -d for detached
+```
+
+
 ## Deploy using Virtualenv
 
 Virtualenv allows us to customize an encapsulated version of python to use with your app.
