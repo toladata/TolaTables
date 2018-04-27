@@ -6,7 +6,7 @@ WORKDIR /code
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install nginx -y
 
-ADD docker/etc/nginx/tables.conf /etc/nginx/tables.conf
+ADD docker/etc/nginx/tables.conf /etc/nginx/conf.d/tables.conf
 
 RUN pip install -r requirements/production.txt
 
