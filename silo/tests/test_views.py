@@ -2,6 +2,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase, override_settings, Client, RequestFactory
 from django.urls import reverse
+from django.contrib import messages
 
 from rest_framework.test import APIRequestFactory
 
@@ -82,22 +83,22 @@ class IndexViewTest(TestCase):
         template_content = response.content
 
         match = '<a href="{}">{}</a>'.format(
-            reverse('siloDetail', kwargs={'silo_id': silo_pub_1.pk}),
+            reverse('silo_detail', kwargs={'silo_id': silo_pub_1.pk}),
             silo_pub_1.name)
         self.assertEqual(template_content.count(match), 1)
 
         match = '<a href="{}">{}</a>'.format(
-            reverse('siloDetail', kwargs={'silo_id': silo_pub_2.pk}),
+            reverse('silo_detail', kwargs={'silo_id': silo_pub_2.pk}),
             silo_pub_2.name)
         self.assertEqual(template_content.count(match), 1)
 
         match = '<a href="{}">{}</a>'.format(
-            reverse('siloDetail', kwargs={'silo_id': silo_priv_1.pk}),
+            reverse('silo_detail', kwargs={'silo_id': silo_priv_1.pk}),
             silo_priv_1.name)
         self.assertEqual(template_content.count(match), 1)
 
         match = '<a href="{}">{}</a>'.format(
-            reverse('siloDetail', kwargs={'silo_id': silo_shared_1.pk}),
+            reverse('silo_detail', kwargs={'silo_id': silo_shared_1.pk}),
             silo_shared_1.name)
         self.assertEqual(template_content.count(match), 1)
 
@@ -544,7 +545,7 @@ class SaveAndImportReadViewTest(TestCase):
         response = views.saveAndImportRead(request)
         template_content = response.content
 
-        match = reverse('siloDetail', args=[silo.pk])
+        match = reverse('silo_detail', args=[silo.pk])
         self.assertIn(match, template_content)
 
     @patch('silo.views.requests')
@@ -987,3 +988,101 @@ class OneDriveReadTest(TestCase):
             messages.append(m.message)
 
         self.assertIn('Invalid Form', messages)
+
+
+class SiloDetailViewTest(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.user = factories.User()
+
+    def test_silo_detail_view(self):
+        read = factories.Read(read_name="test_data",
+                              owner=self.user)
+        silo = factories.Silo(owner=self.user,
+                              reads=[read])
+        url = reverse('silo_detail', args=[silo.pk])
+
+        request = self.factory.get(url)
+        request.user = self.user
+        response = views.silo_detail(request, silo.pk)
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_private_silo_detail_with_unshared_user(self):
+        read = factories.Read(read_name="test_data",
+                              owner=self.user)
+        silo = factories.Silo(owner=self.user,
+                              reads=[read],
+                              public=False,
+                              shared=[])
+        url = reverse('silo_detail', args=[silo.pk])
+
+        request_user = factories.User(username='Another User')
+
+        request = self.factory.get(url)
+        request.user = request_user
+        request.session = 'session'
+        message_storage = FallbackStorage(request)
+        request._messages = message_storage
+        views.silo_detail(request, silo.pk)
+        messages = []
+        for m in message_storage:
+            messages.append(m.message)
+
+        self.assertIn('You do not have permission to view this table.', messages)
+
+    def test_pulic_silo_detail_with_unshared_user(self):
+        read = factories.Read(read_name="test_data",
+                              owner=self.user)
+        silo = factories.Silo(owner=self.user,
+                              reads=[read],
+                              public=True,
+                              shared=[])
+        url = reverse('silo_detail', args=[silo.pk])
+
+        request_user = factories.User(username='Another User')
+
+        request = self.factory.get(url)
+        request.user = request_user
+        request.session = 'session'
+        response = views.silo_detail(request, silo.pk)
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_private_silo_detail_with_shared_user(self):
+
+        request_user = factories.User(username='Another User')
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.user)
+        silo = factories.Silo(owner=self.user,
+                              reads=[read],
+                              public=False,
+                              shared=[request_user])
+        url = reverse('silo_detail', args=[silo.pk])
+
+        request = self.factory.get(url)
+        request.user = request_user
+        request.session = 'session'
+        response = views.silo_detail(request, silo.pk)
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_private_silo_detail_with_owner_user(self):
+
+        request_user = factories.User(username='Another User')
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.user)
+        silo = factories.Silo(owner=self.user,
+                              reads=[read],
+                              public=False,
+                              shared=[request_user])
+        url = reverse('silo_detail', args=[silo.pk])
+
+        request = self.factory.get(url)
+        request.user = self.user
+        request.session = 'session'
+        response = views.silo_detail(request, silo.pk)
+
+        self.assertEqual(response.status_code, 200)
