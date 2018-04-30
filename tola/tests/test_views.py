@@ -162,7 +162,7 @@ class LoginTest(TestCase):
     @override_settings(TABLES_URL='https://tolaactivity.com')
     def test_unauthorized_user_login_redirect(self):
         silo = factories.Silo()
-        url= reverse('siloDetail', args=[silo.pk])
+        url= reverse('silo_detail', args=[silo.pk])
         response = self.client.get(url)
         self.assertIn(settings.LOGIN_URL, response.url)
         self.assertEqual(response.status_code, 302)

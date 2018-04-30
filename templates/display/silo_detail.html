@@ -9,8 +9,8 @@
 {% block content %}
     {% if silo.merged_silo_mappings %}
         <center>
-            Merged from <a href="{% url 'siloDetail' silo.merged_silo_mappings.from_silo.pk %}">{{silo.merged_silo_mappings.from_silo}}</a>
-            and <a href="{% url 'siloDetail' silo.merged_silo_mappings.to_silo.pk %}">{{ silo.merged_silo_mappings.to_silo}}</a>
+            Merged from <a href="{% url 'silo_detail' silo.merged_silo_mappings.from_silo.pk %}">{{silo.merged_silo_mappings.from_silo}}</a>
+            and <a href="{% url 'silo_detail' silo.merged_silo_mappings.to_silo.pk %}">{{ silo.merged_silo_mappings.to_silo}}</a>
         </center>
     {% endif %}
 
@@ -162,7 +162,7 @@
     $(document).ready(function() {
         //$('#table_data').on('click', 'th', function(e) {
             //e.preventDefault();
-            //var url = `{% url 'siloDetail' id %}` + $(this).children('a').attr('href');
+            //var url = `{% url 'silo_detail' id %}` + $(this).children('a').attr('href');
             //window.location = url ;
         //});
         var unique_col = $("#silo_cols_multi_select").val();
