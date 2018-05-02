@@ -291,7 +291,7 @@ def import_gsheet(request, id):
     try:
         silo = Silo.objects.get(id=id)
         if silo.unique_fields.exists() == False:
-            messages.error(request, "A unique column must be specfied when importing to an existing table. <a href='%s'>Specify Unique Column</a>" % reverse_lazy('siloDetail', kwargs={"id": silo.id}))
+            messages.error(request, "A unique column must be specfied when importing to an existing table. <a href='%s'>Specify Unique Column</a>" % reverse_lazy('silo_detail', kwargs={"id": silo.id}))
             return HttpResponseRedirect(request.META['HTTP_REFERER'])
     except Silo.DoesNotExist:
         silo = Silo(name=file_name, owner=request.user, public=False, description="Google Sheet Import")
@@ -312,7 +312,7 @@ def import_gsheet(request, id):
 
     #print("about to export to gsheet: %s" % gsheet_endpoint.resource_id)
     if import_from_google_spreadsheet(credential_json, silo, gsheet_endpoint.resource_id) == True:
-        link = "Your imported data is available at here. <a href='%s'>See the table</a>" % reverse_lazy('siloDetail', kwargs={"id": silo.id})
+        link = "Your imported data is available at here. <a href='%s'>See the table</a>" % reverse_lazy('silo_detail', kwargs={"id": silo.id})
         messages.success(request, link)
     else:
         messages.error(request, 'Something went wrong.')
