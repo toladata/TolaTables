@@ -930,10 +930,22 @@ def listSilos(request):
     #get all of the silos
     own_silos = Silo.objects.filter(owner=user).prefetch_related('reads')
 
-    shared_silos = Silo.objects.filter(shared__id=user.pk).prefetch_related("reads")
+    shared_silos = Silo.objects.filter(Q(shared__id=user.pk) |
+                                       Q(share_with_organization=True,
+                                         owner__tola_user__organization=\
+                                         user.tola_user.organization)
+                                       ).prefetch_related("reads")
 
-    public_silos = Silo.objects.filter(Q(public=True) & ~Q(owner=user)).prefetch_related("reads")
-    return render(request, 'display/silos.html',{'own_silos':own_silos, "shared_silos": shared_silos, "public_silos": public_silos})
+    public_silos = Silo.objects.filter(Q(public=True)
+                                       & ~Q(owner=user)).\
+                                prefetch_related("reads")
+    return render(request,
+                  'display/silos.html',
+                  {
+                      'own_silos':own_silos,
+                      "shared_silos": shared_silos,
+                      "public_silos": public_silos
+                  })
 
 
 def addUniqueFiledsToSilo(request):
@@ -1018,8 +1030,16 @@ def silo_detail(request, silo_id):
         celery_tasks
     )
 
-    if silo.owner == request.user or silo.public \
-            or request.user in silo.shared.all():
+    request_user_org=None
+    owner_user_org=None
+    if(hasattr(request.user, 'tola_user') and hasattr(silo.owner,'tola_user')):
+        request_user_org = request.user.tola_user.organization
+        owner_user_org = silo.owner.tola_user.organization
+
+    if (silo.owner == request.user or silo.public
+            or request.user in silo.shared.all()
+            or (silo.share_with_organization
+                and request_user_org == owner_user_org)):
         cols.append('_id')
         cols.append('id')
         cols.extend(getSiloColumnNames(silo_id))

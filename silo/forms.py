@@ -54,8 +54,8 @@ class SiloForm(forms.ModelForm):
 
     class Meta:
         model = Silo
-        fields = ['id', 'name', 'description', 'tags', 'shared', 'owner',
-                  'workflowlevel1']
+        fields = ['id', 'name', 'description', 'tags', 'shared',
+                  'share_with_organization', 'owner', 'workflowlevel1']
 
 
 class NewColumnForm(forms.Form):
