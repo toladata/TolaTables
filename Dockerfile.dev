@@ -4,9 +4,14 @@ WORKDIR /code
 
 COPY ./requirements/base.txt requirements/base.txt
 COPY ./requirements/dev.txt requirements/dev.txt
+COPY ./requirements/production.txt requirements/production.txt
 
+RUN pip install -r requirements/production.txt
 RUN pip install -r requirements/dev.txt
 
 ADD . /code
+
+# Collecting static files
+RUN ./collectstatic.sh
 
 ENTRYPOINT ["/code/docker-entrypoint-dev.sh"]
