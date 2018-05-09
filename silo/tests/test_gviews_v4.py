@@ -108,7 +108,7 @@ class ExportToGSheetTest(TestCase):
                                                    self.silo.pk, query,
                                                    cols)
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse('listSilos'))
+        self.assertEqual(response.url, reverse('list_silos'))
 
     @patch('silo.gviews_v4.export_to_gsheet_helper')
     def test_export_to_gsheet_no_params(self, mock_gsheet_helper):
@@ -129,7 +129,7 @@ class ExportToGSheetTest(TestCase):
                                                    query,
                                                    expected_cols)
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse('listSilos'))
+        self.assertEqual(response.url, reverse('list_silos'))
 
     @patch('silo.gviews_v4.export_to_gsheet_helper')
     def test_export_to_gsheet_wrong_column_type(self, mock_gsheet_helper):
@@ -196,7 +196,7 @@ class ExportToGSheetTest(TestCase):
                                                    query,
                                                    cols)
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse('listSilos'))
+        self.assertEqual(response.url, reverse('list_silos'))
 
     @patch('silo.gviews_v4.export_to_gsheet_helper')
     def test_export_to_gsheet_with_query(self, mock_gsheet_helper):
@@ -218,7 +218,7 @@ class ExportToGSheetTest(TestCase):
                                                    query,
                                                    expected_cols)
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse('listSilos'))
+        self.assertEqual(response.url, reverse('list_silos'))
 
     @patch('silo.gviews_v4.export_to_gsheet_helper')
     def test_export_to_gsheet_redirect_uri(self, mock_gsheet_helper):

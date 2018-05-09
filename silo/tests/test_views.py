@@ -210,7 +210,7 @@ class SiloViewsTest(TestCase, MongoTestCase):
     def test_silo_template_authenticated_user(self):
         request = self.factory.get('', follow=True)
         request.user = self.tola_user.user
-        response = views.listSilos(request)
+        response = views.list_silos(request)
         template_content = response.content
 
         match = '<span id="user_init"'
@@ -1176,7 +1176,7 @@ class SiloListViewTest(TestCase):
         self.user = factories.User()
         self.tola_user = factories.TolaUser(user=self.user)
 
-    def test_listSilos_share_with_users_organization(self):
+    def test_list_silos_share_with_users_organization(self):
         request_user = factories.User(username='Another User')
         request_tola_user = factories.TolaUser(user=request_user,
                                                organization=self.tola_user
@@ -1192,15 +1192,15 @@ class SiloListViewTest(TestCase):
                               shared=[],
                               share_with_organization=True)
 
-        url = reverse('listSilos')
+        url = reverse('list_silos')
 
         request = self.factory.get(url)
         request.user = request_user
-        response = views.listSilos(request)
+        response = views.list_silos(request)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Silo')
 
-    def test_listSilos_share_with_different_organization(self):
+    def test_list_silos_share_with_different_organization(self):
         request_user = factories.User(username='Another User')
         request_tola_user = factories.TolaUser(user=request_user)
 
@@ -1214,15 +1214,15 @@ class SiloListViewTest(TestCase):
                               shared=[],
                               share_with_organization=True)
 
-        url = reverse('listSilos')
+        url = reverse('list_silos')
 
         request = self.factory.get(url)
         request.user = request_user
-        response = views.listSilos(request)
+        response = views.list_silos(request)
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'Test Share Silo')
 
-    def test_listSilos_not_share_with_organization(self):
+    def test_list_silos_not_share_with_organization(self):
         request_user = factories.User(username='Another User')
         request_tola_user = factories.TolaUser(user=request_user,
                                                organization=self.tola_user
@@ -1238,15 +1238,15 @@ class SiloListViewTest(TestCase):
                               shared=[],
                               share_with_organization=False)
 
-        url = reverse('listSilos')
+        url = reverse('list_silos')
 
         request = self.factory.get(url)
         request.user = request_user
-        response = views.listSilos(request)
+        response = views.list_silos(request)
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'Test Share Silo')
 
-    def test_listSilos_with_owner_user(self):
+    def test_list_silos_with_owner_user(self):
 
         read = factories.Read(read_name="test_data",
                               owner=self.tola_user.user)
@@ -1258,15 +1258,15 @@ class SiloListViewTest(TestCase):
                               shared=[],
                               share_with_organization=True)
 
-        url = reverse('listSilos')
+        url = reverse('list_silos')
 
         request = self.factory.get(url)
         request.user = self.user
-        response = views.listSilos(request)
+        response = views.list_silos(request)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Silo')
 
-    def test_listSilos_with_shared_user(self):
+    def test_list_silos_with_shared_user(self):
 
         request_user = factories.User(username='Another User')
         read = factories.Read(read_name="test_data",
@@ -1279,11 +1279,11 @@ class SiloListViewTest(TestCase):
                               shared=[request_user],
                               share_with_organization=False)
 
-        url = reverse('listSilos')
+        url = reverse('list_silos')
 
         request = self.factory.get(url)
         request.user = self.user
-        response = views.listSilos(request)
+        response = views.list_silos(request)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Silo')
 
@@ -1301,10 +1301,10 @@ class SiloListViewTest(TestCase):
                               shared=[],
                               share_with_organization=False)
 
-        url = reverse('listSilos')
+        url = reverse('list_silos')
 
         request = self.factory.get(url)
         request.user = request_user
-        response = views.listSilos(request)
+        response = views.list_silos(request)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Silo')

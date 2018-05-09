@@ -763,7 +763,7 @@ def showRead(request, id):
                 messages.info(request,
                               "Your table must have a unique column set for "
                               "Autopull/Autopush to work.")
-            return HttpResponseRedirect(reverse_lazy('listSilos'))
+            return HttpResponseRedirect(reverse_lazy('list_silos'))
         else:
             messages.error(request, 'Invalid Form', fail_silently=False)
     else:
@@ -921,7 +921,7 @@ def toggle_silo_publicity(request):
 
 # SILOS
 @login_required
-def listSilos(request):
+def list_silos(request):
     """
     Each silo is listed with links to details
     """
@@ -1632,7 +1632,7 @@ def removeSource(request, silo_id, read_id):
         silo = Silo.objects.get(pk=silo_id)
     except Silo.DoesNotExist as e:
         messages.error(request,"Table with id=%s does not exist." % silo_id)
-        return HttpResponseRedirect(reverse_lazy('listSilos'))
+        return HttpResponseRedirect(reverse_lazy('list_silos'))
 
     try:
         read = silo.reads.get(pk=read_id)
@@ -1701,7 +1701,7 @@ def editColumnOrder(request, pk):
 
         except Silo.DoesNotExist as e:
             messages.error(request, "silo not found")
-            return HttpResponseRedirect(reverse_lazy('listSilos'))
+            return HttpResponseRedirect(reverse_lazy('list_silos'))
 
 
         return HttpResponseRedirect(reverse_lazy('silo_detail', kwargs={'silo_id': pk},))

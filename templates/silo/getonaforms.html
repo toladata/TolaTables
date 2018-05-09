@@ -26,7 +26,7 @@
             </tr>
         {% for row in data %}
             <tr>
-                <form action="{% url 'listSilos' %}" method="POST" id = "{{ forloop.counter }}">{% csrf_token %}
+                <form action="{% url 'list_silos' %}" method="POST" id = "{{ forloop.counter }}">{% csrf_token %}
                 <td> {{ forloop.counter }} </td>
                 <td> <input type="hidden" value="{{ row.title }}" name="title"></input>{{ row.title }} </td>
                 <td> <input type="hidden" value="{{ row.description }}" name="description"></input>{{ row.description }} </td>
