@@ -329,7 +329,7 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id, query, headers):
         logger.error("Silo with id=%s does not exist" % silo_id)
         msgs.append({"level": messages.ERROR,
                     "msg": "Silo with id=%s does not exist" % silo_id,
-                    "redirect": reverse('listSilos')})
+                    "redirect": reverse('list_silos')})
         return msgs
 
     try:
@@ -635,7 +635,7 @@ def export_to_gsheet(request, id):
             return HttpResponseRedirect(msg.get("redirect"))
         messages.add_message(request, msg.get("level"), msg.get("msg"))
 
-    return HttpResponseRedirect(reverse('listSilos'))
+    return HttpResponseRedirect(reverse('list_silos'))
 
 
 @login_required
