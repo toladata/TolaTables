@@ -243,7 +243,7 @@ class SiloViewsTest(TestCase, MongoTestCase):
         request = self.factory.get('/silo_edit/{}/'.format(silo.id),
                                    follow=True)
         request.user = self.tola_user.user
-        response = views.editSilo(request, silo.id)
+        response = views.edit_silo(request, silo.id)
         template_content = response.content
 
         match = 'selected>{}</option>'.format(self.tola_user.user.username)
@@ -261,7 +261,7 @@ class SiloViewsTest(TestCase, MongoTestCase):
         request = self.factory.get('/silo_edit/{}/'.format(silo.id),
                                    follow=True)
         request.user = self.tola_user.user
-        response = views.editSilo(request, silo.id)
+        response = views.edit_silo(request, silo.id)
         template_content = response.content
 
         match = 'selected>{}</option>'.format(self.tola_user.user.username)
@@ -280,7 +280,7 @@ class SiloViewsTest(TestCase, MongoTestCase):
 
         request = self.factory.post('/silo_edit/{}/'.format(silo.id), data)
         request.user = self.tola_user.user
-        response = views.editSilo(request, silo.id)
+        response = views.edit_silo(request, silo.id)
         self.assertEqual(response.status_code, 302)
 
         silo = Silo.objects.get(pk=silo.id)
@@ -1322,8 +1322,7 @@ class SiloEditViewTest(TestCase):
                                                    mock_get_workflowteams):
         request_user = factories.User(username='Another User')
         organization = factories.Organization(name='Another Organization')
-        request_tola_user = factories.TolaUser(user=request_user,
-                                               organization=organization)
+        factories.TolaUser(user=request_user, organization=organization)
 
         read = factories.Read(read_name="test_data",
                               owner=self.tola_user.user)
@@ -1335,11 +1334,9 @@ class SiloEditViewTest(TestCase):
                               shared=[],
                               share_with_organization=False)
 
-        url = reverse('editSilo', args=[silo.pk])
-
-        request = self.factory.get(url)
+        request = self.factory.get('')
         request.user = request_user
-        response = views.editSilo(request, silo.pk)
+        response = views.edit_silo(request, silo.pk)
         self.assertEqual(response.status_code, 404)
 
     @patch('silo.forms.get_workflowteams')
@@ -1357,11 +1354,9 @@ class SiloEditViewTest(TestCase):
                               shared=[],
                               share_with_organization=False)
 
-        url = reverse('editSilo', args=[silo.pk])
-
-        request = self.factory.get(url)
+        request = self.factory.get('')
         request.user = self.tola_user.user
-        response = views.editSilo(request, silo.pk)
+        response = views.edit_silo(request, silo.pk)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Silo')
 
@@ -1384,7 +1379,7 @@ class SiloEditViewTest(TestCase):
 
         request = self.factory.get('')
         request.user = request_user
-        response = views.editSilo(request, silo.pk)
+        response = views.edit_silo(request, silo.pk)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Silo')
 
@@ -1392,10 +1387,10 @@ class SiloEditViewTest(TestCase):
     @patch('silo.forms.get_by_url')
     def test_silo_edit_page_with_shared_organizaton_user(self, mock_get_by_url,
                                                    mock_get_workflowteams):
+
         request_user = factories.User(username='Another User')
-        request_tola_user = factories.TolaUser(
-            user=request_user,
-            organization=self.tola_user.organization)
+        factories.TolaUser(user=request_user,
+                           organization=self.tola_user.organization)
 
         read = factories.Read(read_name="test_data",
                               owner=self.tola_user.user)
@@ -1409,7 +1404,7 @@ class SiloEditViewTest(TestCase):
 
         request = self.factory.get('')
         request.user = request_user
-        response = views.editSilo(request, silo.pk)
+        response = views.edit_silo(request, silo.pk)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Silo')
 
@@ -1434,6 +1429,6 @@ class SiloEditViewTest(TestCase):
 
         request = self.factory.get('')
         request.user = request_user
-        response = views.editSilo(request, silo.pk)
+        response = views.edit_silo(request, silo.pk)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Silo')

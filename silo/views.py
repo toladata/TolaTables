@@ -430,7 +430,7 @@ def appendTwoSilos(mapping_data, lsid, rsid, msid):
 # Edit existing silo meta data
 @csrf_protect
 @login_required
-def editSilo(request, id):
+def edit_silo(request, id):
     """
     Edit the meta data and description for each Table (silo)
     :param request:
@@ -456,7 +456,6 @@ def editSilo(request, id):
                 and request_user_org == owner_user_org)):
         return render(request, '404.html', status=404)
 
-    edited_silo = Silo.objects.get(pk=id)
     if request.method == 'POST':  # If the form has been submitted...
         tags = request.POST.getlist('tags')
         post_data = request.POST.copy()
