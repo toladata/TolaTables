@@ -1308,3 +1308,132 @@ class SiloListViewTest(TestCase):
         response = views.list_silos(request)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Silo')
+
+
+class SiloEditViewTest(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.user = factories.User()
+        self.tola_user = factories.TolaUser(user=self.user)
+
+    @patch('silo.forms.get_workflowteams')
+    @patch('silo.forms.get_by_url')
+    def test_silo_edit_page_with_unauthorized_user(self, mock_get_by_url,
+                                                   mock_get_workflowteams):
+        request_user = factories.User(username='Another User')
+        organization = factories.Organization(name='Another Organization')
+        request_tola_user = factories.TolaUser(user=request_user,
+                                               organization=organization)
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[],
+                              share_with_organization=False)
+
+        url = reverse('editSilo', args=[silo.pk])
+
+        request = self.factory.get(url)
+        request.user = request_user
+        response = views.editSilo(request, silo.pk)
+        self.assertEqual(response.status_code, 404)
+
+    @patch('silo.forms.get_workflowteams')
+    @patch('silo.forms.get_by_url')
+    def test_silo_edit_page_with_owner(self, mock_get_by_url,
+                                                   mock_get_workflowteams):
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[],
+                              share_with_organization=False)
+
+        url = reverse('editSilo', args=[silo.pk])
+
+        request = self.factory.get(url)
+        request.user = self.tola_user.user
+        response = views.editSilo(request, silo.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test Share Silo')
+
+    @patch('silo.forms.get_workflowteams')
+    @patch('silo.forms.get_by_url')
+    def test_silo_edit_page_with_shared_user(self, mock_get_by_url,
+                                                   mock_get_workflowteams):
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user)
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[request_user],
+                              share_with_organization=False)
+
+        request = self.factory.get('')
+        request.user = request_user
+        response = views.editSilo(request, silo.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test Share Silo')
+
+    @patch('silo.forms.get_workflowteams')
+    @patch('silo.forms.get_by_url')
+    def test_silo_edit_page_with_shared_organizaton_user(self, mock_get_by_url,
+                                                   mock_get_workflowteams):
+        request_user = factories.User(username='Another User')
+        request_tola_user = factories.TolaUser(
+            user=request_user,
+            organization=self.tola_user.organization)
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[],
+                              share_with_organization=True)
+
+        request = self.factory.get('')
+        request.user = request_user
+        response = views.editSilo(request, silo.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test Share Silo')
+
+    @patch('silo.forms.get_workflowteams')
+    @patch('silo.forms.get_by_url')
+    def test_public_silo_edit_page(self, mock_get_by_url,
+                                                   mock_get_workflowteams):
+
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user,
+                           organization=self.tola_user.organization)
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=True,
+                              shared=[],
+                              share_with_organization=False)
+
+        request = self.factory.get('')
+        request.user = request_user
+        response = views.editSilo(request, silo.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test Share Silo')
