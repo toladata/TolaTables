@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from django.test import TestCase, override_settings, Client, RequestFactory
 from django.urls import reverse
 
@@ -310,6 +311,33 @@ class SiloViewsTest(TestCase, MongoTestCase):
         column_names = util.getSiloColumnNames(silo.id)
 
         self.assertTrue('given_name' in column_names)
+        self.assertEqual(len(column_names), 1)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/silo_detail/'+str(silo.id)+'/')
+
+    def test_silo_edit_columns_utf8(self):
+        self.tola_user.user.is_staff = True
+        self.tola_user.user.is_superuser = True
+        self.tola_user.user.save()
+
+        columns = [{'name': 'name', 'type': 'text'}]
+        read = factories.Read(read_name='Read Test', owner=self.tola_user.user)
+        silo = factories.Silo(owner=self.tola_user.user,
+                              columns=json.dumps(columns), reads=[read])
+
+        data = {
+            'id': '',
+            'silo_id': silo.id,
+            'name': u'ürlaub',
+        }
+        request = self.factory.post('', data=data)
+        request.user = self.tola_user.user
+        self._bugfix_django_messages(request)
+        response = views.edit_columns(request, silo.id)
+
+        column_names = util.getSiloColumnNames(silo.id)
+
+        self.assertTrue(u'ürlaub' in column_names)
         self.assertEqual(len(column_names), 1)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, '/silo_detail/'+str(silo.id)+'/')
@@ -863,8 +891,8 @@ class OneDriveViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'read/read.html')
         self.assertNotContains(response, '<input type="hidden" '
-                                      'name="onedrive_file" '
-                                      'id="id_onedrive_file" />')
+                                         'name="onedrive_file" '
+                                         'id="id_onedrive_file" />')
 
 
 class OneDriveReadTest(TestCase):
@@ -887,7 +915,7 @@ class OneDriveReadTest(TestCase):
             'read_name': 'TEST READ ONEDRIVE',
             'description': 'TEST DESCRIPTION for test read source',
             'onedrive_file': 'TEST10000100',
-            'onedrive_access_token':'TEST_DUMMY_TOKEN',
+            'onedrive_access_token': 'TEST_DUMMY_TOKEN',
             'create_date': '2018-01-26 12:33:00',
         }
         request = self.factory.post(self.new_read_url, data=params)
@@ -901,7 +929,7 @@ class OneDriveReadTest(TestCase):
         # check for social auth updated
 
         social_auth = UserSocialAuth.objects.get(user=self.tola_user.user,
-                                      provider='microsoft-graph')
+                                                 provider='microsoft-graph')
         self.assertEqual(social_auth.extra_data['access_token'],
                          'TEST_DUMMY_TOKEN')
 
@@ -922,7 +950,7 @@ class OneDriveReadTest(TestCase):
             'onedrive_access_token':'TEST_DUMMY_TOKEN_CHANGED',
             'create_date': '2018-01-26 12:33:00',
         }
-        request = self.factory.post(self.new_read_url, data = params)
+        request = self.factory.post(self.new_read_url, data=params)
         request.user = self.tola_user.user
 
         response = views.showRead(request, 0)
@@ -933,7 +961,7 @@ class OneDriveReadTest(TestCase):
         # check for social auth updated
 
         social_auth = UserSocialAuth.objects.get(user=self.tola_user.user,
-                                      provider='microsoft-graph')
+                                                 provider='microsoft-graph')
         self.assertEqual(social_auth.extra_data['access_token'],
                          'TEST_DUMMY_TOKEN_CHANGED')
 
@@ -969,7 +997,7 @@ class OneDriveReadTest(TestCase):
             'type': read_type.pk,
             'read_name': 'TEST READ ONEDRIVE',
             'description': 'TEST DESCRIPTION for test read source',
-            'onedrive_access_token':'TEST_DUMMY_TOKEN',
+            'onedrive_access_token': 'TEST_DUMMY_TOKEN',
             'create_date': '2018-01-26 12:33:00',
         }
         request = self.factory.post(self.new_read_url, data=params)
