@@ -1,8 +1,6 @@
-from django.contrib.auth.models import AnonymousUser
-from django.core.exceptions import ImproperlyConfigured
+# -*- coding: utf-8 -*-
 from django.test import TestCase, override_settings, Client, RequestFactory
 from django.urls import reverse
-from django.contrib import messages
 
 from rest_framework.test import APIRequestFactory
 
@@ -224,11 +222,9 @@ class SiloViewsTest(TestCase, MongoTestCase):
     @patch('silo.forms.get_by_url')
     def test_get_edit_silo(self, mock_get_by_url, mock_get_workflowteams):
         silo = factories.Silo(owner=self.tola_user.user)
-        uuid = random.randint(1, 9999)
-        wfl1_1 = factories.WorkflowLevel1(level1_uuid=uuid,
+        wfl1_1 = factories.WorkflowLevel1(level1_uuid=random.randint(1, 9999),
                                           name='Workflowlevel1 1')
-        uuid = random.randint(1, 9999)
-        wfl1_2 = factories.WorkflowLevel1(level1_uuid=uuid,
+        wfl1_2 = factories.WorkflowLevel1(level1_uuid=random.randint(1, 9999),
                                           name='Workflowlevel1 2')
         wfteams = [
             {
@@ -319,6 +315,33 @@ class SiloViewsTest(TestCase, MongoTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, '/silo_detail/'+str(silo.id)+'/')
 
+    def test_silo_edit_columns_utf8(self):
+        self.tola_user.user.is_staff = True
+        self.tola_user.user.is_superuser = True
+        self.tola_user.user.save()
+
+        columns = [{'name': 'name', 'type': 'text'}]
+        read = factories.Read(read_name='Read Test', owner=self.tola_user.user)
+        silo = factories.Silo(owner=self.tola_user.user,
+                              columns=json.dumps(columns), reads=[read])
+
+        data = {
+            'id': '',
+            'silo_id': silo.id,
+            'name': u'ürlaub',
+        }
+        request = self.factory.post('', data=data)
+        request.user = self.tola_user.user
+        self._bugfix_django_messages(request)
+        response = views.edit_columns(request, silo.id)
+
+        column_names = util.getSiloColumnNames(silo.id)
+
+        self.assertTrue(u'ürlaub' in column_names)
+        self.assertEqual(len(column_names), 1)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/silo_detail/'+str(silo.id)+'/')
+
     def test_silo_edit_columns_keep_data(self):
         self.tola_user.user.is_staff = True
         self.tola_user.user.is_superuser = True
@@ -386,7 +409,6 @@ class SiloViewsTest(TestCase, MongoTestCase):
 
         self.assertTrue(json_data[0]['farbe'] in ['black', 'white', 'red'])
         self.assertEqual(json_data[0]['art'], 'primary')
-
 
     @patch('silo.views.db')
     def test_silo_edit_columns_delete(self, mock_db):
@@ -869,13 +891,14 @@ class OneDriveViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'read/read.html')
         self.assertNotContains(response, '<input type="hidden" '
-                                      'name="onedrive_file" '
-                                      'id="id_onedrive_file" />')
+                                         'name="onedrive_file" '
+                                         'id="id_onedrive_file" />')
 
 
 class OneDriveReadTest(TestCase):
     new_read_url = '/source/new/'
-    # Is the UserSocialAuth extra data obj updated when there is already one? I saw a test when there is no UserSocialAuth.
+    # Is the UserSocialAuth extra data obj updated when there is already
+    # one? I saw a test when there is no UserSocialAuth.
 
     def setUp(self):
         self.client = Client()
@@ -892,7 +915,7 @@ class OneDriveReadTest(TestCase):
             'read_name': 'TEST READ ONEDRIVE',
             'description': 'TEST DESCRIPTION for test read source',
             'onedrive_file': 'TEST10000100',
-            'onedrive_access_token':'TEST_DUMMY_TOKEN',
+            'onedrive_access_token': 'TEST_DUMMY_TOKEN',
             'create_date': '2018-01-26 12:33:00',
         }
         request = self.factory.post(self.new_read_url, data=params)
@@ -906,7 +929,7 @@ class OneDriveReadTest(TestCase):
         # check for social auth updated
 
         social_auth = UserSocialAuth.objects.get(user=self.tola_user.user,
-                                      provider='microsoft-graph')
+                                                 provider='microsoft-graph')
         self.assertEqual(social_auth.extra_data['access_token'],
                          'TEST_DUMMY_TOKEN')
 
@@ -927,7 +950,7 @@ class OneDriveReadTest(TestCase):
             'onedrive_access_token':'TEST_DUMMY_TOKEN_CHANGED',
             'create_date': '2018-01-26 12:33:00',
         }
-        request = self.factory.post(self.new_read_url, data = params)
+        request = self.factory.post(self.new_read_url, data=params)
         request.user = self.tola_user.user
 
         response = views.showRead(request, 0)
@@ -938,7 +961,7 @@ class OneDriveReadTest(TestCase):
         # check for social auth updated
 
         social_auth = UserSocialAuth.objects.get(user=self.tola_user.user,
-                                      provider='microsoft-graph')
+                                                 provider='microsoft-graph')
         self.assertEqual(social_auth.extra_data['access_token'],
                          'TEST_DUMMY_TOKEN_CHANGED')
 
@@ -958,7 +981,7 @@ class OneDriveReadTest(TestCase):
         request.session = 'session'
         message_storage = FallbackStorage(request)
         request._messages = message_storage
-        response = views.showRead(request, 0)
+        views.showRead(request, 0)
 
         messages = []
         for m in message_storage:
@@ -974,7 +997,7 @@ class OneDriveReadTest(TestCase):
             'type': read_type.pk,
             'read_name': 'TEST READ ONEDRIVE',
             'description': 'TEST DESCRIPTION for test read source',
-            'onedrive_access_token':'TEST_DUMMY_TOKEN',
+            'onedrive_access_token': 'TEST_DUMMY_TOKEN',
             'create_date': '2018-01-26 12:33:00',
         }
         request = self.factory.post(self.new_read_url, data=params)
@@ -1031,7 +1054,8 @@ class SiloDetailViewTest(TestCase):
         for m in message_storage:
             messages.append(m.message)
 
-        self.assertIn('You do not have permission to view this table.', messages)
+        self.assertIn('You do not have permission to view this table.',
+                      messages)
 
     def test_pulic_silo_detail_with_unshared_user(self):
         read = factories.Read(read_name="test_data",

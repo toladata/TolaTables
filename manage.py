@@ -3,6 +3,8 @@ import os
 import sys
 
 if __name__ == "__main__":
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
 
     if 'test' in sys.argv:
         settings = 'tola.settings.test'
