@@ -15,7 +15,7 @@ from silo.forms import get_read_form
 from silo.models import (DeletedSilos, LabelValueStore, ReadType, Read, Silo,
                          CeleryTask)
 from silo.views import (addColumnFilter, editColumnOrder, newFormulaColumn,
-                        showRead, editSilo, uploadFile, silo_detail)
+                        showRead, edit_silo, uploadFile, silo_detail)
 from tola.util import (addColsToSilo, hideSiloColumns, getColToTypeDict,
                        getSiloColumnNames, cleanKey)
 
@@ -310,7 +310,7 @@ class SiloTest(TestCase):
         # Fetch the silo that just got created above
         request = self.factory.get(self.silo_edit_url)
         request.user = self.tola_user.user
-        response = editSilo(request, silo.pk)
+        response = edit_silo(request, silo.pk)
         self.assertEqual(response.status_code, 200)
 
         # update the silo that just got created above
@@ -322,7 +322,7 @@ class SiloTest(TestCase):
         request = self.factory.post(self.silo_edit_url, data = params)
         request.user = self.tola_user.user
         request._dont_enforce_csrf_checks = True
-        response = editSilo(request, silo.pk)
+        response = edit_silo(request, silo.pk)
         if response.status_code == 302:
             self.assertEqual(response.url, "/silos/")
         else:

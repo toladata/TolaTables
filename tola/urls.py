@@ -56,7 +56,7 @@ urlpatterns =[
 
     url(r'^silos', views.list_silos, name='list_silos'),
     url(r'^silo_detail/(?P<silo_id>\w+)/$', views.silo_detail, name='silo_detail'),
-    url(r'^silo_edit/(?P<id>\w+)/$', views.editSilo, name='editSilo'),
+    url(r'^silo_edit/(?P<id>\w+)/$', views.edit_silo, name='edit_silo'),
     url(r'^silo_delete/(?P<id>\w+)/$', views.deleteSilo, name='deleteSilo'),
     url(r'^add_unique_fields', views.addUniqueFiledsToSilo, name='add_unique_fields_to_silo'),
     url(r'^anonymize_silo/(?P<id>\w+)/$', views.anonymizeTable, name='anonymize_table'),
