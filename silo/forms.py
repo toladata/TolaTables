@@ -1,8 +1,10 @@
 from django.core.urlresolvers import reverse_lazy
 from silo.models import Silo, Read
 from django import forms
+from django.contrib.auth.models import User
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Reset, Field, Hidden
+from django.core.exceptions import ValidationError
 from collections import OrderedDict
 
 from silo.models import Silo, WorkflowLevel1
@@ -30,6 +32,7 @@ class SiloForm(forms.ModelForm):
         super(SiloForm, self).__init__(*args, **kwargs)
         # Filter programs based on the program teams from Activity
         if user:
+            self.fields['shared'].queryset = User.objects.exclude(pk=user.pk)
             params = {
                 'workflow_user__tola_user_uuid': user.tola_user.tola_user_uuid
             }
@@ -56,6 +59,14 @@ class SiloForm(forms.ModelForm):
         model = Silo
         fields = ['id', 'name', 'description', 'tags', 'shared',
                   'share_with_organization', 'owner', 'workflowlevel1']
+
+    def clean_shared(self):
+        data = self.cleaned_data['shared']
+        owner = self.data.get('owner')
+        if owner:
+            if data.filter(pk=owner).exists():
+                raise ValidationError('You can not share table with owner.')
+        return data
 
 
 class NewColumnForm(forms.Form):

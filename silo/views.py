@@ -945,18 +945,18 @@ def list_silos(request):
     """
     user = User.objects.get(username__exact=request.user)
 
-    #get all of the silos
+    # get all of the silos
     own_silos = Silo.objects.filter(owner=user).prefetch_related('reads')
 
     shared_silos = Silo.objects.filter(Q(shared__id=user.pk) |
                                        Q(share_with_organization=True,
                                          owner__tola_user__organization=\
-                                         user.tola_user.organization)
-                                       ).prefetch_related("reads")
+                                         user.tola_user.organization))\
+        .exclude(owner=user).prefetch_related("reads")
 
-    public_silos = Silo.objects.filter(Q(public=True)
-                                       & ~Q(owner=user)).\
-                                prefetch_related("reads")
+    public_silos = Silo.objects.filter(
+        Q(public=True) & ~Q(owner=user)).prefetch_related("reads")
+
     return render(request,
                   'display/silos.html',
                   {

@@ -1334,6 +1334,43 @@ class SiloListViewTest(TestCase):
         self.assertContains(response, 'Test Share Silo')
 
 
+    def test_list_silos_share_with_owner(self):
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[self.tola_user.user],
+                              share_with_organization=False)
+
+        request = self.factory.get('')
+        request.user = self.tola_user.user
+        response = views.list_silos(request)
+        match = '<a href="/silo_edit/%s">Test Share Silo</a>' % silo.pk
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.count(match), 1)
+
+    def test_list_silos_share_with_owner_organization(self):
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[],
+                              share_with_organization=True)
+
+        request = self.factory.get('')
+        request.user = self.tola_user.user
+        response = views.list_silos(request)
+        match = '<a href="/silo_edit/%s">Test Share Silo</a>' % silo.pk
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.count(match), 1)
+
+
 class SiloEditViewTest(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
@@ -1456,3 +1493,88 @@ class SiloEditViewTest(TestCase):
         response = views.edit_silo(request, silo.pk)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Silo')
+
+    @patch('silo.forms.get_workflowteams')
+    @patch('silo.forms.get_by_url')
+    def test_share_silo_with_owner_failed_for_owner(self, mock_get_by_url,
+                                                   mock_get_workflowteams):
+        silo = factories.Silo(owner=self.tola_user.user)
+
+        data = {
+            'name': 'The new silo name 2',
+            'description': '',
+            'owner': self.tola_user.user.pk,
+            'shared': self.tola_user.user.pk
+        }
+
+        request = self.factory.post('/silo_edit/{}/'.format(silo.id), data)
+        request.user = self.tola_user.user
+        request._dont_enforce_csrf_checks = True
+        request.session = 'session'
+        message_storage = FallbackStorage(request)
+        request._messages = message_storage
+        views.edit_silo(request, silo.pk)
+
+        messages = []
+        for m in message_storage:
+            messages.append(m.message)
+
+        self.assertIn('Invalid Form', messages)
+
+    @patch('silo.forms.get_workflowteams')
+    @patch('silo.forms.get_by_url')
+    def test_share_silo_with_owner_failed_for_user(self, mock_get_by_url,
+                                                   mock_get_workflowteams):
+
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user)
+
+        silo = factories.Silo(owner=self.tola_user.user,
+                              shared=[request_user])
+
+        data = {
+            'name': 'The new silo name 2',
+            'description': '',
+            'owner': self.tola_user.user.pk,
+            'shared': self.tola_user.user.pk,
+        }
+
+        request = self.factory.post('/silo_edit/{}/'.format(silo.id), data)
+        request.user = request_user
+        request._dont_enforce_csrf_checks = True
+        request.session = 'session'
+        message_storage = FallbackStorage(request)
+        request._messages = message_storage
+        views.edit_silo(request, silo.pk)
+
+        messages = []
+        for m in message_storage:
+            messages.append(m.message)
+
+        self.assertIn('Invalid Form', messages)
+
+    @patch('silo.forms.get_workflowteams')
+    @patch('silo.forms.get_by_url')
+    def test_share_silo_without_owner_failed_for_user(self, mock_get_by_url,
+                                                   mock_get_workflowteams):
+        silo = factories.Silo(owner=self.tola_user.user)
+
+        data = {
+            'name': 'The new silo name 2',
+            'description': '',
+            'shared': self.tola_user.user.pk
+        }
+
+        request = self.factory.post('/silo_edit/{}/'.format(silo.id), data)
+        request.user = self.tola_user.user
+        request._dont_enforce_csrf_checks = True
+        request.session = 'session'
+        message_storage = FallbackStorage(request)
+        request._messages = message_storage
+        views.edit_silo(request, silo.pk)
+
+        messages = []
+        for m in message_storage:
+            messages.append(m.message)
+
+        self.assertIn('Invalid Form', messages)
