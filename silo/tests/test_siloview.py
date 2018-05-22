@@ -112,8 +112,8 @@ class SiloDataViewTest(TestCase):
         response = view(request, id=self.silo.id)
         self.assertEqual(response.status_code, 200)
         json_content = json.loads(response.content)
-        self.assertEqual(json_content['recordsTotal'], 24)
-        self.assertEqual(json_content['recordsFiltered'], 24)
+        self.assertEqual(json_content['recordsTotal'], 20)
+        self.assertEqual(json_content['recordsFiltered'], 20)
 
     def test_data_silo_empty_table(self):
         read = factories.Read(read_name="test_empty", owner=self.tola_user.user)
