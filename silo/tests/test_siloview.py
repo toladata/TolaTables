@@ -99,13 +99,11 @@ class SiloDataViewTest(TestCase):
                                    owner=self.tola_user.user)
         self.silo = factories.Silo(owner=self.tola_user.user,
                                    reads=[self.read])
-        self._import_json(self.silo, self.read)
-
-    def tearDown(self):
         # Have to remove the created lvs
         lvss = LabelValueStore.objects.filter(silo_id=self.silo.id)
         for lvs in lvss:
             lvs.delete()
+        self._import_json(self.silo, self.read)
 
     def test_data_silo(self):
         request = self.factory.get('/api/silo/{}/data'.format(self.silo.id))

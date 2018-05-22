@@ -28,6 +28,7 @@ from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from django.views.generic import View
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 from gviews_v4 import import_from_gsheet_helper
 from silo.custom_csv_dict_reader import CustomDictReader
@@ -54,7 +55,7 @@ db = client.get_default_database()
 ROLE_VIEW_ONLY = 'ViewOnly'
 
 
-class IndexView(View):
+class IndexView(LoginRequiredMixin, View):
     template_name = 'index.html'
 
     def _get_context_data(self, request):
@@ -84,30 +85,13 @@ class IndexView(View):
         return context
 
     def get(self, request, *args, **kwargs):
-        if request.user.is_authenticated:
-            context = self._get_context_data(request)
-            response = render(request, self.template_name, context)
-            if (request.COOKIES.get('auth_token', None) is None and
-                    request.user.is_authenticated):
-                response.set_cookie('auth_token', request.user.auth_token)
-            # if logged in redirect user to there list of tables
-            return redirect('/silos')
-        else:
-            # If users are accessing Track from Activity but they're not
-            # logged in, redirect them to the login process
-            if settings.TOLA_ACTIVITY_API_URL and settings.ACTIVITY_URL:
-                referer = request.META.get('HTTP_REFERER', '')
-                if settings.TOLA_ACTIVITY_API_URL in referer or \
-                        settings.ACTIVITY_URL in referer:
-                    return redirect('/login/tola')
-                else:
-                    return HttpResponseRedirect(settings.TABLES_LOGIN_URL)
-            else:
-                raise ImproperlyConfigured(
-                    "TOLA_ACTIVITY_API_URL and/or ACTIVITY_URL variable(s)"
-                    " not set. Please, set a value so the user can log in. If "
-                    "you are in a Dev environment, go to /login/ in order to "
-                    "sign in.")
+        context = self._get_context_data(request)
+        response = render(request, self.template_name, context)
+        if (request.COOKIES.get('auth_token', None) is None and
+                request.user.is_authenticated):
+            response.set_cookie('auth_token', request.user.auth_token)
+        # if logged in redirect user to there list of tables
+        return redirect('/silos')
 
 
 def tablesLogin(request):
@@ -552,7 +536,7 @@ def saveAndImportRead(request):
 
     # import data into this silo
     save_data_to_silo(silo, data, read, request.user)
-    silo_detail_url = reverse_lazy('siloDetail', args=[silo.pk])
+    silo_detail_url = reverse_lazy('silo_detail', args=[silo.pk])
     return HttpResponse(silo_detail_url)
 
 
@@ -993,30 +977,36 @@ def updateEntireColumn(request):
             )
         messages.success(request, "Successfully, changed the %s column value to %s" % (colname, new_val))
 
-    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': silo_id}))
+    return HttpResponseRedirect(reverse_lazy('silo_detail', kwargs={'silo_id': silo_id}))
 
 
 @login_required
-def siloDetail(request, silo_id):
+def silo_detail(request, silo_id):
     """
     Silo Detail
     """
 
     silo = Silo.objects.get(pk=silo_id)
     cols = []
-    # col_types = getColToTypeDict(silo)
-    data = []
     query = makeQueryForHiddenRow(json.loads(silo.rows_to_hide))
 
     """
-    Note:    There is a chance a service gets stuck in "tasks_running" if a service worker terminates unexpectedly and the task id
+    Note:    There is a chance a service gets stuck in "tasks_running" if a
+    service worker terminates unexpectedly and the task id
     could not be removed from the task.
     """
 
-    tasks_running = Read.objects.filter(silos=silo.id, tasks__task_status__in=[CeleryTask.TASK_CREATED, CeleryTask.TASK_IN_PROGRESS]).count()
-    tasks_failed = Read.objects.filter(silos=silo.id, tasks__task_status=CeleryTask.TASK_FAILED).count()
+    tasks_running = Read.objects.filter(
+        silos=silo.id,
+        tasks__task_status__in=[CeleryTask.TASK_CREATED,
+                                CeleryTask.TASK_IN_PROGRESS]).count()
 
-    silo_read_ids = Read.objects.filter(silos=silo.id).values_list('id', flat=True)
+    tasks_failed = Read.objects.filter(
+        silos=silo.id,
+        tasks__task_status=CeleryTask.TASK_FAILED).count()
+
+    silo_read_ids = Read.objects.filter(silos=silo.id).values_list('id',
+                                                                   flat=True)
 
     celery_tasks = CeleryTask.objects.filter(
         object_id__in=silo_read_ids,
@@ -1028,11 +1018,14 @@ def siloDetail(request, silo_id):
         celery_tasks
     )
 
-    if silo.owner == request.user or silo.public == True or request.user in silo.shared.all():
+    if silo.owner == request.user or silo.public \
+            or request.user in silo.shared.all():
         cols.append('_id')
+        cols.append('id')
         cols.extend(getSiloColumnNames(silo_id))
     else:
-        messages.warning(request,"You do not have permission to view this table.")
+        messages.warning(request,
+                         "You do not have permission to view this table.")
     return render(
         request,
         "display/silo.html",
@@ -1131,7 +1124,7 @@ def updateSiloData(request, pk):
             #delete legacy objects
             lvss = LabelValueStore.objects(silo_id=silo.pk,__raw__={ "$or" : [{"read_id" : {"$not" : { "$exists" : "true" }}}, {"read_id" : {"$in" : [-1,""]} } ]})
 
-    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
+    return HttpResponseRedirect(reverse_lazy('silo_detail', kwargs={'silo_id': pk},))
 
 
 #return tuple: (list of list of dictionaries[[{}]] data, 0=falure 1=success 2=N/A, messages)
@@ -1315,7 +1308,7 @@ def edit_columns(request, id):
                 deleteSiloColumns(silo, to_delete)
             messages.info(request, 'Updates Saved', fail_silently=False)
             return HttpResponseRedirect(reverse_lazy(
-                'siloDetail', kwargs={'silo_id': silo.id}))
+                'silo_detail', kwargs={'silo_id': silo.id}))
         else:
             messages.error(request,
                            'ERROR: There was a problem with your request',
@@ -1426,7 +1419,7 @@ def do_merge(request):
                                       merge_type=merge_type)
     mapping.save()
     return HttpResponseRedirect(
-        reverse_lazy('siloDetail', kwargs={'silo_id': merge_table_id}))
+        reverse_lazy('silo_detail', kwargs={'silo_id': merge_table_id}))
 
 
 # EDIT A SINGLE VALUE STORE
@@ -1586,7 +1579,7 @@ def anonymizeTable(request, id):
     else:
         messages.info(request, "No PIIF columns were found.")
 
-    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': id}))
+    return HttpResponseRedirect(reverse_lazy('silo_detail', kwargs={'silo_id': id}))
 
 
 @login_required
@@ -1631,7 +1624,7 @@ def removeSource(request, silo_id, read_id):
     except Read.DoesNotExist as e:
         messages.error(request,"Datasource with id=%s does not exist." % read_id)
 
-    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': silo_id},))
+    return HttpResponseRedirect(reverse_lazy('silo_detail', kwargs={'silo_id': silo_id},))
 
 
 @login_required
@@ -1662,7 +1655,7 @@ def newFormulaColumn(request, pk):
         addColsToSilo(silo,[column_name], {column_name : 'float'})
         silo.save()
 
-        return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
+        return HttpResponseRedirect(reverse_lazy('silo_detail', kwargs={'silo_id': pk},))
 
     silo = Silo.objects.get(pk=pk)
     cols = getSiloColumnNames(pk)
@@ -1691,7 +1684,7 @@ def editColumnOrder(request, pk):
             return HttpResponseRedirect(reverse_lazy('listSilos'))
 
 
-        return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
+        return HttpResponseRedirect(reverse_lazy('silo_detail', kwargs={'silo_id': pk},))
 
     silo = Silo.objects.get(pk=pk)
     cols = getSiloColumnNames(pk)
@@ -1709,7 +1702,7 @@ def addColumnFilter(request, pk):
         silo.rows_to_hide = hide_rows
 
         silo.save()
-        return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
+        return HttpResponseRedirect(reverse_lazy('silo_detail', kwargs={'silo_id': pk},))
 
 
     silo = Silo.objects.get(pk=pk)
@@ -1768,7 +1761,7 @@ def setColumnType(request, pk):
     #should only deal with post request since this will operate with a modal
     if request.method != 'POST':
         messages.error(request, '%s request is invalid' % request.method)
-        return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk}))
+        return HttpResponseRedirect(reverse_lazy('silo_detail', kwargs={'silo_id': pk}))
 
     silo = Silo.objects.get(pk=pk)
     column = request.POST.get('column_for_type')
@@ -1777,4 +1770,4 @@ def setColumnType(request, pk):
     msg = setSiloColumnType(int(pk), column, col_type)
     messages.add_message(request, msg[0], msg[1])
 
-    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': pk},))
+    return HttpResponseRedirect(reverse_lazy('silo_detail', kwargs={'silo_id': pk},))

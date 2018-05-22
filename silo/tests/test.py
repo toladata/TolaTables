@@ -15,7 +15,7 @@ from silo.forms import get_read_form
 from silo.models import (DeletedSilos, LabelValueStore, ReadType, Read, Silo,
                          CeleryTask)
 from silo.views import (addColumnFilter, editColumnOrder, newFormulaColumn,
-                        showRead, editSilo, uploadFile, siloDetail)
+                        showRead, editSilo, uploadFile, silo_detail)
 from tola.util import (addColsToSilo, hideSiloColumns, getColToTypeDict,
                        getSiloColumnNames, cleanKey)
 
@@ -173,7 +173,7 @@ class SiloDetailTest(TestCase):
         request = self.factory.get(self.silo_detail_url)
         request.user = self.user
 
-        response = siloDetail(request, silo.pk)
+        response = silo_detail(request, silo.pk)
         self.assertContains(
             response,
             '<a href="/show_read/{}" target="_blank">{}</a>'.format(
@@ -201,7 +201,7 @@ class SiloDetailTest(TestCase):
         request = self.factory.get(self.silo_detail_url)
         request.user = self.user
 
-        response = siloDetail(request, silo.pk)
+        response = silo_detail(request, silo.pk)
         self.assertContains(
             response,
             '<a href="/show_read/{}" target="_blank">{}</a>'.format(
@@ -230,7 +230,7 @@ class SiloDetailTest(TestCase):
         request = self.factory.get(self.silo_detail_url)
         request.user = self.user
 
-        response = siloDetail(request, silo.pk)
+        response = silo_detail(request, silo.pk)
         self.assertContains(
             response,
             '<a href="/show_read/{}" target="_blank">{}</a>'.format(
@@ -353,7 +353,7 @@ class SiloTest(TestCase):
         request = self.factory.get(self.silo_detail_url)
         request.user = self.tola_user.user
 
-        response = siloDetail(request, silo.pk)
+        response = silo_detail(request, silo.pk)
         self.assertEqual(response.status_code, 200)
 
         # now delete that silo data cause this uses the custom database
