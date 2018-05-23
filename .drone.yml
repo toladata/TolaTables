@@ -1,7 +1,7 @@
 ---
 pipeline:
   mongo-setup:
-    image: mongo:3.0
+    image: mongo:3.4.10
     commands:
       - sleep 15
       - 'mongo --host mongo --eval "db.getSiblingDB(''test'').createUser({user:''test'', pwd:''test'', roles:[{role:''dbOwner'', db:''test''}]});"'

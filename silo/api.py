@@ -377,13 +377,14 @@ class ReadViewSet(viewsets.ModelViewSet):
     This viewset automatically provides `list` and `retrieve`, actions.
     """
     serializer_class = ReadSerializer
-    permission_classes = (IsAuthenticated, Read_IsOwnerViewOrWrite,)
+    permission_classes = (IsAuthenticated, ReadIsOwnerViewOrWrite)
 
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
             return Read.objects.all()
-        return Read.objects.filter(Q(owner=user) | Q(silos__public=True) | Q(silos__shared=self.request.user))
+        return Read.objects.filter(Q(owner=user) | Q(silos__public=True) |
+                                   Q(silos__shared=self.request.user))
 
 
 class ReadTypeViewSet(viewsets.ModelViewSet):

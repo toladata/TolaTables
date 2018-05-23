@@ -1,0 +1,28 @@
+version: "2.1"
+
+services:
+  tables:
+    volumes:
+      - .:/code
+      - static-content:/static
+    expose:
+      - "8080"
+    environment:
+      - TOLA_HOSTNAME=localhost,127.0.0.1,tables
+      - CORS_ORIGIN_WHITELIST=
+      - DJANGO_SETTINGS_MODULE=tola.settings.local
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/code
+      - ./docker/etc/nginx-dev:/etc/nginx/conf.d
+      - static-content:/static
+    depends_on:
+      - tables
+
+volumes:
+  static-content:

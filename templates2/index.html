@@ -75,7 +75,7 @@
                   {% for silo in silos_user %}
                   <tr>
                       <td>{{ silo.tag_list }}</td>
-                      <td><a href="{% url 'siloDetail' silo.id %}">{{ silo.name }}</a></td>
+                      <td><a href="{% url 'silo_detail' silo.id %}">{{ silo.name }}</a></td>
                       <td>{{ silo.description }}</td>
                       <td>{{ silo.public }}</td>
                       <td>{{ silo.created }}</td>
@@ -84,7 +84,7 @@
                   {% for silo in silos_public %}
                   <tr>
                       <td>{{ silo.tag_list }}</td>
-                      <td><a href="{% url 'siloDetail' silo.id %}">{{ silo.name }}</a></td>
+                      <td><a href="{% url 'silo_detail' silo.id %}">{{ silo.name }}</a></td>
                       <td>{{ silo.description }}</td>
                       <td>{{ silo.public }}</td>
                       <td>{{ silo.created }}</td>

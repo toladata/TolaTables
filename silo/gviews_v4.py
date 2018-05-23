@@ -311,7 +311,7 @@ def import_from_gsheet(request, id):
             return HttpResponseRedirect(msg.get("redirect"))
         messages.add_message(request, msg.get("level", "warning"), msg.get("msg", None))
 
-    return HttpResponseRedirect(reverse_lazy('siloDetail', kwargs={'silo_id': str(id)},))
+    return HttpResponseRedirect(reverse_lazy('silo_detail', kwargs={'silo_id': str(id)},))
 
 
 def export_to_gsheet_helper(user, spreadsheet_id, silo_id, query, headers):

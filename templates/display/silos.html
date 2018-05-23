@@ -27,7 +27,7 @@
                                     {% if silo.tags.all %}<span><small>tags: {% for tag in silo.tags.all %} <a name="tag" class="tag"> {{ tag }}</a>{% endfor %}</small></span>{%endif%}</td>
                                 <td class="tableSourcesCol">
                                     {% if silo.merged_silo_mappings %}
-                                        <span><small>Merged Tables: <a href="{% url 'siloDetail' silo.merged_silo_mappings.from_silo.pk %}">{{silo.merged_silo_mappings.from_silo}}</a> and <a href="{% url 'siloDetail' silo.merged_silo_mappings.to_silo.pk %}">{{silo.merged_silo_mappings.to_silo}}</a></small</span>
+                                        <span><small>Merged Tables: <a href="{% url 'silo_detail' silo.merged_silo_mappings.from_silo.pk %}">{{silo.merged_silo_mappings.from_silo}}</a> and <a href="{% url 'silo_detail' silo.merged_silo_mappings.to_silo.pk %}">{{silo.merged_silo_mappings.to_silo}}</a></small</span>
                                     {% else %}
                                         {% for r in silo.reads.all %}
                                             <a href="/show_read/{{ r.id }}" ><small> {{ r.read_name }} ({{r.type.read_type}})</small></a> <br />
@@ -90,7 +90,7 @@
                                 <td><small>{{ silo.description|default:"" }}</small></td>
                                 <td>
                                     {% if silo.merged_silo_mappings %}
-                                        <span><small>Merged Tables: <a href="{% url 'siloDetail' silo.merged_silo_mappings.from_silo.pk %}">{{silo.merged_silo_mappings.from_silo}}</a> and <a href="{% url 'siloDetail' silo.merged_silo_mappings.to_silo.pk %}">{{silo.merged_silo_mappings.to_silo}}</a></small</span>
+                                        <span><small>Merged Tables: <a href="{% url 'silo_detail' silo.merged_silo_mappings.from_silo.pk %}">{{silo.merged_silo_mappings.from_silo}}</a> and <a href="{% url 'silo_detail' silo.merged_silo_mappings.to_silo.pk %}">{{silo.merged_silo_mappings.to_silo}}</a></small</span>
                                     {% else %}
                                         {% for r in silo.reads.all %}
                                             <a href="/show_read/{{ r.id }}" ><small> {{ r.read_name }} ({{r.type.read_type}})</small></a> <br />
@@ -138,7 +138,7 @@
                                 <td><small>{{ silo.description|default:"" }}</small></td>
                                 <td>
                                     {% if silo.merged_silo_mappings %}
-                                        <span><small>Merged Tables: <a href="{% url 'siloDetail' silo.merged_silo_mappings.from_silo.pk %}">{{silo.merged_silo_mappings.from_silo}}</a> and <a href="{% url 'siloDetail' silo.merged_silo_mappings.to_silo.pk %}">{{silo.merged_silo_mappings.to_silo}}</a></small</span>
+                                        <span><small>Merged Tables: <a href="{% url 'silo_detail' silo.merged_silo_mappings.from_silo.pk %}">{{silo.merged_silo_mappings.from_silo}}</a> and <a href="{% url 'silo_detail' silo.merged_silo_mappings.to_silo.pk %}">{{silo.merged_silo_mappings.to_silo}}</a></small</span>
                                     {% else %}
                                         {% for r in silo.reads.all %}
                                             <a href="/show_read/{{ r.id }}" ><small> {{ r.read_name }} ({{r.type.read_type}})</small></a> <br />

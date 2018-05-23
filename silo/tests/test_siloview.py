@@ -99,13 +99,11 @@ class SiloDataViewTest(TestCase):
                                    owner=self.tola_user.user)
         self.silo = factories.Silo(owner=self.tola_user.user,
                                    reads=[self.read])
-        self._import_json(self.silo, self.read)
-
-    def tearDown(self):
         # Have to remove the created lvs
         lvss = LabelValueStore.objects.filter(silo_id=self.silo.id)
         for lvs in lvss:
             lvs.delete()
+        self._import_json(self.silo, self.read)
 
     def test_data_silo(self):
         request = self.factory.get('/api/silo/{}/data'.format(self.silo.id))
@@ -114,8 +112,8 @@ class SiloDataViewTest(TestCase):
         response = view(request, id=self.silo.id)
         self.assertEqual(response.status_code, 200)
         json_content = json.loads(response.content)
-        self.assertEqual(json_content['recordsTotal'], 24)
-        self.assertEqual(json_content['recordsFiltered'], 24)
+        self.assertEqual(json_content['recordsTotal'], 20)
+        self.assertEqual(json_content['recordsFiltered'], 20)
 
     def test_data_silo_empty_table(self):
         read = factories.Read(read_name="test_empty", owner=self.tola_user.user)
