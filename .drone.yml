@@ -14,7 +14,7 @@ pipeline:
     secrets: [SECRET_PASS]
     commands:
       - pip install -r requirements/ci.txt
-      - flake8 */tests/
+      - flake8 */tests/ */forms.py
       - python manage.py test
     when:
       event: [pull_request, push, tag]

@@ -14,7 +14,7 @@ services:
   - mongodb
   - redis-server
 script:
-  - flake8 */tests/
+  - flake8 */tests/ */forms.py
   - python manage.py test
 after_success:
   - coveralls
