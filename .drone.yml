@@ -16,7 +16,7 @@ pipeline:
       - pip install -r requirements/ci.txt
       - python manage.py test
     when:
-      event: [push, tag]
+      event: [pull_request, push, tag]
 
   build-docker-image:
     image: plugins/docker
