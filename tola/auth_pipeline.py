@@ -27,7 +27,9 @@ def get_or_create_user(strategy, details, backend, user=None, *args, **kwargs):
             else:
                 clean_func = storage.user.clean_username
         else:
-            clean_func = lambda val: val
+            def f(val):
+                return val
+            clean_func = f
 
         if do_slugify:
             override_slug = strategy.setting('SLUGIFY_FUNCTION')
@@ -36,7 +38,9 @@ def get_or_create_user(strategy, details, backend, user=None, *args, **kwargs):
             else:
                 slug_func = slugify
         else:
-            slug_func = lambda val: val
+            def f(val):
+                return val
+            slug_func = f
 
         if email_as_username and details.get('email'):
             username = details['email']

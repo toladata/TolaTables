@@ -9,9 +9,10 @@ from django.shortcuts import render
 from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 
-from silo.models import TolaUser,TolaSites
+from silo.models import TolaUser
 from silo.serializers import TolaUserSerializer
-from tola.forms import RegistrationForm, NewUserRegistrationForm, NewTolaUserRegistrationForm
+from tola.forms import (RegistrationForm, NewUserRegistrationForm,
+                        NewTolaUserRegistrationForm)
 
 from rest_framework_swagger.renderers import OpenAPIRenderer, SwaggerUIRenderer
 from rest_framework.decorators import api_view, renderer_classes
@@ -56,17 +57,20 @@ def register(request):
 
 def profile(request):
     """
-    Update a User profile using built in Django Users Model if the user is logged in
-    otherwise redirect them to registration version
+    Update a User profile using built in Django Users Model if the user
+    is logged in otherwise redirect them to registration version
     """
     if request.user.is_authenticated:
         obj = get_object_or_404(TolaUser, user=request.user)
-        form = RegistrationForm(request.POST or None, instance=obj,initial={'username': request.user})
+        form = RegistrationForm(request.POST or None, instance=obj,
+                                initial={'username': request.user})
 
         if request.method == 'POST':
             if form.is_valid():
                 form.save()
-                messages.error(request, 'Your profile has been updated.', fail_silently=False)
+                messages.error(request,
+                               'Your profile has been updated.',
+                               fail_silently=False)
 
         return render(request, "registration/profile.html", {
             'form': form, 'helper': RegistrationForm.helper
@@ -94,7 +98,9 @@ class BoardView(LoginRequiredMixin, TemplateView):
     template_name = 'board.html'
 
     def render_to_response(self, context, **response_kwargs):
-        response = super(BoardView, self).render_to_response(context, **response_kwargs)
+        response = super(BoardView, self).render_to_response(
+            context, **response_kwargs)
         if self.request.user.is_authenticated:
-            response.set_cookie(key='token', value=self.request.user.auth_token)
+            response.set_cookie(key='token',
+                                value=self.request.user.auth_token)
         return response
