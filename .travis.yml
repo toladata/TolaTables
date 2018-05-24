@@ -13,7 +13,9 @@ install:
 services:
   - mongodb
   - redis-server
-script: python manage.py test
+script:
+  - flake8 */tests/
+  - python manage.py test
 after_success:
   - coveralls
 before_install:
