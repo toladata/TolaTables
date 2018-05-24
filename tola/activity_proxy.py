@@ -12,7 +12,8 @@ def _get_headers():
     if settings.TOLA_ACTIVITY_API_TOKEN:
         headers = {
             "content-type": "application/json",
-            'Authorization': 'Token {}'.format(settings.TOLA_ACTIVITY_API_TOKEN)
+            'Authorization': 'Token {}'.format(
+                settings.TOLA_ACTIVITY_API_TOKEN)
         }
     else:
         headers = {
@@ -54,4 +55,3 @@ def get_by_url(url):
     else:
         logger.warn('{}: {}'.format(response.status_code, response.content))
     return content
-
