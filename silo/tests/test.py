@@ -264,11 +264,11 @@ class ReadTest(TestCase):
             'read_name': 'TEST READ SOURCE',
             'description': 'TEST DESCRIPTION for test read source',
             'read_url': 'https://www.lclark.edu',
-            'resource_id':'testsssszzz',
+            'resource_id': 'testsssszzz',
             'create_date': '2015-06-24 20:33:47',
             'file_data': upload_file,
         }
-        request = self.factory.post(self.new_read_url, data = params)
+        request = self.factory.post(self.new_read_url, data=params)
         request.user = self.tola_user.user
 
         response = showRead(request, 1)
@@ -319,7 +319,7 @@ class SiloTest(TestCase):
             'name': 'Test Silo Updated',
             'description': 'Adding this description in a unit-test.',
         }
-        request = self.factory.post(self.silo_edit_url, data = params)
+        request = self.factory.post(self.silo_edit_url, data=params)
         request.user = self.tola_user.user
         request._dont_enforce_csrf_checks = True
         response = edit_silo(request, silo.pk)
@@ -380,7 +380,8 @@ class SiloTest(TestCase):
         }
         file_dict = {'file_data': SimpleUploadedFile(
             upload_file.name, upload_file.read())}
-        excluded_fields = ['create_date', 'edit_date', 'onedrive_file', 'onedrive_access_token']
+        excluded_fields = ['create_date', 'edit_date', 'onedrive_file',
+                           'onedrive_access_token']
         form = get_read_form(excluded_fields)(params, file_dict)
         self.assertTrue(form.is_valid())
 
@@ -455,19 +456,20 @@ class FormulaColumn(TestCase):
             lvs = LabelValueStore.objects.get(a="1", b="2", c="3", sum=6.0,
                                               read_id=-1, silo_id=self.silo.pk)
             lvs.delete()
-        except LabelValueStore.DoesNotExist as e:
+        except LabelValueStore.DoesNotExist:
             self.assert_(False)
         try:
             lvs = LabelValueStore.objects.get(a="2", b="2", c="3.3", sum=7.3,
                                               read_id=-1, silo_id=self.silo.pk)
             lvs.delete()
-        except LabelValueStore.DoesNotExist as e:
+        except LabelValueStore.DoesNotExist:
             self.assert_(False)
         try:
-            lvs = LabelValueStore.objects.get(a="3", b="2", c="hi", sum="Error",
-                                              read_id=-1, silo_id=self.silo.pk)
+            lvs = LabelValueStore.objects.get(
+                a="3", b="2", c="hi", sum="Error", read_id=-1,
+                silo_id=self.silo.pk)
             lvs.delete()
-        except LabelValueStore.DoesNotExist as e:
+        except LabelValueStore.DoesNotExist:
             self.assert_(False)
 
 
@@ -702,25 +704,25 @@ class ParseCommCareDataTest(TestCase):
             try:
                 LabelValueStore.objects.get(
                     a=1, b=2, c=3, case_id=1, read_id=-97, silo_id=-87)
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 self.assert_(False)
             try:
                 LabelValueStore.objects.get(
                     d=1, b=2, c=3, case_id=2, read_id=-97, silo_id=-87)
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 self.assert_(False)
             try:
                 LabelValueStore.objects.get(
                     d=1, e=2, c=3, case_id=3, read_id=-97, silo_id=-87)
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 self.assert_(False)
             try:
                 LabelValueStore.objects.get(
                     f_=1, user_assigned_id=5, editted_date=7, created_date=8,
                     user_case_id=9, case_id=4, read_id=-97, silo_id=-87)
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 self.assert_(False)
-        except LabelValueStore.MultipleObjectsReturned as e:
+        except LabelValueStore.MultipleObjectsReturned:
             LabelValueStore.objects.filter(read_id=-97, silo_id=-87).delete()
             # if this happens run the test again and it should work
             self.assert_(False)
@@ -757,32 +759,32 @@ class ParseCommCareDataTest(TestCase):
             try:
                 LabelValueStore.objects.get(
                     a=2, b=2, c=3, d=4, case_id=1, read_id=-97, silo_id=-87)
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 self.assert_(False)
             try:
                 LabelValueStore.objects.get(
                     d=1, b=3, c=3, case_id=2, read_id=-97, silo_id=-87)
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 self.assert_(False)
             try:
                 LabelValueStore.objects.get(
                     d=1, e=2, c=3, case_id=3, read_id=-97, silo_id=-87)
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 self.assert_(False)
             try:
                 LabelValueStore.objects.get(
                     e=2, f=3, case_id=5, read_id=-97, silo_id=-87)
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 self.assert_(False)
             try:
                 LabelValueStore.objects.get(
                     f_=1, user_assigned_id=5, editted_date=7, created_date=8,
                     user_case_id=9, case_id=4, read_id=-97, silo_id=-87)
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 self.assert_(False)
             LabelValueStore.objects.filter(read_id=-97, silo_id=-87).delete()
 
-        except LabelValueStore.MultipleObjectsReturned as e:
+        except LabelValueStore.MultipleObjectsReturned:
             LabelValueStore.objects.filter(read_id=-97, silo_id=-87).delete()
             # if this happens run the test again and it should work
             self.assert_(False)
@@ -823,7 +825,7 @@ class TestImportJson(TestCase):
                 lvs = LabelValueStore.objects.get(silo_id=self.silo.id,
                                                   read_id=self.read.id, **row)
                 lvs.delete()
-            except Exception as e:
+            except Exception:
                 LabelValueStore.objects.filter(silo_id=self.silo.id,
                                                read_id=self.read.id).delete()
                 self.assertTrue(False)

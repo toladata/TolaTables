@@ -6,7 +6,7 @@ from rest_framework.test import APIRequestFactory
 
 from silo.tests import MongoTestCase
 from silo.api import CustomFormViewSet
-from silo.models import (LabelValueStore, Silo, Tag, ReadType, Organization)
+from silo.models import LabelValueStore, Silo, Tag, ReadType
 
 from mock import Mock, patch
 from pymongo.errors import WriteError
@@ -228,7 +228,8 @@ class SiloViewsTest(TestCase, MongoTestCase):
                                           name='Workflowlevel1 2')
         wfteams = [
             {
-                'workflowlevel1': 'test.de/workflowlevel1/{}/'.format(wfl1_1.id)
+                'workflowlevel1': 'test.de/workflowlevel1/{}/'.format(
+                    wfl1_1.id)
             }
         ]
         wfl1_data = {
@@ -947,7 +948,7 @@ class OneDriveReadTest(TestCase):
             'read_name': 'TEST READ ONEDRIVE',
             'description': 'TEST DESCRIPTION for test read source',
             'onedrive_file': 'TEST10000100',
-            'onedrive_access_token':'TEST_DUMMY_TOKEN_CHANGED',
+            'onedrive_access_token': 'TEST_DUMMY_TOKEN_CHANGED',
             'create_date': '2018-01-26 12:33:00',
         }
         request = self.factory.post(self.new_read_url, data=params)
@@ -1159,8 +1160,8 @@ class SiloDetailViewTest(TestCase):
         for m in message_storage:
             messages.append(m.message)
 
-        self.assertIn('You do not have permission to view this table.'
-                      , messages)
+        self.assertIn('You do not have permission to view this table.',
+                      messages)
 
     def test_silo_detail_share_with_different_organization(self):
         request_user = factories.User(username='Another User')
@@ -1188,8 +1189,8 @@ class SiloDetailViewTest(TestCase):
         for m in message_storage:
             messages.append(m.message)
 
-        self.assertIn('You do not have permission to view this table.'
-                      , messages)
+        self.assertIn('You do not have permission to view this table.',
+                      messages)
 
 
 class SiloListViewTest(TestCase):
@@ -1385,7 +1386,7 @@ class SiloEditViewTest(TestCase):
     @patch('silo.forms.get_workflowteams')
     @patch('silo.forms.get_by_url')
     def test_silo_edit_page_with_owner(self, mock_get_by_url,
-                                                   mock_get_workflowteams):
+                                       mock_get_workflowteams):
 
         read = factories.Read(read_name="test_data",
                               owner=self.tola_user.user)
@@ -1406,7 +1407,7 @@ class SiloEditViewTest(TestCase):
     @patch('silo.forms.get_workflowteams')
     @patch('silo.forms.get_by_url')
     def test_silo_edit_page_with_shared_user(self, mock_get_by_url,
-                                                   mock_get_workflowteams):
+                                             mock_get_workflowteams):
         request_user = factories.User(username='Another User')
         factories.TolaUser(user=request_user)
 
@@ -1428,8 +1429,8 @@ class SiloEditViewTest(TestCase):
 
     @patch('silo.forms.get_workflowteams')
     @patch('silo.forms.get_by_url')
-    def test_silo_edit_page_with_shared_organizaton_user(self, mock_get_by_url,
-                                                   mock_get_workflowteams):
+    def test_silo_edit_page_with_shared_organizaton_user(
+            self, mock_get_by_url, mock_get_workflowteams):
 
         request_user = factories.User(username='Another User')
         factories.TolaUser(user=request_user,
@@ -1454,7 +1455,7 @@ class SiloEditViewTest(TestCase):
     @patch('silo.forms.get_workflowteams')
     @patch('silo.forms.get_by_url')
     def test_public_silo_edit_page(self, mock_get_by_url,
-                                                   mock_get_workflowteams):
+                                   mock_get_workflowteams):
 
         request_user = factories.User(username='Another User')
         factories.TolaUser(user=request_user,
@@ -1478,8 +1479,8 @@ class SiloEditViewTest(TestCase):
 
     @patch('silo.forms.get_workflowteams')
     @patch('silo.forms.get_by_url')
-    def test_share_silo_with_owner_failed_for_owner(self, mock_get_by_url,
-                                                   mock_get_workflowteams):
+    def test_share_silo_with_owner_failed_for_owner(
+            self, mock_get_by_url, mock_get_workflowteams):
         silo = factories.Silo(owner=self.tola_user.user)
 
         data = {
@@ -1537,8 +1538,8 @@ class SiloEditViewTest(TestCase):
 
     @patch('silo.forms.get_workflowteams')
     @patch('silo.forms.get_by_url')
-    def test_share_silo_without_owner_failed_for_user(self, mock_get_by_url,
-                                                   mock_get_workflowteams):
+    def test_share_silo_without_owner_failed_for_user(
+            self, mock_get_by_url, mock_get_workflowteams):
         silo = factories.Silo(owner=self.tola_user.user)
 
         data = {

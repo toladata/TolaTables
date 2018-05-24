@@ -9,7 +9,8 @@ from django.core.exceptions import ImproperlyConfigured, ObjectDoesNotExist
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from oauth2client.client import (AccessTokenCredentialsError,
-                                 HttpAccessTokenRefreshError, OAuth2Credentials)
+                                 HttpAccessTokenRefreshError,
+                                 OAuth2Credentials)
 
 from rest_framework.test import APIRequestFactory
 from mock import Mock, patch
@@ -97,8 +98,9 @@ class ExportToGSheetTest(TestCase):
 
         mock_gsheet_helper.return_value = []
 
-        url = reverse('export_new_gsheet', kwargs={'id': self.silo.pk}) + \
-              '?&query='+str(query)+'&shown_cols='+str(cols)
+        url = reverse('export_new_gsheet', kwargs={'id': self.silo.pk})
+        url = url + '?&query='+str(query)+'&shown_cols='+str(cols)
+
         request = self.factory.get(url, follow=True)
         request.user = self.tola_user.user
         response = gviews_v4.export_to_gsheet(request, self.silo.pk)
@@ -137,8 +139,8 @@ class ExportToGSheetTest(TestCase):
 
         mock_gsheet_helper.return_value = []
 
-        url = reverse('export_new_gsheet', kwargs={'id': self.silo.pk}) + \
-              '?&query='+str(query)+'&shown_cols={"yr", "rank", "opn"}'
+        url = reverse('export_new_gsheet', kwargs={'id': self.silo.pk})
+        url = url + '?&query='+str(query)+'&shown_cols={"yr", "rank", "opn"}'
 
         with self.assertRaises(ValueError):
             request = self.factory.get(url, follow=True)
@@ -153,8 +155,8 @@ class ExportToGSheetTest(TestCase):
 
         mock_gsheet_helper.return_value = []
 
-        url = reverse('export_new_gsheet', kwargs={'id': self.silo.pk}) + \
-              '?&query='+str(query)+'&shown_cols=["yr", "rank", "opn"]'
+        url = reverse('export_new_gsheet', kwargs={'id': self.silo.pk})
+        url = url + '?&query='+str(query)+'&shown_cols=["yr", "rank", "opn"]'
 
         with self.assertRaises(ValueError):
             request = self.factory.get(url, follow=True)
@@ -183,8 +185,8 @@ class ExportToGSheetTest(TestCase):
         cols = ["yr", "rank", "opn"]
         mock_gsheet_helper.return_value = []
 
-        url = reverse('export_new_gsheet', kwargs={'id': self.silo.pk}) + \
-              '?&query='+str(query)+'&shown_cols=["yr", "rank", "opn"]'
+        url = reverse('export_new_gsheet', kwargs={'id': self.silo.pk})
+        url = url + '?&query='+str(query)+'&shown_cols=["yr", "rank", "opn"]'
 
         request = self.factory.get(url, follow=True)
         request.user = self.tola_user.user
@@ -204,9 +206,9 @@ class ExportToGSheetTest(TestCase):
         expected_cols = []
         mock_gsheet_helper.return_value = []
 
-        url = reverse('export_new_gsheet', kwargs={'id': self.silo.pk}) + \
-              '?&query={"$or": [{"First_Name": {"$nin": ["1", 1.0, 1]}}]}' \
-              '&shown_cols=[]'
+        url = reverse('export_new_gsheet', kwargs={'id': self.silo.pk})
+        url = url + '?&query={"$or": [{"First_Name": {"$nin": ["1", 1.0, 1]' \
+                    '}}]}&shown_cols=[]'
 
         request = self.factory.get(url, follow=True)
         request.user = self.tola_user.user
@@ -285,11 +287,11 @@ class GetCredentialObjectTest(TestCase):
 class OAuthTest(TestCase):
     def setUp(self):
         logging.disable(logging.ERROR)
-        
+
         self.org = factories.Organization()
         self.tola_user = factories.TolaUser(organization=self.org)
         self.factory = APIRequestFactory()
-    
+
     def tearDown(self):
         logging.disable(logging.NOTSET)
 
@@ -303,8 +305,8 @@ class OAuthTest(TestCase):
 
     @patch('silo.gviews_v4.OAuth2Credentials')
     @patch('silo.gviews_v4.Storage')
-    def test_store_oauth2_credential_success_minimal(self, mock_storage,
-                                              mock_oauthcred):
+    def test_store_oauth2_credential_success_minimal(
+            self, mock_storage, mock_oauthcred):
         mock_storage.return_value = Mock()
         mock_oauthcred.return_value = Mock()
         data = {
@@ -321,8 +323,8 @@ class OAuthTest(TestCase):
 
     @patch('silo.gviews_v4.OAuth2Credentials')
     @patch('silo.gviews_v4.Storage')
-    def test_store_oauth2_credential_success_full(self, mock_storage,
-                                              mock_oauthcred):
+    def test_store_oauth2_credential_success_full(
+            self, mock_storage, mock_oauthcred):
         mock_storage.return_value = Mock()
         mock_oauthcred.return_value = Mock()
         data = {
