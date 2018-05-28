@@ -1,11 +1,12 @@
 from django.core.urlresolvers import reverse_lazy
-from silo.models import Silo, Read
 from django import forms
+from django.contrib.auth.models import User
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Reset, Field, Hidden
+from django.core.exceptions import ValidationError
 from collections import OrderedDict
 
-from silo.models import Silo, WorkflowLevel1
+from silo.models import Read, Silo, WorkflowLevel1
 from tola.activity_proxy import get_by_url, get_workflowteams
 
 
@@ -30,6 +31,7 @@ class SiloForm(forms.ModelForm):
         super(SiloForm, self).__init__(*args, **kwargs)
         # Filter programs based on the program teams from Activity
         if user:
+            self.fields['shared'].queryset = User.objects.exclude(pk=user.pk)
             params = {
                 'workflow_user__tola_user_uuid': user.tola_user.tola_user_uuid
             }
@@ -54,8 +56,16 @@ class SiloForm(forms.ModelForm):
 
     class Meta:
         model = Silo
-        fields = ['id', 'name', 'description', 'tags', 'shared', 'owner',
-                  'workflowlevel1']
+        fields = ['id', 'name', 'description', 'tags', 'shared',
+                  'share_with_organization', 'owner', 'workflowlevel1']
+
+    def clean_shared(self):
+        data = self.cleaned_data['shared']
+        owner = self.data.get('owner')
+        if owner:
+            if data.filter(pk=owner).exists():
+                raise ValidationError('You can not share table with owner.')
+        return data
 
 
 class NewColumnForm(forms.Form):
@@ -149,7 +159,7 @@ class EditColumnForm(forms.Form):
             if (item != "_id" and item != "silo_id" and item != "edit_date"
                     and item != "create_date" and item != "read_id"):
                 self.fields[item] = forms.CharField(
-                    label=item, initial=item, required=False,widget="")
+                    label=item, initial=item, required=False, widget="")
                 self.fields[item + "_delete"] = forms.BooleanField(
                     label="delete " + item, initial=False, required=False,
                     widget="")
@@ -164,8 +174,8 @@ class MongoEditForm(forms.Form):
     silo_id = forms.IntegerField(required=False, widget=forms.HiddenInput())
 
     def __init__(self, *args, **kwargs):
+        kwargs.pop('silo_pk')
         extra = kwargs.pop("extra")
-        silo_pk = kwargs.pop('silo_pk')
         self.helper = FormHelper()
         self.helper.form_class = 'form-horizontal'
         self.helper.label_class = 'col-sm-5'

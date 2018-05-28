@@ -13,7 +13,9 @@ install:
 services:
   - mongodb
   - redis-server
-script: python manage.py test
+script:
+  - flake8 */tests/ */forms.py tola/ --exclude=settings,migrations,models.py,tola/__init__.py
+  - python manage.py test
 after_success:
   - coveralls
 before_install:

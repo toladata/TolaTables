@@ -132,7 +132,7 @@ def export_gsheet(request, id):
     file_id = request.GET.get('resource_id', None)
     if read_url == None or file_id == None:
         messages.error(request, "A Google Spreadsheet is not selected to import data to it.")
-        return HttpResponseRedirect(reverse('listSilos'))
+        return HttpResponseRedirect(reverse('list_silos'))
 
     storage = Storage(GoogleCredentialsModel, 'id', request.user, 'credential')
     credential = storage.get()
@@ -174,7 +174,7 @@ def export_gsheet(request, id):
         messages.success(request, link)
     else:
         messages.error(request, 'Something went wrong.')
-    return HttpResponseRedirect(reverse('listSilos'))
+    return HttpResponseRedirect(reverse('list_silos'))
 
 @login_required
 def export_new_gsheet(request, id):
@@ -217,7 +217,7 @@ def export_new_gsheet(request, id):
         messages.success(request, link)
     else:
         messages.error(request, 'Something went wrong; try again.')
-    return HttpResponseRedirect(reverse('listSilos'))
+    return HttpResponseRedirect(reverse('list_silos'))
 
 
 def import_from_google_spreadsheet(credential_json, silo, spreadsheet_key):

@@ -14,9 +14,10 @@ pipeline:
     secrets: [SECRET_PASS]
     commands:
       - pip install -r requirements/ci.txt
+      - flake8 */tests/ */forms.py tola/ --exclude=settings,migrations,models.py,tola/__init__.py
       - python manage.py test
     when:
-      event: [push, tag]
+      event: [pull_request, push, tag]
 
   build-docker-image:
     image: plugins/docker

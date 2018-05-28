@@ -430,14 +430,32 @@ def appendTwoSilos(mapping_data, lsid, rsid, msid):
 # Edit existing silo meta data
 @csrf_protect
 @login_required
-def editSilo(request, id):
+def edit_silo(request, id):
     """
     Edit the meta data and description for each Table (silo)
     :param request:
     :param id: Unique table ID
     :return: silo edit form
     """
+
     edited_silo = Silo.objects.get(pk=id)
+
+    request_user_org = None
+    owner_user_org = None
+    if(hasattr(request.user, 'tola_user') and
+            hasattr(edited_silo.owner, 'tola_user')):
+        request_user_org = request.user.tola_user.organization
+        owner_user_org = edited_silo.owner.tola_user.organization
+
+    is_silo_shared_with_user = Silo.objects.filter(
+        pk=id, shared__id=request.user.pk).exists()
+
+    if not (edited_silo.owner == request.user or edited_silo.public
+            or is_silo_shared_with_user
+            or (edited_silo.share_with_organization
+                and request_user_org == owner_user_org)):
+        return render(request, '404.html', status=404)
+
     if request.method == 'POST':  # If the form has been submitted...
         tags = request.POST.getlist('tags')
         post_data = request.POST.copy()
@@ -763,7 +781,7 @@ def showRead(request, id):
                 messages.info(request,
                               "Your table must have a unique column set for "
                               "Autopull/Autopush to work.")
-            return HttpResponseRedirect(reverse_lazy('listSilos'))
+            return HttpResponseRedirect(reverse_lazy('list_silos'))
         else:
             messages.error(request, 'Invalid Form', fail_silently=False)
     else:
@@ -921,19 +939,31 @@ def toggle_silo_publicity(request):
 
 # SILOS
 @login_required
-def listSilos(request):
+def list_silos(request):
     """
     Each silo is listed with links to details
     """
     user = User.objects.get(username__exact=request.user)
 
-    #get all of the silos
+    # get all of the silos
     own_silos = Silo.objects.filter(owner=user).prefetch_related('reads')
 
-    shared_silos = Silo.objects.filter(shared__id=user.pk).prefetch_related("reads")
+    shared_silos = Silo.objects.filter(Q(shared__id=user.pk) |
+                                       Q(share_with_organization=True,
+                                         owner__tola_user__organization=\
+                                         user.tola_user.organization))\
+        .exclude(owner=user).prefetch_related("reads")
 
-    public_silos = Silo.objects.filter(Q(public=True) & ~Q(owner=user)).prefetch_related("reads")
-    return render(request, 'display/silos.html',{'own_silos':own_silos, "shared_silos": shared_silos, "public_silos": public_silos})
+    public_silos = Silo.objects.filter(
+        Q(public=True) & ~Q(owner=user)).prefetch_related("reads")
+
+    return render(request,
+                  'display/silos.html',
+                  {
+                      'own_silos':own_silos,
+                      "shared_silos": shared_silos,
+                      "public_silos": public_silos
+                  })
 
 
 def addUniqueFiledsToSilo(request):
@@ -1018,8 +1048,16 @@ def silo_detail(request, silo_id):
         celery_tasks
     )
 
-    if silo.owner == request.user or silo.public \
-            or request.user in silo.shared.all():
+    request_user_org=None
+    owner_user_org=None
+    if(hasattr(request.user, 'tola_user') and hasattr(silo.owner,'tola_user')):
+        request_user_org = request.user.tola_user.organization
+        owner_user_org = silo.owner.tola_user.organization
+
+    if (silo.owner == request.user or silo.public
+            or request.user in silo.shared.all()
+            or (silo.share_with_organization
+                and request_user_org == owner_user_org)):
         cols.append('_id')
         cols.append('id')
         cols.extend(getSiloColumnNames(silo_id))
@@ -1612,7 +1650,7 @@ def removeSource(request, silo_id, read_id):
         silo = Silo.objects.get(pk=silo_id)
     except Silo.DoesNotExist as e:
         messages.error(request,"Table with id=%s does not exist." % silo_id)
-        return HttpResponseRedirect(reverse_lazy('listSilos'))
+        return HttpResponseRedirect(reverse_lazy('list_silos'))
 
     try:
         read = silo.reads.get(pk=read_id)
@@ -1681,7 +1719,7 @@ def editColumnOrder(request, pk):
 
         except Silo.DoesNotExist as e:
             messages.error(request, "silo not found")
-            return HttpResponseRedirect(reverse_lazy('listSilos'))
+            return HttpResponseRedirect(reverse_lazy('list_silos'))
 
 
         return HttpResponseRedirect(reverse_lazy('silo_detail', kwargs={'silo_id': pk},))

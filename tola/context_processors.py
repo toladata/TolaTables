@@ -25,9 +25,11 @@ def get_servers(request):
         'GOOGLE_ANALYTICS': settings.GOOGLE_ANALYTICS,
     }
 
+
 def google_analytics(request):
     """
-    Use the variables returned in this function to render Google Analytics Tracking Code template.
+    Use the variables returned in this function to render Google Analytics
+    Tracking Code template.
     """
 
     ga_prop_id = getattr(settings, 'GOOGLE_ANALYTICS_PROPERTY_ID', False)

@@ -281,7 +281,8 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
     # this permission sets seems to break the default permissions set by the restframework
     # permission_classes = (IsOwnerOrReadOnly,)
     permission_classes = (IsAuthenticated, Silo_IsOwnerOrCanRead,)
-    filter_fields = ('owner__username','shared__username','id','tags','public')
+    filter_fields = ('owner__username','shared__username',
+                     'id','tags','public')
     filter_backends = (filters.DjangoFilterBackend,)
 
     def get_queryset(self):
@@ -294,13 +295,16 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
             else:
                 user = tola_user.user
                 return Silo.objects.filter(
-                    Q(owner=user) | Q(public=True) | Q(shared=user))
+                    Q(owner=user) | Q(public=True) | Q(shared=user)
+                    | Q(owner__tola_user__organization=tola_user.organization))
         else:
             user = self.request.user
             if user.is_superuser:
                 return Silo.objects.all()
 
-            return Silo.objects.filter(Q(owner=user) | Q(public=True))
+            return Silo.objects.filter(Q(owner=user) | Q(public=True) |
+                                       Q(owner__tola_user__organization=\
+                                             user.tola_user.organization))
 
     @detail_route()
     def data(self, request, id):

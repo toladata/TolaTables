@@ -1,14 +1,12 @@
-from django.contrib.auth.models import AnonymousUser
-from django.core.exceptions import ImproperlyConfigured
+# -*- coding: utf-8 -*-
 from django.test import TestCase, override_settings, Client, RequestFactory
 from django.urls import reverse
-from django.contrib import messages
 
 from rest_framework.test import APIRequestFactory
 
 from silo.tests import MongoTestCase
 from silo.api import CustomFormViewSet
-from silo.models import (LabelValueStore, Silo, Tag, ReadType)
+from silo.models import LabelValueStore, Silo, Tag, ReadType
 
 from mock import Mock, patch
 from pymongo.errors import WriteError
@@ -210,7 +208,7 @@ class SiloViewsTest(TestCase, MongoTestCase):
     def test_silo_template_authenticated_user(self):
         request = self.factory.get('', follow=True)
         request.user = self.tola_user.user
-        response = views.listSilos(request)
+        response = views.list_silos(request)
         template_content = response.content
 
         match = '<span id="user_init"'
@@ -224,15 +222,14 @@ class SiloViewsTest(TestCase, MongoTestCase):
     @patch('silo.forms.get_by_url')
     def test_get_edit_silo(self, mock_get_by_url, mock_get_workflowteams):
         silo = factories.Silo(owner=self.tola_user.user)
-        uuid = random.randint(1, 9999)
-        wfl1_1 = factories.WorkflowLevel1(level1_uuid=uuid,
+        wfl1_1 = factories.WorkflowLevel1(level1_uuid=random.randint(1, 9999),
                                           name='Workflowlevel1 1')
-        uuid = random.randint(1, 9999)
-        wfl1_2 = factories.WorkflowLevel1(level1_uuid=uuid,
+        wfl1_2 = factories.WorkflowLevel1(level1_uuid=random.randint(1, 9999),
                                           name='Workflowlevel1 2')
         wfteams = [
             {
-                'workflowlevel1': 'test.de/workflowlevel1/{}/'.format(wfl1_1.id)
+                'workflowlevel1': 'test.de/workflowlevel1/{}/'.format(
+                    wfl1_1.id)
             }
         ]
         wfl1_data = {
@@ -243,7 +240,7 @@ class SiloViewsTest(TestCase, MongoTestCase):
         request = self.factory.get('/silo_edit/{}/'.format(silo.id),
                                    follow=True)
         request.user = self.tola_user.user
-        response = views.editSilo(request, silo.id)
+        response = views.edit_silo(request, silo.id)
         template_content = response.content
 
         match = 'selected>{}</option>'.format(self.tola_user.user.username)
@@ -261,7 +258,7 @@ class SiloViewsTest(TestCase, MongoTestCase):
         request = self.factory.get('/silo_edit/{}/'.format(silo.id),
                                    follow=True)
         request.user = self.tola_user.user
-        response = views.editSilo(request, silo.id)
+        response = views.edit_silo(request, silo.id)
         template_content = response.content
 
         match = 'selected>{}</option>'.format(self.tola_user.user.username)
@@ -280,7 +277,7 @@ class SiloViewsTest(TestCase, MongoTestCase):
 
         request = self.factory.post('/silo_edit/{}/'.format(silo.id), data)
         request.user = self.tola_user.user
-        response = views.editSilo(request, silo.id)
+        response = views.edit_silo(request, silo.id)
         self.assertEqual(response.status_code, 302)
 
         silo = Silo.objects.get(pk=silo.id)
@@ -315,6 +312,33 @@ class SiloViewsTest(TestCase, MongoTestCase):
         column_names = util.getSiloColumnNames(silo.id)
 
         self.assertTrue('given_name' in column_names)
+        self.assertEqual(len(column_names), 1)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/silo_detail/'+str(silo.id)+'/')
+
+    def test_silo_edit_columns_utf8(self):
+        self.tola_user.user.is_staff = True
+        self.tola_user.user.is_superuser = True
+        self.tola_user.user.save()
+
+        columns = [{'name': 'name', 'type': 'text'}]
+        read = factories.Read(read_name='Read Test', owner=self.tola_user.user)
+        silo = factories.Silo(owner=self.tola_user.user,
+                              columns=json.dumps(columns), reads=[read])
+
+        data = {
+            'id': '',
+            'silo_id': silo.id,
+            'name': u'ürlaub',
+        }
+        request = self.factory.post('', data=data)
+        request.user = self.tola_user.user
+        self._bugfix_django_messages(request)
+        response = views.edit_columns(request, silo.id)
+
+        column_names = util.getSiloColumnNames(silo.id)
+
+        self.assertTrue(u'ürlaub' in column_names)
         self.assertEqual(len(column_names), 1)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, '/silo_detail/'+str(silo.id)+'/')
@@ -386,7 +410,6 @@ class SiloViewsTest(TestCase, MongoTestCase):
 
         self.assertTrue(json_data[0]['farbe'] in ['black', 'white', 'red'])
         self.assertEqual(json_data[0]['art'], 'primary')
-
 
     @patch('silo.views.db')
     def test_silo_edit_columns_delete(self, mock_db):
@@ -869,13 +892,14 @@ class OneDriveViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'read/read.html')
         self.assertNotContains(response, '<input type="hidden" '
-                                      'name="onedrive_file" '
-                                      'id="id_onedrive_file" />')
+                                         'name="onedrive_file" '
+                                         'id="id_onedrive_file" />')
 
 
 class OneDriveReadTest(TestCase):
     new_read_url = '/source/new/'
-    # Is the UserSocialAuth extra data obj updated when there is already one? I saw a test when there is no UserSocialAuth.
+    # Is the UserSocialAuth extra data obj updated when there is already
+    # one? I saw a test when there is no UserSocialAuth.
 
     def setUp(self):
         self.client = Client()
@@ -892,7 +916,7 @@ class OneDriveReadTest(TestCase):
             'read_name': 'TEST READ ONEDRIVE',
             'description': 'TEST DESCRIPTION for test read source',
             'onedrive_file': 'TEST10000100',
-            'onedrive_access_token':'TEST_DUMMY_TOKEN',
+            'onedrive_access_token': 'TEST_DUMMY_TOKEN',
             'create_date': '2018-01-26 12:33:00',
         }
         request = self.factory.post(self.new_read_url, data=params)
@@ -906,7 +930,7 @@ class OneDriveReadTest(TestCase):
         # check for social auth updated
 
         social_auth = UserSocialAuth.objects.get(user=self.tola_user.user,
-                                      provider='microsoft-graph')
+                                                 provider='microsoft-graph')
         self.assertEqual(social_auth.extra_data['access_token'],
                          'TEST_DUMMY_TOKEN')
 
@@ -924,10 +948,10 @@ class OneDriveReadTest(TestCase):
             'read_name': 'TEST READ ONEDRIVE',
             'description': 'TEST DESCRIPTION for test read source',
             'onedrive_file': 'TEST10000100',
-            'onedrive_access_token':'TEST_DUMMY_TOKEN_CHANGED',
+            'onedrive_access_token': 'TEST_DUMMY_TOKEN_CHANGED',
             'create_date': '2018-01-26 12:33:00',
         }
-        request = self.factory.post(self.new_read_url, data = params)
+        request = self.factory.post(self.new_read_url, data=params)
         request.user = self.tola_user.user
 
         response = views.showRead(request, 0)
@@ -938,7 +962,7 @@ class OneDriveReadTest(TestCase):
         # check for social auth updated
 
         social_auth = UserSocialAuth.objects.get(user=self.tola_user.user,
-                                      provider='microsoft-graph')
+                                                 provider='microsoft-graph')
         self.assertEqual(social_auth.extra_data['access_token'],
                          'TEST_DUMMY_TOKEN_CHANGED')
 
@@ -958,7 +982,7 @@ class OneDriveReadTest(TestCase):
         request.session = 'session'
         message_storage = FallbackStorage(request)
         request._messages = message_storage
-        response = views.showRead(request, 0)
+        views.showRead(request, 0)
 
         messages = []
         for m in message_storage:
@@ -974,7 +998,7 @@ class OneDriveReadTest(TestCase):
             'type': read_type.pk,
             'read_name': 'TEST READ ONEDRIVE',
             'description': 'TEST DESCRIPTION for test read source',
-            'onedrive_access_token':'TEST_DUMMY_TOKEN',
+            'onedrive_access_token': 'TEST_DUMMY_TOKEN',
             'create_date': '2018-01-26 12:33:00',
         }
         request = self.factory.post(self.new_read_url, data=params)
@@ -992,8 +1016,9 @@ class OneDriveReadTest(TestCase):
 
 class SiloDetailViewTest(TestCase):
     def setUp(self):
-        self.factory = RequestFactory()
+        self.factory = APIRequestFactory()
         self.user = factories.User()
+        self.tola_user = factories.TolaUser(user=self.user)
 
     def test_silo_detail_view(self):
         read = factories.Read(read_name="test_data",
@@ -1018,6 +1043,7 @@ class SiloDetailViewTest(TestCase):
         url = reverse('silo_detail', args=[silo.pk])
 
         request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user)
 
         request = self.factory.get(url)
         request.user = request_user
@@ -1029,7 +1055,8 @@ class SiloDetailViewTest(TestCase):
         for m in message_storage:
             messages.append(m.message)
 
-        self.assertIn('You do not have permission to view this table.', messages)
+        self.assertIn('You do not have permission to view this table.',
+                      messages)
 
     def test_pulic_silo_detail_with_unshared_user(self):
         read = factories.Read(read_name="test_data",
@@ -1041,10 +1068,10 @@ class SiloDetailViewTest(TestCase):
         url = reverse('silo_detail', args=[silo.pk])
 
         request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user)
 
         request = self.factory.get(url)
         request.user = request_user
-        request.session = 'session'
         response = views.silo_detail(request, silo.pk)
 
         self.assertEqual(response.status_code, 200)
@@ -1063,7 +1090,6 @@ class SiloDetailViewTest(TestCase):
 
         request = self.factory.get(url)
         request.user = request_user
-        request.session = 'session'
         response = views.silo_detail(request, silo.pk)
 
         self.assertEqual(response.status_code, 200)
@@ -1082,7 +1108,456 @@ class SiloDetailViewTest(TestCase):
 
         request = self.factory.get(url)
         request.user = self.user
-        request.session = 'session'
         response = views.silo_detail(request, silo.pk)
 
         self.assertEqual(response.status_code, 200)
+
+    def test_silo_detail_share_with_organization(self):
+        request_user = factories.User(username='Another User')
+        organization = self.tola_user.organization
+        factories.TolaUser(user=request_user, organization=organization)
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[],
+                              share_with_organization=True)
+
+        url = reverse('silo_detail', args=[silo.pk])
+
+        request = self.factory.get(url)
+        request.user = request_user
+        response = views.silo_detail(request, silo.pk)
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_silo_detail_not_share_with_organization(self):
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user,
+                           organization=self.tola_user.organization)
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[],
+                              share_with_organization=False)
+
+        url = reverse('silo_detail', args=[silo.pk])
+
+        request = self.factory.get(url)
+        request.user = request_user
+        request.session = 'session'
+        message_storage = FallbackStorage(request)
+        request._messages = message_storage
+        views.silo_detail(request, silo.pk)
+        messages = []
+        for m in message_storage:
+            messages.append(m.message)
+
+        self.assertIn('You do not have permission to view this table.',
+                      messages)
+
+    def test_silo_detail_share_with_different_organization(self):
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user)
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[],
+                              share_with_organization=True)
+
+        url = reverse('silo_detail', args=[silo.pk])
+
+        request = self.factory.get(url)
+        request.user = request_user
+        request.session = 'session'
+        message_storage = FallbackStorage(request)
+        request._messages = message_storage
+        views.silo_detail(request, silo.pk)
+        messages = []
+        for m in message_storage:
+            messages.append(m.message)
+
+        self.assertIn('You do not have permission to view this table.',
+                      messages)
+
+
+class SiloListViewTest(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.user = factories.User()
+        self.tola_user = factories.TolaUser(user=self.user)
+
+    def test_list_silos_share_with_users_organization(self):
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user,
+                           organization=self.tola_user.organization)
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        factories.Silo(name='Test Share Silo',
+                       owner=self.tola_user.user,
+                       reads=[read],
+                       public=False,
+                       shared=[],
+                       share_with_organization=True)
+
+        request = self.factory.get('')
+        request.user = request_user
+        response = views.list_silos(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test Share Silo')
+
+    def test_list_silos_share_with_different_organization(self):
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user)
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        factories.Silo(name='Test Share Silo',
+                       owner=self.tola_user.user,
+                       reads=[read],
+                       public=False,
+                       shared=[],
+                       share_with_organization=True)
+        request = self.factory.get('')
+        request.user = request_user
+        response = views.list_silos(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Test Share Silo')
+
+    def test_list_silos_not_share_with_organization(self):
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user,
+                           organization=self.tola_user.organization)
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        factories.Silo(name='Test Share Silo',
+                       owner=self.tola_user.user,
+                       reads=[read],
+                       public=False,
+                       shared=[],
+                       share_with_organization=False)
+
+        request = self.factory.get('')
+        request.user = request_user
+        response = views.list_silos(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Test Share Silo')
+
+    def test_list_silos_with_owner_user(self):
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        factories.Silo(name='Test Share Silo',
+                       owner=self.tola_user.user,
+                       reads=[read],
+                       public=False,
+                       shared=[],
+                       share_with_organization=True)
+
+        request = self.factory.get('')
+        request.user = self.user
+        response = views.list_silos(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test Share Silo')
+
+    def test_list_silos_with_shared_user(self):
+
+        request_user = factories.User(username='Another User')
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        factories.Silo(name='Test Share Silo',
+                       owner=self.tola_user.user,
+                       reads=[read],
+                       public=False,
+                       shared=[request_user],
+                       share_with_organization=False)
+
+        request = self.factory.get('')
+        request.user = self.user
+        response = views.list_silos(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test Share Silo')
+
+    def test_list_public_silo(self):
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user)
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        factories.Silo(name='Test Share Silo',
+                       owner=self.tola_user.user,
+                       reads=[read],
+                       public=True,
+                       shared=[],
+                       share_with_organization=False)
+
+        request = self.factory.get('')
+        request.user = request_user
+        response = views.list_silos(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test Share Silo')
+
+    def test_list_silos_share_with_owner(self):
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[self.tola_user.user],
+                              share_with_organization=False)
+
+        request = self.factory.get('')
+        request.user = self.tola_user.user
+        response = views.list_silos(request)
+        match = '<a href="/silo_edit/%s">Test Share Silo</a>' % silo.pk
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.count(match), 1)
+
+    def test_list_silos_share_with_owner_organization(self):
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[],
+                              share_with_organization=True)
+
+        request = self.factory.get('')
+        request.user = self.tola_user.user
+        response = views.list_silos(request)
+        match = '<a href="/silo_edit/%s">Test Share Silo</a>' % silo.pk
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.count(match), 1)
+
+
+class SiloEditViewTest(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.user = factories.User()
+        self.tola_user = factories.TolaUser(user=self.user)
+
+    @patch('silo.forms.get_workflowteams')
+    @patch('silo.forms.get_by_url')
+    def test_silo_edit_page_with_unauthorized_user(self, mock_get_by_url,
+                                                   mock_get_workflowteams):
+        request_user = factories.User(username='Another User')
+        organization = factories.Organization(name='Another Organization')
+        factories.TolaUser(user=request_user, organization=organization)
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[],
+                              share_with_organization=False)
+
+        request = self.factory.get('')
+        request.user = request_user
+        response = views.edit_silo(request, silo.pk)
+        self.assertEqual(response.status_code, 404)
+
+    @patch('silo.forms.get_workflowteams')
+    @patch('silo.forms.get_by_url')
+    def test_silo_edit_page_with_owner(self, mock_get_by_url,
+                                       mock_get_workflowteams):
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[],
+                              share_with_organization=False)
+
+        request = self.factory.get('')
+        request.user = self.tola_user.user
+        response = views.edit_silo(request, silo.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test Share Silo')
+
+    @patch('silo.forms.get_workflowteams')
+    @patch('silo.forms.get_by_url')
+    def test_silo_edit_page_with_shared_user(self, mock_get_by_url,
+                                             mock_get_workflowteams):
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user)
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[request_user],
+                              share_with_organization=False)
+
+        request = self.factory.get('')
+        request.user = request_user
+        response = views.edit_silo(request, silo.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test Share Silo')
+
+    @patch('silo.forms.get_workflowteams')
+    @patch('silo.forms.get_by_url')
+    def test_silo_edit_page_with_shared_organizaton_user(
+            self, mock_get_by_url, mock_get_workflowteams):
+
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user,
+                           organization=self.tola_user.organization)
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[],
+                              share_with_organization=True)
+
+        request = self.factory.get('')
+        request.user = request_user
+        response = views.edit_silo(request, silo.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test Share Silo')
+
+    @patch('silo.forms.get_workflowteams')
+    @patch('silo.forms.get_by_url')
+    def test_public_silo_edit_page(self, mock_get_by_url,
+                                   mock_get_workflowteams):
+
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user,
+                           organization=self.tola_user.organization)
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=True,
+                              shared=[],
+                              share_with_organization=False)
+
+        request = self.factory.get('')
+        request.user = request_user
+        response = views.edit_silo(request, silo.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test Share Silo')
+
+    @patch('silo.forms.get_workflowteams')
+    @patch('silo.forms.get_by_url')
+    def test_share_silo_with_owner_failed_for_owner(
+            self, mock_get_by_url, mock_get_workflowteams):
+        silo = factories.Silo(owner=self.tola_user.user)
+
+        data = {
+            'name': 'The new silo name 2',
+            'description': '',
+            'owner': self.tola_user.user.pk,
+            'shared': self.tola_user.user.pk
+        }
+
+        request = self.factory.post('/silo_edit/{}/'.format(silo.id), data)
+        request.user = self.tola_user.user
+        request._dont_enforce_csrf_checks = True
+        request.session = 'session'
+        message_storage = FallbackStorage(request)
+        request._messages = message_storage
+        views.edit_silo(request, silo.pk)
+
+        messages = []
+        for m in message_storage:
+            messages.append(m.message)
+
+        self.assertIn('Invalid Form', messages)
+
+    @patch('silo.forms.get_workflowteams')
+    @patch('silo.forms.get_by_url')
+    def test_share_silo_with_owner_failed_for_user(self, mock_get_by_url,
+                                                   mock_get_workflowteams):
+
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user)
+
+        silo = factories.Silo(owner=self.tola_user.user,
+                              shared=[request_user])
+
+        data = {
+            'name': 'The new silo name 2',
+            'description': '',
+            'owner': self.tola_user.user.pk,
+            'shared': self.tola_user.user.pk,
+        }
+
+        request = self.factory.post('/silo_edit/{}/'.format(silo.id), data)
+        request.user = request_user
+        request._dont_enforce_csrf_checks = True
+        request.session = 'session'
+        message_storage = FallbackStorage(request)
+        request._messages = message_storage
+        views.edit_silo(request, silo.pk)
+
+        messages = []
+        for m in message_storage:
+            messages.append(m.message)
+
+        self.assertIn('Invalid Form', messages)
+
+    @patch('silo.forms.get_workflowteams')
+    @patch('silo.forms.get_by_url')
+    def test_share_silo_without_owner_failed_for_user(
+            self, mock_get_by_url, mock_get_workflowteams):
+        silo = factories.Silo(owner=self.tola_user.user)
+
+        data = {
+            'name': 'The new silo name 2',
+            'description': '',
+            'shared': self.tola_user.user.pk
+        }
+
+        request = self.factory.post('/silo_edit/{}/'.format(silo.id), data)
+        request.user = self.tola_user.user
+        request._dont_enforce_csrf_checks = True
+        request.session = 'session'
+        message_storage = FallbackStorage(request)
+        request._messages = message_storage
+        views.edit_silo(request, silo.pk)
+
+        messages = []
+        for m in message_storage:
+            messages.append(m.message)
+
+        self.assertIn('Invalid Form', messages)

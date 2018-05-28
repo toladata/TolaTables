@@ -116,7 +116,8 @@ class SiloDataViewTest(TestCase):
         self.assertEqual(json_content['recordsFiltered'], 20)
 
     def test_data_silo_empty_table(self):
-        read = factories.Read(read_name="test_empty", owner=self.tola_user.user)
+        read = factories.Read(read_name="test_empty",
+                              owner=self.tola_user.user)
         silo = factories.Silo(owner=self.tola_user.user, reads=[read])
 
         request = self.factory.get('/api/silo/{}/data'.format(silo.id))
@@ -159,8 +160,8 @@ class SiloDataViewTest(TestCase):
     def test_data_silo_query_group(self):
         query = '{"opn": "2015-11"}'
         group = '{"_id": null,"total_cnt":{"$sum":"$cnt"}}'
-        request = self.factory.get('/api/silo/{}/data?query={}&group={}'.format(
-            self.silo.id, query, group))
+        request = self.factory.get('/api/silo/{}/data?query={}&group='
+                                   '{}'.format(self.silo.id, query, group))
         request.user = self.tola_user.user
         view = SiloViewSet.as_view({'get': 'data'})
         response = view(request, id=self.silo.id)

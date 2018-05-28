@@ -15,8 +15,8 @@ class Command(BaseCommand):
     help = """
     Loads initial factories data.
 
-    By default, Read Types, Countries, a Site and TolaSite will be 
-    created, if they do not exist yet.
+    By default, Read Types, Countries, a Site and TolaSite will be created,
+    if they do not exist yet.
     """
 
     def _create_site(self):
