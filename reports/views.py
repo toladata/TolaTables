@@ -12,13 +12,19 @@ import logging
 logger = logging.getLogger('django')
 
 
-def listTableDashboards(request,id=0):
+def listTableDashboards(request, id=0):
 
     user = User.objects.get(username__exact=request.user)
     tola_user = TolaUser.objects.get(user__username__exact=request.user)
-    get_tables = Silo.objects.filter(Q(owner=user) | Q(organization=tola_user.organization) | Q(shared=user))
 
-    return render(request, "reports/table_list.html", {'get_tables': get_tables})
+    get_tables = Silo.objects.filter(
+        Q(owner=user) | Q(shared=user) | Q(public=True) |
+        Q(owner__tola_user__organization=tola_user.organization,
+          share_with_organization=True))
+
+    return render(request,
+                  "reports/table_list.html",
+                  {'get_tables': get_tables})
 
 
 import itertools
