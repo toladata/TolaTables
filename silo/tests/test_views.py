@@ -264,7 +264,9 @@ class SiloViewsTest(TestCase, MongoTestCase):
         match = 'selected>{}</option>'.format(self.tola_user.user.username)
         self.assertEqual(template_content.count(match), 1)
 
-    def test_post_edit_silo(self):
+    @patch('silo.forms.get_workflowteams')
+    def test_post_edit_silo(self, mock_get_workflowteams):
+        mock_get_workflowteams.return_value = []
         silo = factories.Silo(owner=self.tola_user.user)
         olg_tag = factories.Tag(name='Old Tag', owner=self.tola_user.user)
 
@@ -1546,6 +1548,37 @@ class SiloEditViewTest(TestCase):
             'name': 'The new silo name 2',
             'description': '',
             'shared': self.tola_user.user.pk
+        }
+
+        request = self.factory.post('/silo_edit/{}/'.format(silo.id), data)
+        request.user = self.tola_user.user
+        request._dont_enforce_csrf_checks = True
+        request.session = 'session'
+        message_storage = FallbackStorage(request)
+        request._messages = message_storage
+        views.edit_silo(request, silo.pk)
+
+        messages = []
+        for m in message_storage:
+            messages.append(m.message)
+
+        self.assertIn('Invalid Form', messages)
+
+    @patch('silo.forms.get_workflowteams')
+    @patch('silo.forms.get_by_url')
+    def test_share_silo_with_user_from_diff_organization(
+            self, mock_get_by_url, mock_get_workflowteams):
+        another_org = factories.Organization(name='Another Org')
+        another_user = factories.User(username='Another User')
+        factories.TolaUser(user=another_user, organization=another_org)
+
+        silo = factories.Silo(owner=self.tola_user.user)
+
+        data = {
+            'name': 'The new silo name',
+            'description': '',
+            'owner': self.tola_user.user.pk,
+            'shared': another_user.pk,
         }
 
         request = self.factory.post('/silo_edit/{}/'.format(silo.id), data)
