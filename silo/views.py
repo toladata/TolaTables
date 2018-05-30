@@ -474,7 +474,8 @@ def edit_silo(request, id):
 
                 post_data.appendlist('tags', tag.id)
 
-        form = SiloForm(data=post_data, instance=edited_silo)
+        form = SiloForm(user=request.user, data=post_data,
+                        instance=edited_silo)
         if form.is_valid():
             form.save()
             return HttpResponseRedirect('/silos/')
