@@ -1420,18 +1420,22 @@ def do_merge(request):
     try:
         left_table = Silo.objects.get(id=left_table_id)
     except Silo.DoesNotExist:
-        return HttpResponse('Could not find the left table with id={}'.format(
-                             left_table_id))
+        msg = 'Could not find the left table with id={}'.format(left_table_id)
+        logger.info(msg)
+        return JsonResponse({'status': 'danger', 'message': msg})
 
     try:
         right_table = Silo.objects.get(id=right_table_id)
     except Silo.DoesNotExist:
-        return HttpResponse('Could not find the right table with id={}'.format(
-                             right_table_id))
+        msg = 'Could not find the right table with id={}'.format(
+            right_table_id)
+        logger.info(msg)
+        return JsonResponse({'status': 'danger', 'message': msg})
 
     data = request.POST.get('columns_data', None)
     if not data:
-        return HttpResponse('No columns data passed')
+        msg = 'No columns data passed'
+        return JsonResponse({'status': 'danger', 'message': msg})
 
     # Create a new silo
     new_silo = Silo.objects.create(name=merged_silo_name, public=False,
@@ -1443,7 +1447,8 @@ def do_merge(request):
     merge_table_id = new_silo.pk
 
     if merge_type == 'merge':
-        res = mergeTwoSilos(data, left_table_id, right_table_id, merge_table_id)
+        res = mergeTwoSilos(data, left_table_id,
+                            right_table_id, merge_table_id)
     else:
         res = appendTwoSilos(
             data, left_table_id, right_table_id, merge_table_id
@@ -1453,12 +1458,13 @@ def do_merge(request):
         new_silo.delete()
         return JsonResponse(res)
 
-    mapping = MergedSilosFieldMapping(from_silo=left_table, to_silo=right_table,
-                                      merged_silo=new_silo, mapping=data,
-                                      merge_type=merge_type)
+    mapping = MergedSilosFieldMapping(
+        from_silo=left_table, to_silo=right_table,
+        merged_silo=new_silo, mapping=data, merge_type=merge_type)
     mapping.save()
-    return HttpResponseRedirect(
-        reverse_lazy('silo_detail', kwargs={'silo_id': merge_table_id}))
+    res.update({'silo_url': reverse_lazy(
+        'silo_detail', kwargs={'silo_id': merge_table_id})})
+    return JsonResponse(res)
 
 
 # EDIT A SINGLE VALUE STORE
