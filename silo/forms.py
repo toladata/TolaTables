@@ -1,12 +1,13 @@
 from django.core.urlresolvers import reverse_lazy
 from django import forms
 from django.contrib.auth.models import User
+from django.db.models import Q
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Reset, Field, Hidden
 from django.core.exceptions import ValidationError
 from collections import OrderedDict
 
-from silo.models import Read, Silo, WorkflowLevel1
+from silo.models import Read, Silo, WorkflowLevel1, TolaUser
 from tola.activity_proxy import get_workflowlevel1s
 
 
@@ -30,10 +31,17 @@ class SiloForm(forms.ModelForm):
     def __init__(self, user=None, *args, **kwargs):
         super(SiloForm, self).__init__(*args, **kwargs)
         # Filter programs based on the program teams from Activity
+        self.user = user
         if user:
             self.fields['shared'].queryset = User.objects.exclude(pk=user.pk)
 
             wfl1_uuids = get_workflowlevel1s(user)
+
+            organization_id = TolaUser.objects.\
+                values_list('organization_id', flat=True).get(user=user)
+            self.fields['shared'].queryset = User.objects.\
+                filter(tola_user__organization_id=organization_id).\
+                exclude(pk=user.pk)
 
             self.fields['workflowlevel1'].queryset = WorkflowLevel1.objects.\
                 filter(level1_uuid__in=wfl1_uuids)
@@ -51,12 +59,29 @@ class SiloForm(forms.ModelForm):
                   'share_with_organization', 'owner', 'workflowlevel1']
 
     def clean_shared(self):
-        data = self.cleaned_data['shared']
+        shared = self.cleaned_data['shared']
         owner = self.data.get('owner')
-        if owner:
-            if data.filter(pk=owner).exists():
-                raise ValidationError('You can not share table with owner.')
-        return data
+        valid = True
+
+        if owner and shared:
+            if self.user:
+                organization_id = TolaUser.objects.values_list(
+                    'organization_id', flat=True).get(user=self.user)
+                org_users_id = User.objects.values_list(
+                    'id', flat=True).filter(
+                    tola_user__organization_id=organization_id)
+
+                valid = shared.filter(
+                    ~Q(pk=owner) &
+                    Q(pk__in=org_users_id)
+                ).exists()
+            else:
+                valid = False
+
+        if not valid:
+            raise ValidationError('The form provided is invalid.')
+
+        return shared
 
 
 class NewColumnForm(forms.Form):

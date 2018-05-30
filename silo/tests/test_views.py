@@ -1674,9 +1674,6 @@ class SiloEditViewTest(TestCase):
                     wfl1_1.id)
             }
         ]
-        wfl1_data = {
-            'level1_uuid': wfl1_1.level1_uuid
-        }
 
         mock_get_workflowteams.mock_get_workflowteams = wfteams
         mock_get_workflowlevel1s.return_value = user_wf1s
