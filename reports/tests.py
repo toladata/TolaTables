@@ -30,7 +30,7 @@ class ReportsViewTest(TestCase):
 
         request = self.factory.get('')
         request.user = self.user
-        response = views.listTableDashboards(request)
+        response = views.list_table_dashboards(request)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Report')
 
@@ -47,7 +47,7 @@ class ReportsViewTest(TestCase):
 
         request = self.factory.get('')
         request.user = self.tola_user.user
-        response = views.listTableDashboards(request)
+        response = views.list_table_dashboards(request)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Report')
 
@@ -68,7 +68,7 @@ class ReportsViewTest(TestCase):
 
         request = self.factory.get('')
         request.user = request_user
-        response = views.listTableDashboards(request)
+        response = views.list_table_dashboards(request)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Report')
 
@@ -87,7 +87,7 @@ class ReportsViewTest(TestCase):
                        share_with_organization=True)
         request = self.factory.get('')
         request.user = request_user
-        response = views.listTableDashboards(request)
+        response = views.list_table_dashboards(request)
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'Test Share Report')
 
@@ -108,7 +108,7 @@ class ReportsViewTest(TestCase):
 
         request = self.factory.get('')
         request.user = request_user
-        response = views.listTableDashboards(request)
+        response = views.list_table_dashboards(request)
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'Test Share Report')
 
@@ -127,7 +127,7 @@ class ReportsViewTest(TestCase):
 
         request = self.factory.get('')
         request.user = self.user
-        response = views.listTableDashboards(request)
+        response = views.list_table_dashboards(request)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Report')
 
@@ -147,6 +147,6 @@ class ReportsViewTest(TestCase):
 
         request = self.factory.get('')
         request.user = request_user
-        response = views.listTableDashboards(request)
+        response = views.list_table_dashboards(request)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Report')
