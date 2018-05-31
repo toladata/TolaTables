@@ -167,6 +167,7 @@ class SiloDetailTest(TestCase):
         silo.reads.add(read)
         factories.CeleryTask(content_object=read,
                              task_status=CeleryTask.TASK_IN_PROGRESS)
+        factories.TolaUser(user=self.user)
 
         # Check view
 
@@ -196,6 +197,7 @@ class SiloDetailTest(TestCase):
         silo.reads.add(read)
         factories.CeleryTask(content_object=read,
                              task_status=CeleryTask.TASK_FAILED)
+        factories.TolaUser(user=self.user)
 
         # Check view
         request = self.factory.get(self.silo_detail_url)
@@ -225,7 +227,7 @@ class SiloDetailTest(TestCase):
         silo.reads.add(read)
         factories.CeleryTask(content_object=read,
                              task_status=CeleryTask.TASK_FINISHED)
-
+        factories.TolaUser(user=self.user)
         # Check view
         request = self.factory.get(self.silo_detail_url)
         request.user = self.user
@@ -300,7 +302,7 @@ class SiloTest(TestCase):
         self.tola_user = factories.TolaUser()
         factories.ReadType.create_batch(7)
 
-    @patch('silo.forms.get_workflowteams')
+    @patch('tola.activity_proxy.get_workflowteams')
     def test_new_silo(self, mock_get_workflowteams):
         mock_get_workflowteams.return_value = []
         # Create a New Silo
@@ -328,7 +330,7 @@ class SiloTest(TestCase):
         else:
             self.assertEqual(response.status_code, 200)
 
-    @patch('silo.forms.get_workflowteams')
+    @patch('tola.activity_proxy.get_workflowteams')
     def test_new_silodata(self, mock_get_workflowteams):
         mock_get_workflowteams.return_value = []
         read_type = ReadType.objects.get(read_type="CSV")

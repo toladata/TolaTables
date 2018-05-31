@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from django.test import TestCase
-from django.urls import reverse
 
 from mock import patch
 
@@ -36,15 +35,12 @@ class SiloFormTest(TestCase):
         self.assertTrue(form.has_changed())
         self.assertEqual(form.data, data)
 
-    @patch('silo.forms.get_workflowteams')
-    @patch('silo.forms.get_by_url')
-    def test_form_with_wfl1(self, mock_get_by_url, mock_get_workflowteams):
+    @patch('tola.activity_proxy.get_workflowteams')
+    def test_form_with_wfl1(self, mock_get_workflowteams):
         wfl1 = factories.WorkflowLevel1()
-        wfl1_url = reverse('workflowlevel1-detail', kwargs={'pk': wfl1.id})
 
-        workflowteams = [{'workflowlevel1': wfl1_url}]
+        workflowteams = [{'workflowlevel1': wfl1.__dict__}]
         mock_get_workflowteams.return_value = workflowteams
-        mock_get_by_url.return_value = wfl1.__dict__
         form = forms.SiloForm(user=self.user)
 
         item = form.fields.__getitem__('workflowlevel1')
@@ -53,8 +49,8 @@ class SiloFormTest(TestCase):
         self.assertEqual(queryset.count(), 1)
         self.assertTrue(queryset.filter(pk=wfl1.id).exists())
 
-    @patch('silo.forms.get_workflowteams')
-    @patch('silo.forms.get_by_url')
+    @patch('tola.activity_proxy.get_workflowteams')
+    @patch('tola.activity_proxy.get_by_url')
     def test_form_without_wfl1(self, mock_get_by_url, mock_get_workflowteams):
         workflowteams = [{'workflowlevel1': ''}]
         mock_get_workflowteams.return_value = workflowteams
@@ -66,7 +62,7 @@ class SiloFormTest(TestCase):
 
         self.assertEqual(queryset.count(), 0)
 
-    @patch('silo.forms.get_workflowteams')
+    @patch('tola.activity_proxy.get_workflowteams')
     def test_form_validate_success_with_form_user(self,
                                                   mock_get_workflowteams):
         mock_get_workflowteams.return_value = []
@@ -89,7 +85,7 @@ class SiloFormTest(TestCase):
 
         self.assertTrue(form.is_valid())
 
-    @patch('silo.forms.get_workflowteams')
+    @patch('tola.activity_proxy.get_workflowteams')
     def test_form_validate_success_shared(self, mock_get_workflowteams):
         mock_get_workflowteams.return_value = []
         user = factories.User(first_name='Homer', last_name='Simpson')
@@ -106,7 +102,7 @@ class SiloFormTest(TestCase):
 
         self.assertTrue(form.is_valid())
 
-    @patch('silo.forms.get_workflowteams')
+    @patch('tola.activity_proxy.get_workflowteams')
     def test_form_validate_fail_shared_diff_org(self, mock_get_workflowteams):
         mock_get_workflowteams.return_value = []
         user = factories.User(first_name='Homer', last_name='Simpson')
@@ -122,7 +118,7 @@ class SiloFormTest(TestCase):
 
         self.assertFalse(form.is_valid())
 
-    @patch('silo.forms.get_workflowteams')
+    @patch('tola.activity_proxy.get_workflowteams')
     def test_form_validate_fail_shared_with_owner(self,
                                                   mock_get_workflowteams):
         mock_get_workflowteams.return_value = []
@@ -140,7 +136,7 @@ class SiloFormTest(TestCase):
         form = forms.SiloForm(data=data, instance=silo)
         self.assertFalse(form.is_valid())
 
-    @patch('silo.forms.get_workflowteams')
+    @patch('tola.activity_proxy.get_workflowteams')
     def test_form_validate_fail_without_owner(self, mock_get_workflowteams):
         mock_get_workflowteams.return_value = []
         silo = factories.Silo(owner=self.user)
@@ -152,7 +148,7 @@ class SiloFormTest(TestCase):
         form = forms.SiloForm(user=self.user, data=data, instance=silo)
         self.assertFalse(form.is_valid())
 
-    @patch('silo.forms.get_workflowteams')
+    @patch('tola.activity_proxy.get_workflowteams')
     def test_form_validate_fail_without_form_user(self,
                                                   mock_get_workflowteams):
         mock_get_workflowteams.return_value = []

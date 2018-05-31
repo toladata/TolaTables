@@ -48,6 +48,7 @@ from .tasks import process_silo
 
 from django.contrib.contenttypes.models import ContentType
 from social_django.models import UserSocialAuth
+from tola.activity_proxy import get_workflowlevel1s
 
 logger = logging.getLogger("silo")
 client = MongoClient(settings.MONGO_URI)
@@ -439,16 +440,18 @@ def edit_silo(request, id):
     """
 
     edited_silo = Silo.objects.get(pk=id)
-
+    user_wfl1s = get_workflowlevel1s(request.user)
     request_user_org = None
     owner_user_org = None
+
     if(hasattr(request.user, 'tola_user') and
             hasattr(edited_silo.owner, 'tola_user')):
         request_user_org = request.user.tola_user.organization
         owner_user_org = edited_silo.owner.tola_user.organization
 
     is_silo_shared_with_user = Silo.objects.filter(
-        pk=id, shared__id=request.user.pk).exists()
+        Q(pk=id, shared__id=request.user.pk) |
+        Q(pk=id, workflowlevel1__level1_uuid__in=user_wfl1s)).exists()
 
     if not (edited_silo.owner == request.user or edited_silo.public
             or is_silo_shared_with_user
@@ -945,15 +948,17 @@ def list_silos(request):
     Each silo is listed with links to details
     """
     user = User.objects.get(username__exact=request.user)
+    user_wfl1s = get_workflowlevel1s(user)
 
     # get all of the silos
     own_silos = Silo.objects.filter(owner=user).prefetch_related('reads')
 
-    shared_silos = Silo.objects.filter(Q(shared__id=user.pk) |
-                                       Q(share_with_organization=True,
-                                         owner__tola_user__organization=\
-                                         user.tola_user.organization))\
-        .exclude(owner=user).prefetch_related("reads")
+    shared_silos = Silo.objects.filter(
+        Q(shared__id=user.pk) |
+        Q(share_with_organization=True,
+          owner__tola_user__organization=user.tola_user.organization) |
+        Q(workflowlevel1__level1_uuid__in=user_wfl1s)).\
+        exclude(owner=user).prefetch_related("reads")
 
     public_silos = Silo.objects.filter(
         Q(public=True) & ~Q(owner=user)).prefetch_related("reads")
@@ -1018,6 +1023,7 @@ def silo_detail(request, silo_id):
     """
 
     silo = Silo.objects.get(pk=silo_id)
+    user_wfl1s = get_workflowlevel1s(request.user)
     cols = []
     query = makeQueryForHiddenRow(json.loads(silo.rows_to_hide))
 
@@ -1049,22 +1055,26 @@ def silo_detail(request, silo_id):
         celery_tasks
     )
 
-    request_user_org=None
-    owner_user_org=None
-    if(hasattr(request.user, 'tola_user') and hasattr(silo.owner,'tola_user')):
+    request_user_org = None
+    owner_user_org = None
+    if hasattr(request.user, 'tola_user') and hasattr(silo.owner, 'tola_user'):
         request_user_org = request.user.tola_user.organization
         owner_user_org = silo.owner.tola_user.organization
 
+    is_silo_shared_with_user = Silo.objects.filter(
+        Q(pk=silo_id, shared__id=request.user.pk) |
+        Q(pk=silo_id, workflowlevel1__level1_uuid__in=user_wfl1s)).exists()
+
     if (silo.owner == request.user or silo.public
-            or request.user in silo.shared.all()
+            or is_silo_shared_with_user
             or (silo.share_with_organization
                 and request_user_org == owner_user_org)):
         cols.append('_id')
         cols.append('id')
         cols.extend(getSiloColumnNames(silo_id))
     else:
-        messages.warning(request,
-                         "You do not have permission to view this table.")
+        messages.error(request,
+                       "You do not have permission to view this table.")
     return render(
         request,
         "display/silo.html",

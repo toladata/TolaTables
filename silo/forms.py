@@ -7,8 +7,8 @@ from crispy_forms.layout import Layout, Submit, Reset, Field, Hidden
 from django.core.exceptions import ValidationError
 from collections import OrderedDict
 
-from silo.models import Read, Silo, TolaUser, WorkflowLevel1
-from tola.activity_proxy import get_by_url, get_workflowteams
+from silo.models import Read, Silo, WorkflowLevel1, TolaUser
+from tola.activity_proxy import get_workflowlevel1s
 
 
 class OnaLoginForm(forms.Form):
@@ -33,22 +33,15 @@ class SiloForm(forms.ModelForm):
         # Filter programs based on the program teams from Activity
         self.user = user
         if user:
+            self.fields['shared'].queryset = User.objects.exclude(pk=user.pk)
+
+            wfl1_uuids = get_workflowlevel1s(user)
+
             organization_id = TolaUser.objects.\
                 values_list('organization_id', flat=True).get(user=user)
             self.fields['shared'].queryset = User.objects.\
                 filter(tola_user__organization_id=organization_id).\
                 exclude(pk=user.pk)
-            params = {
-                'workflow_user__tola_user_uuid': user.tola_user.tola_user_uuid
-            }
-            wfteams = get_workflowteams(**params)
-            wfl1_uuids = []
-            for wfteam in wfteams:
-                if wfteam['workflowlevel1']:
-                    wfl1_url = wfteam['workflowlevel1']
-                    wfl1 = get_by_url(wfl1_url)
-                    if wfl1:
-                        wfl1_uuids.append(wfl1['level1_uuid'])
 
             self.fields['workflowlevel1'].queryset = WorkflowLevel1.objects.\
                 filter(level1_uuid__in=wfl1_uuids)
