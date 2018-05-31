@@ -936,9 +936,14 @@ def getJSON(request):
 def toggle_silo_publicity(request):
     silo_id = request.GET.get('silo_id', None)
     silo = Silo.objects.get(pk=silo_id)
-    silo.public = not silo.public
-    silo.save()
-    return HttpResponse("Your change has been saved")
+
+    if silo.owner == request.user:
+        silo.public = not silo.public
+        silo.save()
+        return HttpResponse('Your change has been saved', status=200)
+    else:
+        return HttpResponse('You can not  change publicity of this table',
+                            status=403)
 
 
 # SILOS
