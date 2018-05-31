@@ -4,6 +4,7 @@ import json
 from urlparse import urljoin
 
 from django.conf import settings
+from requests.exceptions import MissingSchema
 
 logger = logging.getLogger(__name__)
 
@@ -70,5 +71,5 @@ def get_workflowlevel1s(user):
                 if wfl1:
                     wfl1_uuids.append(wfl1['level1_uuid'])
         return wfl1_uuids
-    except Exception:
+    except MissingSchema:
         return []
