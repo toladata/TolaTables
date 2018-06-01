@@ -46,6 +46,10 @@ class SiloForm(forms.ModelForm):
             self.fields['workflowlevel1'].queryset = WorkflowLevel1.objects.\
                 filter(level1_uuid__in=wfl1_uuids)
 
+            if hasattr(self.instance, 'owner') and \
+                    not (user == self.instance.owner):
+                self.fields.pop('owner')
+
         # If you pass FormHelper constructor a form instance
         # It builds a default layout with all its fields
         self.helper = FormHelper(self)
@@ -62,7 +66,6 @@ class SiloForm(forms.ModelForm):
         shared = self.cleaned_data['shared']
         owner = self.data.get('owner')
         valid = True
-
         if owner and shared:
             if self.user:
                 organization_id = TolaUser.objects.values_list(
@@ -78,9 +81,14 @@ class SiloForm(forms.ModelForm):
             else:
                 valid = False
 
+        if owner and self.user:
+            if hasattr(self.instance, 'owner') and \
+                     self.instance.owner.pk != owner \
+                    and self.user != self.instance.owner:
+                valid = False
+
         if not valid:
             raise ValidationError('The form provided is invalid.')
-
         return shared
 
 

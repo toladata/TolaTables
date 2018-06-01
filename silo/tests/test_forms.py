@@ -164,3 +164,40 @@ class SiloFormTest(TestCase):
         }
         form = forms.SiloForm(data=data, instance=silo)
         self.assertFalse(form.is_valid())
+
+    @patch('tola.activity_proxy.get_workflowteams')
+    def test_form_validate_success_change_owner(self,
+                                                mock_get_workflowteams):
+        mock_get_workflowteams.return_value = []
+        user = factories.User(first_name='Homer', last_name='Simpson')
+        factories.TolaUser(
+            user=user, organization=self.tola_user.organization)
+        silo = factories.Silo(owner=self.user)
+
+        data = {
+            'name': silo.name,
+            'owner': user.id,
+        }
+        form = forms.SiloForm(user=self.user, data=data, instance=silo)
+        self.assertTrue(form.is_valid())
+
+    @patch('tola.activity_proxy.get_workflowteams')
+    def test_form_validate_fail_change_owner(self,
+                                             mock_get_workflowteams):
+        mock_get_workflowteams.return_value = []
+        user = factories.User(first_name='Homer', last_name='Simpson')
+        factories.TolaUser(
+            user=user, organization=self.tola_user.organization)
+
+        another_user = factories.User(username='Another User')
+        factories.TolaUser(user=another_user)
+
+        silo = factories.Silo(owner=self.user)
+
+        data = {
+            'name': silo.name,
+            'owner': another_user,
+            'shared': [user.id],
+        }
+        form = forms.SiloForm(user=another_user, data=data, instance=silo)
+        self.assertFalse(form.is_valid())
