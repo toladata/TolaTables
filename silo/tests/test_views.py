@@ -1285,6 +1285,47 @@ class SiloDetailViewTest(TestCase):
         self.assertIn("You do not have permission to view this table.",
                       messages)
 
+    def test_silo_detail_change_publicty_owner(self):
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[],
+                              share_with_organization=True)
+
+        request = self.factory.get('/toggle_silo_publicity/?silo_id={}'
+                                   .format(silo.pk))
+        request.user = self.user
+        response = views.toggle_silo_publicity(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, 'Your change has been saved')
+
+    def test_silo_detail_change_publicty_not_owner(self):
+
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user)
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[],
+                              share_with_organization=True)
+
+        request = self.factory.get('/toggle_silo_publicity/?silo_id={}'
+                                   .format(silo.pk))
+        request.user = request_user
+        response = views.toggle_silo_publicity(request)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.content,
+                         'You can not  change publicity of this table')
+
 
 class SiloListViewTest(TestCase):
     def setUp(self):
