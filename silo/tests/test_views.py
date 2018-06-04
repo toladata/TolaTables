@@ -1741,3 +1741,96 @@ class SiloEditViewTest(TestCase):
         request.user = request_user
         response = views.edit_silo(request, silo.pk)
         self.assertEqual(response.status_code, 404)
+
+    @patch('silo.views.get_workflowlevel1s')
+    def test_edit_silo_success_get_owner_selectbox(self,
+                                                   mock_get_workflowlevel1s):
+
+        mock_get_workflowlevel1s.return_value = []
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              workflowlevel1=[],
+                              share_with_organization=False)
+
+        request = self.factory.get('')
+        request.user = self.tola_user.user
+        response = views.edit_silo(request, silo.pk)
+        template_content = response.content
+
+        match = '<select name="owner"'
+        self.assertEqual(template_content.count(match), 1)
+
+    @patch('silo.views.get_workflowlevel1s')
+    def test_edit_silo_fail_get_owner_selectbox(self,
+                                                mock_get_workflowlevel1s):
+
+        request_user = factories.User(username='Another User')
+        wfl1_1 = factories.WorkflowLevel1(name='Workflowlevel1 1')
+
+        mock_get_workflowlevel1s.return_value = [wfl1_1.level1_uuid]
+        factories.TolaUser(user=request_user)
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              workflowlevel1=[],
+                              shared=[request_user],
+                              share_with_organization=False)
+
+        request = self.factory.get('')
+        request.user = request_user
+        response = views.edit_silo(request, silo.pk)
+        template_content = response.content
+
+        match = '<select name="owner"'
+        self.assertEqual(template_content.count(match), 0)
+
+    @patch('silo.views.get_workflowlevel1s', return_value=[])
+    def test_post_edit_silo_success_change_owner(self,
+                                                 mock_get_workflowlevel1s):
+
+        silo = factories.Silo(owner=self.tola_user.user)
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user,
+                           organization=self.tola_user.organization)
+
+        data = {
+            'name': 'The new silo name',
+            'description': '',
+            'owner': request_user.pk,
+            'tags': [],
+        }
+
+        request = self.factory.post('/silo_edit/{}/'.format(silo.id), data)
+        # request.user same with owner
+        request.user = self.tola_user.user
+        request._dont_enforce_csrf_checks = True
+        response = views.edit_silo(request, silo.pk)
+        self.assertEqual(response.status_code, 302)
+
+        silo = Silo.objects.get(pk=silo.pk)
+        self.assertEqual(silo.owner, request_user)
+
+    @patch('silo.views.get_workflowlevel1s', return_value=[])
+    def test_post_edit_silo_fail_change_owner(self,
+                                              mock_get_workflowlevel1s):
+
+        silo = factories.Silo(owner=self.tola_user.user)
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user,
+                           organization=self.tola_user.organization)
+
+        data = {
+            'name': 'The new silo name',
+            'description': '',
+            'owner': request_user.pk,
+            'tags': [],
+        }
+
+        request = self.factory.post('/silo_edit/{}/'.format(silo.id), data)
+        # request user different from owner
+        request.user = request_user
+        request._dont_enforce_csrf_checks = True
+        response = views.edit_silo(request, silo.pk)
+        self.assertEqual(response.status_code, 404)
+
+        silo = Silo.objects.get(pk=silo.pk)
+        self.assertNotEqual(silo.owner, request_user)
