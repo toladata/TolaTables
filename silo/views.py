@@ -48,6 +48,7 @@ from .tasks import process_silo
 
 from django.contrib.contenttypes.models import ContentType
 from social_django.models import UserSocialAuth
+from tola.activity_proxy import get_workflowlevel1s
 
 logger = logging.getLogger("silo")
 client = MongoClient(settings.MONGO_URI)
@@ -439,16 +440,18 @@ def edit_silo(request, id):
     """
 
     edited_silo = Silo.objects.get(pk=id)
-
+    user_wfl1s = get_workflowlevel1s(request.user)
     request_user_org = None
     owner_user_org = None
+
     if(hasattr(request.user, 'tola_user') and
             hasattr(edited_silo.owner, 'tola_user')):
         request_user_org = request.user.tola_user.organization
         owner_user_org = edited_silo.owner.tola_user.organization
 
     is_silo_shared_with_user = Silo.objects.filter(
-        pk=id, shared__id=request.user.pk).exists()
+        Q(pk=id, shared__id=request.user.pk) |
+        Q(pk=id, workflowlevel1__level1_uuid__in=user_wfl1s)).exists()
 
     if not (edited_silo.owner == request.user or edited_silo.public
             or is_silo_shared_with_user
@@ -474,7 +477,8 @@ def edit_silo(request, id):
 
                 post_data.appendlist('tags', tag.id)
 
-        form = SiloForm(data=post_data, instance=edited_silo)
+        form = SiloForm(user=request.user, data=post_data,
+                        instance=edited_silo)
         if form.is_valid():
             form.save()
             return HttpResponseRedirect('/silos/')
@@ -932,9 +936,14 @@ def getJSON(request):
 def toggle_silo_publicity(request):
     silo_id = request.GET.get('silo_id', None)
     silo = Silo.objects.get(pk=silo_id)
-    silo.public = not silo.public
-    silo.save()
-    return HttpResponse("Your change has been saved")
+
+    if silo.owner == request.user:
+        silo.public = not silo.public
+        silo.save()
+        return HttpResponse('Your change has been saved', status=200)
+    else:
+        return HttpResponse('You can not  change publicity of this table',
+                            status=403)
 
 
 # SILOS
@@ -944,15 +953,17 @@ def list_silos(request):
     Each silo is listed with links to details
     """
     user = User.objects.get(username__exact=request.user)
+    user_wfl1s = get_workflowlevel1s(user)
 
     # get all of the silos
     own_silos = Silo.objects.filter(owner=user).prefetch_related('reads')
 
-    shared_silos = Silo.objects.filter(Q(shared__id=user.pk) |
-                                       Q(share_with_organization=True,
-                                         owner__tola_user__organization=\
-                                         user.tola_user.organization))\
-        .exclude(owner=user).prefetch_related("reads")
+    shared_silos = Silo.objects.filter(
+        Q(shared__id=user.pk) |
+        Q(share_with_organization=True,
+          owner__tola_user__organization=user.tola_user.organization) |
+        Q(workflowlevel1__level1_uuid__in=user_wfl1s)).\
+        exclude(owner=user).prefetch_related("reads")
 
     public_silos = Silo.objects.filter(
         Q(public=True) & ~Q(owner=user)).prefetch_related("reads")
@@ -1017,6 +1028,7 @@ def silo_detail(request, silo_id):
     """
 
     silo = Silo.objects.get(pk=silo_id)
+    user_wfl1s = get_workflowlevel1s(request.user)
     cols = []
     query = makeQueryForHiddenRow(json.loads(silo.rows_to_hide))
 
@@ -1048,22 +1060,26 @@ def silo_detail(request, silo_id):
         celery_tasks
     )
 
-    request_user_org=None
-    owner_user_org=None
-    if(hasattr(request.user, 'tola_user') and hasattr(silo.owner,'tola_user')):
+    request_user_org = None
+    owner_user_org = None
+    if hasattr(request.user, 'tola_user') and hasattr(silo.owner, 'tola_user'):
         request_user_org = request.user.tola_user.organization
         owner_user_org = silo.owner.tola_user.organization
 
+    is_silo_shared_with_user = Silo.objects.filter(
+        Q(pk=silo_id, shared__id=request.user.pk) |
+        Q(pk=silo_id, workflowlevel1__level1_uuid__in=user_wfl1s)).exists()
+
     if (silo.owner == request.user or silo.public
-            or request.user in silo.shared.all()
+            or is_silo_shared_with_user
             or (silo.share_with_organization
                 and request_user_org == owner_user_org)):
         cols.append('_id')
         cols.append('id')
         cols.extend(getSiloColumnNames(silo_id))
     else:
-        messages.warning(request,
-                         "You do not have permission to view this table.")
+        messages.error(request,
+                       "You do not have permission to view this table.")
     return render(
         request,
         "display/silo.html",
@@ -1419,18 +1435,22 @@ def do_merge(request):
     try:
         left_table = Silo.objects.get(id=left_table_id)
     except Silo.DoesNotExist:
-        return HttpResponse('Could not find the left table with id={}'.format(
-                             left_table_id))
+        msg = 'Could not find the left table with id={}'.format(left_table_id)
+        logger.info(msg)
+        return JsonResponse({'status': 'danger', 'message': msg})
 
     try:
         right_table = Silo.objects.get(id=right_table_id)
     except Silo.DoesNotExist:
-        return HttpResponse('Could not find the right table with id={}'.format(
-                             right_table_id))
+        msg = 'Could not find the right table with id={}'.format(
+            right_table_id)
+        logger.info(msg)
+        return JsonResponse({'status': 'danger', 'message': msg})
 
     data = request.POST.get('columns_data', None)
     if not data:
-        return HttpResponse('No columns data passed')
+        msg = 'No columns data passed'
+        return JsonResponse({'status': 'danger', 'message': msg})
 
     # Create a new silo
     new_silo = Silo.objects.create(name=merged_silo_name, public=False,
@@ -1442,7 +1462,8 @@ def do_merge(request):
     merge_table_id = new_silo.pk
 
     if merge_type == 'merge':
-        res = mergeTwoSilos(data, left_table_id, right_table_id, merge_table_id)
+        res = mergeTwoSilos(data, left_table_id,
+                            right_table_id, merge_table_id)
     else:
         res = appendTwoSilos(
             data, left_table_id, right_table_id, merge_table_id
@@ -1452,12 +1473,13 @@ def do_merge(request):
         new_silo.delete()
         return JsonResponse(res)
 
-    mapping = MergedSilosFieldMapping(from_silo=left_table, to_silo=right_table,
-                                      merged_silo=new_silo, mapping=data,
-                                      merge_type=merge_type)
+    mapping = MergedSilosFieldMapping(
+        from_silo=left_table, to_silo=right_table,
+        merged_silo=new_silo, mapping=data, merge_type=merge_type)
     mapping.save()
-    return HttpResponseRedirect(
-        reverse_lazy('silo_detail', kwargs={'silo_id': merge_table_id}))
+    res.update({'silo_url': reverse_lazy(
+        'silo_detail', kwargs={'silo_id': merge_table_id})})
+    return JsonResponse(res)
 
 
 # EDIT A SINGLE VALUE STORE

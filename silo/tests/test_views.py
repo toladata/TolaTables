@@ -205,7 +205,8 @@ class SiloViewsTest(TestCase, MongoTestCase):
         messages = FallbackStorage(request)
         setattr(request, '_messages', messages)
 
-    def test_silo_template_authenticated_user(self):
+    @patch('silo.views.get_workflowlevel1s', return_value=[])
+    def test_silo_template_authenticated_user(self, mock_get_workflowlevel1s):
         request = self.factory.get('', follow=True)
         request.user = self.tola_user.user
         response = views.list_silos(request)
@@ -218,25 +219,28 @@ class SiloViewsTest(TestCase, MongoTestCase):
                 'class="dropdown-menu dropdown-menu-right">'
         self.assertEqual(template_content.count(match), 1)
 
-    @patch('silo.forms.get_workflowteams')
-    @patch('silo.forms.get_by_url')
-    def test_get_edit_silo(self, mock_get_by_url, mock_get_workflowteams):
+    @patch('tola.activity_proxy.get_workflowteams')
+    @patch('silo.forms.get_workflowlevel1s')
+    def test_get_edit_silo(self, mock_get_workflowlevel1s,
+                           mock_get_workflowteams):
         silo = factories.Silo(owner=self.tola_user.user)
         wfl1_1 = factories.WorkflowLevel1(level1_uuid=random.randint(1, 9999),
                                           name='Workflowlevel1 1')
         wfl1_2 = factories.WorkflowLevel1(level1_uuid=random.randint(1, 9999),
                                           name='Workflowlevel1 2')
-        wfteams = [
-            {
-                'workflowlevel1': 'test.de/workflowlevel1/{}/'.format(
-                    wfl1_1.id)
-            }
-        ]
+
         wfl1_data = {
             'level1_uuid': wfl1_1.level1_uuid
         }
+
+        wfteams = [
+            {
+                'workflowlevel1': wfl1_data
+            }
+        ]
+
+        mock_get_workflowlevel1s.return_value = [wfl1_1.level1_uuid]
         mock_get_workflowteams.return_value = wfteams
-        mock_get_by_url.return_value = wfl1_data
         request = self.factory.get('/silo_edit/{}/'.format(silo.id),
                                    follow=True)
         request.user = self.tola_user.user
@@ -250,8 +254,10 @@ class SiloViewsTest(TestCase, MongoTestCase):
         self.assertEqual(template_content.count(wfl1_1.name), 1)
         self.assertEqual(template_content.count(wfl1_2.name), 0)
 
-    @patch('silo.forms.get_workflowteams')
-    def test_get_edit_silo_no_teams(self, mock_get_workflowteams):
+    @patch('tola.activity_proxy.get_workflowteams')
+    @patch('silo.views.get_workflowlevel1s', return_value=[])
+    def test_get_edit_silo_no_teams(self, mock_get_workflowteams,
+                                    mock_get_workflowlevel1s):
         silo = factories.Silo(owner=self.tola_user.user)
         wfteams = []
         mock_get_workflowteams.return_value = wfteams
@@ -264,7 +270,8 @@ class SiloViewsTest(TestCase, MongoTestCase):
         match = 'selected>{}</option>'.format(self.tola_user.user.username)
         self.assertEqual(template_content.count(match), 1)
 
-    def test_post_edit_silo(self):
+    @patch('silo.views.get_workflowlevel1s', return_value=[])
+    def test_post_edit_silo(self, mock_get_workflowlevel1s):
         silo = factories.Silo(owner=self.tola_user.user)
         olg_tag = factories.Tag(name='Old Tag', owner=self.tola_user.user)
 
@@ -652,7 +659,10 @@ class DoMergeViewTest(TestCase):
     @patch('silo.views.mergeTwoSilos')
     @patch('silo.views.MergedSilosFieldMapping')
     def test_merge(self, mock_merged_silos_map, mock_merge_two_silos):
-        mock_merge_two_silos.return_value = {'status': 'success'}
+        mock_merge_two_silos.return_value = {
+            'status': 'success',
+            'message': 'Merged data successfully'
+        }
         mock_merged_silos_map.return_value = Mock()
 
         columns = [{'name': 'name', 'type': 'text'}]
@@ -679,17 +689,25 @@ class DoMergeViewTest(TestCase):
         request = self.factory.post('', data=data)
         request.user = self.tola_user.user
         response = views.do_merge(request)
+        content = json.loads(response.content)
 
         silo = Silo.objects.get(name=merged_silo_name)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, '/silo_detail/{}/'.format(silo.id))
+        expected_silo_url = reverse('silo_detail', args=[silo.id])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(content['status'], 'success')
+        self.assertEqual(content['message'], 'Merged data successfully')
+        self.assertEqual(content['silo_url'], expected_silo_url)
         self.assertIn(left_read, silo.reads.all())
         self.assertIn(right_read, silo.reads.all())
 
     @patch('silo.views.appendTwoSilos')
     @patch('silo.views.MergedSilosFieldMapping')
     def test_append(self, mock_merged_silos_map, mock_append_two_silos):
-        mock_append_two_silos.return_value = {'status': 'success'}
+        mock_append_two_silos.return_value = {
+            'status': 'success',
+            'message': 'Appended data successfully'
+        }
         mock_merged_silos_map.return_value = Mock()
 
         columns = [{'name': 'name', 'type': 'text'}]
@@ -716,10 +734,15 @@ class DoMergeViewTest(TestCase):
         request = self.factory.post('', data=data)
         request.user = self.tola_user.user
         response = views.do_merge(request)
+        content = json.loads(response.content)
 
         silo = Silo.objects.get(name=merged_silo_name)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, '/silo_detail/{}/'.format(silo.id))
+        expected_silo_url = reverse('silo_detail', args=[silo.id])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(content['status'], 'success')
+        self.assertEqual(content['message'], 'Appended data successfully')
+        self.assertEqual(content['silo_url'], expected_silo_url)
         self.assertIn(left_read, silo.reads.all())
         self.assertIn(right_read, silo.reads.all())
 
@@ -773,10 +796,12 @@ class DoMergeViewTest(TestCase):
         request = self.factory.post('', data=data)
         request.user = self.tola_user.user
         response = views.do_merge(request)
+        content = json.loads(response.content)
 
         self.assertRaises(Silo.DoesNotExist,
                           Silo.objects.get, name=merged_silo_name)
-        self.assertEqual(response.content, 'No columns data passed')
+        self.assertEqual(content['status'], 'danger')
+        self.assertEqual(content['message'], 'No columns data passed')
 
     def test_cannot_find_tables(self):
         read = factories.Read(read_name='Read Test', owner=self.tola_user.user)
@@ -792,8 +817,10 @@ class DoMergeViewTest(TestCase):
         request = self.factory.post('', data=data)
         request.user = self.tola_user.user
         response = views.do_merge(request)
+        content = json.loads(response.content)
 
-        self.assertEqual(response.content,
+        self.assertEqual(content['status'], 'danger')
+        self.assertEqual(content['message'],
                          'Could not find the left table with id=999')
 
         # Do not find the right table
@@ -806,14 +833,19 @@ class DoMergeViewTest(TestCase):
         request = self.factory.post('', data=data)
         request.user = self.tola_user.user
         response = views.do_merge(request)
+        content = json.loads(response.content)
 
-        self.assertEqual(response.content,
+        self.assertEqual(content['status'], 'danger')
+        self.assertEqual(content['message'],
                          'Could not find the right table with id=999')
 
     @patch('silo.views.mergeTwoSilos')
     @patch('silo.views.MergedSilosFieldMapping')
     def test_no_merge_name(self, mock_merged_silos_map, mock_merge_two_silos):
-        mock_merge_two_silos.return_value = {'status': 'success'}
+        mock_merge_two_silos.return_value = {
+            'status': 'success',
+            'message': 'Merged data successfully'
+        }
         mock_merged_silos_map.return_value = Mock()
 
         columns = [{'name': 'name', 'type': 'text'}]
@@ -841,10 +873,15 @@ class DoMergeViewTest(TestCase):
         request = self.factory.post('', data=data)
         request.user = self.tola_user.user
         response = views.do_merge(request)
+        content = json.loads(response.content)
 
         silo = Silo.objects.get(name=merged_silo_name)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, '/silo_detail/{}/'.format(silo.id))
+        expected_silo_url = reverse('silo_detail', args=[silo.id])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(content['status'], 'success')
+        self.assertEqual(content['message'], 'Merged data successfully')
+        self.assertEqual(content['silo_url'], expected_silo_url)
         self.assertIn(left_read, silo.reads.all())
         self.assertIn(right_read, silo.reads.all())
 
@@ -1079,6 +1116,7 @@ class SiloDetailViewTest(TestCase):
     def test_private_silo_detail_with_shared_user(self):
 
         request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user)
 
         read = factories.Read(read_name="test_data",
                               owner=self.user)
@@ -1191,6 +1229,102 @@ class SiloDetailViewTest(TestCase):
 
         self.assertIn('You do not have permission to view this table.',
                       messages)
+
+    @patch('silo.views.get_workflowlevel1s')
+    def test_silo_detail_shared_with_workflow(self,
+                                              mock_get_workflowlevel1s):
+
+        request_user = factories.User(username='Another User')
+        wfl1_1 = factories.WorkflowLevel1(name='Workflowlevel1 1')
+
+        user_wf1s = [wfl1_1.level1_uuid]
+
+        factories.TolaUser(user=request_user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              workflowlevel1=[wfl1_1],
+                              shared=[],
+                              share_with_organization=False)
+
+        mock_get_workflowlevel1s.return_value = user_wf1s
+        request = self.factory.get('')
+        request.user = request_user
+        response = views.silo_detail(request, silo.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test Share Silo')
+
+    @patch('silo.views.get_workflowlevel1s')
+    def test_silo_detail_not_shared_with_workflow(self,
+                                                  mock_get_workflowlevel1s):
+
+        request_user = factories.User(username='Another User')
+        wfl1_1 = factories.WorkflowLevel1(name='Workflowlevel1 1')
+
+        user_wf1s = [wfl1_1.level1_uuid]
+        factories.TolaUser(user=request_user)
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              workflowlevel1=[],
+                              shared=[],
+                              share_with_organization=False)
+
+        mock_get_workflowlevel1s.return_value = user_wf1s
+        request = self.factory.get('')
+        request.user = request_user
+        request.session = 'session'
+        message_storage = FallbackStorage(request)
+        request._messages = message_storage
+        views.silo_detail(request, silo.pk)
+
+        messages = []
+        for m in message_storage:
+            messages.append(m.message)
+
+        self.assertIn("You do not have permission to view this table.",
+                      messages)
+
+    def test_silo_detail_change_publicty_owner(self):
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[],
+                              share_with_organization=True)
+
+        request = self.factory.get('/toggle_silo_publicity/?silo_id={}'
+                                   .format(silo.pk))
+        request.user = self.user
+        response = views.toggle_silo_publicity(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, 'Your change has been saved')
+
+    def test_silo_detail_change_publicty_not_owner(self):
+
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user)
+        read = factories.Read(read_name="test_data",
+                              owner=self.tola_user.user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              reads=[read],
+                              public=False,
+                              shared=[],
+                              share_with_organization=True)
+
+        request = self.factory.get('/toggle_silo_publicity/?silo_id={}'
+                                   .format(silo.pk))
+        request.user = request_user
+        response = views.toggle_silo_publicity(request)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.content,
+                         'You can not  change publicity of this table')
 
 
 class SiloListViewTest(TestCase):
@@ -1353,6 +1487,50 @@ class SiloListViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content.count(match), 1)
 
+    @patch('silo.views.get_workflowlevel1s')
+    def test_list_silo_shared_with_workflow(self,
+                                            mock_get_workflowlevel1s):
+        request_user = factories.User(username='Another User')
+        wfl1_1 = factories.WorkflowLevel1(name='Workflowlevel1 1')
+
+        user_wf1s = [wfl1_1.level1_uuid]
+
+        factories.TolaUser(user=request_user)
+
+        factories.Silo(name='Test Share Silo',
+                       owner=self.tola_user.user,
+                       workflowlevel1=[wfl1_1],
+                       shared=[],
+                       share_with_organization=False)
+
+        mock_get_workflowlevel1s.return_value = user_wf1s
+        request = self.factory.get('')
+        request.user = request_user
+        response = views.list_silos(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test Share Silo')
+
+    @patch('silo.views.get_workflowlevel1s')
+    def test_list_silo_not_shared_with_workflow(self,
+                                                mock_get_workflowlevel1s):
+
+        request_user = factories.User(username='Another User')
+        wfl1_1 = factories.WorkflowLevel1(name='Workflowlevel1 1')
+
+        user_wf1s = [wfl1_1.level1_uuid]
+        factories.TolaUser(user=request_user)
+        factories.Silo(name='Test Share Silo',
+                       owner=self.tola_user.user,
+                       workflowlevel1=[],
+                       shared=[],
+                       share_with_organization=False)
+
+        mock_get_workflowlevel1s.return_value = user_wf1s
+        request = self.factory.get('')
+        request.user = request_user
+        response = views.list_silos(request)
+        self.assertNotContains(response, 'Test Share Silo')
+
 
 class SiloEditViewTest(TestCase):
     def setUp(self):
@@ -1360,9 +1538,8 @@ class SiloEditViewTest(TestCase):
         self.user = factories.User()
         self.tola_user = factories.TolaUser(user=self.user)
 
-    @patch('silo.forms.get_workflowteams')
-    @patch('silo.forms.get_by_url')
-    def test_silo_edit_page_with_unauthorized_user(self, mock_get_by_url,
+    @patch('tola.activity_proxy.get_workflowteams')
+    def test_silo_edit_page_with_unauthorized_user(self,
                                                    mock_get_workflowteams):
         request_user = factories.User(username='Another User')
         organization = factories.Organization(name='Another Organization')
@@ -1383,10 +1560,8 @@ class SiloEditViewTest(TestCase):
         response = views.edit_silo(request, silo.pk)
         self.assertEqual(response.status_code, 404)
 
-    @patch('silo.forms.get_workflowteams')
-    @patch('silo.forms.get_by_url')
-    def test_silo_edit_page_with_owner(self, mock_get_by_url,
-                                       mock_get_workflowteams):
+    @patch('tola.activity_proxy.get_workflowteams')
+    def test_silo_edit_page_with_owner(self, mock_get_workflowteams):
 
         read = factories.Read(read_name="test_data",
                               owner=self.tola_user.user)
@@ -1404,10 +1579,8 @@ class SiloEditViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Silo')
 
-    @patch('silo.forms.get_workflowteams')
-    @patch('silo.forms.get_by_url')
-    def test_silo_edit_page_with_shared_user(self, mock_get_by_url,
-                                             mock_get_workflowteams):
+    @patch('tola.activity_proxy.get_workflowteams')
+    def test_silo_edit_page_with_shared_user(self, mock_get_workflowteams):
         request_user = factories.User(username='Another User')
         factories.TolaUser(user=request_user)
 
@@ -1427,10 +1600,9 @@ class SiloEditViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Silo')
 
-    @patch('silo.forms.get_workflowteams')
-    @patch('silo.forms.get_by_url')
+    @patch('tola.activity_proxy.get_workflowteams')
     def test_silo_edit_page_with_shared_organizaton_user(
-            self, mock_get_by_url, mock_get_workflowteams):
+            self, mock_get_workflowteams):
 
         request_user = factories.User(username='Another User')
         factories.TolaUser(user=request_user,
@@ -1452,10 +1624,8 @@ class SiloEditViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Silo')
 
-    @patch('silo.forms.get_workflowteams')
-    @patch('silo.forms.get_by_url')
-    def test_public_silo_edit_page(self, mock_get_by_url,
-                                   mock_get_workflowteams):
+    @patch('tola.activity_proxy.get_workflowteams')
+    def test_public_silo_edit_page(self, mock_get_workflowteams):
 
         request_user = factories.User(username='Another User')
         factories.TolaUser(user=request_user,
@@ -1477,10 +1647,9 @@ class SiloEditViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Share Silo')
 
-    @patch('silo.forms.get_workflowteams')
-    @patch('silo.forms.get_by_url')
+    @patch('tola.activity_proxy.get_workflowteams')
     def test_share_silo_with_owner_failed_for_owner(
-            self, mock_get_by_url, mock_get_workflowteams):
+            self, mock_get_workflowteams):
         silo = factories.Silo(owner=self.tola_user.user)
 
         data = {
@@ -1504,9 +1673,8 @@ class SiloEditViewTest(TestCase):
 
         self.assertIn('Invalid Form', messages)
 
-    @patch('silo.forms.get_workflowteams')
-    @patch('silo.forms.get_by_url')
-    def test_share_silo_with_owner_failed_for_user(self, mock_get_by_url,
+    @patch('tola.activity_proxy.get_workflowteams')
+    def test_share_silo_with_owner_failed_for_user(self,
                                                    mock_get_workflowteams):
 
         request_user = factories.User(username='Another User')
@@ -1536,10 +1704,9 @@ class SiloEditViewTest(TestCase):
 
         self.assertIn('Invalid Form', messages)
 
-    @patch('silo.forms.get_workflowteams')
-    @patch('silo.forms.get_by_url')
+    @patch('tola.activity_proxy.get_workflowteams')
     def test_share_silo_without_owner_failed_for_user(
-            self, mock_get_by_url, mock_get_workflowteams):
+            self, mock_get_workflowteams):
         silo = factories.Silo(owner=self.tola_user.user)
 
         data = {
@@ -1561,3 +1728,150 @@ class SiloEditViewTest(TestCase):
             messages.append(m.message)
 
         self.assertIn('Invalid Form', messages)
+
+    @patch('silo.views.get_workflowlevel1s')
+    @patch('tola.activity_proxy.get_workflowteams')
+    def test_edit_silo_shared_with_workflow(self,
+                                            mock_get_workflowteams,
+                                            mock_get_workflowlevel1s):
+        request_user = factories.User(username='Another User')
+        wfl1_1 = factories.WorkflowLevel1(name='Workflowlevel1 1')
+
+        user_wf1s = [wfl1_1.level1_uuid]
+
+        wfteams = [
+            {
+                'workflowlevel1': 'example.de/workflowlevel1/{}/'.format(
+                    wfl1_1.id)
+            }
+        ]
+
+        mock_get_workflowteams.mock_get_workflowteams = wfteams
+        mock_get_workflowlevel1s.return_value = user_wf1s
+
+        factories.TolaUser(user=request_user)
+
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              workflowlevel1=[wfl1_1],
+                              shared=[],
+                              share_with_organization=False)
+
+        request = self.factory.get('')
+        request.user = request_user
+        response = views.edit_silo(request, silo.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test Share Silo')
+
+    @patch('silo.views.get_workflowlevel1s')
+    def test_edit_silo_not_shared_with_workflow(self,
+                                                mock_get_workflowlevel1s):
+
+        request_user = factories.User(username='Another User')
+        wfl1_1 = factories.WorkflowLevel1(name='Workflowlevel1 1')
+
+        mock_get_workflowlevel1s.return_value = [wfl1_1.level1_uuid]
+        factories.TolaUser(user=request_user)
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              workflowlevel1=[],
+                              shared=[],
+                              share_with_organization=False)
+
+        request = self.factory.get('')
+        request.user = request_user
+        response = views.edit_silo(request, silo.pk)
+        self.assertEqual(response.status_code, 404)
+
+    @patch('silo.views.get_workflowlevel1s')
+    def test_edit_silo_success_get_owner_selectbox(self,
+                                                   mock_get_workflowlevel1s):
+
+        mock_get_workflowlevel1s.return_value = []
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              workflowlevel1=[],
+                              share_with_organization=False)
+
+        request = self.factory.get('')
+        request.user = self.tola_user.user
+        response = views.edit_silo(request, silo.pk)
+        template_content = response.content
+
+        match = '<select name="owner"'
+        self.assertEqual(template_content.count(match), 1)
+
+    @patch('silo.views.get_workflowlevel1s')
+    def test_edit_silo_fail_get_owner_selectbox(self,
+                                                mock_get_workflowlevel1s):
+
+        request_user = factories.User(username='Another User')
+        wfl1_1 = factories.WorkflowLevel1(name='Workflowlevel1 1')
+
+        mock_get_workflowlevel1s.return_value = [wfl1_1.level1_uuid]
+        factories.TolaUser(user=request_user)
+        silo = factories.Silo(name='Test Share Silo',
+                              owner=self.tola_user.user,
+                              workflowlevel1=[],
+                              shared=[request_user],
+                              share_with_organization=False)
+
+        request = self.factory.get('')
+        request.user = request_user
+        response = views.edit_silo(request, silo.pk)
+        template_content = response.content
+
+        match = '<select name="owner"'
+        self.assertEqual(template_content.count(match), 0)
+
+    @patch('silo.views.get_workflowlevel1s', return_value=[])
+    def test_post_edit_silo_success_change_owner(self,
+                                                 mock_get_workflowlevel1s):
+
+        silo = factories.Silo(owner=self.tola_user.user)
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user,
+                           organization=self.tola_user.organization)
+
+        data = {
+            'name': 'The new silo name',
+            'description': '',
+            'owner': request_user.pk,
+            'tags': [],
+        }
+
+        request = self.factory.post('/silo_edit/{}/'.format(silo.id), data)
+        # request.user same with owner
+        request.user = self.tola_user.user
+        request._dont_enforce_csrf_checks = True
+        response = views.edit_silo(request, silo.pk)
+        self.assertEqual(response.status_code, 302)
+
+        silo = Silo.objects.get(pk=silo.pk)
+        self.assertEqual(silo.owner, request_user)
+
+    @patch('silo.views.get_workflowlevel1s', return_value=[])
+    def test_post_edit_silo_fail_change_owner(self,
+                                              mock_get_workflowlevel1s):
+
+        silo = factories.Silo(owner=self.tola_user.user)
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user,
+                           organization=self.tola_user.organization)
+
+        data = {
+            'name': 'The new silo name',
+            'description': '',
+            'owner': request_user.pk,
+            'tags': [],
+        }
+
+        request = self.factory.post('/silo_edit/{}/'.format(silo.id), data)
+        # request user different from owner
+        request.user = request_user
+        request._dont_enforce_csrf_checks = True
+        response = views.edit_silo(request, silo.pk)
+        self.assertEqual(response.status_code, 404)
+
+        silo = Silo.objects.get(pk=silo.pk)
+        self.assertNotEqual(silo.owner, request_user)

@@ -173,22 +173,44 @@
 {% endblock content %}
 {% block extra_js_in_body %}
     <script type="text/javascript">
+
+        function showWarningMessage(btn_txt) {
+
+            var message = '';
+            if (btn_txt == "Public") {
+                message = "Do you want to make this table private?";
+            } else {
+                message = "Public tables can be accessible by everyone. Do you want to continue?";
+            }
+            if (window.confirm(message)) {
+                return true;
+            } else
+                return false;
+        }
+
         $(document).ready(function() {
-            $('#list_silos').DataTable({stateSave: true});
+            $('#list_silos').DataTable({
+                stateSave: true
+            });
             $("a.public").click(function(e) {
                 var btn_id = $(this).attr('id');
                 var silo_id = btn_id.split("-")[1];
                 var btn_txt = $(this).text();
                 var btn = $(this);
-                $.get('/toggle_silo_publicity/', { "silo_id": silo_id } )
-                .done(function() {
-                    btn.text(btn_txt == "Public" ? "Private" : "Public");
-                    btn.toggleClass("btn-warning btn-primary");
-                    btn.blur();
-                })
-                .fail(function(a, b, c) {
-                    alert("Something went wrong: " + c);
-                });
+                if (showWarningMessage(btn_txt)) {
+                    $.get('/toggle_silo_publicity/', {
+                            "silo_id": silo_id
+                        })
+                        .done(function() {
+                            btn.text(btn_txt == "Public" ? "Private" : "Public");
+                            btn.toggleClass("btn-warning btn-primary");
+                            btn.blur();
+                        })
+                        .fail(function(a, b, c) {
+                            alert("Something went wrong: " + c);
+                        });
+                }
+                return;
             });
         });
     </script>
