@@ -33,15 +33,16 @@ class SiloForm(forms.ModelForm):
         # Filter programs based on the program teams from Activity
         self.user = user
         if user:
-            self.fields['shared'].queryset = User.objects.exclude(pk=user.pk)
-
             wfl1_uuids = get_workflowlevel1s(user)
 
             organization_id = TolaUser.objects.\
                 values_list('organization_id', flat=True).get(user=user)
-            self.fields['shared'].queryset = User.objects.\
-                filter(tola_user__organization_id=organization_id).\
-                exclude(pk=user.pk)
+
+            user_queryset = User.objects.\
+                filter(tola_user__organization_id=organization_id)
+
+            self.fields['shared'].queryset = user_queryset.exclude(pk=user.pk)
+            self.fields['owner'].queryset = user_queryset
 
             self.fields['workflowlevel1'].queryset = WorkflowLevel1.objects.\
                 filter(level1_uuid__in=wfl1_uuids)
