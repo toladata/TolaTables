@@ -145,18 +145,28 @@ class CustomFormViewSet(mixins.CreateModelMixin,
         if not request.user.is_superuser:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
+        # serialize and validate data
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # get fields' values
+        form_uuid = serializer.data['form_uuid']
+        level1_uuid = serializer.data['level1_uuid']
+        tola_user_uuid = serializer.data['tola_user_uuid']
+        form_name = serializer.data['name']
+        read_name = serializer.data['name']
+        columns = serializer.data['fields']
+        description = serializer.data.get('description', '')
+
+        # we need to convert the dict into a JSON to be stored
+        columns = json.dumps(columns)
+
         try:
-            form_uuid = request.POST['form_uuid']
-            level1_uuid = request.POST['level1_uuid']
-            tola_user_uuid = request.POST['tola_user_uuid']
             wkflvl1 = WorkflowLevel1.objects.get(level1_uuid=level1_uuid)
             tola_user = TolaUser.objects.get(tola_user_uuid=tola_user_uuid)
-            form_name = request.POST['name']
-            read_name = request.POST['name']
-            columns = request.POST['fields']
-        except (WorkflowLevel1.DoesNotExist, TolaUser.DoesNotExist, KeyError) \
-                as e:
-            return Response(e, status=status.HTTP_400_BAD_REQUEST)
+        except (WorkflowLevel1.DoesNotExist, TolaUser.DoesNotExist) as e:
+            return Response(
+                e.message, status=status.HTTP_400_BAD_REQUEST)
 
         url_subpath = '/activity/forms/{}/view'.format(form_uuid)
         form_url = urljoin(settings.ACTIVITY_URL, url_subpath)
@@ -170,7 +180,6 @@ class CustomFormViewSet(mixins.CreateModelMixin,
         table_name = '{} - {}'.format(form_name, wkflvl1.name)
         if len(table_name) > 255:
             table_name = table_name[:255]
-        description = request.POST.get('description', '')
         silo = Silo.objects.create(
             owner=tola_user.user,
             name=table_name,
@@ -184,7 +193,7 @@ class CustomFormViewSet(mixins.CreateModelMixin,
         silo.reads.add(read)
         silo.workflowlevel1.add(wkflvl1)
 
-        serializer = self.serializer_class(silo, context={'request': request})
+        serializer = SiloModelSerializer(silo)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):

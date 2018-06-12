@@ -60,7 +60,7 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         self.tola_user = factories.TolaUser()
         self.factory = APIRequestFactory()
 
-    def test_create_customform_superuser(self):
+    def test_create_customform_fields_not_valid(self):
         self.tola_user.user.is_staff = True
         self.tola_user.user.is_superuser = True
         self.tola_user.user.save()
@@ -72,7 +72,29 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         data = {
             'name': 'CustomForm Test',
             'description': 'This is a test.',
-            'fields': [
+            'fields': 'Test',
+            'level1_uuid': wflvl1.level1_uuid,
+            'tola_user_uuid': self.tola_user.tola_user_uuid,
+            'form_uuid': form_uuid
+        }
+
+        request = self.factory.post('api/customform', data=data)
+        request.user = self.tola_user.user
+        view = CustomFormViewSet.as_view({'post': 'create'})
+        response = view(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['fields'][0],
+                         'Value must be valid JSON.')
+
+    def test_create_customform_success_superuser(self):
+        self.tola_user.user.is_staff = True
+        self.tola_user.user.is_superuser = True
+        self.tola_user.user.save()
+
+        wflvl1 = factories.WorkflowLevel1(
+            organization=self.tola_user.organization)
+        fields = [
                 {
                     'name': 'name',
                     'type': 'text'
@@ -85,7 +107,13 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
                     'name': 'city',
                     'type': 'text'
                 }
-            ],
+        ]
+
+        form_uuid = uuid.uuid4()
+        data = {
+            'name': 'CustomForm Test',
+            'description': 'This is a test.',
+            'fields': json.dumps(fields),
             'level1_uuid': wflvl1.level1_uuid,
             'tola_user_uuid': self.tola_user.tola_user_uuid,
             'form_uuid': form_uuid
@@ -108,37 +136,6 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         reads = silo.reads.all()
         self.assertEqual(reads[0].read_url, form_url)
 
-    def test_create_customform_missing_data(self):
-        self.tola_user.user.is_staff = True
-        self.tola_user.user.is_superuser = True
-        self.tola_user.user.save()
-
-        data = {
-            'name': 'CustomForm Test',
-            'description': 'This is a test.',
-            'fields': [
-                {
-                    'name': 'name',
-                    'type': 'text'
-                },
-                {
-                    'name': 'age',
-                    'type': 'number'
-                },
-                {
-                    'name': 'city',
-                    'type': 'text'
-                }
-            ],
-        }
-
-        request = self.factory.post('api/customform', data=data)
-        request.user = self.tola_user.user
-        view = CustomFormViewSet.as_view({'post': 'create'})
-        response = view(request)
-
-        self.assertEqual(response.status_code, 400)
-
     def test_create_customform_long_name(self):
         self.tola_user.user.is_staff = True
         self.tola_user.user.is_superuser = True
@@ -151,12 +148,7 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
                  'longer than 255 characters that I do not know if this is '
                  'going to work well. Almost there!',
             organization=self.tola_user.organization)
-
-        form_uuid = uuid.uuid4()
-        data = {
-            'name': 'CustomForm Test',
-            'description': 'This is a test.',
-            'fields': [
+        fields = [
                 {
                     'name': 'name',
                     'type': 'text'
@@ -169,7 +161,13 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
                     'name': 'city',
                     'type': 'text'
                 }
-            ],
+        ]
+
+        form_uuid = uuid.uuid4()
+        data = {
+            'name': 'CustomForm Test',
+            'description': 'This is a test.',
+            'fields': json.dumps(fields),
             'level1_uuid': wflvl1.level1_uuid,
             'tola_user_uuid': self.tola_user.tola_user_uuid,
             'form_uuid': form_uuid
@@ -196,7 +194,89 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         reads = silo.reads.all()
         self.assertEqual(reads[0].read_url, form_url)
 
-    def test_create_customform_missing_data_superuser(self):
+    def test_create_customform_tolauser_not_found(self):
+        self.tola_user.user.is_staff = True
+        self.tola_user.user.is_superuser = True
+        self.tola_user.user.save()
+
+        wflvl1 = factories.WorkflowLevel1(
+            organization=self.tola_user.organization)
+        fields = [
+            {
+                'name': 'name',
+                'type': 'text'
+            },
+            {
+                'name': 'age',
+                'type': 'number'
+            },
+            {
+                'name': 'city',
+                'type': 'text'
+            }
+        ]
+
+        tola_user_uuid = uuid.uuid4()
+        form_uuid = uuid.uuid4()
+        data = {
+            'name': 'CustomForm Test',
+            'description': 'This is a test.',
+            'fields': json.dumps(fields),
+            'level1_uuid': wflvl1.level1_uuid,
+            'tola_user_uuid': tola_user_uuid,
+            'form_uuid': form_uuid
+        }
+
+        request = self.factory.post('api/customform', data=data)
+        request.user = self.tola_user.user
+        view = CustomFormViewSet.as_view({'post': 'create'})
+        response = view(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data,
+                         'TolaUser matching query does not exist.')
+
+    def test_create_customform_wfl1_not_found(self):
+        self.tola_user.user.is_staff = True
+        self.tola_user.user.is_superuser = True
+        self.tola_user.user.save()
+
+        fields = [
+                {
+                    'name': 'name',
+                    'type': 'text'
+                },
+                {
+                    'name': 'age',
+                    'type': 'number'
+                },
+                {
+                    'name': 'city',
+                    'type': 'text'
+                }
+        ]
+
+        level1_uuid = uuid.uuid4()
+        form_uuid = uuid.uuid4()
+        data = {
+            'name': 'CustomForm Test',
+            'description': 'This is a test.',
+            'fields': json.dumps(fields),
+            'level1_uuid': level1_uuid,
+            'tola_user_uuid': self.tola_user.tola_user_uuid,
+            'form_uuid': form_uuid
+        }
+
+        request = self.factory.post('api/customform', data=data)
+        request.user = self.tola_user.user
+        view = CustomFormViewSet.as_view({'post': 'create'})
+        response = view(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data,
+                         'WorkflowLevel1 matching query does not exist.')
+
+    def test_create_customform_missing_fields(self):
         self.tola_user.user.is_staff = True
         self.tola_user.user.is_superuser = True
         self.tola_user.user.save()
@@ -213,7 +293,15 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         view = CustomFormViewSet.as_view({'post': 'create'})
         response = view(request)
 
+        missing_fields = {
+            'level1_uuid': [u'This field is required.'],
+            'fields': [u'This field is required.'],
+            'tola_user_uuid': [u'This field is required.'],
+            'form_uuid': [u'This field is required.']
+        }
+
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, missing_fields)
 
     def test_create_customform_normaluser(self):
         data = {
