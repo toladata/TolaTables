@@ -95,18 +95,18 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         wflvl1 = factories.WorkflowLevel1(
             organization=self.tola_user.organization)
         fields = [
-                {
-                    'name': 'name',
-                    'type': 'text'
-                },
-                {
-                    'name': 'age',
-                    'type': 'number'
-                },
-                {
-                    'name': 'city',
-                    'type': 'text'
-                }
+            {
+                'name': 'name',
+                'type': 'text'
+            },
+            {
+                'name': 'age',
+                'type': 'number'
+            },
+            {
+                'name': 'city',
+                'type': 'text'
+            }
         ]
 
         form_uuid = uuid.uuid4()
@@ -149,18 +149,18 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
                  'going to work well. Almost there!',
             organization=self.tola_user.organization)
         fields = [
-                {
-                    'name': 'name',
-                    'type': 'text'
-                },
-                {
-                    'name': 'age',
-                    'type': 'number'
-                },
-                {
-                    'name': 'city',
-                    'type': 'text'
-                }
+            {
+                'name': 'name',
+                'type': 'text'
+            },
+            {
+                'name': 'age',
+                'type': 'number'
+            },
+            {
+                'name': 'city',
+                'type': 'text'
+            }
         ]
 
         form_uuid = uuid.uuid4()
@@ -242,18 +242,18 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         self.tola_user.user.save()
 
         fields = [
-                {
-                    'name': 'name',
-                    'type': 'text'
-                },
-                {
-                    'name': 'age',
-                    'type': 'number'
-                },
-                {
-                    'name': 'city',
-                    'type': 'text'
-                }
+            {
+                'name': 'name',
+                'type': 'text'
+            },
+            {
+                'name': 'age',
+                'type': 'number'
+            },
+            {
+                'name': 'city',
+                'type': 'text'
+            }
         ]
 
         level1_uuid = uuid.uuid4()
@@ -335,23 +335,28 @@ class CustomFormUpdateViewTest(TestCase):
             workflowlevel1=[wflvl1],
             owner=self.tola_user.user,
             public=False)
+        fields = [
+            {
+                'name': 'name',
+                'type': 'text'
+            },
+            {
+                'name': 'age',
+                'type': 'number'
+            },
+            {
+                'name': 'city',
+                'type': 'text'
+            }
+        ]
 
+        form_uuid = uuid.uuid4()
         data = {
             'name': 'CustomForm Test',
-            'fields': [
-                {
-                    'name': 'name',
-                    'type': 'text'
-                },
-                {
-                    'name': 'age',
-                    'type': 'number'
-                },
-                {
-                    'name': 'city',
-                    'type': 'text'
-                }
-            ]
+            'fields': json.dumps(fields),
+            'level1_uuid': wflvl1.level1_uuid,
+            'tola_user_uuid': self.tola_user.tola_user_uuid,
+            'form_uuid': form_uuid
         }
 
         request = self.factory.post('api/customform', data=data)

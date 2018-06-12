@@ -207,14 +207,19 @@ class CustomFormViewSet(mixins.CreateModelMixin,
         wkflvl1 = silo.workflowlevel1.first()
         read = silo.reads.first()
 
-        try:
-            table_name = request.data['name'].lower().replace(' ', '_')
-            table_name += '_' + wkflvl1.name.lower().replace(' ', '_')
-            read_name = request.data['name']
-            columns = request.data['fields']
-        except KeyError as e:
-            return Response(e, status=status.HTTP_400_BAD_REQUEST)
-        description = request.data.get('description', '')
+        # serialize and validate data
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # get fields' values
+        table_name = serializer.data['name'].lower().replace(' ', '_')
+        table_name += '_' + wkflvl1.name.lower().replace(' ', '_')
+        read_name = serializer.data['name']
+        columns = serializer.data['fields']
+        description = serializer.data.get('description', '')
+
+        # we need to convert the dict into a JSON to be stored
+        columns = json.dumps(columns)
 
         read.read_name = read_name
         read.save()
@@ -224,7 +229,7 @@ class CustomFormViewSet(mixins.CreateModelMixin,
         silo.columns = columns
         silo.save()
 
-        serializer = self.get_serializer(silo)
+        serializer = SiloModelSerializer(silo)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @detail_route(methods=['GET'],)
