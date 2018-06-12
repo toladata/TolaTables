@@ -54,10 +54,10 @@ class SiloSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class CustomFormSerializer(serializers.ModelSerializer):
-    id = serializers.ReadOnlyField()
-    fields = serializers.JSONField(write_only=True)
-    level1_uuid = serializers.CharField(write_only=True)
-    tola_user_uuid = serializers.CharField(write_only=True, required=False)
+    fields = serializers.JSONField()
+    level1_uuid = serializers.CharField(max_length=255)
+    tola_user_uuid = serializers.CharField(max_length=255)
+    form_uuid = serializers.CharField(max_length=255)
 
     class Meta:
         model = Silo
@@ -86,10 +86,11 @@ class ReadTypeSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class SiloModelSerializer(serializers.ModelSerializer):
+    id = serializers.ReadOnlyField()
 
     class Meta:
         model = Silo
-        fields = ('name', 'description', 'create_date', 'public')
+        fields = ('id', 'name', 'description', 'create_date', 'public')
         depth = 1
 
 
