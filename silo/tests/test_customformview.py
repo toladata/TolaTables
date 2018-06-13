@@ -9,7 +9,7 @@ from rest_framework.test import APIRequestFactory
 
 import factories
 from silo.tests import MongoTestCase
-from silo.api import CustomFormViewSet
+from silo.api import CustomFormViewSet, SiloViewSet
 from silo.models import Silo, LabelValueStore
 
 
@@ -129,7 +129,19 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         # For the tearDown
         silo_id = response.data['id']
         silo = Silo.objects.get(pk=silo_id)
+        form_name = '{} - {}'.format(data['name'], wflvl1.name)
+        fields.append({'name': 'submission_time', 'type': 'time'})
+        level1_uuids = silo.workflowlevel1.values_list(
+            'level1_uuid', flat=True).all()
+
         self.assertEqual(silo.data_count, 0)
+        self.assertEqual(silo.name, form_name)
+        self.assertEqual(silo.columns, json.dumps(fields))
+        self.assertEqual(silo.description, data['description'])
+        self.assertIn(str(data['level1_uuid']), level1_uuids)
+        self.assertEqual(silo.owner.tola_user.tola_user_uuid,
+                         str(data['tola_user_uuid']))
+        self.assertEqual(silo.form_uuid, str(data['form_uuid']))
 
         url_subpath = '/activity/forms/{}/view'.format(form_uuid)
         form_url = urljoin(settings.ACTIVITY_URL, url_subpath)
@@ -434,7 +446,8 @@ class CustomFormSaveDataViewTest(TestCase):
             owner=self.tola_user.user,
             columns='[{"name": "name", "type": "text"},'
                     '{"name": "age", "type": "number"},'
-                    '{"name": "city", "type": "text"}]',
+                    '{"name": "city", "type": "text"},'
+                    '{"name": "submission_time", "type": "time"}]',
             reads=[self.read],
             public=False
         )
@@ -537,6 +550,20 @@ class CustomFormSaveDataViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['detail'], 'It was successfully saved.')
         self.assertEqual(self.silo.data_count, 1)
+
+        request = self.factory.get('/api/silo/{}/data'.format(self.silo.id))
+        request.user = self.tola_user.user
+        view = SiloViewSet.as_view({'get': 'data'})
+        response = view(request, id=self.silo.id)
+        json_content = json.loads(response.content)
+        data = json_content['data'][0]
+
+        self.assertEqual(data['name'], 'John Lennon')
+        self.assertEqual(data['age'], 40)
+        self.assertEqual(data['city'], 'Liverpool')
+        # the time can be different if the request takes a while
+        self.assertIn('submission_time', data)
+        self.assertTrue(data['submission_time'])
 
     def test_save_data_customform_no_data_normaluser(self):
         data = {}

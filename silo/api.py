@@ -1,6 +1,7 @@
 import json
 import django_filters
 from urlparse import urljoin
+from datetime import datetime
 
 from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 from django.db.models import Q
@@ -156,6 +157,7 @@ class CustomFormViewSet(mixins.CreateModelMixin,
         form_name = serializer.data['name']
         read_name = serializer.data['name']
         columns = serializer.data['fields']
+        columns.append({'name': 'submission_time', 'type': 'time'})
         description = serializer.data.get('description', '')
 
         # we need to convert the dict into a JSON to be stored
@@ -257,6 +259,10 @@ class CustomFormViewSet(mixins.CreateModelMixin,
         else:
             return Response({'detail': 'Missing data.'},
                             status=status.HTTP_400_BAD_REQUEST)
+
+        if data:
+            submission_date = datetime.now().strftime('%H:%M:%S')
+            data.update({'submission_time': submission_date})
 
         try:
             silo = Silo.objects.get(pk=silo_id)
