@@ -1,5 +1,6 @@
 import json
 import uuid
+from datetime import datetime
 from urlparse import urljoin
 
 from django.conf import settings
@@ -130,7 +131,7 @@ class CustomFormCreateViewTest(TestCase, MongoTestCase):
         silo_id = response.data['id']
         silo = Silo.objects.get(pk=silo_id)
         form_name = '{} - {}'.format(data['name'], wflvl1.name)
-        fields.append({'name': 'submission_time', 'type': 'time'})
+        fields += CustomFormViewSet._default_columns
         level1_uuids = silo.workflowlevel1.values_list(
             'level1_uuid', flat=True).all()
 
@@ -447,7 +448,8 @@ class CustomFormSaveDataViewTest(TestCase):
             columns='[{"name": "name", "type": "text"},'
                     '{"name": "age", "type": "number"},'
                     '{"name": "city", "type": "text"},'
-                    '{"name": "submission_time", "type": "time"}]',
+                    '{"name": "submission_data", "type": "date"},'
+                    '{"name": "submission_time", "type": "date"}]',
             reads=[self.read],
             public=False
         )
@@ -561,6 +563,12 @@ class CustomFormSaveDataViewTest(TestCase):
         self.assertEqual(data['name'], 'John Lennon')
         self.assertEqual(data['age'], 40)
         self.assertEqual(data['city'], 'Liverpool')
+
+        # check the submission date
+        submission_date = datetime.now().strftime('%Y-%m-%d')
+        self.assertIn('submission_date', data)
+        self.assertEqual(data['submission_date'], submission_date)
+
         # the time can be different if the request takes a while
         self.assertIn('submission_time', data)
         self.assertTrue(data['submission_time'])
