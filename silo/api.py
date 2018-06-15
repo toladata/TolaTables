@@ -139,6 +139,7 @@ class CustomFormViewSet(mixins.CreateModelMixin,
     serializer_class = CustomFormSerializer
     queryset = Silo.objects.all()
     _default_columns = [
+        {'name': 'submitted_by', 'type': 'text'},
         {'name': 'submission_data', 'type': 'date'},
         {'name': 'submission_time', 'type': 'date'}
     ]
@@ -260,6 +261,7 @@ class CustomFormViewSet(mixins.CreateModelMixin,
         if 'silo_id' in request.data and 'data' in request.data:
             silo_id = request.data['silo_id']
             data = request.data['data']
+            submitted_by_uuid = request.data.get('submitted_by', None)
         else:
             return Response({'detail': 'Missing data.'},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -271,6 +273,12 @@ class CustomFormViewSet(mixins.CreateModelMixin,
             submission_time = now.strftime('%H:%M:%S')
             data.update({'submission_date': submission_date})
             data.update({'submission_time': submission_time})
+
+            # if there's a submitted_by uuid, add the user's name to the data
+            if submitted_by_uuid:
+                submitted_by_username = TolaUser.objects.values_list(
+                    'name', flat=True).get(tola_user_uuid=submitted_by_uuid)
+                data.update({'submitted_by': submitted_by_username})
 
         try:
             silo = Silo.objects.get(pk=silo_id)
