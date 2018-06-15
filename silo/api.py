@@ -138,6 +138,10 @@ class CustomFormViewSet(mixins.CreateModelMixin,
                         viewsets.GenericViewSet):
     serializer_class = CustomFormSerializer
     queryset = Silo.objects.all()
+    _default_columns = [
+        {'name': 'submission_data', 'type': 'date'},
+        {'name': 'submission_time', 'type': 'date'}
+    ]
 
     def create(self, request, *args, **kwargs):
         """
@@ -157,7 +161,7 @@ class CustomFormViewSet(mixins.CreateModelMixin,
         form_name = serializer.data['name']
         read_name = serializer.data['name']
         columns = serializer.data['fields']
-        columns.append({'name': 'submission_time', 'type': 'time'})
+        columns += self._default_columns
         description = serializer.data.get('description', '')
 
         # we need to convert the dict into a JSON to be stored
@@ -261,8 +265,12 @@ class CustomFormViewSet(mixins.CreateModelMixin,
                             status=status.HTTP_400_BAD_REQUEST)
 
         if data:
-            submission_date = datetime.now().strftime('%H:%M:%S')
-            data.update({'submission_time': submission_date})
+            # add the timestamp
+            now = datetime.now()
+            submission_date = now.strftime('%Y-%m-%d')
+            submission_time = now.strftime('%H:%M:%S')
+            data.update({'submission_date': submission_date})
+            data.update({'submission_time': submission_time})
 
         try:
             silo = Silo.objects.get(pk=silo_id)
