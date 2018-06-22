@@ -113,7 +113,6 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
 
     l_unmapped_cols = mappings.pop('left_unmapped_cols')
     r_unampped_cols = mappings.pop('right_unmapped_cols')
-
     merged_cols = []
 
     #print("lsid:% rsid:%s msid:%s" % (lsid, rsid, msid))
@@ -146,7 +145,7 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
     try:
         rsilo = Silo.objects.get(pk=rsid)
     except Silo.DoesNotExist as e:
-        msg = "Right Table does not exist: table_id=%s" % rsid
+        msg = "Right Silo does not exist: silo_id=%s" % rsid
         logger.error(msg)
         return {'status': "danger",  'message': msg}
 
@@ -156,7 +155,7 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
         merged_cols.sort()
         addColsToSilo(msilo, merged_cols)
     except Silo.DoesNotExist as e:
-        msg = "Merged Table does not exist: table_id=%s" % msid
+        msg = "Merged Silo does not exist: silo_id=%s" % msid
         logger.error(msg)
         return {'status': "danger",  'message': msg}
 
@@ -164,7 +163,7 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
     r_unique_fields = rsilo.unique_fields.all()
 
     if not r_unique_fields:
-        msg = "The table, [%s], must have a unique column and it should be the same as the one specified in [%s] table." % (rsilo.name, lsilo.name)
+        msg = "The silo, [%s], must have a unique column and it should be the same as the one specified in [%s] silo." % (rsilo.name, lsilo.name)
         logger.error(msg)
         return {'status': "danger",  'message': msg}
 
@@ -195,7 +194,7 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
         filter_criteria = {}
         for uf in r_unique_fields:
             try:
-                filter_criteria.update({str(uf.name): str(merged_row[uf.name])})
+                filter_criteria.update({str(uf.name): merged_row[uf.name]})
             except KeyError as e:
                 # when this excpetion occurs, it means that the col identified
                 # as the unique_col is not present in all rows of the right_table
@@ -211,14 +210,14 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
     # Retrieve the unique_fields set by left table
     l_unique_fields = lsilo.unique_fields.all()
     if not l_unique_fields:
-        msg = "The table, [%s], must have a unique column and it should be the same as the one specified in [%s] table." % (lsilo.name, rsilo.name)
+        msg = "The silo, [%s], must have a unique column and it should be the same as the one specified in [%s] silo." % (lsilo.name, rsilo.name)
         logger.error(msg)
         return {'status': "danger",  'message': msg}
 
     for uf in l_unique_fields:
         # if there are unique fields that are not in the right table then show error
         if not r_unique_fields.filter(name=uf.name).exists():
-            msg = "Both tables (%s, %s) must have the same column set as unique fields" % (lsilo.name, rsilo.name)
+            msg = "Both silos (%s, %s) must have the same column set as unique fields" % (lsilo.name, rsilo.name)
             logger.error(msg)
             return {"status": "danger", "message": msg}
 
@@ -274,7 +273,7 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
         filter_criteria = {}
         for uf in l_unique_fields:
             try:
-                filter_criteria.update({str(uf.name): str(merged_row[uf.name])})
+                filter_criteria.update({str(uf.name): merged_row[uf.name]})
             except KeyError:
                 # when this excpetion occurs, it means that the col identified
                 # as the unique_col is not present in all rows of the left_table
