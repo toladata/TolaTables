@@ -18,18 +18,16 @@ pipeline:
     when:
       event: [push, tag]
 
-  build-docker-image:
+  build-docker-image-tag:
     image: plugins/docker
     insecure: true
     registry: registry.tola.io
     repo: registry.tola.io/toladata/tolatables
     file: Dockerfile
-    tags:
-      - ${DRONE_COMMIT_SHA}
+    auto_tag: true
     secrets: [DOCKER_USERNAME, DOCKER_PASSWORD]
     when:
-      event: [push, tag]
-      branch: [master, demo, staging, dev-v2]
+      event: [tag]
       status: [success]
 
   notify:
