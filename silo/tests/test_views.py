@@ -656,7 +656,7 @@ class DoMergeViewTest(TestCase):
         self.tola_user = factories.TolaUser(organization=self.org)
         self.factory = APIRequestFactory()
 
-    @patch('silo.views.mergeTwoSilos')
+    @patch('silo.views.merge_two_silos')
     @patch('silo.views.MergedSilosFieldMapping')
     def test_merge(self, mock_merged_silos_map, mock_merge_two_silos):
         mock_merge_two_silos.return_value = {
@@ -746,7 +746,7 @@ class DoMergeViewTest(TestCase):
         self.assertIn(left_read, silo.reads.all())
         self.assertIn(right_read, silo.reads.all())
 
-    @patch('silo.views.mergeTwoSilos')
+    @patch('silo.views.merge_two_silos')
     def test_status_danger(self, mock_merge_two_silos):
         mock_merge_two_silos.return_value = {'status': 'danger'}
 
@@ -839,7 +839,7 @@ class DoMergeViewTest(TestCase):
         self.assertEqual(content['message'],
                          'Could not find the right table with id=999')
 
-    @patch('silo.views.mergeTwoSilos')
+    @patch('silo.views.merge_two_silos')
     @patch('silo.views.MergedSilosFieldMapping')
     def test_no_merge_name(self, mock_merged_silos_map, mock_merge_two_silos):
         mock_merge_two_silos.return_value = {

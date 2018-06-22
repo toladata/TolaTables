@@ -9,7 +9,7 @@ import random
 from silo.api import SiloViewSet
 from silo.models import LabelValueStore, Silo
 from tola.util import save_data_to_silo
-from silo.views import mergeTwoSilos
+from silo.views import merge_two_silos
 
 
 class SiloListViewTest(TestCase):
@@ -231,8 +231,8 @@ class MergeTwoSilosTest(TestCase):
                                      name='merged_silo',
                                      public=True)
 
-        response = mergeTwoSilos(self.mapping_data, left_silo.pk,
-                                 right_silo.pk, merged_silo.pk)
+        response = merge_two_silos(self.mapping_data, left_silo.pk,
+                                   right_silo.pk, merged_silo.pk)
 
         self.assertEqual(response,
                          {'status': "success",
@@ -256,8 +256,8 @@ class MergeTwoSilosTest(TestCase):
                                      name='merged_silo',
                                      public=True)
 
-        response = mergeTwoSilos(self.mapping_data, left_silo.pk,
-                                 right_silo.pk, merged_silo.pk)
+        response = merge_two_silos(self.mapping_data, left_silo.pk,
+                                   right_silo.pk, merged_silo.pk)
 
         self.assertEqual(response,
                          {'status': "danger",
@@ -276,8 +276,8 @@ class MergeTwoSilosTest(TestCase):
                                      name='merged_silo',
                                      public=True)
 
-        response = mergeTwoSilos(self.mapping_data, left_silo.pk,
-                                 right_silo.pk, merged_silo.pk)
+        response = merge_two_silos(self.mapping_data, left_silo.pk,
+                                   right_silo.pk, merged_silo.pk)
 
         self.assertEqual(response,
                          {'status': "danger",
@@ -296,8 +296,8 @@ class MergeTwoSilosTest(TestCase):
                                      name='merged_silo',
                                      public=True)
 
-        response = mergeTwoSilos(self.mapping_data, left_silo_random_id,
-                                 right_silo.pk, merged_silo.pk)
+        response = merge_two_silos(self.mapping_data, left_silo_random_id,
+                                   right_silo.pk, merged_silo.pk)
 
         self.assertEqual(response,
                          {'status': "danger",
@@ -314,8 +314,8 @@ class MergeTwoSilosTest(TestCase):
                                      name='merged_silo',
                                      public=True)
 
-        response = mergeTwoSilos(self.mapping_data, left_silo.pk,
-                                 right_silo_random_id, merged_silo.pk)
+        response = merge_two_silos(self.mapping_data, left_silo.pk,
+                                   right_silo_random_id, merged_silo.pk)
 
         self.assertEqual(response,
                          {'status': "danger",
@@ -331,8 +331,8 @@ class MergeTwoSilosTest(TestCase):
 
         merged_silo_random_id = random.randint(1, 9999)
 
-        response = mergeTwoSilos(self.mapping_data, left_silo.pk,
-                                 right_silo.pk, merged_silo_random_id)
+        response = merge_two_silos(self.mapping_data, left_silo.pk,
+                                   right_silo.pk, merged_silo_random_id)
 
         self.assertEqual(response,
                          {'status': "danger",
@@ -350,8 +350,8 @@ class MergeTwoSilosTest(TestCase):
                                      name='merged_silo',
                                      public=True)
 
-        response = mergeTwoSilos(self.mapping_data, left_silo.pk,
-                                 right_silo.pk, merged_silo.pk)
+        response = merge_two_silos(self.mapping_data, left_silo.pk,
+                                   right_silo.pk, merged_silo.pk)
 
         self.assertEqual(response,
                          {'status': "danger",
@@ -379,8 +379,8 @@ class MergeTwoSilosTest(TestCase):
                                      name='merged_silo',
                                      public=True)
 
-        response = mergeTwoSilos(mapping_data, left_silo.pk,
-                                 right_silo.pk, merged_silo.pk)
+        response = merge_two_silos(mapping_data, left_silo.pk,
+                                   right_silo.pk, merged_silo.pk)
 
         self.assertEqual(response,
                          {'status': "danger",
@@ -424,8 +424,8 @@ class MergeTwoSilosTest(TestCase):
                                      name='merged_silo',
                                      public=True)
 
-        response = mergeTwoSilos(mapping_data, left_silo.pk, right_silo.pk,
-                                 merged_silo.pk)
+        response = merge_two_silos(mapping_data, left_silo.pk,
+                                   right_silo.pk, merged_silo.pk)
 
         self.assertEqual(response,
                          {'status': "success",
@@ -452,8 +452,8 @@ class MergeTwoSilosTest(TestCase):
                                      name='merged_silo',
                                      public=True)
 
-        response = mergeTwoSilos(self.mapping_data, left_silo.pk,
-                                 right_silo.pk, merged_silo.pk)
+        response = merge_two_silos(self.mapping_data, left_silo.pk,
+                                   right_silo.pk, merged_silo.pk)
 
         self.assertEqual(response,
                          {'status': "success",
@@ -478,8 +478,8 @@ class MergeTwoSilosTest(TestCase):
                                      name='merged_silo',
                                      public=True)
 
-        response = mergeTwoSilos(self.mapping_data, left_silo.pk,
-                                 right_silo.pk, merged_silo.pk)
+        response = merge_two_silos(self.mapping_data, left_silo.pk,
+                                   right_silo.pk, merged_silo.pk)
 
         self.assertEqual(response,
                          {'status': "success",
