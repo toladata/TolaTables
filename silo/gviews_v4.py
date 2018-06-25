@@ -412,8 +412,13 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id, query, headers):
                         values.append({"userEnteredValue": {"stringValue":
                                                                 ""}})
                 else:
+                    value = smart_text(row[header])
+                    if header == '_id':
+                        value = smart_text(row[header]['$oid'])
+
                     values.append({"userEnteredValue": {
-                        "stringValue": smart_text(row[header])}})
+                        "stringValue": value}})
+
             except KeyError:
                 values.append({"userEnteredValue": {"stringValue": ""}})
         rows.append({"values": values})
@@ -421,13 +426,12 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id, query, headers):
     # prepare column names as a header row in spreadsheet
     values = []
     for header in headers:
-        values.append({
-                      "userEnteredValue": {"stringValue": header},
-                      'userEnteredFormat':
-                          {'backgroundColor':
-                               {'red':0.5,'green':0.5, 'blue': 0.5}}
-                      })
+        if header == '_id':
+            header = 'id'
 
+        values.append({"userEnteredValue": {"stringValue": header},
+                       'userEnteredFormat': {'backgroundColor':
+                             {'red': 0.5, 'green': 0.5, 'blue': 0.5}}})
     # Now update the rows array place holder with real column names
     rows[0]["values"] = values
 
@@ -623,6 +627,8 @@ def export_to_gsheet(request, id):
 
     cols_to_export = json.loads(request.GET.get('shown_cols', json.dumps(
         getSiloColumnNames(id))))
+
+    cols_to_export.insert(0, '_id')
 
     msgs = export_to_gsheet_helper(request.user, spreadsheet_id, id, query,
                                    cols_to_export)
