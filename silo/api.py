@@ -21,7 +21,8 @@ from rest_framework import mixins, status
 from .serializers import *
 from .models import (Silo, LabelValueStore, Country, WorkflowLevel1,
                      WorkflowLevel2, TolaUser, Read, ReadType)
-from silo.permissions import *
+from silo.permissions import (IsOwnerOrReadOnly, ReadIsOwnerViewOrWrite,
+                          SiloIsOwnerOrCanRead)
 from tola.util import (getSiloColumnNames, getCompleteSiloColumnNames,
                        save_data_to_silo, JSONEncoder)
 
@@ -316,7 +317,7 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = 'id'
     # this permission sets seems to break the default permissions set by the restframework
     # permission_classes = (IsOwnerOrReadOnly,)
-    permission_classes = (IsAuthenticated, Silo_IsOwnerOrCanRead,)
+    permission_classes = (IsAuthenticated, SiloIsOwnerOrCanRead)
     filter_fields = ('owner__username','shared__username',
                      'id','tags','public')
     filter_backends = (filters.DjangoFilterBackend,)
