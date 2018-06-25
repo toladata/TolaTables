@@ -105,7 +105,22 @@ class SiloDataViewTest(TestCase):
             lvs.delete()
         self._import_json(self.silo, self.read)
 
-    def test_data_silo(self):
+    def test_data_silo_superuser(self):
+        another_user = factories.User(first_name='Homer',
+                                      last_name='Simpson', is_superuser=True)
+        factories.TolaUser(user=another_user)
+
+        request = self.factory.get('/api/silo/{}/data'.format(self.silo.id))
+        request.user = another_user
+        view = SiloViewSet.as_view({'get': 'data'})
+        response = view(request, id=self.silo.id)
+
+        self.assertEqual(response.status_code, 200)
+        json_content = json.loads(response.content)
+        self.assertEqual(json_content['recordsTotal'], 20)
+        self.assertEqual(json_content['recordsFiltered'], 20)
+
+    def test_data_silo_owner(self):
         request = self.factory.get('/api/silo/{}/data'.format(self.silo.id))
         request.user = self.tola_user.user
         view = SiloViewSet.as_view({'get': 'data'})
