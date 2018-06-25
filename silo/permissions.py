@@ -33,6 +33,9 @@ class SiloIsOwnerOrCanRead(permissions.BasePermission):
     """
 
     def has_object_permission(self, request, view, obj):
+        if request.user and request.user.is_superuser:
+            return True
+
         permitted = list()
         is_owner = obj.owner == request.user
         permitted.append(is_owner)
