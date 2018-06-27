@@ -369,9 +369,8 @@ def ona_parse_type_group(data, form_data, parent_name, silo, read):
     """
 
     for field in form_data:
-
+        entry_name = parent_name + field['name']
         if field["type"] == "group":
-            entry_name = parent_name + field['name']
             ona_parse_type_group(data, field['children'], entry_name + "/",
                                  silo, read)
         else:
