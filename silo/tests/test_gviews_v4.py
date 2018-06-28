@@ -104,6 +104,7 @@ class ExportToGSheetTest(TestCase):
         request = self.factory.get(url, follow=True)
         request.user = self.tola_user.user
         response = gviews_v4.export_to_gsheet(request, self.silo.pk)
+        cols.append('_id')
 
         mock_gsheet_helper.assert_called_once_with(self.tola_user.user,
                                                    spreadsheet_id,
@@ -116,7 +117,7 @@ class ExportToGSheetTest(TestCase):
     def test_export_to_gsheet_no_params(self, mock_gsheet_helper):
         spreadsheet_id = None
         query = {}
-        expected_cols = ['cnt', 'grs', 'tit', 'rank', 'opn', 'yr']
+        expected_cols = ['_id', 'cnt', 'grs', 'tit', 'rank', 'opn', 'yr']
 
         mock_gsheet_helper.return_value = []
 
@@ -182,11 +183,12 @@ class ExportToGSheetTest(TestCase):
     def test_export_to_gsheet_with_cols(self, mock_gsheet_helper):
         spreadsheet_id = None
         query = {}
-        cols = ["yr", "rank", "opn"]
+        cols = ["_id", "yr", "rank", "opn"]
         mock_gsheet_helper.return_value = []
 
         url = reverse('export_new_gsheet', kwargs={'id': self.silo.pk})
-        url = url + '?&query='+str(query)+'&shown_cols=["yr", "rank", "opn"]'
+        url = url + '?&query='+str(query)+'&shown_cols=["yr", ' \
+                                          '"rank", "opn"]'
 
         request = self.factory.get(url, follow=True)
         request.user = self.tola_user.user
@@ -203,7 +205,7 @@ class ExportToGSheetTest(TestCase):
     @patch('silo.gviews_v4.export_to_gsheet_helper')
     def test_export_to_gsheet_with_query(self, mock_gsheet_helper):
         query = {"$or": [{"First_Name": {"$nin": ["1", 1.0, 1]}}]}
-        expected_cols = []
+        expected_cols = ['_id']
         mock_gsheet_helper.return_value = []
 
         url = reverse('export_new_gsheet', kwargs={'id': self.silo.pk})
@@ -226,7 +228,7 @@ class ExportToGSheetTest(TestCase):
     def test_export_to_gsheet_redirect_uri(self, mock_gsheet_helper):
         spreadsheet_id = None
         query = {}
-        expected_cols = ['cnt', 'grs', 'tit', 'rank', 'opn', 'yr']
+        expected_cols = ['_id', 'cnt', 'grs', 'tit', 'rank', 'opn', 'yr']
 
         url = reverse('export_new_gsheet', kwargs={'id': self.silo.pk})
         request = self.factory.get(url, follow=True)

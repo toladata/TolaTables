@@ -333,7 +333,7 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id, query, headers):
         return msgs
 
     try:
-        # if no spreadhsset_id is provided, then create a new spreadsheet
+        # if no spreadsheet_id is provided, then create a new spreadsheet
         if spreadsheet_id is None:
             # create a new google spreadsheet
             body = {"properties":{"title": silo.name}}
@@ -352,7 +352,7 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id, query, headers):
                     "msg": msg})
         return msgs
 
-    #get spreadsheet metadata
+    # get spreadsheet metadata
     spreadsheet_name = spreadsheet.get("properties", {}).get("title", "")
     sheet = spreadsheet.get('sheets', '')[0]
     title = sheet.get("properties", {}).get("title", "Sheet1")
@@ -365,7 +365,7 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id, query, headers):
                                       user,
                                       silo)
 
-    #get the meta-data from other sheets
+    # get the meta-data from other sheets
     other_title = []
     other_sheet_id = []
     if len(spreadsheet.get('sheets','')) > 0:
@@ -390,12 +390,11 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id, query, headers):
             try:
                 if type(row[header]) == list:
                     if header == 'sys__geolocation':
-                        geoString = ",".join(
+                        geo_string = ",".join(
                             [str(h) for h in list(row[header])])
                         values.append({"userEnteredValue":
                                            {"stringValue":
-                                                smart_text(geoString)}})
-
+                                                smart_text(geo_string)}})
                     elif len(row[header]) > 0:
                         try:
                             repeat_data[header].append(row[header])
@@ -409,25 +408,29 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id, query, headers):
                                 and header not in other_title:
                             repeat_headers.append(header)
                     else:
-                        values.append({"userEnteredValue": {"stringValue":
-                                                                ""}})
+                        values.append({"userEnteredValue":
+                                           {"stringValue": ""}})
                 else:
+                    value = smart_text(row[header])
+                    if header == '_id':
+                        value = smart_text(row[header]['$oid'])
+
                     values.append({"userEnteredValue": {
-                        "stringValue": smart_text(row[header])}})
+                        "stringValue": value}})
+
             except KeyError:
                 values.append({"userEnteredValue": {"stringValue": ""}})
         rows.append({"values": values})
 
-    # prepare column names as a header row in spreadsheet
+    # prepare column names as a header row in spreadsheetxw
     values = []
     for header in headers:
-        values.append({
-                      "userEnteredValue": {"stringValue": header},
-                      'userEnteredFormat':
-                          {'backgroundColor':
-                               {'red':0.5,'green':0.5, 'blue': 0.5}}
-                      })
+        if header == '_id':
+            header = 'id'
 
+        values.append({"userEnteredValue": {"stringValue": header},
+                       'userEnteredFormat': {'backgroundColor':
+                             {'red': 0.5, 'green': 0.5, 'blue': 0.5}}})
     # Now update the rows array place holder with real column names
     rows[0]["values"] = values
 
@@ -498,7 +501,7 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id, query, headers):
     if len(repeat_cells) == 0:
         return msgs
 
-    #use the response to get the sheetid for new sheets added
+    # use the response to get the sheetid for new sheets added
     for reply in response['replies']:
         try:
             other_title.append(reply.get("addSheet").get("properties").get(
@@ -513,16 +516,16 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id, query, headers):
         return msgs
 
     requests = []
-    #Add repeats data to the new sheet
-
-    for i in range(0,len(other_title)): # goes through each sheet
+    # Add repeats data to the new sheet
+    # goes through each sheet
+    for i in range(0, len(other_title)):
         rows = [{"values": []}]
         for j, row_set in enumerate(repeat_data.get(other_title[i],[])):
             headers = []
             rows.append({"values":
-                            [{"userEnteredValue": {"stringValue": "From row "
-                                                                "%i" % j},
-                            'userEnteredFormat': {'backgroundColor': {
+                            [{"userEnteredValue":
+                                  {"stringValue": "From row ""%i" % j},
+                              'userEnteredFormat': {'backgroundColor': {
                                 'red':0.75,'green':0.75, 'blue': 0.75}}
                             }]
             })
@@ -542,7 +545,7 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id, query, headers):
             values.append({
                           "userEnteredValue": {"stringValue": header},
                           'userEnteredFormat': {'backgroundColor': {
-                              'red':0.5,'green':0.5, 'blue': 0.5}}
+                              'red': 0.5, 'green': 0.5, 'blue': 0.5}}
                           })
 
         # Now update the rows array place holder with real column names
@@ -582,15 +585,15 @@ def export_to_gsheet_helper(user, spreadsheet_id, silo_id, query, headers):
         rows = []
         x_cord = repeat_cells.get(other_title[i],(0,0))[0]
         y_cord = repeat_cells.get(other_title[i],(0,0))[1]
-        for j in range(0,y_cord):
-            rows.append({"values":[
-                        {"userEnteredValue": {
-                        "formulaValue": "=HYPERLINK(\"#gid=%i\","
+        for j in range(0, y_cord):
+            rows.append({"values": [
+                        {"userEnteredValue":
+                             {"formulaValue": "=HYPERLINK(\"#gid=%i\","
                                         "\"See Data\")" % other_sheet_id[i]
                         }}
                 ]})
         # Get hyperlink to actually work
-        if len(rows)>0:
+        if len(rows) > 0:
             requests.append({
                 'updateCells': {
                     'start': {'sheetId': sheet_id, 'rowIndex': 1,
@@ -623,6 +626,8 @@ def export_to_gsheet(request, id):
 
     cols_to_export = json.loads(request.GET.get('shown_cols', json.dumps(
         getSiloColumnNames(id))))
+
+    cols_to_export.insert(0, '_id')
 
     msgs = export_to_gsheet_helper(request.user, spreadsheet_id, id, query,
                                    cols_to_export)
