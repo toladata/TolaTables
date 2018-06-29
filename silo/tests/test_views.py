@@ -1531,6 +1531,15 @@ class SiloListViewTest(TestCase):
         response = views.list_silos(request)
         self.assertNotContains(response, 'Test Share Silo')
 
+    def test_list_silo_inlinemanual_tour(self):
+        request = self.factory.get('')
+        request.user = self.tola_user.user
+        response = views.list_silos(request)
+        match = 'https://inlinemanual.com/embed/' \
+                'player.3c86e010f5c79d355223b63b3ec541ea.js'
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.count(match), 1)
+
 
 class SiloEditViewTest(TestCase):
     def setUp(self):
