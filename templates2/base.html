@@ -373,20 +373,22 @@
         </script>
         <script type="text/javascript" src="https://apis.google.com/js/api.js?onload=onApiLoad"></script>
 
-        <!-- User tracking data -->
-        <script type="text/javascript">
-          window.inlineManualTracking = {
-              uid: "{{ user.id }}",
-              email: "{{ user.email }}",
-              username: "{{ user.username }}",
-              name: "{{ user.tola_user.name }}",
-              created: "{{ user.tola_user.create_date }}",
-              updated: "{{ user.tola_user.edit_date }}",
-              group: "{{ user.tola_user.organization.name }}"
-          }
-        </script>
-        <!-- Inline Manual embed code -->
-        <script>!function(){var e=document.createElement("script"),t=document.getElementsByTagName("script")[0];e.async=1,e.src="https://inlinemanual.com/embed/player.3c86e010f5c79d355223b63b3ec541ea.js",e.charset="UTF-8",t.parentNode.insertBefore(e,t)}();</script>
+        {% if APP_BRANCH == MASTER_BRANCH  %}
+            <!-- User tracking data -->
+            <script type="text/javascript">
+              window.inlineManualTracking = {
+                  uid: "{{ user.id }}",
+                  email: "{{ user.email }}",
+                  username: "{{ user.username }}",
+                  name: "{{ user.tola_user.name }}",
+                  created: "{{ user.tola_user.create_date }}",
+                  updated: "{{ user.tola_user.edit_date }}",
+                  group: "{{ user.tola_user.organization.name }}"
+              }
+            </script>
+            <!-- Inline Manual embed code -->
+            <script>!function(){var e=document.createElement("script"),t=document.getElementsByTagName("script")[0];e.async=1,e.src="https://inlinemanual.com/embed/player.3c86e010f5c79d355223b63b3ec541ea.js",e.charset="UTF-8",t.parentNode.insertBefore(e,t)}();</script>
+        {% endif %}
 
         {% block extra_js_in_body %}{% endblock %}
         <script>

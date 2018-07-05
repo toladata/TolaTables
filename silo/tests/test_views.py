@@ -16,7 +16,7 @@ import random
 import uuid
 import factories
 from silo import views
-from tola import util
+from tola import util, MASTER_BRANCH
 
 from social_django.models import UserSocialAuth
 from django.contrib.messages.storage.fallback import FallbackStorage
@@ -1531,7 +1531,18 @@ class SiloListViewTest(TestCase):
         response = views.list_silos(request)
         self.assertNotContains(response, 'Test Share Silo')
 
-    def test_list_silo_inlinemanual_tour(self):
+    @override_settings(APP_BRANCH='demo')
+    def test_list_silo_inlinemanual_tour_in_demo(self):
+        request = self.factory.get('')
+        request.user = self.tola_user.user
+        response = views.list_silos(request)
+        match = 'https://inlinemanual.com/embed/' \
+                'player.3c86e010f5c79d355223b63b3ec541ea.js'
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content.count(match), 0)
+
+    @override_settings(APP_BRANCH=MASTER_BRANCH)
+    def test_list_silo_inlinemanual_tour_in_master(self):
         request = self.factory.get('')
         request.user = self.tola_user.user
         response = views.list_silos(request)
