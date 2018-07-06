@@ -357,14 +357,13 @@
                     addMessage(data['message'], data['status'] );
                 }
             })
-            .fail(function(data) {
-                // addMessage(data, "error ");
-            })
             .done(function(data, xhr) {
-                //alert(xhr.status);
-            })
-            .complete(function(data, xhr) {
-                //show_column_mapping();
+                console.log(data, xhr);
+                if (data['status'] == "danger") {
+                    alert(data.message);
+                } else if (data['status'] == "success") {
+                    window.location.href = data['silo_url'];
+                }
             });
     }
 </script>

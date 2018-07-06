@@ -4,9 +4,13 @@ from bson import ObjectId
 import json
 import logging
 import factories
+from mock import patch, mock
 from silo.models import LabelValueStore
 from silo.custom_csv_dict_reader import CustomDictReader
-from tola.util import clean_data_obj, JSONEncoder, save_data_to_silo
+from tola.util import clean_data_obj, JSONEncoder, save_data_to_silo, \
+    ona_parse_type_group
+
+logger = logging.getLogger("tola")
 
 
 class RegisterViewTest(TestCase):
@@ -245,3 +249,138 @@ class save_data_to_siloTest(TestCase):
 
         result = save_data_to_silo(self.silo, data, self.read)
         self.assertEqual(result, expected_response)
+
+    @patch('tola.util.ona_parse_type_repeat')
+    def test_ona_parse_type_group_with_valid_data(self,
+                                                  mock_ona_parse_type_repeat):
+
+        mock_ona_parse_type_repeat.return_value = []
+        silo = factories.Silo(name='test_ona')
+        read = factories.Read(read_name='test_ona_read',
+                              owner=self.tola_user.user)
+        silo.reads.add(read)
+        data = [{
+                    '_notes': [],
+                    'Name': 'Bob',
+                    'Number': '1',
+                    '_edited': False,
+                    '_status': 'submitted_via_web',
+                    '_submission_time': '2018-06-26T15:01:19',
+                    '_id': 31108803
+                }, {
+                    '_notes': [],
+                    'Name': 'Jason',
+                    'Number': '2',
+                    '_edited': False,
+                    '_status': 'submitted_via_web',
+                    '_submission_time': '2018-06-26T15:01:19',
+                    '_id': 31108806
+                }]
+
+        form_data = [{
+                        'bind': {
+                            'required': 'true'
+                        },
+                        'type': 'text',
+                        'name': 'Name',
+                        'label': 'Name'
+                    }, {
+                        'bind': {
+                            'required': 'true'
+                        },
+                        'type': 'text',
+                        'name': 'Number',
+                        'label': 'Number'
+                    }, {
+                        'bind': {
+                            'calculate': "'vviKGm8pxer5Zu3E3H3wbf'"
+                        },
+                        'type': 'calculate',
+                        'name': '__version__'
+                    }, {
+                        'control': {
+                            'bodyless': True
+                        },
+                        'type': 'group',
+                        'children': [{
+                            'bind': {
+                                'readonly': 'true()',
+                                'calculate': "concat('uuid:', uuid())"
+                            },
+                            'type': 'calculate',
+                            'name': 'instanceID'
+                        }],
+                        'name': 'meta'
+                    }]
+
+        with mock.patch.object(logger, 'warning') as mock_logger:
+            ona_parse_type_group(data, form_data, '', silo, read)
+            mock_logger.assert_not_called()
+
+    @patch('tola.util.ona_parse_type_repeat')
+    def test_ona_parse_type_group_with_invalid_keys(
+            self, mock_ona_parse_type_repeat):
+
+        mock_ona_parse_type_repeat.return_value = []
+        silo = factories.Silo(name='test_ona')
+        read = factories.Read(read_name='test_ona_read',
+                              owner=self.tola_user.user)
+        silo.reads.add(read)
+        data = [{
+                    '_notes': [],
+                    'Name': 'Bob',
+                    '_Number': '1',
+                    '_edited': False,
+                    '_status': 'submitted_via_web',
+                    '_submission_time': '2018-06-26T15:01:19',
+                    '_id': 31108803
+                }, {
+                    '_notes': [],
+                    'Name': 'Jason',
+                    '_Number': '2',
+                    '_edited': False,
+                    '_status': 'submitted_via_web',
+                    '_submission_time': '2018-06-26T15:01:19',
+                    '_id': 31108806
+                }]
+
+        form_data = [{
+                        'bind': {
+                            'required': 'true'
+                        },
+                        'type': 'text',
+                        'name': 'Name',
+                        'label': 'Name'
+                    }, {
+                        'bind': {
+                            'required': 'true'
+                        },
+                        'type': 'text',
+                        'name': 'Number2',
+                        'label': 'Number'
+                    }, {
+                        'bind': {
+                            'calculate': "'vviKGm8pxer5Zu3E3H3wbf'"
+                        },
+                        'type': 'calculate',
+                        'name': '__version__'
+                    }, {
+                        'control': {
+                            'bodyless': True
+                        },
+                        'type': 'group',
+                        'children': [{
+                            'bind': {
+                                'readonly': 'true()',
+                                'calculate': "concat('uuid:', uuid())"
+                            },
+                            'type': 'calculate',
+                            'name': 'instanceID'
+                        }],
+                        'name': 'meta'
+                    }]
+
+        with mock.patch.object(logger, 'warning') as mock_logger:
+            ona_parse_type_group(data, form_data, '', silo, read)
+            mock_logger.assert_called_once_with(
+                "Keyerror for silo 2, 'Number2'")

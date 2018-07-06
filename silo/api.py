@@ -1,6 +1,7 @@
 import json
 import django_filters
 from urlparse import urljoin
+from datetime import datetime
 
 from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 from django.db.models import Q
@@ -20,7 +21,8 @@ from rest_framework import mixins, status
 from .serializers import *
 from .models import (Silo, LabelValueStore, Country, WorkflowLevel1,
                      WorkflowLevel2, TolaUser, Read, ReadType)
-from silo.permissions import *
+from silo.permissions import (IsOwnerOrReadOnly, ReadIsOwnerViewOrWrite,
+                          SiloIsOwnerOrCanRead)
 from tola.util import (getSiloColumnNames, getCompleteSiloColumnNames,
                        save_data_to_silo, JSONEncoder)
 
@@ -137,6 +139,11 @@ class CustomFormViewSet(mixins.CreateModelMixin,
                         viewsets.GenericViewSet):
     serializer_class = CustomFormSerializer
     queryset = Silo.objects.all()
+    _default_columns = [
+        {'name': 'submitted_by', 'type': 'text'},
+        {'name': 'submission_data', 'type': 'date'},
+        {'name': 'submission_time', 'type': 'date'}
+    ]
 
     def create(self, request, *args, **kwargs):
         """
@@ -145,18 +152,29 @@ class CustomFormViewSet(mixins.CreateModelMixin,
         if not request.user.is_superuser:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
+        # serialize and validate data
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # get fields' values
+        form_uuid = serializer.data['form_uuid']
+        level1_uuid = serializer.data['level1_uuid']
+        tola_user_uuid = serializer.data['tola_user_uuid']
+        form_name = serializer.data['name']
+        read_name = serializer.data['name']
+        columns = serializer.data['fields']
+        columns += self._default_columns
+        description = serializer.data.get('description', '')
+
+        # we need to convert the dict into a JSON to be stored
+        columns = json.dumps(columns)
+
         try:
-            form_uuid = request.POST['form_uuid']
-            level1_uuid = request.POST['level1_uuid']
-            tola_user_uuid = request.POST['tola_user_uuid']
             wkflvl1 = WorkflowLevel1.objects.get(level1_uuid=level1_uuid)
             tola_user = TolaUser.objects.get(tola_user_uuid=tola_user_uuid)
-            form_name = request.POST['name']
-            read_name = request.POST['name']
-            columns = request.POST['fields']
-        except (WorkflowLevel1.DoesNotExist, TolaUser.DoesNotExist, KeyError) \
-                as e:
-            return Response(e, status=status.HTTP_400_BAD_REQUEST)
+        except (WorkflowLevel1.DoesNotExist, TolaUser.DoesNotExist) as e:
+            return Response(
+                e.message, status=status.HTTP_400_BAD_REQUEST)
 
         url_subpath = '/activity/forms/{}/view'.format(form_uuid)
         form_url = urljoin(settings.ACTIVITY_URL, url_subpath)
@@ -170,7 +188,6 @@ class CustomFormViewSet(mixins.CreateModelMixin,
         table_name = '{} - {}'.format(form_name, wkflvl1.name)
         if len(table_name) > 255:
             table_name = table_name[:255]
-        description = request.POST.get('description', '')
         silo = Silo.objects.create(
             owner=tola_user.user,
             name=table_name,
@@ -184,7 +201,7 @@ class CustomFormViewSet(mixins.CreateModelMixin,
         silo.reads.add(read)
         silo.workflowlevel1.add(wkflvl1)
 
-        serializer = self.serializer_class(silo, context={'request': request})
+        serializer = SiloModelSerializer(silo)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
@@ -198,14 +215,19 @@ class CustomFormViewSet(mixins.CreateModelMixin,
         wkflvl1 = silo.workflowlevel1.first()
         read = silo.reads.first()
 
-        try:
-            table_name = request.data['name'].lower().replace(' ', '_')
-            table_name += '_' + wkflvl1.name.lower().replace(' ', '_')
-            read_name = request.data['name']
-            columns = request.data['fields']
-        except KeyError as e:
-            return Response(e, status=status.HTTP_400_BAD_REQUEST)
-        description = request.data.get('description', '')
+        # serialize and validate data
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # get fields' values
+        table_name = serializer.data['name'].lower().replace(' ', '_')
+        table_name += '_' + wkflvl1.name.lower().replace(' ', '_')
+        read_name = serializer.data['name']
+        columns = serializer.data['fields']
+        description = serializer.data.get('description', '')
+
+        # we need to convert the dict into a JSON to be stored
+        columns = json.dumps(columns)
 
         read.read_name = read_name
         read.save()
@@ -215,7 +237,7 @@ class CustomFormViewSet(mixins.CreateModelMixin,
         silo.columns = columns
         silo.save()
 
-        serializer = self.get_serializer(silo)
+        serializer = SiloModelSerializer(silo)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @detail_route(methods=['GET'],)
@@ -240,9 +262,24 @@ class CustomFormViewSet(mixins.CreateModelMixin,
         if 'silo_id' in request.data and 'data' in request.data:
             silo_id = request.data['silo_id']
             data = request.data['data']
+            submitted_by_uuid = request.data.get('submitted_by', None)
         else:
             return Response({'detail': 'Missing data.'},
                             status=status.HTTP_400_BAD_REQUEST)
+
+        if data:
+            # add the timestamp
+            now = datetime.now()
+            submission_date = now.strftime('%Y-%m-%d')
+            submission_time = now.strftime('%H:%M:%S')
+            data.update({'submission_date': submission_date})
+            data.update({'submission_time': submission_time})
+
+            # if there's a submitted_by uuid, add the user's name to the data
+            if submitted_by_uuid:
+                submitted_by_username = TolaUser.objects.values_list(
+                    'name', flat=True).get(tola_user_uuid=submitted_by_uuid)
+                data.update({'submitted_by': submitted_by_username})
 
         try:
             silo = Silo.objects.get(pk=silo_id)
@@ -280,8 +317,9 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = 'id'
     # this permission sets seems to break the default permissions set by the restframework
     # permission_classes = (IsOwnerOrReadOnly,)
-    permission_classes = (IsAuthenticated, Silo_IsOwnerOrCanRead,)
-    filter_fields = ('owner__username','shared__username','id','tags','public')
+    permission_classes = (IsAuthenticated, SiloIsOwnerOrCanRead)
+    filter_fields = ('owner__username','shared__username',
+                     'id','tags','public')
     filter_backends = (filters.DjangoFilterBackend,)
 
     def get_queryset(self):
@@ -294,13 +332,16 @@ class SiloViewSet(viewsets.ReadOnlyModelViewSet):
             else:
                 user = tola_user.user
                 return Silo.objects.filter(
-                    Q(owner=user) | Q(public=True) | Q(shared=user))
+                    Q(owner=user) | Q(public=True) | Q(shared=user)
+                    | Q(owner__tola_user__organization=tola_user.organization))
         else:
             user = self.request.user
             if user.is_superuser:
                 return Silo.objects.all()
 
-            return Silo.objects.filter(Q(owner=user) | Q(public=True))
+            return Silo.objects.filter(Q(owner=user) | Q(public=True) |
+                                       Q(owner__tola_user__organization=\
+                                             user.tola_user.organization))
 
     @detail_route()
     def data(self, request, id):

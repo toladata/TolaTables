@@ -15,7 +15,7 @@ from silo.forms import get_read_form
 from silo.models import (DeletedSilos, LabelValueStore, ReadType, Read, Silo,
                          CeleryTask)
 from silo.views import (addColumnFilter, editColumnOrder, newFormulaColumn,
-                        showRead, editSilo, uploadFile, silo_detail)
+                        showRead, edit_silo, uploadFile, silo_detail)
 from tola.util import (addColsToSilo, hideSiloColumns, getColToTypeDict,
                        getSiloColumnNames, cleanKey)
 
@@ -167,6 +167,7 @@ class SiloDetailTest(TestCase):
         silo.reads.add(read)
         factories.CeleryTask(content_object=read,
                              task_status=CeleryTask.TASK_IN_PROGRESS)
+        factories.TolaUser(user=self.user)
 
         # Check view
 
@@ -196,6 +197,7 @@ class SiloDetailTest(TestCase):
         silo.reads.add(read)
         factories.CeleryTask(content_object=read,
                              task_status=CeleryTask.TASK_FAILED)
+        factories.TolaUser(user=self.user)
 
         # Check view
         request = self.factory.get(self.silo_detail_url)
@@ -225,7 +227,7 @@ class SiloDetailTest(TestCase):
         silo.reads.add(read)
         factories.CeleryTask(content_object=read,
                              task_status=CeleryTask.TASK_FINISHED)
-
+        factories.TolaUser(user=self.user)
         # Check view
         request = self.factory.get(self.silo_detail_url)
         request.user = self.user
@@ -264,11 +266,11 @@ class ReadTest(TestCase):
             'read_name': 'TEST READ SOURCE',
             'description': 'TEST DESCRIPTION for test read source',
             'read_url': 'https://www.lclark.edu',
-            'resource_id':'testsssszzz',
+            'resource_id': 'testsssszzz',
             'create_date': '2015-06-24 20:33:47',
             'file_data': upload_file,
         }
-        request = self.factory.post(self.new_read_url, data = params)
+        request = self.factory.post(self.new_read_url, data=params)
         request.user = self.tola_user.user
 
         response = showRead(request, 1)
@@ -300,7 +302,7 @@ class SiloTest(TestCase):
         self.tola_user = factories.TolaUser()
         factories.ReadType.create_batch(7)
 
-    @patch('silo.forms.get_workflowteams')
+    @patch('tola.activity_proxy.get_workflowteams')
     def test_new_silo(self, mock_get_workflowteams):
         mock_get_workflowteams.return_value = []
         # Create a New Silo
@@ -310,7 +312,7 @@ class SiloTest(TestCase):
         # Fetch the silo that just got created above
         request = self.factory.get(self.silo_edit_url)
         request.user = self.tola_user.user
-        response = editSilo(request, silo.pk)
+        response = edit_silo(request, silo.pk)
         self.assertEqual(response.status_code, 200)
 
         # update the silo that just got created above
@@ -319,16 +321,16 @@ class SiloTest(TestCase):
             'name': 'Test Silo Updated',
             'description': 'Adding this description in a unit-test.',
         }
-        request = self.factory.post(self.silo_edit_url, data = params)
+        request = self.factory.post(self.silo_edit_url, data=params)
         request.user = self.tola_user.user
         request._dont_enforce_csrf_checks = True
-        response = editSilo(request, silo.pk)
+        response = edit_silo(request, silo.pk)
         if response.status_code == 302:
             self.assertEqual(response.url, "/silos/")
         else:
             self.assertEqual(response.status_code, 200)
 
-    @patch('silo.forms.get_workflowteams')
+    @patch('tola.activity_proxy.get_workflowteams')
     def test_new_silodata(self, mock_get_workflowteams):
         mock_get_workflowteams.return_value = []
         read_type = ReadType.objects.get(read_type="CSV")
@@ -380,7 +382,8 @@ class SiloTest(TestCase):
         }
         file_dict = {'file_data': SimpleUploadedFile(
             upload_file.name, upload_file.read())}
-        excluded_fields = ['create_date', 'edit_date', 'onedrive_file', 'onedrive_access_token']
+        excluded_fields = ['create_date', 'edit_date', 'onedrive_file',
+                           'onedrive_access_token']
         form = get_read_form(excluded_fields)(params, file_dict)
         self.assertTrue(form.is_valid())
 
@@ -455,19 +458,20 @@ class FormulaColumn(TestCase):
             lvs = LabelValueStore.objects.get(a="1", b="2", c="3", sum=6.0,
                                               read_id=-1, silo_id=self.silo.pk)
             lvs.delete()
-        except LabelValueStore.DoesNotExist as e:
+        except LabelValueStore.DoesNotExist:
             self.assert_(False)
         try:
             lvs = LabelValueStore.objects.get(a="2", b="2", c="3.3", sum=7.3,
                                               read_id=-1, silo_id=self.silo.pk)
             lvs.delete()
-        except LabelValueStore.DoesNotExist as e:
+        except LabelValueStore.DoesNotExist:
             self.assert_(False)
         try:
-            lvs = LabelValueStore.objects.get(a="3", b="2", c="hi", sum="Error",
-                                              read_id=-1, silo_id=self.silo.pk)
+            lvs = LabelValueStore.objects.get(
+                a="3", b="2", c="hi", sum="Error", read_id=-1,
+                silo_id=self.silo.pk)
             lvs.delete()
-        except LabelValueStore.DoesNotExist as e:
+        except LabelValueStore.DoesNotExist:
             self.assert_(False)
 
 
@@ -702,25 +706,25 @@ class ParseCommCareDataTest(TestCase):
             try:
                 LabelValueStore.objects.get(
                     a=1, b=2, c=3, case_id=1, read_id=-97, silo_id=-87)
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 self.assert_(False)
             try:
                 LabelValueStore.objects.get(
                     d=1, b=2, c=3, case_id=2, read_id=-97, silo_id=-87)
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 self.assert_(False)
             try:
                 LabelValueStore.objects.get(
                     d=1, e=2, c=3, case_id=3, read_id=-97, silo_id=-87)
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 self.assert_(False)
             try:
                 LabelValueStore.objects.get(
                     f_=1, user_assigned_id=5, editted_date=7, created_date=8,
                     user_case_id=9, case_id=4, read_id=-97, silo_id=-87)
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 self.assert_(False)
-        except LabelValueStore.MultipleObjectsReturned as e:
+        except LabelValueStore.MultipleObjectsReturned:
             LabelValueStore.objects.filter(read_id=-97, silo_id=-87).delete()
             # if this happens run the test again and it should work
             self.assert_(False)
@@ -757,32 +761,32 @@ class ParseCommCareDataTest(TestCase):
             try:
                 LabelValueStore.objects.get(
                     a=2, b=2, c=3, d=4, case_id=1, read_id=-97, silo_id=-87)
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 self.assert_(False)
             try:
                 LabelValueStore.objects.get(
                     d=1, b=3, c=3, case_id=2, read_id=-97, silo_id=-87)
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 self.assert_(False)
             try:
                 LabelValueStore.objects.get(
                     d=1, e=2, c=3, case_id=3, read_id=-97, silo_id=-87)
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 self.assert_(False)
             try:
                 LabelValueStore.objects.get(
                     e=2, f=3, case_id=5, read_id=-97, silo_id=-87)
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 self.assert_(False)
             try:
                 LabelValueStore.objects.get(
                     f_=1, user_assigned_id=5, editted_date=7, created_date=8,
                     user_case_id=9, case_id=4, read_id=-97, silo_id=-87)
-            except LabelValueStore.DoesNotExist as e:
+            except LabelValueStore.DoesNotExist:
                 self.assert_(False)
             LabelValueStore.objects.filter(read_id=-97, silo_id=-87).delete()
 
-        except LabelValueStore.MultipleObjectsReturned as e:
+        except LabelValueStore.MultipleObjectsReturned:
             LabelValueStore.objects.filter(read_id=-97, silo_id=-87).delete()
             # if this happens run the test again and it should work
             self.assert_(False)
@@ -823,7 +827,7 @@ class TestImportJson(TestCase):
                 lvs = LabelValueStore.objects.get(silo_id=self.silo.id,
                                                   read_id=self.read.id, **row)
                 lvs.delete()
-            except Exception as e:
+            except Exception:
                 LabelValueStore.objects.filter(silo_id=self.silo.id,
                                                read_id=self.read.id).delete()
                 self.assertTrue(False)

@@ -1,5 +1,6 @@
 from django.conf import settings
 from silo.models import Silo
+from . import MASTER_BRANCH
 
 
 def google_oauth_settings(request):
@@ -23,11 +24,15 @@ def get_servers(request):
         'ACTIVITY_URL': settings.ACTIVITY_URL,
         'TABLES_URL': settings.TABLES_URL,
         'GOOGLE_ANALYTICS': settings.GOOGLE_ANALYTICS,
+        'APP_BRANCH': settings.APP_BRANCH,
+        'MASTER_BRANCH': MASTER_BRANCH
     }
+
 
 def google_analytics(request):
     """
-    Use the variables returned in this function to render Google Analytics Tracking Code template.
+    Use the variables returned in this function to render Google Analytics
+    Tracking Code template.
     """
 
     ga_prop_id = getattr(settings, 'GOOGLE_ANALYTICS_PROPERTY_ID', False)

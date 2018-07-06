@@ -1,30 +1,35 @@
 from django.shortcuts import render
 from silo.models import Country, Silo, User, TolaUser, LabelValueStore, UniqueFields
 from django.db.models import Q
-
+from django.utils.safestring import SafeString
+from collections import Counter
+import unicodedata
 import json
 import ast
 
 # import the logging library
 import logging
+import itertools
 
 # Get an instance of a logger
 logger = logging.getLogger('django')
 
 
-def listTableDashboards(request,id=0):
+def list_table_dashboards(request, id=0):
 
     user = User.objects.get(username__exact=request.user)
     tola_user = TolaUser.objects.get(user__username__exact=request.user)
-    get_tables = Silo.objects.filter(Q(owner=user) | Q(organization=tola_user.organization) | Q(shared=user))
 
-    return render(request, "reports/table_list.html", {'get_tables': get_tables})
+    get_tables = Silo.objects.filter(
+        Q(owner=user) | Q(shared=user) | Q(public=True) |
+        Q(owner__tola_user__organization=tola_user.organization,
+          share_with_organization=True))
+
+    return render(request,
+                  "reports/table_list.html", {'get_tables': get_tables})
 
 
-import itertools
-
-
-def tableDashboard(request,id=0):
+def table_dashboard(request,id=0):
     """
     Dynamic Dashboard report based on Table Data
     find lat and long fields
@@ -45,7 +50,6 @@ def tableDashboard(request,id=0):
     except ValueError:
         data = json.loads(doc)
 
-    from collections import Counter
     latitude = []
     longitude = []
     lat_long = {}
@@ -57,25 +61,31 @@ def tableDashboard(request,id=0):
         # loop over the field names only
         for field in data[0]:
             # to-do move these into models
-            exclude_string = ['read_id','silo_id','_id','formhub/uuid','meta/instanceID','user_assigned_id','meta/instanceName','create_date']
+            exclude_string = ['read_id', 'silo_id', '_id', 'formhub/uuid',
+                              'meta/instanceID', 'user_assigned_id',
+                              'meta/instanceName', 'create_date']
             map_lat_string = ['lat', 'latitude', 'x']
-            map_long_string = ['long','lng','longitude', 'y']
-            map_country_string = ['countries','country']
-            map_location = ['location', 'coordinated','coord']
+            map_long_string = ['long', 'lng', 'longitude', 'y']
+            map_country_string = ['countries', 'country']
+            map_location = ['location', 'coordinated', 'coord']
             if field not in exclude_string:
-                get_fields[field] = {} # create a dict with fields as the key
+                # create a dict with fields as the key
+                get_fields[field] = {}
                 cnt = Counter()
                 answers = [] # a list for the answers
                 for idx, col in enumerate(data):
-                    # get_fields[field][idx] = col[field] # append list of all answers
+                    # get_fields[field][idx] = col[field]
+                    #  append list of all answers
                     try:
-                        answers.append(col[field]) # append list of answers
+                        # append list of answers
+                        answers.append(col[field])
                     except KeyError:
                         answers.append(None)  # no answer
                 # loop and count each unique answer
                 """
-                TODO: Needs to be moved to a recursive function that checks each level for
-                list or dict and continues to parse until a count can be found
+                TODO: Needs to be moved to a recursive function that checks each
+                 level for list or dict and continues to parse until a count 
+                 can be found
                 """
                 for a in answers:
                     # if answer has a dict or list count each element
@@ -97,15 +107,14 @@ def tableDashboard(request,id=0):
                 # append unique answer plus count to dict
                 get_fields[field][idx] = unique_count.most_common()
 
-                from django.utils.safestring import SafeString
-                import unicodedata
-
                 temp = []
                 temp2 = []
                 for letter, count in get_fields[field][idx]:
 
                     if isinstance(letter,unicode):
-                        temp.append(SafeString(unicodedata.normalize('NFKD', letter).encode('ascii', 'ignore')))
+                        temp.append(SafeString(unicodedata.normalize('NFKD',
+                                                                     letter)
+                                               .encode('ascii', 'ignore')))
                     else:
                         temp.append(letter)
                     temp2.append(count)
@@ -116,8 +125,8 @@ def tableDashboard(request,id=0):
                 except ValueError:
                     temp = temp
 
-                get_fields[field][idx] = {"label": SafeString(temp), "count": SafeString(temp2)}
-
+                get_fields[field][idx] = {"label": SafeString(temp),
+                                          "count": SafeString(temp2)}
 
             # if a latitude string add it to the map list
             if field in map_lat_string:
@@ -132,8 +141,10 @@ def tableDashboard(request,id=0):
             # if a longitude string add it to the map list
             if field in map_location:
                 for idx, col in enumerate(data):
-                    latitude.append(itertools.islice(col[field].iteritems(), 3, 4))
-                    longitude.append(itertools.islice(col[field].iteritems(), 4, 5))
+                    latitude.append(itertools.islice(col[field].iteritems(),
+                                                     3, 4))
+                    longitude.append(itertools.islice(col[field].iteritems(),
+                                                      4, 5))
 
             # if a country name
             if field in map_country_string:
@@ -145,7 +156,6 @@ def tableDashboard(request,id=0):
 
             # merge lat and long
             lat_long = dict(zip(latitude,longitude))
-
     else:
         get_fields = None
 
@@ -155,10 +165,6 @@ def tableDashboard(request,id=0):
         columns = json.loads(get_table.columns)
 
     return render(request, "reports/table_dashboard.html",
-                  {'data': data, 'get_table': get_table, 'countries': countries, 'get_fields': get_fields,
-                   'lat_long': lat_long,'country': country, 'columns': columns})
-
-
-
-
-
+                  {'data': data, 'get_table': get_table, 'countries': countries,
+                   'get_fields': get_fields,'lat_long': lat_long,
+                   'country': country, 'columns': columns})

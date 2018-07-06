@@ -1,12 +1,14 @@
 from django.core.urlresolvers import reverse_lazy
-from silo.models import Silo, Read
 from django import forms
+from django.contrib.auth.models import User
+from django.db.models import Q
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Reset, Field, Hidden
+from django.core.exceptions import ValidationError
 from collections import OrderedDict
 
-from silo.models import Silo, WorkflowLevel1
-from tola.activity_proxy import get_by_url, get_workflowteams
+from silo.models import Read, Silo, WorkflowLevel1, TolaUser
+from tola.activity_proxy import get_workflowlevel1s
 
 
 class OnaLoginForm(forms.Form):
@@ -29,21 +31,25 @@ class SiloForm(forms.ModelForm):
     def __init__(self, user=None, *args, **kwargs):
         super(SiloForm, self).__init__(*args, **kwargs)
         # Filter programs based on the program teams from Activity
+        self.user = user
         if user:
-            params = {
-                'workflow_user__tola_user_uuid': user.tola_user.tola_user_uuid
-            }
-            wfteams = get_workflowteams(**params)
-            wfl1_uuids = []
-            for wfteam in wfteams:
-                if wfteam['workflowlevel1']:
-                    wfl1_url = wfteam['workflowlevel1']
-                    wfl1 = get_by_url(wfl1_url)
-                    if wfl1:
-                        wfl1_uuids.append(wfl1['level1_uuid'])
+            wfl1_uuids = get_workflowlevel1s(user)
+
+            organization_id = TolaUser.objects.\
+                values_list('organization_id', flat=True).get(user=user)
+
+            user_queryset = User.objects.\
+                filter(tola_user__organization_id=organization_id)
+
+            self.fields['shared'].queryset = user_queryset.exclude(pk=user.pk)
+            self.fields['owner'].queryset = user_queryset
 
             self.fields['workflowlevel1'].queryset = WorkflowLevel1.objects.\
                 filter(level1_uuid__in=wfl1_uuids)
+
+            if hasattr(self.instance, 'owner') and \
+                    not (user == self.instance.owner):
+                self.fields.pop('owner')
 
         # If you pass FormHelper constructor a form instance
         # It builds a default layout with all its fields
@@ -54,8 +60,37 @@ class SiloForm(forms.ModelForm):
 
     class Meta:
         model = Silo
-        fields = ['id', 'name', 'description', 'tags', 'shared', 'owner',
-                  'workflowlevel1']
+        fields = ['id', 'name', 'description', 'tags', 'shared',
+                  'share_with_organization', 'owner', 'workflowlevel1']
+
+    def clean_shared(self):
+        shared = self.cleaned_data['shared']
+        owner = self.data.get('owner')
+        valid = True
+        if owner and shared:
+            if self.user:
+                organization_id = TolaUser.objects.values_list(
+                    'organization_id', flat=True).get(user=self.user)
+                org_users_id = User.objects.values_list(
+                    'id', flat=True).filter(
+                    tola_user__organization_id=organization_id)
+
+                valid = shared.filter(
+                    ~Q(pk=owner) &
+                    Q(pk__in=org_users_id)
+                ).exists()
+            else:
+                valid = False
+
+        if owner and self.user:
+            if hasattr(self.instance, 'owner') and \
+                     self.instance.owner.pk != owner \
+                    and self.user != self.instance.owner:
+                valid = False
+
+        if not valid:
+            raise ValidationError('The form provided is invalid.')
+        return shared
 
 
 class NewColumnForm(forms.Form):
@@ -149,7 +184,7 @@ class EditColumnForm(forms.Form):
             if (item != "_id" and item != "silo_id" and item != "edit_date"
                     and item != "create_date" and item != "read_id"):
                 self.fields[item] = forms.CharField(
-                    label=item, initial=item, required=False,widget="")
+                    label=item, initial=item, required=False, widget="")
                 self.fields[item + "_delete"] = forms.BooleanField(
                     label="delete " + item, initial=False, required=False,
                     widget="")
@@ -164,8 +199,8 @@ class MongoEditForm(forms.Form):
     silo_id = forms.IntegerField(required=False, widget=forms.HiddenInput())
 
     def __init__(self, *args, **kwargs):
+        kwargs.pop('silo_pk')
         extra = kwargs.pop("extra")
-        silo_pk = kwargs.pop('silo_pk')
         self.helper = FormHelper()
         self.helper.form_class = 'form-horizontal'
         self.helper.label_class = 'col-sm-5'

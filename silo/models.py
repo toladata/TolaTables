@@ -350,6 +350,7 @@ class Silo(models.Model):
     reads = models.ManyToManyField(Read, related_name='silos')
     tags = models.ManyToManyField(Tag, related_name='silos', blank=True)
     shared = models.ManyToManyField(User, related_name='silos', blank=True)
+    share_with_organization = models.BooleanField(default=False)
     description = models.CharField(max_length=255, blank=True, null=True)
     organization = models.ForeignKey(Organization, blank=True, null=True)
     country = models.ForeignKey(Country, blank=True, null=True)

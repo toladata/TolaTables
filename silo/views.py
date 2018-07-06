@@ -48,6 +48,7 @@ from .tasks import process_silo
 
 from django.contrib.contenttypes.models import ContentType
 from social_django.models import UserSocialAuth
+from tola.activity_proxy import get_workflowlevel1s
 
 logger = logging.getLogger("silo")
 client = MongoClient(settings.MONGO_URI)
@@ -98,9 +99,8 @@ def tablesLogin(request):
     return render(request, 'tables_login.html')
 
 
-
 # fix now that not all mongo rows need to have the same column
-def mergeTwoSilos(mapping_data, lsid, rsid, msid):
+def merge_two_silos(mapping_data, lsid, rsid, msid):
     """
     @params
     mapping_data: data that describes how mapping is done between two silos
@@ -112,10 +112,8 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
 
     l_unmapped_cols = mappings.pop('left_unmapped_cols')
     r_unampped_cols = mappings.pop('right_unmapped_cols')
-
     merged_cols = []
 
-    #print("lsid:% rsid:%s msid:%s" % (lsid, rsid, msid))
     l_silo_data = LabelValueStore.objects(silo_id=lsid)
 
     r_silo_data = LabelValueStore.objects(silo_id=rsid)
@@ -145,7 +143,7 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
     try:
         rsilo = Silo.objects.get(pk=rsid)
     except Silo.DoesNotExist as e:
-        msg = "Right Table does not exist: table_id=%s" % rsid
+        msg = "Right Silo does not exist: silo_id=%s" % rsid
         logger.error(msg)
         return {'status': "danger",  'message': msg}
 
@@ -155,7 +153,7 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
         merged_cols.sort()
         addColsToSilo(msilo, merged_cols)
     except Silo.DoesNotExist as e:
-        msg = "Merged Table does not exist: table_id=%s" % msid
+        msg = "Merged Silo does not exist: silo_id=%s" % msid
         logger.error(msg)
         return {'status': "danger",  'message': msg}
 
@@ -163,11 +161,13 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
     r_unique_fields = rsilo.unique_fields.all()
 
     if not r_unique_fields:
-        msg = "The table, [%s], must have a unique column and it should be the same as the one specified in [%s] table." % (rsilo.name, lsilo.name)
+        msg = "The silo, [%s], must have a unique column and it should be " \
+              "the same as the one specified in [%s] silo." % (rsilo.name,
+                                                               lsilo.name)
         logger.error(msg)
         return {'status': "danger",  'message': msg}
 
-    # retrive the unique fields of the merged_silo
+    # retrieve the unique fields of the merged_silo
     m_unique_fields = msilo.unique_fields.all()
 
     # make sure that the unique_fields from right table are in the merged_table
@@ -175,15 +175,18 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
     for uf in r_unique_fields:
         if uf.name not in merged_cols: merged_cols.append(uf.name)
 
-        #make sure to set the same unique_fields in the merged_table
+        # make sure to set the same unique_fields in the merged_table
         if not m_unique_fields.filter(name=uf.name).exists():
-            unique_field, created = UniqueFields.objects.get_or_create(name=uf.name, silo=msilo, defaults={"name": uf.name, "silo": msilo})
+            UniqueFields.objects.get_or_create(
+                name=uf.name, silo=msilo,
+                defaults={"name": uf.name, "silo": msilo})
 
     # Get the correct set of data from the right table
     for row in r_silo_data:
         merged_row = OrderedDict()
         for k in row:
-            # Skip over those columns in the right table that sholdn't be in the merged_table
+            # Skip over those columns in the right table that
+            # shouldn't be in the merged_table
             if k not in merged_cols: continue
             merged_row[k] = row[k]
 
@@ -194,30 +197,37 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
         filter_criteria = {}
         for uf in r_unique_fields:
             try:
-                filter_criteria.update({str(uf.name): str(merged_row[uf.name])})
+                filter_criteria.update({str(uf.name): merged_row[uf.name]})
             except KeyError as e:
-                # when this excpetion occurs, it means that the col identified
-                # as the unique_col is not present in all rows of the right_table
-                logger.warning("The field, %s, is not present in table id=%s" % (uf.name, rsid))
+                # when this exception occurs, it means that the col identified
+                # as the unique_col is not present in
+                # all rows of the right_table
+                logger.warning("The field, %s, is not present in table id=%s"
+                               % (uf.name, rsid))
 
-        # adding the merged_table_id because the filter criteria should search the merged_table
+        # adding the merged_table_id because the filter criteria should
+        # search the merged_table
         filter_criteria.update({'silo_id': msid})
 
-        #this is an upsert operation.; note the upsert=True
-        db.label_value_store.update_one(filter_criteria, {"$set": merged_row}, upsert=True)
-
+        # this is an upsert operation.; note the upsert=True
+        db.label_value_store.update_one(filter_criteria,
+                                        {"$set": merged_row}, upsert=True)
 
     # Retrieve the unique_fields set by left table
     l_unique_fields = lsilo.unique_fields.all()
     if not l_unique_fields:
-        msg = "The table, [%s], must have a unique column and it should be the same as the one specified in [%s] table." % (lsilo.name, rsilo.name)
+        msg = "The silo, [%s], must have a unique column and it should be " \
+              "the same as the one specified in [%s] silo."\
+              % (lsilo.name, rsilo.name)
         logger.error(msg)
         return {'status': "danger",  'message': msg}
 
     for uf in l_unique_fields:
-        # if there are unique fields that are not in the right table then show error
+        # if there are unique fields that are not in the right table
+        # then show error
         if not r_unique_fields.filter(name=uf.name).exists():
-            msg = "Both tables (%s, %s) must have the same column set as unique fields" % (lsilo.name, rsilo.name)
+            msg = "Both silos (%s, %s) must have the same column set as " \
+                  "unique fields" % (lsilo.name, rsilo.name)
             logger.error(msg)
             return {"status": "danger", "message": msg}
 
@@ -230,7 +240,8 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
             left_cols = v['left_table_cols']
             right_col = v['right_table_col']
 
-            # if merge_type is specified then there must be multiple columns in the left_cols array
+            # if merge_type is specified then there must be multiple columns
+            # in the left_cols array
             if merge_type:
                 mapped_value = ''
                 for col in left_cols:
@@ -239,9 +250,11 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
                             if mapped_value == '':
                                 mapped_value = float(row[col])
                             else:
-                                mapped_value = float(mapped_value) + float(row[col])
+                                mapped_value = float(mapped_value) \
+                                               + float(row[col])
                         except Exception as e:
-                            msg = 'Failed to apply %s to column, %s : %s ' % (merge_type, col, e.message)
+                            msg = 'Failed to apply %s to column, %s : %s '\
+                                  % (merge_type, col, e.message)
                             logger.error(msg)
                             return {'status': "danger",  'message': msg}
                     else:
@@ -250,19 +263,22 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
                 # Now calculate avg if the merge_type was actually "Avg"
                 if merge_type == 'Avg':
                     mapped_value = mapped_value / len(left_cols)
-            # only one col in left table is mapped to one col in the right table.
+            # only one col in left table is mapped to one col
+            #  in the right table.
             else:
                 col = str(left_cols[0])
                 if col == "silo_id": continue
                 try:
                     mapped_value = row[col]
                 except KeyError as e:
-                    # When updating data in merged_table at a later time, it is possible
-                    # the origianl source tables may have had some columns removed in which
-                    # we might get a KeyError so in that case we just skip it.
+                    # When updating data in merged_table at a later time, it is
+                    # possible the original source tables may have had some
+                    # columns removed in which we might get a KeyError so in
+                    # that case we just skip it.
                     continue
 
-            #right_col is used as in index of merged_row because one or more left cols map to one col in right table
+            # right_col is used as in index of merged_row because one or more
+            #  left cols map to one col in right table
             merged_row[right_col] = mapped_value
 
         # Get data from left unmapped columns:
@@ -273,22 +289,24 @@ def mergeTwoSilos(mapping_data, lsid, rsid, msid):
         filter_criteria = {}
         for uf in l_unique_fields:
             try:
-                filter_criteria.update({str(uf.name): str(merged_row[uf.name])})
+                filter_criteria.update({str(uf.name): merged_row[uf.name]})
             except KeyError:
-                # when this excpetion occurs, it means that the col identified
+                # when this exception occurs, it means that the col identified
                 # as the unique_col is not present in all rows of the left_table
-                msg ="The field, %s, is not present in table id=%s" % (uf.name, lsid)
+                msg = "The field, %s, is not present in table id=%s"\
+                      % (uf.name, lsid)
                 logger.warning(msg)
 
         filter_criteria.update({'silo_id': msid})
 
-        # override the silo_id and create_date columns values to make sure they're not set
-        # to the values that are in left table or right table
+        # override the silo_id and create_date columns values to make sure
+        # they're not set to the values that are in left table or right table
         merged_row["silo_id"] = msid
         merged_row["create_date"] = timezone.now()
 
         # Now update or insert a row if there is no matching record available
-        res = db.label_value_store.update_one(filter_criteria, {"$set": merged_row}, upsert=True)
+        db.label_value_store.update_one(filter_criteria,
+                                        {"$set": merged_row}, upsert=True)
 
     return {'status': "success",  'message': "Merged data successfully"}
 
@@ -430,14 +448,34 @@ def appendTwoSilos(mapping_data, lsid, rsid, msid):
 # Edit existing silo meta data
 @csrf_protect
 @login_required
-def editSilo(request, id):
+def edit_silo(request, id):
     """
     Edit the meta data and description for each Table (silo)
     :param request:
     :param id: Unique table ID
     :return: silo edit form
     """
+
     edited_silo = Silo.objects.get(pk=id)
+    user_wfl1s = get_workflowlevel1s(request.user)
+    request_user_org = None
+    owner_user_org = None
+
+    if(hasattr(request.user, 'tola_user') and
+            hasattr(edited_silo.owner, 'tola_user')):
+        request_user_org = request.user.tola_user.organization
+        owner_user_org = edited_silo.owner.tola_user.organization
+
+    is_silo_shared_with_user = Silo.objects.filter(
+        Q(pk=id, shared__id=request.user.pk) |
+        Q(pk=id, workflowlevel1__level1_uuid__in=user_wfl1s)).exists()
+
+    if not (edited_silo.owner == request.user or edited_silo.public
+            or is_silo_shared_with_user
+            or (edited_silo.share_with_organization
+                and request_user_org == owner_user_org)):
+        return render(request, '404.html', status=404)
+
     if request.method == 'POST':  # If the form has been submitted...
         tags = request.POST.getlist('tags')
         post_data = request.POST.copy()
@@ -456,7 +494,8 @@ def editSilo(request, id):
 
                 post_data.appendlist('tags', tag.id)
 
-        form = SiloForm(data=post_data, instance=edited_silo)
+        form = SiloForm(user=request.user, data=post_data,
+                        instance=edited_silo)
         if form.is_valid():
             form.save()
             return HttpResponseRedirect('/silos/')
@@ -763,7 +802,7 @@ def showRead(request, id):
                 messages.info(request,
                               "Your table must have a unique column set for "
                               "Autopull/Autopush to work.")
-            return HttpResponseRedirect(reverse_lazy('listSilos'))
+            return HttpResponseRedirect(reverse_lazy('list_silos'))
         else:
             messages.error(request, 'Invalid Form', fail_silently=False)
     else:
@@ -914,26 +953,45 @@ def getJSON(request):
 def toggle_silo_publicity(request):
     silo_id = request.GET.get('silo_id', None)
     silo = Silo.objects.get(pk=silo_id)
-    silo.public = not silo.public
-    silo.save()
-    return HttpResponse("Your change has been saved")
+
+    if silo.owner == request.user:
+        silo.public = not silo.public
+        silo.save()
+        return HttpResponse('Your change has been saved', status=200)
+    else:
+        return HttpResponse('You can not  change publicity of this table',
+                            status=403)
 
 
 # SILOS
 @login_required
-def listSilos(request):
+def list_silos(request):
     """
     Each silo is listed with links to details
     """
     user = User.objects.get(username__exact=request.user)
+    user_wfl1s = get_workflowlevel1s(user)
 
-    #get all of the silos
+    # get all of the silos
     own_silos = Silo.objects.filter(owner=user).prefetch_related('reads')
 
-    shared_silos = Silo.objects.filter(shared__id=user.pk).prefetch_related("reads")
+    shared_silos = Silo.objects.filter(
+        Q(shared__id=user.pk) |
+        Q(share_with_organization=True,
+          owner__tola_user__organization=user.tola_user.organization) |
+        Q(workflowlevel1__level1_uuid__in=user_wfl1s)).\
+        exclude(owner=user).prefetch_related("reads")
 
-    public_silos = Silo.objects.filter(Q(public=True) & ~Q(owner=user)).prefetch_related("reads")
-    return render(request, 'display/silos.html',{'own_silos':own_silos, "shared_silos": shared_silos, "public_silos": public_silos})
+    public_silos = Silo.objects.filter(
+        Q(public=True) & ~Q(owner=user)).prefetch_related("reads")
+
+    return render(request,
+                  'display/silos.html',
+                  {
+                      'own_silos':own_silos,
+                      "shared_silos": shared_silos,
+                      "public_silos": public_silos
+                  })
 
 
 def addUniqueFiledsToSilo(request):
@@ -987,6 +1045,7 @@ def silo_detail(request, silo_id):
     """
 
     silo = Silo.objects.get(pk=silo_id)
+    user_wfl1s = get_workflowlevel1s(request.user)
     cols = []
     query = makeQueryForHiddenRow(json.loads(silo.rows_to_hide))
 
@@ -1018,14 +1077,26 @@ def silo_detail(request, silo_id):
         celery_tasks
     )
 
-    if silo.owner == request.user or silo.public \
-            or request.user in silo.shared.all():
+    request_user_org = None
+    owner_user_org = None
+    if hasattr(request.user, 'tola_user') and hasattr(silo.owner, 'tola_user'):
+        request_user_org = request.user.tola_user.organization
+        owner_user_org = silo.owner.tola_user.organization
+
+    is_silo_shared_with_user = Silo.objects.filter(
+        Q(pk=silo_id, shared__id=request.user.pk) |
+        Q(pk=silo_id, workflowlevel1__level1_uuid__in=user_wfl1s)).exists()
+
+    if (silo.owner == request.user or silo.public
+            or is_silo_shared_with_user
+            or (silo.share_with_organization
+                and request_user_org == owner_user_org)):
         cols.append('_id')
         cols.append('id')
         cols.extend(getSiloColumnNames(silo_id))
     else:
-        messages.warning(request,
-                         "You do not have permission to view this table.")
+        messages.error(request,
+                       "You do not have permission to view this table.")
     return render(
         request,
         "display/silo.html",
@@ -1061,7 +1132,7 @@ def updateSiloData(request, pk):
             mergeType = merged_silo_mapping.merge_type
 
             if mergeType == "merge":
-                res = mergeTwoSilos(mapping, left_table_id, right_table_id, merge_table_id)
+                res = merge_two_silos(mapping, left_table_id, right_table_id, merge_table_id)
             else:
                 res = appendTwoSilos(mapping, left_table_id, right_table_id, merge_table_id)
             if res['status'] == "success":
@@ -1381,18 +1452,22 @@ def do_merge(request):
     try:
         left_table = Silo.objects.get(id=left_table_id)
     except Silo.DoesNotExist:
-        return HttpResponse('Could not find the left table with id={}'.format(
-                             left_table_id))
+        msg = 'Could not find the left table with id={}'.format(left_table_id)
+        logger.info(msg)
+        return JsonResponse({'status': 'danger', 'message': msg})
 
     try:
         right_table = Silo.objects.get(id=right_table_id)
     except Silo.DoesNotExist:
-        return HttpResponse('Could not find the right table with id={}'.format(
-                             right_table_id))
+        msg = 'Could not find the right table with id={}'.format(
+            right_table_id)
+        logger.info(msg)
+        return JsonResponse({'status': 'danger', 'message': msg})
 
     data = request.POST.get('columns_data', None)
     if not data:
-        return HttpResponse('No columns data passed')
+        msg = 'No columns data passed'
+        return JsonResponse({'status': 'danger', 'message': msg})
 
     # Create a new silo
     new_silo = Silo.objects.create(name=merged_silo_name, public=False,
@@ -1404,7 +1479,8 @@ def do_merge(request):
     merge_table_id = new_silo.pk
 
     if merge_type == 'merge':
-        res = mergeTwoSilos(data, left_table_id, right_table_id, merge_table_id)
+        res = merge_two_silos(data, left_table_id,
+                            right_table_id, merge_table_id)
     else:
         res = appendTwoSilos(
             data, left_table_id, right_table_id, merge_table_id
@@ -1414,12 +1490,13 @@ def do_merge(request):
         new_silo.delete()
         return JsonResponse(res)
 
-    mapping = MergedSilosFieldMapping(from_silo=left_table, to_silo=right_table,
-                                      merged_silo=new_silo, mapping=data,
-                                      merge_type=merge_type)
+    mapping = MergedSilosFieldMapping(
+        from_silo=left_table, to_silo=right_table,
+        merged_silo=new_silo, mapping=data, merge_type=merge_type)
     mapping.save()
-    return HttpResponseRedirect(
-        reverse_lazy('silo_detail', kwargs={'silo_id': merge_table_id}))
+    res.update({'silo_url': reverse_lazy(
+        'silo_detail', kwargs={'silo_id': merge_table_id})})
+    return JsonResponse(res)
 
 
 # EDIT A SINGLE VALUE STORE
@@ -1612,7 +1689,7 @@ def removeSource(request, silo_id, read_id):
         silo = Silo.objects.get(pk=silo_id)
     except Silo.DoesNotExist as e:
         messages.error(request,"Table with id=%s does not exist." % silo_id)
-        return HttpResponseRedirect(reverse_lazy('listSilos'))
+        return HttpResponseRedirect(reverse_lazy('list_silos'))
 
     try:
         read = silo.reads.get(pk=read_id)
@@ -1681,7 +1758,7 @@ def editColumnOrder(request, pk):
 
         except Silo.DoesNotExist as e:
             messages.error(request, "silo not found")
-            return HttpResponseRedirect(reverse_lazy('listSilos'))
+            return HttpResponseRedirect(reverse_lazy('list_silos'))
 
 
         return HttpResponseRedirect(reverse_lazy('silo_detail', kwargs={'silo_id': pk},))
