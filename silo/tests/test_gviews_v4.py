@@ -629,6 +629,63 @@ class ImportFromGSheetHelperTest(TestCase):
             partialcomplete=True)
         self.assertEqual(result, ([], expected_result))
 
+    @patch('silo.gviews_v4._get_or_create_read')
+    @patch('silo.gviews_v4._fetch_data_gsheet')
+    @patch('silo.gviews_v4._get_gsheet_metadata')
+    @patch('silo.gviews_v4._get_authorized_service')
+    @patch('silo.gviews_v4._get_credential_object')
+    def test_import_from_gsheet_helper_with_integer_unique_fields(
+            self, mock_get_credential_obj, mock_get_authorized_service,
+            mock_get_gsheet_metadata, mock_fetch_data_gsheet,
+            mock_get_or_create_read):
+        '''Import function should update existing data when it got new data with
+        same unique field'''
+        lvs = LabelValueStore()
+        lvs.silo_id = self.silo.id
+        lvs.save()
+        data = [{
+            'First.Name': 'John',
+            'Last.Name': 'Doe',
+            'Number': 1,
+        }, {
+            'First.Name': 'Bob',
+            'Last.Name': 'Smith',
+            'Number': 2,
+        }]
+
+        save_data_to_silo(self.silo, data, self.read)
+        factories.UniqueFields(name='Number', silo=self.silo)
+
+        data = [
+            ['First.Name', 'Last.Name', 'Number'],
+            ['John', 'Lennon', 1],
+        ]
+        expected_result = [
+            {'silo_id': self.silo.id},
+            {'msg': 'Operation successful', 'level': messages.SUCCESS}
+        ]
+
+        mock_get_credential_obj.return_value = Mock(OAuth2Credentials)
+        mock_get_authorized_service.return_value = Mock()
+        mock_get_gsheet_metadata.return_value = (Mock(), None)
+        mock_fetch_data_gsheet.return_value = (data, None)
+        mock_get_or_create_read.return_value = self.read
+
+        result = gviews_v4.import_from_gsheet_helper(
+            self.tola_user.user, self.silo.id, self.silo.name, 1234)
+        self.assertEqual(result, expected_result)
+
+        lvss = LabelValueStore.objects.filter(silo_id=self.silo.id)
+        count = 0
+        for lvs in lvss:
+            lvs_json = json.loads(lvs.to_json())
+            if lvs_json.get('First_Name') == 'John':
+                self.assertEqual(lvs_json.get('Last_Name'), 'Lennon')
+                count += 1
+
+        self.assertEqual(count, 1)
+        self.assertEqual(lvss.count(), 3)
+
 
 class GetGSheetMetaDataTest(TestCase):
     def setUp(self):

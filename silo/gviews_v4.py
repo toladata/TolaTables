@@ -245,7 +245,10 @@ def import_from_gsheet_helper(user, silo_id, silo_name, spreadsheet_id,
         # build filter_criteria if unique field(s) have been setup for this silo
         for uf in unique_fields:
             try:
-                filter_criteria.update({str(uf.name): str(row[uf.name])})
+                if str(row[uf.name]).isdigit():
+                    filter_criteria.update({str(uf.name): int(row[uf.name])})
+                else:
+                    filter_criteria.update({str(uf.name): str(row[uf.name])})
             except AttributeError as e:
                 logger.warning(e)
         if filter_criteria:
