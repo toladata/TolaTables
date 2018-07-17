@@ -115,25 +115,23 @@ class PublicSiloViewSet(viewsets.ReadOnlyModelViewSet):
         query = request.GET.get('query',"{}")
         filter_fields = json.loads(query)
 
-        shown_cols = set(json.loads(request.GET.get('shown_cols',json.dumps(getSiloColumnNames(id)))))
+        shown_cols = set(
+            json.loads(
+                request.GET.get('shown_cols',
+                                json.dumps(getSiloColumnNames(id)))))
 
-
-        recordsTotal = LabelValueStore.objects(silo_id=id, **filter_fields).count()
-
-
-        #print("offset=%s length=%s" % (offset, length))
-        #page_size = 100
-        #page = int(request.GET.get('page', 1))
-        #offset = (page - 1) * page_size
-        #if page > 0:
-        # workaround until the problem of javascript not increasing the value of length is fixed
-        data = LabelValueStore.objects(silo_id=id, **filter_fields).exclude('create_date', 'edit_date', 'silo_id','read_id')
+        # workaround until the problem of javascript
+        # not increasing the value of length is fixed
+        data = LabelValueStore.objects(
+            silo_id=id,
+            **filter_fields).exclude('create_date', 'edit_date',
+                                     'silo_id', 'read_id')
 
         for col in getCompleteSiloColumnNames(id):
             if col not in shown_cols:
                 data = data.exclude(col)
 
-        sort = str(request.GET.get('sort',''))
+        sort = str(request.GET.get('sort', ''))
         data = data.order_by(sort)
         json_data = json.loads(data.to_json())
         return JsonResponse(json_data, safe=False)

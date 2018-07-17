@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 from django.test import TestCase, override_settings, Client, RequestFactory
 from django.urls import reverse
-from django.contrib.auth.models import User
 
 from rest_framework.test import APIRequestFactory
-from rest_framework.authtoken.models import Token
 
 from silo.tests import MongoTestCase
 from silo.api import CustomFormViewSet, PublicSiloViewSet
@@ -1912,7 +1910,8 @@ class PublicSiloViewTest(TestCase):
                               organization=self.organizaton,
                               owner=self.tola_user.user)
 
-        request = self.factory.get('/api/public_tables/{}/data'.format(silo.pk))
+        request = self.factory.get(
+            '/api/public_tables/{}/data'.format(silo.pk))
         request.user = self.user
         view = PublicSiloViewSet.as_view({'get': 'data'})
         response = view(request, id=silo.id)
