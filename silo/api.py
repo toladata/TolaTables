@@ -1,12 +1,15 @@
 import json
 import django_filters
 from urlparse import urljoin
+from urllib import urlencode
 from datetime import datetime
 
 from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 from django.db.models import Q
 from django.conf import settings
-from django.shortcuts import get_object_or_404
+from django.contrib.auth.models import User
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
 
 from rest_framework import viewsets, filters, permissions
 from rest_framework.decorators import (detail_route, list_route, api_view,
@@ -105,30 +108,30 @@ class PublicSiloViewSet(viewsets.ReadOnlyModelViewSet):
             return HttpResponseBadRequest("The silo_id = %s is invalid" % id)
 
         silo = Silo.objects.get(pk=id)
-        if silo.public == False:
-            return HttpResponse("This table is not public. You must use the private API.")
+        if not silo.public:
+            url = reverse('silos-data', kwargs={'id': silo.pk})
+            return redirect(u'{}?{}'.format(url, request.GET))
+
         query = request.GET.get('query',"{}")
         filter_fields = json.loads(query)
 
-        shown_cols = set(json.loads(request.GET.get('shown_cols',json.dumps(getSiloColumnNames(id)))))
+        shown_cols = set(
+            json.loads(
+                request.GET.get('shown_cols',
+                                json.dumps(getSiloColumnNames(id)))))
 
-
-        recordsTotal = LabelValueStore.objects(silo_id=id, **filter_fields).count()
-
-
-        #print("offset=%s length=%s" % (offset, length))
-        #page_size = 100
-        #page = int(request.GET.get('page', 1))
-        #offset = (page - 1) * page_size
-        #if page > 0:
-        # workaround until the problem of javascript not increasing the value of length is fixed
-        data = LabelValueStore.objects(silo_id=id, **filter_fields).exclude('create_date', 'edit_date', 'silo_id','read_id')
+        # workaround until the problem of javascript
+        # not increasing the value of length is fixed
+        data = LabelValueStore.objects(
+            silo_id=id,
+            **filter_fields).exclude('create_date', 'edit_date',
+                                     'silo_id', 'read_id')
 
         for col in getCompleteSiloColumnNames(id):
             if col not in shown_cols:
                 data = data.exclude(col)
 
-        sort = str(request.GET.get('sort',''))
+        sort = str(request.GET.get('sort', ''))
         data = data.order_by(sort)
         json_data = json.loads(data.to_json())
         return JsonResponse(json_data, safe=False)

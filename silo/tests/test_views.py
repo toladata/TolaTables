@@ -5,7 +5,7 @@ from django.urls import reverse
 from rest_framework.test import APIRequestFactory
 
 from silo.tests import MongoTestCase
-from silo.api import CustomFormViewSet
+from silo.api import CustomFormViewSet, PublicSiloViewSet
 from silo.models import LabelValueStore, Silo, Tag, ReadType
 
 from mock import Mock, patch
@@ -1895,3 +1895,25 @@ class SiloEditViewTest(TestCase):
 
         silo = Silo.objects.get(pk=silo.pk)
         self.assertNotEqual(silo.owner, request_user)
+
+
+class PublicSiloViewTest(TestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+        self.organizaton = factories.Organization()
+        self.user = factories.User(username='Test User')
+        self.tola_user = factories.TolaUser(user=self.user)
+
+    def test_public_silo_view_with_private_silo(self):
+        silo = factories.Silo(name='test',
+                              public=False,
+                              organization=self.organizaton,
+                              owner=self.tola_user.user)
+
+        request = self.factory.get(
+            '/api/public_tables/{}/data'.format(silo.pk))
+        request.user = self.user
+        view = PublicSiloViewSet.as_view({'get': 'data'})
+        response = view(request, id=silo.id)
+
+        self.assertEqual(response.status_code, 302)
