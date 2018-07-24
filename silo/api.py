@@ -144,8 +144,8 @@ class CustomFormViewSet(mixins.CreateModelMixin,
     queryset = Silo.objects.all()
     _default_columns = [
         {'name': 'submitted_by', 'type': 'text'},
-        {'name': 'submission_data', 'type': 'date'},
-        {'name': 'submission_time', 'type': 'date'}
+        {'name': 'submission_date', 'type': 'date'},
+        {'name': 'submission_time', 'type': 'time'}
     ]
 
     def create(self, request, *args, **kwargs):
@@ -271,18 +271,26 @@ class CustomFormViewSet(mixins.CreateModelMixin,
                             status=status.HTTP_400_BAD_REQUEST)
 
         if data:
-            # add the timestamp
+            submitted_by = None
+
+            # get timestamp
             now = datetime.now()
             submission_date = now.strftime('%Y-%m-%d')
             submission_time = now.strftime('%H:%M:%S')
-            data.update({'submission_date': submission_date})
-            data.update({'submission_time': submission_time})
 
-            # if there's a submitted_by uuid, add the user's name to the data
+            # if there's a submitted_by uuid, get user's name from db
             if submitted_by_uuid:
-                submitted_by_username = TolaUser.objects.values_list(
+                submitted_by = TolaUser.objects.values_list(
                     'name', flat=True).get(tola_user_uuid=submitted_by_uuid)
-                data.update({'submitted_by': submitted_by_username})
+
+            # add values to the default columns
+            for default_col in self._default_columns:
+                if default_col['type'] == 'text' and submitted_by:
+                    data.update({'submitted_by': submitted_by})
+                elif default_col['type'] == 'date':
+                    data.update({'submission_date': submission_date})
+                elif default_col['type'] == 'time':
+                    data.update({'submission_time': submission_time})
 
         try:
             silo = Silo.objects.get(pk=silo_id)
