@@ -605,6 +605,39 @@ class CustomFormSaveDataViewTest(TestCase):
         self.assertIn('submitted_by', data)
         self.assertEqual(data['submitted_by'], sender_tola_user.name)
 
+    def test_save_data_customform_default_columns(self):
+        user = factories.User(first_name='Homer', last_name='Simpson')
+        sender_tola_user = factories.TolaUser(user=user)
+
+        data = {
+            'silo_id': self.silo.id,
+            'data': {
+                'name': 'John Lennon',
+                'age': 40,
+                'city': 'Liverpool'
+            },
+            'submitted_by': sender_tola_user.tola_user_uuid.__str__(),
+        }
+
+        request = self.factory.post('api/customform/save_data',
+                                    data=json.dumps(data),
+                                    content_type='application/json')
+        request.user = self.tola_user.user
+        view = CustomFormViewSet.as_view({'post': 'save_data'})
+        response = view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['detail'], 'It was successfully saved.')
+        self.assertEqual(self.silo.data_count, 1)
+
+        # check if the default columns were created
+        customform_silo = LabelValueStore.objects.get(silo_id=self.silo.id)
+        table_column_names = customform_silo._dynamic_fields.keys()
+        for default_col in CustomFormViewSet._default_columns:
+            self.assertIn(default_col['name'], table_column_names)
+
+        self.assertEqual(len(table_column_names), 6)
+
     def test_save_data_customform_no_data_normaluser(self):
         data = {}
 
