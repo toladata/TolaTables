@@ -40,7 +40,7 @@ pipeline:
     repo: Humanitec/deployment
     branch: master
     deploy_to: marathon
-    params: "APP_ID=/tolatables,APP_GROUP=toladata,APP_NAME=TolaTables,APP_BRANCH=dev,APP_COMMIT=${DRONE_COMMIT_SHA},APP_TAG=${DRONE_TAG},APP_IMAGE=registry.tola.io/toladata/tolatables:${DRONE_TAG##v}"
+    params: "APP_ID=/tolatables,APP_GROUP=toladata,APP_NAME=TolaTables,APP_BRANCH=dev-v2,APP_COMMIT=${DRONE_COMMIT_SHA},APP_TAG=${DRONE_TAG},APP_IMAGE=registry.tola.io/toladata/tolatables:${DRONE_TAG##v}"
     when:
       event: [tag]
       status: [success]
