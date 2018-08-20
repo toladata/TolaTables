@@ -1150,6 +1150,43 @@ class SiloDetailViewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
+    def test_public_silo_detail_with_owner_user(self):
+        read = factories.Read(read_name="test_data",
+                              owner=self.user)
+        silo = factories.Silo(owner=self.user,
+                              reads=[read],
+                              public=True)
+        url = reverse('silo_detail', args=[silo.pk])
+
+        request = self.factory.get(url)
+        request.user = self.user
+        response = views.silo_detail(request, silo.pk)
+        template_content = response.content
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('<a href="#" id="id_public-{}"'.format(silo.id),
+                      template_content)
+
+    def test_public_silo_detail_with_not_owner_user(self):
+        request_user = factories.User(username='Another User')
+        factories.TolaUser(user=request_user)
+
+        read = factories.Read(read_name="test_data",
+                              owner=self.user)
+        silo = factories.Silo(owner=self.user,
+                              reads=[read],
+                              public=True)
+        url = reverse('silo_detail', args=[silo.pk])
+
+        request = self.factory.get(url)
+        request.user = request_user
+        response = views.silo_detail(request, silo.pk)
+        template_content = response.content
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn('<a href="#" id="id_public-{}"'.format(silo.id),
+                         template_content)
+
     def test_silo_detail_share_with_organization(self):
         request_user = factories.User(username='Another User')
         organization = self.tola_user.organization
