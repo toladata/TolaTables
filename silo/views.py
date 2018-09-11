@@ -9,6 +9,7 @@ import json
 from collections import OrderedDict
 from requests.auth import HTTPDigestAuth
 import tempfile
+import uuid
 
 from pymongo import MongoClient
 
@@ -792,6 +793,7 @@ def showRead(request, id):
                 social_auth, created = UserSocialAuth.objects.get_or_create(
                         provider='microsoft-graph', user=request.user)
                 social_auth.extra_data = extra_data
+                social_auth.uid = str(uuid.uuid4())
                 social_auth.save()
 
                 return HttpResponseRedirect("/import_onedrive/" + str(
