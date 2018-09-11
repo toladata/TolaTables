@@ -1050,6 +1050,37 @@ class OneDriveReadTest(TestCase):
 
         self.assertIn('Invalid Form', messages)
 
+    def test_new_read_post_creates_uuid(self):
+        """
+        POST for onedrive should create uuid for UserSocialAuth, otherwise
+        unique_together will not be unique.
+        """
+        read_type = ReadType.objects.get(read_type="OneDrive")
+
+        params = {
+            'owner': self.tola_user.user.pk,
+            'type': read_type.pk,
+            'read_name': 'TEST READ ONEDRIVE',
+            'description': 'TEST DESCRIPTION for test read source',
+            'onedrive_file': 'TEST10000100',
+            'onedrive_access_token': 'TEST_DUMMY_TOKEN',
+            'create_date': '2018-01-26 12:33:00',
+        }
+        request = self.factory.post(self.new_read_url, data=params)
+        request.user = self.tola_user.user
+
+        response = views.showRead(request, 0)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/import_onedrive/1/')
+
+        # check for social auth updated
+
+        social_auth = UserSocialAuth.objects.get(user=self.tola_user.user,
+                                                 provider='microsoft-graph')
+
+        self.assertNotEqual(social_auth.uid, '')
+
 
 class SiloDetailViewTest(TestCase):
     def setUp(self):
